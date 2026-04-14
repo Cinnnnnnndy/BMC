@@ -16,25 +16,17 @@ import '@xyflow/react/dist/style.css';
 import { csrToFlow, flowToCsr } from '../csrParser';
 import { CsrNode } from './CsrNode';
 import type { CSRDocument } from '../types';
-import { VendorHuaweiTianChiTopologyView } from './VendorHuaweiTianChiTopologyView';
-import { TaishanStaticVectorTopologyView } from './TaishanStaticVectorTopologyView';
 
 interface Props {
   csr: CSRDocument;
   onChange: (csr: CSRDocument) => void;
-  projectId?: string | null;
 }
 
-export function TopologyView({ csr, onChange, projectId }: Props) {
-  if (projectId === 'huawei-kunpeng-taishan-2180-v2') {
-    // 静态矢量复刻模式：不依赖 CSR，只复刻暗色.png 的“块状拓扑风格”
-    return <TaishanStaticVectorTopologyView />;
-  }
-  if (projectId === 'huawei-tianchi') {
-    return <VendorHuaweiTianChiTopologyView />;
-  }
-
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(() => csrToFlow(csr), [csr]);
+export function TopologyView({ csr, onChange }: Props) {
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => csrToFlow(csr),
+    [csr]
+  );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -51,10 +43,15 @@ export function TopologyView({ csr, onChange, projectId }: Props) {
     onChange(next);
   }, [nodes, edges, onChange]);
 
-  const nodeTypes = useMemo(() => ({ csrNode: CsrNode }), []);
+  const nodeTypes = useMemo(
+    () => ({
+      csrNode: CsrNode,
+    }),
+    []
+  );
 
   return (
-    <div className="flow-wrap">
+    <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -64,12 +61,12 @@ export function TopologyView({ csr, onChange, projectId }: Props) {
         connectionMode={ConnectionMode.Loose}
         nodeTypes={nodeTypes}
         fitView
-        className="glass-flow"
+        style={{ background: '#1e1e1e' }}
       >
-        <Background color="rgba(229, 236, 255, 0.22)" gap={20} />
+        <Background color="#3c3c3c" gap={16} />
         <Controls />
         <MiniMap />
-        <Panel position="top-left" className="flow-hint-panel">
+        <Panel position="top-left" style={{ color: '#888', fontSize: 12 }}>
           拖拽节点可调整布局，连线表示拓扑关系
         </Panel>
       </ReactFlow>

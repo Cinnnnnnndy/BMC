@@ -1,0 +1,61 @@
+.busNode {
+  width: 80px;
+  height: 22px;
+  background: rgba(232, 121, 160, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 10px;
+  color: white;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(232, 121, 160, 0.3);
+}
+
+.busNode:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 24px rgba(232, 121, 160, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.busNode.selected {
+  filter: brightness(1.2);
+  box-shadow: 0 8px 32px rgba(232, 121, 160, 0.6);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.busNode.dashed {
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  background: rgba(232, 121, 160, 0.7);
+}
+
+.handle {
+  width: 8px;
+  height: 8px;
+  background: rgba(74, 158, 255, 0.9);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 2px solid rgba(232, 121, 160, 0.8);
+  border-radius: 50%;
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.label {
+  font-size: 10px;
+  color: white;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
