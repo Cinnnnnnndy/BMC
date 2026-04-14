@@ -1,0 +1,133 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal {
+  width: 90vw;
+  height: 90vh;
+  max-width: 1200px;
+  max-height: 800px;
+  background: #1e1e2e;
+  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #3a3a5a;
+  background: #252535;
+}
+
+.header h3 {
+  margin: 0;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionButton,
+.closeButton {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionButton:hover {
+  color: #4f6ef7;
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.closeButton:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.content :global(.react-syntax-highlighter) {
+  height: 100%;
+  margin: 0;
+}
+
+.content :global(.syntax-highlighter) {
+  height: 100%;
+  overflow: auto;
+}
+
+.content :global(pre) {
+  height: 100%;
+  margin: 0 !important;
+  padding: 20px !important;
+  background: #1e1e2e !important;
+}
+
+.content :global(code) {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.content :global(.linenumber) {
+  color: #6b7280 !important;
+  padding-right: 12px !important;
+  user-select: none;
+}
+
+.content :global(.token.property) {
+  color: #79c0ff !important;
+}
+
+.content :global(.token.string) {
+  color: #a5d6ff !important;
+}
+
+.content :global(.token.number) {
+  color: #79c0ff !important;
+}
+
+.content :global(.token.punctuation) {
+  color: #9ca3af !important;
+}
+
+.content :global(.token.keyword) {
+  color: #ff7b72 !important;
+}
+
+.content :global(.token.boolean) {
+  color: #ffab70 !important;
+}
+
+.content :global(.token.null) {
+  color: #ffab70 !important;
+}

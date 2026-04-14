@@ -1,0 +1,66 @@
+{
+  "name": "openubmc-csr-topology-editor",
+  "displayName": "openUBMC CSR 拓扑图形化编辑器",
+  "description": "将 CSR 的 JSON 文本转为可视化拓扑树，支持拖拽操作、事件配置、传感器配置与仿真调试",
+  "version": "0.1.0",
+  "publisher": "openUBMC",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCustomEditor:csrTopologyEditor",
+    "onCommand:csrTopology.openEditor"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "csrTopologyEditor",
+        "displayName": "CSR 拓扑图形化编辑器",
+        "selector": [
+          {
+            "filenamePattern": "*.sr"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "csrTopology.openEditor",
+        "title": "打开 CSR 拓扑编辑器"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "csrTopology.openEditor"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "csrTopology.openEditor",
+          "when": "resourceFilename =~ /.*\\.sr$/",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./ && npm run build:webview",
+    "watch": "tsc -w -p ./",
+    "build:webview": "cd web-app && npm run build",
+    "watch:webview": "cd web-app && npm run build -- --watch",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}

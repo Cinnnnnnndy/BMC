@@ -1,0 +1,18 @@
+.server2-root {
+  height: 100%;
+  display: flex;
+  background: #0f1117;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.server2-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 适配：与 simulator.css 中 sim2 类保持兼容（不侵入全局） */
+.server2-root .sim2-image-wrap {
+  margin: 0 auto;
+}
+

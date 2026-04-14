@@ -1,0 +1,206 @@
+.taishan-topology {
+  height: 100%;
+  background: transparent;
+}
+
+.taishan-canvas-wrap {
+  position: relative;
+  overflow: auto;
+  padding: 24px;
+  height: 100%;
+  background: var(--surface-subtle);
+  backdrop-filter: blur(8px);
+}
+
+.taishan-stage {
+  position: relative;
+  width: 980px;
+  height: 520px;
+}
+
+.taishan-node {
+  width: 140px;
+  height: 84px;
+  color: var(--taishan-node-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  text-align: center;
+  position: absolute;
+  transition: transform var(--motion-smooth), filter var(--motion-smooth);
+}
+
+.taishan-node--riser-expanded {
+  width: 360px !important;
+  height: 260px !important;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 6px 8px 8px;
+}
+
+.taishan-node--riser-expanded:hover {
+  transform: none !important;
+  filter: none !important;
+}
+
+.taishan-node--riser-expanded.is-selected {
+  transform: none !important;
+  filter: none !important;
+}
+
+.taishan-riser-expanded-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.taishan-riser-expanded-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taishan-riser-expanded-body {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.taishan-node:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(var(--taishan-node-shadow));
+}
+
+.taishan-node.is-selected {
+  transform: scale(1.03);
+  filter: drop-shadow(0 0 18px rgba(88, 129, 255, 0.38));
+}
+
+.taishan-config-pop {
+  position: absolute;
+  width: 280px;
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--surface-border-strong);
+  border-radius: 12px;
+  background: var(--taishan-pop-bg);
+  box-shadow: var(--glass-shadow-float);
+  padding: 10px;
+  z-index: 5;
+  backdrop-filter: blur(18px) saturate(140%);
+  animation: taishan-pop-in var(--motion-smooth);
+  color: var(--taishan-pop-text);
+}
+
+.taishan-config-tail {
+  position: absolute;
+  top: 22px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+.taishan-config-pop.is-right .taishan-config-tail {
+  left: -8px;
+  border-right: 8px solid var(--taishan-pop-bg);
+}
+
+.taishan-config-pop.is-left .taishan-config-tail {
+  right: -8px;
+  border-left: 8px solid var(--taishan-pop-bg);
+}
+
+.taishan-config-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.taishan-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  transition: color var(--motion-smooth), transform var(--motion-smooth);
+}
+
+.taishan-close:hover {
+  color: #374151;
+  transform: scale(1.08);
+}
+
+.taishan-note {
+  margin-top: 8px;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.taishan-kv-title {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: var(--taishan-pop-sub);
+}
+
+.taishan-chip {
+  font-size: 11px;
+  background: var(--surface-strong);
+  border: 1px solid var(--surface-border-base);
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: var(--taishan-pop-text);
+}
+
+.taishan-config-title {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.taishan-config-stat {
+  font-size: 12px;
+  color: var(--taishan-pop-sub);
+  margin-bottom: 8px;
+}
+
+.taishan-config-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.taishan-config-section {
+  margin-bottom: 8px;
+}
+
+.taishan-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.taishan-kv-item {
+  font-size: 11px;
+  color: var(--taishan-pop-text);
+  margin-bottom: 2px;
+}
+
+@keyframes taishan-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
