@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+web-app/node_modules/
+webview/node_modules/
+
+# Build output
+web-app/dist/
+webview/dist/
+out/
+
+# Vite cache
+web-app/.vite/
+webview/.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Claude Code - 只忽略内部状态，保留 launch.json 供团队共享
+.claude/todos.json
+.claude/settings.json

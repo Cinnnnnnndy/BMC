@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-app (CSR拓扑编辑器独立预览)",
+      "runtimeExecutable": "/Applications/Cursor.app/Contents/Resources/app/resources/helpers/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173"],
+      "port": 5173,
+      "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/csr-topology-editor/web-app"
+    },
+    {
+      "name": "webview (VSCode扩展内嵌视图预览)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5174,
+      "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/csr-topology-editor/webview"
+    }
+  ]
+}
