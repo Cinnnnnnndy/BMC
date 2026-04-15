@@ -224,7 +224,7 @@ export default function App() {
           <button onClick={() => setShowHwTopology(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
             ← 返回
           </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC 硬件拓扑视图</span>
+          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · 硬件拓扑视图</span>
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <HardwareTopologyCanvas />

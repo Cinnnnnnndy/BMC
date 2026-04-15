@@ -294,7 +294,7 @@ export function ProjectList({ projects, onSelect, onUpload, onOpenView }: Props)
   return (
     <div className="project-list-page">
       <div className="project-list-container">
-        <h1 className="project-list-title">openUBMC CSR 拓扑编辑器</h1>
+        <h1 className="project-list-title">openUBMC Studio</h1>
         <p className="project-list-subtitle">选择整机项目开始编辑，或按视图类型快速进入</p>
 
         {/* ── Section 1: 按视图 ── */}
