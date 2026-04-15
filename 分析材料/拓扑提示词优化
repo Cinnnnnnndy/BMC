@@ -1,0 +1,23 @@
+用 React Flow (@xyflow/react) 实现硬件拓扑图编辑器，要求：
+
+【初始布局】
+启动时用 elkjs 自动布局：
+  algorithm: 'layered', direction: 'DOWN',
+  spacing.nodeNode: 80, layered.spacing.nodeNodeBetweenLayers: 100,
+  edgeRouting: 'ORTHOGONAL'
+布局计算完成后再渲染，禁止手写任何初始 x/y 坐标。
+
+【交互】
+- 节点可手动拖拽，拖拽后位置持久化到 state
+- 左侧面板列出可用图元（CPU / EEPROM / I2C Bus 等）
+- 支持从面板拖入画布，onDrop 时在鼠标位置创建新节点
+- 双击节点可编辑标签
+- 工具栏有"重新自动布局"按钮，点击后重算但保留用户手动移动过的节点位置（用 locked 标记）
+
+【连线】
+- edge type 用 smoothstep，颜色按总线类型区分（I2C 用紫色，电源用橙色）
+- 连线端点显示小圆点 handle，点击可拉出新连线
+
+【导出】
+- 支持导出为 JSON（节点+连线的完整 state）
+- 支持通过 toSvg() 导出为 SVG 图片
