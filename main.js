@@ -46,38 +46,6 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-// ── Post-processing composer (silhouette outline) ────────────
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-
-// Always-on black outline for all boards
-const outlinePassAll = new OutlinePass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera
-);
-outlinePassAll.edgeStrength = 3.5;
-outlinePassAll.edgeGlow = 0;
-outlinePassAll.edgeThickness = 1.0;
-outlinePassAll.pulsePeriod = 0;
-outlinePassAll.visibleEdgeColor.set(0x000000);
-outlinePassAll.hiddenEdgeColor.set(0x000000);
-outlinePassAll.selectedObjects = [];
-composer.addPass(outlinePassAll);
-
-// Selected board — blue accent outline on top
-const outlinePassSelected = new OutlinePass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera
-);
-outlinePassSelected.edgeStrength = 6;
-outlinePassSelected.edgeGlow = 0;
-outlinePassSelected.edgeThickness = 2.5;
-outlinePassSelected.pulsePeriod = 0;
-outlinePassSelected.visibleEdgeColor.set(0x2457d6);
-outlinePassSelected.hiddenEdgeColor.set(0x2457d6);
-outlinePassSelected.selectedObjects = [];
-composer.addPass(outlinePassSelected);
-
-composer.addPass(new OutputPass());
-
 // ── Scene ───────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf7f9fc);
@@ -91,16 +59,49 @@ groundPlane.position.y = -0.012;
 groundPlane.receiveShadow = true;
 scene.add(groundPlane);
 
-// Ground grid
-const gridGround = new THREE.Group();
-let gridMajor = new THREE.GridHelper(16, 32, 0xb8c6d8, 0xd7e0ea);
-gridMajor.material.transparent = true;
-gridMajor.material.opacity = 0.9;
-let gridMinor = new THREE.GridHelper(16, 128, 0xdfe6ef, 0xe9eef5);
-gridMinor.material.transparent = true;
-gridMinor.material.opacity = 0.5;
-gridGround.add(gridMinor, gridMajor);
-scene.add(gridGround);
+// Ground grid — shader-based (anti-aliased, no WebGL line artifacts)
+const gridMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(16, 16),
+  new THREE.ShaderMaterial({
+    uniforms: {
+      majorSpacing: { value: 1.0 },
+      majorColor:   { value: new THREE.Color(0xb8c6d8) },
+      majorOpacity: { value: 0.7 },
+    },
+    vertexShader: `
+      varying vec2 vWorldPos;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float majorSpacing;
+      uniform vec3  majorColor;
+      uniform float majorOpacity;
+      varying vec2 vWorldPos;
+
+      float gridLine(vec2 pos, float spacing) {
+        vec2 d = fwidth(pos / spacing) * 1.5;
+        vec2 g = abs(fract(pos / spacing - 0.5) - 0.5) / d;
+        return 1.0 - clamp(min(g.x, g.y), 0.0, 1.0);
+      }
+
+      void main() {
+        float major = gridLine(vWorldPos, majorSpacing);
+        float alpha = major * majorOpacity;
+        if (alpha < 0.01) discard;
+        gl_FragColor = vec4(majorColor, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+  })
+);
+gridMesh.rotation.x = -Math.PI / 2;
+gridMesh.position.y = -0.002;
+scene.add(gridMesh);
 
 // Lights
 const ambient = new THREE.AmbientLight(0xffffff, 1.08);
@@ -115,7 +116,7 @@ dirLight.shadow.camera.right = 120;
 dirLight.shadow.camera.top = 120;
 dirLight.shadow.camera.bottom = -120;
 dirLight.shadow.bias = -0.001;
-dirLight.shadow.normalBias = 0.02;
+dirLight.shadow.normalBias = 0;
 dirLight.shadow.radius = 2;
 dirLight.shadow.mapSize.set(2048, 2048);
 scene.add(dirLight);
@@ -125,7 +126,7 @@ scene.add(helper);
 
 // Light control state
 const LIGHT_DIST = 80;
-const lightParams = { intensity: 3.0, azimuth: 330, elevation: 12 };
+const lightParams = { intensity: 3.2, azimuth: 330, elevation: 12 };
 
 function updateDirLight() {
   const az = THREE.MathUtils.degToRad(lightParams.azimuth);
@@ -154,6 +155,40 @@ scene.add(hemiLight);
 
 // ── Camera ──────────────────────────────────────────────────
 const camera = new THREE.PerspectiveCamera(18, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+// ── Post-processing composer (silhouette outline) ────────────
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// Always-on black outline for all boards
+const _dpr = window.devicePixelRatio;
+const outlinePassAll = new OutlinePass(
+  new THREE.Vector2(window.innerWidth * _dpr, window.innerHeight * _dpr), scene, camera
+);
+outlinePassAll.edgeStrength = 0.8;
+outlinePassAll.edgeGlow = 0;
+outlinePassAll.edgeThickness = 1.0;
+outlinePassAll.pulsePeriod = 0;
+outlinePassAll.visibleEdgeColor.set(0x000000);
+outlinePassAll.hiddenEdgeColor.set(0x000000);
+outlinePassAll.selectedObjects = [];
+composer.addPass(outlinePassAll);
+
+// Selected board — blue accent outline on top
+const outlinePassSelected = new OutlinePass(
+  new THREE.Vector2(window.innerWidth * _dpr, window.innerHeight * _dpr), scene, camera
+);
+outlinePassSelected.edgeStrength = 8;
+outlinePassSelected.edgeGlow = 0;
+outlinePassSelected.edgeThickness = 4.0;
+outlinePassSelected.pulsePeriod = 0;
+const selColor = new THREE.Color(0x0035D3).convertSRGBToLinear();
+outlinePassSelected.visibleEdgeColor.copy(selColor);
+outlinePassSelected.hiddenEdgeColor.copy(selColor);
+outlinePassSelected.selectedObjects = [];
+composer.addPass(outlinePassSelected);
+
+composer.addPass(new OutputPass());
 
 const VIEW_MODES = {
   oblique: {
@@ -288,23 +323,11 @@ function updateGridGround(size) {
   const span = Math.max(size.x, size.z) * 3.2;
   const gridSize = Math.max(12, Math.ceil(span / 2) * 2);
   const majorDivisions = Math.max(8, Math.round(gridSize / 10) * 4);
-  const minorDivisions = majorDivisions * 2;
+  const majorStep = gridSize / majorDivisions;
 
-  gridGround.remove(gridMajor, gridMinor);
-  gridMajor.geometry.dispose();
-  gridMinor.geometry.dispose();
-
-  gridMajor = new THREE.GridHelper(gridSize, majorDivisions, 0xffffff, 0xffffff);
-  gridMajor.material.transparent = true;
-  gridMajor.material.opacity = 0.5;
-  gridMinor = new THREE.GridHelper(gridSize, minorDivisions, 0xffffff, 0xffffff);
-  gridMinor.material.transparent = true;
-  gridMinor.material.opacity = 0.5;
-
-  gridGround.add(gridMinor, gridMajor);
-  gridGround.position.y = -0.002;
-  gridGround.position.x = 0;
-  gridGround.position.z = 0;
+  gridMesh.geometry.dispose();
+  gridMesh.geometry = new THREE.PlaneGeometry(gridSize, gridSize);
+  gridMesh.material.uniforms.majorSpacing.value = majorStep;
 
   groundPlane.geometry.dispose();
   groundPlane.geometry = new THREE.PlaneGeometry(gridSize, gridSize);
@@ -426,20 +449,6 @@ function setupBoards(root) {
   window.debug.boards = boards;
 }
 
-function selectBoard(board) {
-  if (selectedBoard === board) {
-    deselectBoard(board);
-    selectedBoard = null;
-    return;
-  }
-  if (selectedBoard) deselectBoard(selectedBoard);
-  selectedBoard = board;
-  outlinePassSelected.selectedObjects = board.meshes;
-}
-
-function deselectBoard(board) {
-  outlinePassSelected.selectedObjects = [];
-}
 
 const loader = new GLTFLoader();
 loader.load(
@@ -537,10 +546,11 @@ animate();
 // ── Resize ──────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
+  const dpr = window.devicePixelRatio;
   renderer.setSize(w, h);
-  composer.setSize(w, h);
-  outlinePassAll.setSize(w, h);
-  outlinePassSelected.setSize(w, h);
+  composer.setSize(w * dpr, h * dpr);
+  outlinePassAll.setSize(w * dpr, h * dpr);
+  outlinePassSelected.setSize(w * dpr, h * dpr);
   updateCameraFrustum();
 });
 
@@ -697,7 +707,7 @@ window.THREE = THREE;
 window.directionalLight = dirLight;
 
 const rendererCanvas = renderer.domElement;
-rendererCanvas.addEventListener('click', (event) => {
+rendererCanvas.addEventListener('mousemove', (event) => {
   if (!modelRoot || selectableObjects.length === 0 || boards.length === 0) return;
 
   const rect = rendererCanvas.getBoundingClientRect();
@@ -708,7 +718,7 @@ rendererCanvas.addEventListener('click', (event) => {
   const intersects = raycaster.intersectObjects(selectableObjects, true);
 
   if (intersects.length === 0) {
-    if (selectedBoard) { deselectBoard(selectedBoard); selectedBoard = null; }
+    outlinePassSelected.selectedObjects = [];
     return;
   }
 
@@ -719,5 +729,5 @@ rendererCanvas.addEventListener('click', (event) => {
     return found;
   });
 
-  if (board) selectBoard(board);
+  outlinePassSelected.selectedObjects = board ? board.meshes : [];
 });
