@@ -177,6 +177,10 @@ applyZoom(ZOOM_DEFAULT);
 // ── Model ───────────────────────────────────────────────────
 let modelRoot = null;
 const materials = new Set();
+const selectableObjects = [];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let currentOutline = null;
 
 function fitCameraToObject(object) {
   scene.updateMatrixWorld(true);
@@ -208,6 +212,36 @@ function fitShadowCameraToScene(light, scene) {
   light.shadow.camera.bottom = -r;
   light.shadow.camera.far    = light.position.length() + r * 2;
   light.shadow.camera.updateProjectionMatrix();
+}
+
+function clearOutline() {
+  if (!currentOutline) return;
+  scene.remove(currentOutline);
+  currentOutline = null;
+}
+
+function addOutline(mesh) {
+  clearOutline();
+
+  const outline = mesh.clone();
+  outline.material = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    side: THREE.BackSide,
+    depthTest: false
+  });
+
+  const thickness = 0.015;
+  outline.scale.setScalar(1 + thickness);
+  outline.position.copy(mesh.position);
+  outline.quaternion.copy(mesh.quaternion);
+  outline.userData.original = mesh;
+
+  if (mesh.parent) {
+    mesh.parent.add(outline);
+  } else {
+    scene.add(outline);
+  }
+  currentOutline = outline;
 }
 
 function updateGridGround(size) {
@@ -260,12 +294,14 @@ loader.load(
   '../boards.glb',
   (gltf) => {
     modelRoot = gltf.scene;
+    selectableObjects.length = 0;
 
     // Collect mesh/material stats
     let meshCount = 0;
     modelRoot.traverse((obj) => {
       if (obj.isMesh) {
         meshCount++;
+        selectableObjects.push(obj);
         obj.castShadow = true;
         obj.receiveShadow = true;
         obj.frustumCulled = false;
@@ -502,4 +538,31 @@ window.debug = {
 };
 // 把这些也暴露到全局，控制台就能用了
 window.THREE = THREE;
-window.directionalLight = directionalLight;   // 顺便把光源也暴露（后面调阴影用）
+window.directionalLight = dirLight;
+
+const rendererCanvas = renderer.domElement;
+rendererCanvas.addEventListener('click', (event) => {
+  if (!modelRoot || selectableObjects.length === 0) return;
+
+  const rect = rendererCanvas.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(selectableObjects, true);
+
+  if (intersects.length === 0) {
+    clearOutline();
+    return;
+  }
+
+  const clickedMesh = intersects[0].object;
+  if (currentOutline && currentOutline.userData.original === clickedMesh) {
+    clearOutline();
+    console.log('取消高亮');
+    return;
+  }
+
+  addOutline(clickedMesh);
+  console.log('高亮物体：', clickedMesh.name || 'unnamed');
+});
