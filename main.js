@@ -154,7 +154,7 @@ const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
 scene.add(hemiLight);
 
 // ── Camera ──────────────────────────────────────────────────
-const camera = new THREE.PerspectiveCamera(18, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(10, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 // ── Post-processing composer (silhouette outline) ────────────
 const composer = new EffectComposer(renderer);
