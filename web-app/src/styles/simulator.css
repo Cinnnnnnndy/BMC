@@ -1,0 +1,256 @@
+/* 仿真调试：爆炸图底图 + 热区叠加 */
+.sim2-root {
+  height: 100%;
+  display: flex;
+  background: #0f1117;
+  overflow: hidden;
+}
+
+.sim2-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.sim2-image-wrap {
+  position: relative;
+  width: min(980px, 100%);
+  aspect-ratio: 16 / 9;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.sim2-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0f1117;
+}
+
+.sim2-hotspot {
+  position: absolute;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity var(--motion-smooth), border-color var(--motion-smooth), background var(--motion-smooth);
+}
+
+.sim2-hotspot.is-warning {
+  border-color: rgba(255, 213, 79, 0.85);
+  animation: sim2-warn-pulse 1.25s ease-in-out infinite;
+}
+
+.sim2-hotspot.is-error {
+  border-color: rgba(255, 107, 107, 0.9);
+  animation: sim2-error-blink 0.55s steps(2, end) infinite;
+}
+
+.sim2-hotspot:hover {
+  border-color: #40a0ff;
+}
+
+.sim2-hotspot:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 0;
+  top: -28px;
+  background: rgba(26, 29, 39, 0.92);
+  color: #e8eefc;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sim2-hotspot.is-selected {
+  border-color: #40a0ff;
+  background: rgba(64, 160, 255, 0.3);
+}
+
+.sim2-hotspot.is-dim {
+  opacity: 0.3;
+}
+
+.sim2-hotspot-badge {
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 238, 252, 0.95);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.sim2-hotspot-badge.warning {
+  background: rgba(255, 213, 79, 0.14);
+  color: #ffd54f;
+  border-color: rgba(255, 213, 79, 0.25);
+}
+
+.sim2-hotspot-badge.error {
+  background: rgba(255, 107, 107, 0.14);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.25);
+}
+
+@keyframes sim2-warn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0); }
+  50% { box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
+}
+
+@keyframes sim2-error-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.35; }
+}
+
+.sim2-log-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 238, 252, 0.95);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.sim2-log-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sim2-panel {
+  width: 220px;
+  flex: 0 0 220px;
+  background: #1a1d27;
+  border-left: 0.5px solid rgba(255, 255, 255, 0.12);
+  color: #e8eefc;
+  display: flex;
+  flex-direction: column;
+}
+
+.sim2-panel.is-collapsed {
+  width: 40px;
+  flex-basis: 40px;
+}
+
+.sim2-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 8px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.sim2-panel-title {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.sim2-panel-toggle {
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eefc;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sim2-panel-body {
+  padding: 10px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim2-empty {
+  color: rgba(232, 238, 252, 0.7);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sim2-selected-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sim2-selected-name {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.sim2-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sim2-badge.normal {
+  background: rgba(76, 175, 80, 0.2);
+  color: #7ce38d;
+}
+
+.sim2-badge.warning {
+  background: rgba(255, 213, 79, 0.18);
+  color: #ffd54f;
+}
+
+.sim2-badge.error {
+  background: rgba(255, 107, 107, 0.18);
+  color: #ff6b6b;
+}
+
+.sim2-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.sim2-metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sim2-metric-k {
+  color: rgba(232, 238, 252, 0.72);
+}
+
+.sim2-metric-v {
+  color: #e8eefc;
+  font-weight: 600;
+}
+
+.sim2-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 2px 0;
+}
+
+.sim2-note {
+  font-size: 11px;
+  color: rgba(232, 238, 252, 0.62);
+  line-height: 1.35;
+}

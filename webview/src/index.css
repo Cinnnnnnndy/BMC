@@ -1,0 +1,29 @@
+* {
+  box-sizing: border-box;
+}
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.react-flow__node {
+  font-size: 12px;
+}
+.react-flow__edge-path {
+  stroke: #4a9eff;
+  stroke-width: 2;
+}
+.react-flow__controls {
+  button {
+    background: #333 !important;
+    color: #fff !important;
+    border-color: #555 !important;
+  }
+}
+.react-flow__minimap {
+  background: #252526 !important;
+}
