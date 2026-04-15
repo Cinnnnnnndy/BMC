@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ── DOM refs ────────────────────────────────────────────────
 const canvas       = document.getElementById('three-canvas');
@@ -41,6 +45,38 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// ── Post-processing composer (silhouette outline) ────────────
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// Always-on black outline for all boards
+const outlinePassAll = new OutlinePass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera
+);
+outlinePassAll.edgeStrength = 3.5;
+outlinePassAll.edgeGlow = 0;
+outlinePassAll.edgeThickness = 1.0;
+outlinePassAll.pulsePeriod = 0;
+outlinePassAll.visibleEdgeColor.set(0x000000);
+outlinePassAll.hiddenEdgeColor.set(0x000000);
+outlinePassAll.selectedObjects = [];
+composer.addPass(outlinePassAll);
+
+// Selected board — blue accent outline on top
+const outlinePassSelected = new OutlinePass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera
+);
+outlinePassSelected.edgeStrength = 6;
+outlinePassSelected.edgeGlow = 0;
+outlinePassSelected.edgeThickness = 2.5;
+outlinePassSelected.pulsePeriod = 0;
+outlinePassSelected.visibleEdgeColor.set(0x2457d6);
+outlinePassSelected.hiddenEdgeColor.set(0x2457d6);
+outlinePassSelected.selectedObjects = [];
+composer.addPass(outlinePassSelected);
+
+composer.addPass(new OutputPass());
 
 // ── Scene ───────────────────────────────────────────────────
 const scene = new THREE.Scene();
@@ -182,6 +218,10 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let currentOutline = null;
 
+// Board-level state
+const boards = [];
+let selectedBoard = null;
+
 function fitCameraToObject(object) {
   scene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(object);
@@ -289,9 +329,121 @@ function applyViewMode(mode) {
   applyZoom(mode === 'top' ? VIEW_MODES.top.zoom : ZOOM_DEFAULT);
 }
 
+// ── Board detection & highlighting ──────────────────────────
+const BOARD_NAMES = ['IO Board', 'BMC Board', 'IO Board', 'Extension Board', 'Base Board', 'Rear Board', 'HDD Board'];
+
+function findBoardGroups(root) {
+  const hasMesh = (node) => { let ok = false; node.traverse(o => { if (o.isMesh) ok = true; }); return ok; };
+  const direct = root.children.filter(hasMesh);
+  if (direct.length >= 5) return direct;
+  const deeper = [];
+  root.children.forEach(c => c.children.forEach(gc => { if (hasMesh(gc)) deeper.push(gc); }));
+  return deeper.length >= 5 ? deeper : direct;
+}
+
+function makeGroundLabel(name) {
+  const dpr = 2;
+  const H = 44 * dpr;
+  const fontSize = 24 * dpr;
+  const padX = 16 * dpr;
+  const radius = 10 * dpr;
+
+  const offscreen = document.createElement('canvas');
+  const ctx = offscreen.getContext('2d');
+  ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+  const textW = ctx.measureText(name).width;
+  offscreen.width = textW + padX * 2;
+  offscreen.height = H;
+
+  ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+  ctx.fillStyle = '#111827';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, offscreen.width, H, radius);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, padX, H / 2);
+
+  const texture = new THREE.CanvasTexture(offscreen);
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const aspect = offscreen.width / offscreen.height;
+  const worldH = 0.018;
+  const worldW = worldH * aspect;
+
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(worldW, worldH),
+    new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, alphaTest: 0.05 })
+  );
+  plane.rotation.x = -Math.PI / 2;
+  plane.renderOrder = 2;
+  return plane;
+}
+
+function getMeshes(group) {
+  const list = [];
+  group.traverse(o => { if (o.isMesh) list.push(o); });
+  return list;
+}
+
+function setupBoards(root) {
+  scene.updateMatrixWorld(true);
+  const groups = findBoardGroups(root);
+  console.log(`[Boards] Found ${groups.length} groups`);
+
+  const items = groups.map(group => {
+    const box = new THREE.Box3().setFromObject(group);
+    return { group, box, center: box.getCenter(new THREE.Vector3()) };
+  });
+
+  // Sort by world X asc (left→right), same column → Y desc (top first)
+  items.sort((a, b) => {
+    const dx = a.center.x - b.center.x;
+    if (Math.abs(dx) > 0.02) return dx;
+    return b.center.y - a.center.y;
+  });
+
+  const allMeshes = [];
+
+  items.forEach((item, i) => {
+    const name = BOARD_NAMES[i] || `Board ${i + 1}`;
+    const { box, center } = item;
+    const meshes = getMeshes(item.group);
+    allMeshes.push(...meshes);
+
+    // Ground label (canvas texture, lies flat with perspective)
+    const label = makeGroundLabel(name);
+    // Position at near edge of board footprint (min.z side = camera-facing)
+    label.position.set(center.x, 0.001, box.min.z - 0.01);
+    scene.add(label);
+
+    boards.push({ group: item.group, box, center, name, meshes, label });
+    console.log(`[Boards] ${i}: "${name}" x=${center.x.toFixed(3)} y=${center.y.toFixed(3)} z=${center.z.toFixed(3)}`);
+  });
+
+  // Feed all board meshes to the always-on outline pass
+  outlinePassAll.selectedObjects = allMeshes;
+  window.debug.boards = boards;
+}
+
+function selectBoard(board) {
+  if (selectedBoard === board) {
+    deselectBoard(board);
+    selectedBoard = null;
+    return;
+  }
+  if (selectedBoard) deselectBoard(selectedBoard);
+  selectedBoard = board;
+  outlinePassSelected.selectedObjects = board.meshes;
+}
+
+function deselectBoard(board) {
+  outlinePassSelected.selectedObjects = [];
+}
+
 const loader = new GLTFLoader();
 loader.load(
-  '../boards.glb',
+  './boards.glb',
   (gltf) => {
     modelRoot = gltf.scene;
     selectableObjects.length = 0;
@@ -347,6 +499,7 @@ loader.load(
     fitCameraToObject(modelRoot);
     fitShadowCameraToScene(dirLight, scene);
     renderer.shadowMap.needsUpdate = true;
+    setupBoards(modelRoot);
 
     // Inspector info (size in mm, assuming model is in meters)
     const toMM = v => Math.round(v * 1000);
@@ -377,7 +530,7 @@ loader.load(
 // ── Render loop ─────────────────────────────────────────────
 function animate() {
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+  composer.render();
 }
 animate();
 
@@ -385,6 +538,9 @@ animate();
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h);
+  composer.setSize(w, h);
+  outlinePassAll.setSize(w, h);
+  outlinePassSelected.setSize(w, h);
   updateCameraFrustum();
 });
 
@@ -542,7 +698,7 @@ window.directionalLight = dirLight;
 
 const rendererCanvas = renderer.domElement;
 rendererCanvas.addEventListener('click', (event) => {
-  if (!modelRoot || selectableObjects.length === 0) return;
+  if (!modelRoot || selectableObjects.length === 0 || boards.length === 0) return;
 
   const rect = rendererCanvas.getBoundingClientRect();
   mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -552,17 +708,16 @@ rendererCanvas.addEventListener('click', (event) => {
   const intersects = raycaster.intersectObjects(selectableObjects, true);
 
   if (intersects.length === 0) {
-    clearOutline();
+    if (selectedBoard) { deselectBoard(selectedBoard); selectedBoard = null; }
     return;
   }
 
-  const clickedMesh = intersects[0].object;
-  if (currentOutline && currentOutline.userData.original === clickedMesh) {
-    clearOutline();
-    console.log('取消高亮');
-    return;
-  }
+  const hit = intersects[0].object;
+  const board = boards.find(b => {
+    let found = false;
+    b.group.traverse(o => { if (o === hit) found = true; });
+    return found;
+  });
 
-  addOutline(clickedMesh);
-  console.log('高亮物体：', clickedMesh.name || 'unnamed');
+  if (board) selectBoard(board);
 });
