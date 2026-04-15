@@ -48,6 +48,7 @@ export default function App() {
   const [lightMode, setLightMode] = useState(false);
   const [showServerView, setShowServerView] = useState(false);
   const [showHwTopology, setShowHwTopology] = useState(false);
+  const [showThreeD, setShowThreeD] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -193,6 +194,7 @@ export default function App() {
     async (viewId: string) => {
       if (viewId === 'hwTopology') { setShowHwTopology(true); return; }
       if (viewId === 'serverView') { setShowServerView(true); return; }
+      if (viewId === 'threeD') { setShowThreeD(true); return; }
       // Project-dependent views: load first project with rootSrPath then set tab
       const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'csrAdaptation';
       setActiveTab(tabId);
@@ -243,6 +245,28 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <ServerAssociationView />
+        </div>
+      </div>
+    );
+  }
+
+  if (showThreeD) {
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+    const threeDSrc = base.endsWith('/') ? base + '3d-viewer/index.html' : base + '/3d-viewer/index.html';
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#080812', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowThreeD(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · 3D仿真</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <iframe
+            src={threeDSrc}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="3D仿真视图"
+          />
         </div>
       </div>
     );
