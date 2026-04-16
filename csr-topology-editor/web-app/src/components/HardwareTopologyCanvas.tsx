@@ -914,7 +914,7 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
         cursor: 'pointer',
       }}
     >
-      {/* Header — drag to move, click to select group */}
+      {/* Header — drag to move; name is inline dropdown when multiple boards */}
       <div
         onMouseDown={e => onDragStart(type, e)}
         onClick={() => onGroupClick(type)}
@@ -929,47 +929,44 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
         }}
       >
         <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 2, background: typeColor + '22', color: typeColor, border: `1px solid ${typeColor}44`, fontWeight: 700, flexShrink: 0 }}>{type}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
-        {boards.length > 1 && (
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 9, background: typeColor + '18', color: typeColor + 'aa', border: `1px solid ${typeColor}22`, flexShrink: 0 }}>×{boards.length}</span>
-        )}
-      </div>
-
-      {/* Board switcher — dropdown when multiple boards exist */}
-      {boards.length > 1 && (
-        <div
-          style={{ padding: '3px 6px', borderBottom: `1px solid ${typeColor}18`, background: typeColor + '08' }}
-          onClick={e => e.stopPropagation()}
-          onMouseDown={e => e.stopPropagation()}
-        >
+        {boards.length > 1 ? (
           <select
             value={activeIdx}
-            onChange={e => setActiveIdx(Number(e.target.value))}
+            onChange={e => { e.stopPropagation(); setActiveIdx(Number(e.target.value)); }}
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
             style={{
-              width: '100%',
-              background: '#0b1118',
-              border: `1px solid ${typeColor}33`,
-              borderRadius: 4,
-              color: '#94a3b8',
-              fontSize: 9.5,
-              fontFamily: 'monospace',
-              padding: '2px 4px',
+              flex: 1,
+              minWidth: 0,
+              background: 'transparent',
+              border: 'none',
+              borderBottom: `1px solid ${typeColor}44`,
+              borderRadius: 0,
+              color: '#e2e8f0',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'inherit',
               cursor: 'pointer',
               outline: 'none',
               appearance: 'none',
               WebkitAppearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23475569'/%3E%3C/svg%3E")`,
+              padding: '0 16px 0 0',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0l3.5 4 3.5-4z' fill='%2364748b'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 5px center',
-              paddingRight: 18,
+              backgroundPosition: 'right 2px center',
             }}
           >
             {boards.map((b, i) => (
-              <option key={b.uid} value={i}>{b.name.replace('BC83', '')}</option>
+              <option key={b.uid} value={i} style={{ background: '#0f1a2e', color: '#e2e8f0' }}>{b.name}</option>
             ))}
           </select>
-        </div>
-      )}
+        ) : (
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
+        )}
+        {boards.length > 1 && (
+          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 9, background: typeColor + '18', color: typeColor + 'aa', border: `1px solid ${typeColor}22`, flexShrink: 0 }}>×{boards.length}</span>
+        )}
+      </div>
 
       {board.desc && <div style={{ fontSize: 9, color: '#374151', padding: '2px 8px' }}>{board.desc}</div>}
 
