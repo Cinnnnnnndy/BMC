@@ -106,11 +106,49 @@ function computeDiff(before: CVS, after: CVS): Array<{ label: string; color: str
 }
 
 /* ─────────────────────────────────────────────
+   Card height estimation
+   Approximates rendered height from node data so layout
+   functions can space cards without overlap.
+───────────────────────────────────────────── */
+function estimateCardH(nodes: TopoNode[]): number {
+  const buses = nodes.filter(n => n.parent === 'Anchor').slice(0, 5);
+  let h = 75; // header (32) + optional desc (14) + footer (29)
+  for (const bus of buses) {
+    const chipCount = nodes.filter(n => n.parent === bus.id).length;
+    h += 22 + Math.ceil(Math.min(chipCount, 12) / 5) * 46;
+  }
+  return Math.max(210, h);
+}
+
+/* ─────────────────────────────────────────────
    Group layout
 ───────────────────────────────────────────── */
+function computeDefaultGroupPositions(): Record<string, { x: number; y: number }> {
+  const byType = new Map<string, HwBoard[]>();
+  for (const b of HW_BOARDS) {
+    if (!byType.has(b.type)) byType.set(b.type, []);
+    byType.get(b.type)!.push(b);
+  }
+  const repH = (type: string): number => {
+    const bs = byType.get(type) ?? [];
+    return bs.length ? estimateCardH(bs[0].topoNodes) : 280;
+  };
+  const GAP = 44;
+  return {
+    PSR:     { x: 30,   y: 260 },
+    BCU:     { x: 380,  y: 100 },
+    CLU:     { x: 380,  y: 100 + repH('BCU') + GAP },
+    IEU:     { x: 700,  y: 60 },
+    EXU:     { x: 700,  y: 60 + repH('IEU') + GAP },
+    SEU:     { x: 1040, y: 140 },
+    NICCard: { x: 1040, y: 140 + repH('SEU') + GAP },
+    BMC:     { x: 30,   y: 260 + repH('PSR') + GAP },
+  };
+}
+
 function computeGroupLayout(): Map<string, { x: number; y: number }> {
   const pos = new Map<string, { x: number; y: number }>();
-  for (const [type, p] of Object.entries(GROUP_POSITIONS)) pos.set(type, p);
+  for (const [type, p] of Object.entries(computeDefaultGroupPositions())) pos.set(type, p);
   return pos;
 }
 
@@ -1117,25 +1155,33 @@ function computeBoardLayout(boards: HwBoard[]): Map<string, { x: number; y: numb
     if (!byType.has(b.type)) byType.set(b.type, []);
     byType.get(b.type)!.push(b);
   }
+  // Per-type max row height (tallest card + gap) for multi-board columns
+  const maxRowH = (type: string): number => {
+    const bs = byType.get(type) ?? [];
+    return (bs.length ? Math.max(...bs.map(b => estimateCardH(b.topoNodes))) : BOARD_H) + BOARD_ROW_GAP;
+  };
+
   const pos = new Map<string, { x: number; y: number }>();
   let y = 180;
   for (const b of [...(byType.get('PSR') ?? []), ...(byType.get('BMC') ?? [])]) {
-    pos.set(b.uid, { x: BOARD_COLS.PSR, y }); y += BOARD_H + BOARD_ROW_GAP;
+    pos.set(b.uid, { x: BOARD_COLS.PSR, y }); y += estimateCardH(b.topoNodes) + BOARD_ROW_GAP;
   }
   y = 80;
-  for (const b of byType.get('BCU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.BCU, y }); y += BOARD_H + BOARD_ROW_GAP; }
-  y = Math.max(y + 40, 80 + BOARD_H + 80);
-  for (const b of byType.get('CLU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.CLU, y }); y += BOARD_H + BOARD_ROW_GAP; }
+  for (const b of byType.get('BCU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.BCU, y }); y += estimateCardH(b.topoNodes) + BOARD_ROW_GAP; }
+  y = Math.max(y + 40, 80 + maxRowH('BCU'));
+  for (const b of byType.get('CLU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.CLU, y }); y += estimateCardH(b.topoNodes) + BOARD_ROW_GAP; }
   y = 80;
-  for (const b of byType.get('EXU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.EXU, y }); y += BOARD_H + BOARD_ROW_GAP; }
+  for (const b of byType.get('EXU') ?? []) { pos.set(b.uid, { x: BOARD_COLS.EXU, y }); y += estimateCardH(b.topoNodes) + BOARD_ROW_GAP; }
+  const ieuRowH = maxRowH('IEU');
   (byType.get('IEU') ?? []).forEach((b, i) => {
-    pos.set(b.uid, { x: BOARD_COLS.IEU + (i % BOARD_IEU_COLS) * BOARD_IEU_COL_W, y: 60 + Math.floor(i / BOARD_IEU_COLS) * (BOARD_H + BOARD_ROW_GAP) });
+    pos.set(b.uid, { x: BOARD_COLS.IEU + (i % BOARD_IEU_COLS) * BOARD_IEU_COL_W, y: 60 + Math.floor(i / BOARD_IEU_COLS) * ieuRowH });
   });
+  const seuRowH = maxRowH('SEU');
   const seuBoards = byType.get('SEU') ?? [];
   seuBoards.forEach((b, i) => {
-    pos.set(b.uid, { x: BOARD_COLS.SEU + (i % BOARD_SEU_COLS) * BOARD_IEU_COL_W, y: 60 + Math.floor(i / BOARD_SEU_COLS) * (BOARD_H + BOARD_ROW_GAP) });
+    pos.set(b.uid, { x: BOARD_COLS.SEU + (i % BOARD_SEU_COLS) * BOARD_IEU_COL_W, y: 60 + Math.floor(i / BOARD_SEU_COLS) * seuRowH });
   });
-  const nicStartY = 60 + Math.ceil(seuBoards.length / BOARD_SEU_COLS) * (BOARD_H + BOARD_ROW_GAP) + 50;
+  const nicStartY = 60 + Math.ceil(seuBoards.length / BOARD_SEU_COLS) * seuRowH + 50;
   (byType.get('NICCard') ?? []).forEach((b, i) => {
     pos.set(b.uid, { x: BOARD_COLS.NICCard + i * BOARD_IEU_COL_W, y: nicStartY });
   });
@@ -1161,8 +1207,14 @@ function BoardNode({ board, x, y, cvs, onSelect, onDragStart }: {
   const hasMgmtSmc = board.topoNodes.some(n => n.id === 'Smc_ExpBoardSMC');
   const i2cEntryY = hasMgmtSmc && !isPsr ? getI2cEntryY(board) : null;
 
+  const draggedRef = useRef(false);
+
   return (
-    <div onClick={e => { e.stopPropagation(); onSelect(board); }}
+    <div
+      data-board="true"
+      onMouseDown={() => { draggedRef.current = false; }}
+      onMouseMove={() => { draggedRef.current = true; }}
+      onClick={e => { e.stopPropagation(); if (!draggedRef.current) onSelect(board); }}
       style={{
         position: 'absolute', left: x, top: y, width: BOARD_W, minHeight: BOARD_H,
         background: isSelected ? '#0f1f35' : '#0b1118',
@@ -1170,7 +1222,7 @@ function BoardNode({ board, x, y, cvs, onSelect, onDragStart }: {
         borderRadius: 8, cursor: 'pointer',
         boxShadow: isSelected ? `0 0 16px ${typeColor}55` : '0 2px 8px #00000066',
         display: 'flex', flexDirection: 'column',
-        transition: 'all 0.2s',
+        transition: 'border 0.2s, box-shadow 0.2s, opacity 0.2s',
         opacity: isHighlighted ? 1 : 0.25,
         zIndex: isSelected ? 10 : 1,
         filter: isHighlighted ? 'none' : 'grayscale(0.7)',
@@ -1885,7 +1937,7 @@ export function HardwareTopologyCanvas() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedConn, setSelectedConn] = useState<string | null>(null);
-  const [groupPositions, setGroupPositions] = useState<Record<string, { x: number; y: number }>>(() => ({ ...GROUP_POSITIONS }));
+  const [groupPositions, setGroupPositions] = useState<Record<string, { x: number; y: number }>>(computeDefaultGroupPositions);
   const [expandedPositions, setExpandedPositions] = useState<Record<string, { x: number; y: number }>>(() => {
     const m = computeBoardLayout(HW_BOARDS);
     const obj: Record<string, { x: number; y: number }> = {};
@@ -2060,7 +2112,7 @@ export function HardwareTopologyCanvas() {
           <button onClick={() => setCvs(c => ({ ...c, scale: Math.max(0.15, c.scale * 0.8) }))} style={{ padding: '2px 8px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: '0 4px 4px 0', color: '#475569', cursor: 'pointer' }}>−</button>
         </div>
         {viewMode === 'grouped' && (
-          <button onClick={() => setGroupPositions({ ...GROUP_POSITIONS })} style={{ padding: '3px 10px', fontSize: 10, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#374151', cursor: 'pointer' }}>重置布局</button>
+          <button onClick={() => setGroupPositions(computeDefaultGroupPositions())} style={{ padding: '3px 10px', fontSize: 10, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#374151', cursor: 'pointer' }}>重置布局</button>
         )}
         {viewMode === 'expanded' && (
           <button onClick={() => {
@@ -2183,15 +2235,14 @@ export function HardwareTopologyCanvas() {
                 const pos = expandedPosMap.get(board.uid);
                 if (!pos) return null;
                 return (
-                  <div key={board.uid} data-board="true">
-                    <BoardNode
-                      board={board}
-                      x={pos.x} y={pos.y}
-                      cvs={cvs}
-                      onSelect={b => setCvs(c => ({ ...c, selectedBoardUid: c.selectedBoardUid === b.uid ? null : b.uid }))}
-                      onDragStart={onExpandedDragStart}
-                    />
-                  </div>
+                  <BoardNode
+                    key={board.uid}
+                    board={board}
+                    x={pos.x} y={pos.y}
+                    cvs={cvs}
+                    onSelect={b => setCvs(c => ({ ...c, selectedBoardUid: c.selectedBoardUid === b.uid ? null : b.uid }))}
+                    onDragStart={onExpandedDragStart}
+                  />
                 );
               })}
             </>
