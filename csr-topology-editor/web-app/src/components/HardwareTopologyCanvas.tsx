@@ -1212,20 +1212,28 @@ function BoardNode({ board, x, y, cvs, onSelect, onDragStart }: {
   return (
     <div
       data-board="true"
-      onMouseDown={() => { draggedRef.current = false; }}
+      onMouseDown={e => {
+        // Skip drag if clicking a button or other interactive control
+        if ((e.target as HTMLElement).closest('button, input, select, textarea')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        draggedRef.current = false;
+        onDragStart?.(board.uid, e);
+      }}
       onMouseMove={() => { draggedRef.current = true; }}
       onClick={e => { e.stopPropagation(); if (!draggedRef.current) onSelect(board); }}
       style={{
         position: 'absolute', left: x, top: y, width: BOARD_W, minHeight: BOARD_H,
         background: isSelected ? '#0f1f35' : '#0b1118',
         border: `1px solid ${isSelected ? typeColor : typeColor + '44'}`,
-        borderRadius: 8, cursor: 'pointer',
+        borderRadius: 8, cursor: onDragStart ? 'grab' : 'pointer',
         boxShadow: isSelected ? `0 0 16px ${typeColor}55` : '0 2px 8px #00000066',
         display: 'flex', flexDirection: 'column',
         transition: 'border 0.2s, box-shadow 0.2s, opacity 0.2s',
         opacity: isHighlighted ? 1 : 0.25,
         zIndex: isSelected ? 10 : 1,
         filter: isHighlighted ? 'none' : 'grayscale(0.7)',
+        userSelect: 'none',
       }}>
       {/* I²C input port indicator on left edge */}
       {i2cEntryY !== null && cvs.showI2C && (
@@ -1261,10 +1269,7 @@ function BoardNode({ board, x, y, cvs, onSelect, onDragStart }: {
           <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />
         </div>
       )}
-      <div
-        onMouseDown={onDragStart ? (e => { e.stopPropagation(); onDragStart(board.uid, e); }) : undefined}
-        style={{ padding: '5px 8px', borderBottom: `1px solid ${typeColor}22`, display: 'flex', alignItems: 'center', gap: 5, cursor: onDragStart ? 'grab' : 'pointer', userSelect: 'none' }}
-      >
+      <div style={{ padding: '5px 8px', borderBottom: `1px solid ${typeColor}22`, display: 'flex', alignItems: 'center', gap: 5 }}>
         <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 2, background: typeColor + '22', color: typeColor, border: `1px solid ${typeColor}44`, fontWeight: 700 }}>{board.type}</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
       </div>
