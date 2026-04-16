@@ -935,24 +935,39 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
         )}
       </div>
 
-      {/* Board switcher — only shown when multiple boards exist */}
+      {/* Board switcher — dropdown when multiple boards exist */}
       {boards.length > 1 && (
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', borderBottom: `1px solid ${typeColor}18`, background: typeColor + '08' }}
+          style={{ padding: '3px 6px', borderBottom: `1px solid ${typeColor}18`, background: typeColor + '08' }}
           onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
         >
-          <button
-            onClick={e => { e.stopPropagation(); setActiveIdx(i => (i - 1 + boards.length) % boards.length); }}
-            style={{ width: 18, height: 18, borderRadius: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#475569', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
-          >‹</button>
-          <span style={{ flex: 1, fontSize: 9.5, color: '#94a3b8', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
-            {board.name.replace('BC83', '')}
-          </span>
-          <span style={{ fontSize: 8, color: '#374151', flexShrink: 0 }}>{activeIdx + 1}/{boards.length}</span>
-          <button
-            onClick={e => { e.stopPropagation(); setActiveIdx(i => (i + 1) % boards.length); }}
-            style={{ width: 18, height: 18, borderRadius: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#475569', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
-          >›</button>
+          <select
+            value={activeIdx}
+            onChange={e => setActiveIdx(Number(e.target.value))}
+            style={{
+              width: '100%',
+              background: '#0b1118',
+              border: `1px solid ${typeColor}33`,
+              borderRadius: 4,
+              color: '#94a3b8',
+              fontSize: 9.5,
+              fontFamily: 'monospace',
+              padding: '2px 4px',
+              cursor: 'pointer',
+              outline: 'none',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23475569'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 5px center',
+              paddingRight: 18,
+            }}
+          >
+            {boards.map((b, i) => (
+              <option key={b.uid} value={i}>{b.name.replace('BC83', '')}</option>
+            ))}
+          </select>
         </div>
       )}
 
