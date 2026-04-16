@@ -1145,9 +1145,10 @@ function computeBoardLayout(boards: HwBoard[]): Map<string, { x: number; y: numb
 /* ─────────────────────────────────────────────
    BoardNode (expanded view)
 ───────────────────────────────────────────── */
-function BoardNode({ board, x, y, cvs, onSelect }: {
+function BoardNode({ board, x, y, cvs, onSelect, onDragStart }: {
   board: HwBoard; x: number; y: number;
   cvs: CVS; onSelect: (b: HwBoard) => void;
+  onDragStart?: (uid: string, e: React.MouseEvent) => void;
 }) {
   const typeColor = TYPE_COLOR[board.type] ?? '#6b7280';
   const isSelected = cvs.selectedBoardUid === board.uid;
@@ -1208,7 +1209,10 @@ function BoardNode({ board, x, y, cvs, onSelect }: {
           <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />
         </div>
       )}
-      <div style={{ padding: '5px 8px', borderBottom: `1px solid ${typeColor}22`, display: 'flex', alignItems: 'center', gap: 5 }}>
+      <div
+        onMouseDown={onDragStart ? (e => { e.stopPropagation(); onDragStart(board.uid, e); }) : undefined}
+        style={{ padding: '5px 8px', borderBottom: `1px solid ${typeColor}22`, display: 'flex', alignItems: 'center', gap: 5, cursor: onDragStart ? 'grab' : 'pointer', userSelect: 'none' }}
+      >
         <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 2, background: typeColor + '22', color: typeColor, border: `1px solid ${typeColor}44`, fontWeight: 700 }}>{board.type}</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
       </div>
@@ -1876,16 +1880,27 @@ export function HardwareTopologyCanvas() {
   const [viewSize, setViewSize] = useState({ w: 1200, h: 700 });
   const dragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
-  const cardDragRef = useRef<{ type: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const cardDragRef = useRef<{ mode: 'group' | 'expanded'; key: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedConn, setSelectedConn] = useState<string | null>(null);
   const [groupPositions, setGroupPositions] = useState<Record<string, { x: number; y: number }>>(() => ({ ...GROUP_POSITIONS }));
+  const [expandedPositions, setExpandedPositions] = useState<Record<string, { x: number; y: number }>>(() => {
+    const m = computeBoardLayout(HW_BOARDS);
+    const obj: Record<string, { x: number; y: number }> = {};
+    for (const [uid, pos] of m) obj[uid] = pos;
+    return obj;
+  });
   const [viewMode, setViewMode] = useState<'grouped' | 'expanded'>('grouped');
 
   const positions = useMemo(() => computeGroupLayout(), []);
   const boardLayout = useMemo(() => computeBoardLayout(HW_BOARDS), []);
+  const expandedPosMap = useMemo(() => {
+    const m = new Map<string, { x: number; y: number }>();
+    for (const [uid, pos] of Object.entries(expandedPositions)) m.set(uid, pos);
+    return m;
+  }, [expandedPositions]);
 
   // Measure viewport
   useEffect(() => {
@@ -1933,12 +1948,23 @@ export function HardwareTopologyCanvas() {
   const onCardDragStart = useCallback((type: string, e: React.MouseEvent) => {
     e.stopPropagation();
     cardDragRef.current = {
-      type,
+      mode: 'group', key: type,
       startX: e.clientX, startY: e.clientY,
       origX: groupPositions[type]?.x ?? 0,
       origY: groupPositions[type]?.y ?? 0,
     };
   }, [groupPositions]);
+
+  const onExpandedDragStart = useCallback((uid: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const p = expandedPositions[uid];
+    cardDragRef.current = {
+      mode: 'expanded', key: uid,
+      startX: e.clientX, startY: e.clientY,
+      origX: p?.x ?? 0,
+      origY: p?.y ?? 0,
+    };
+  }, [expandedPositions]);
 
   // Pan — also block timeline panel
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -1950,10 +1976,14 @@ export function HardwareTopologyCanvas() {
 
   const onMouseMove = useCallback((e: MouseEvent) => {
     if (cardDragRef.current) {
-      const { type, startX, startY, origX, origY } = cardDragRef.current;
+      const { mode, key, startX, startY, origX, origY } = cardDragRef.current;
       const dx = (e.clientX - startX) / cvs.scale;
       const dy = (e.clientY - startY) / cvs.scale;
-      setGroupPositions(prev => ({ ...prev, [type]: { x: origX + dx, y: origY + dy } }));
+      if (mode === 'group') {
+        setGroupPositions(prev => ({ ...prev, [key]: { x: origX + dx, y: origY + dy } }));
+      } else {
+        setExpandedPositions(prev => ({ ...prev, [key]: { x: origX + dx, y: origY + dy } }));
+      }
       return;
     }
     if (!dragging.current) return;
@@ -2031,6 +2061,14 @@ export function HardwareTopologyCanvas() {
         </div>
         {viewMode === 'grouped' && (
           <button onClick={() => setGroupPositions({ ...GROUP_POSITIONS })} style={{ padding: '3px 10px', fontSize: 10, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#374151', cursor: 'pointer' }}>重置布局</button>
+        )}
+        {viewMode === 'expanded' && (
+          <button onClick={() => {
+            const m = computeBoardLayout(HW_BOARDS);
+            const obj: Record<string, { x: number; y: number }> = {};
+            for (const [uid, pos] of m) obj[uid] = pos;
+            setExpandedPositions(obj);
+          }} style={{ padding: '3px 10px', fontSize: 10, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#374151', cursor: 'pointer' }}>重置布局</button>
         )}
         <button onClick={() => setCvs(DEFAULT_CVS)} style={{ padding: '3px 10px', fontSize: 10, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#374151', cursor: 'pointer' }}>重置视图</button>
       </div>
@@ -2135,14 +2173,14 @@ export function HardwareTopologyCanvas() {
               {/* Expanded view: per-board connection lines */}
               <ExpandedConnectionLines
                 boards={HW_BOARDS.filter(b => !cvs.filterType || b.type === cvs.filterType)}
-                positions={boardLayout}
+                positions={expandedPosMap}
                 showI2C={cvs.showI2C}
                 showPCIe={cvs.showPCIe}
                 highlightUids={cvs.highlightUids}
               />
               {/* Individual board nodes */}
               {HW_BOARDS.filter(b => !cvs.filterType || b.type === cvs.filterType).map(board => {
-                const pos = boardLayout.get(board.uid);
+                const pos = expandedPosMap.get(board.uid);
                 if (!pos) return null;
                 return (
                   <div key={board.uid} data-board="true">
@@ -2151,6 +2189,7 @@ export function HardwareTopologyCanvas() {
                       x={pos.x} y={pos.y}
                       cvs={cvs}
                       onSelect={b => setCvs(c => ({ ...c, selectedBoardUid: c.selectedBoardUid === b.uid ? null : b.uid }))}
+                      onDragStart={onExpandedDragStart}
                     />
                   </div>
                 );
