@@ -930,36 +930,24 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
       >
         <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 2, background: typeColor + '22', color: typeColor, border: `1px solid ${typeColor}44`, fontWeight: 700, flexShrink: 0 }}>{type}</span>
         {boards.length > 1 ? (
-          <select
-            value={activeIdx}
-            onChange={e => { e.stopPropagation(); setActiveIdx(Number(e.target.value)); }}
-            onClick={e => e.stopPropagation()}
-            onMouseDown={e => e.stopPropagation()}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: `1px solid ${typeColor}44`,
-              borderRadius: 0,
-              color: '#e2e8f0',
-              fontSize: 11,
-              fontWeight: 600,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              outline: 'none',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              padding: '0 16px 0 0',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0l3.5 4 3.5-4z' fill='%2364748b'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 2px center',
-            }}
-          >
-            {boards.map((b, i) => (
-              <option key={b.uid} value={i} style={{ background: '#0f1a2e', color: '#e2e8f0' }}>{b.name}</option>
-            ))}
-          </select>
+          /* Invisible <select> overlaid on styled name+arrow so arrow hugs the text */
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+              {board.name}
+            </span>
+            <span style={{ fontSize: 7, color: '#64748b', flexShrink: 0, lineHeight: 1 }}>▾</span>
+            <select
+              value={activeIdx}
+              onChange={e => { e.stopPropagation(); setActiveIdx(Number(e.target.value)); }}
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+            >
+              {boards.map((b, i) => (
+                <option key={b.uid} value={i} style={{ background: '#0f1a2e', color: '#e2e8f0' }}>{b.name}</option>
+              ))}
+            </select>
+          </div>
         ) : (
           <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
         )}
