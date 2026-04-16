@@ -1065,7 +1065,7 @@ function ConnectionLines({
 
   return (
     <svg
-      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', zIndex: 20, pointerEvents: 'all' }}
+      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', zIndex: 20, pointerEvents: 'none' }}
       width={maxX} height={maxY}
     >
       <defs>
@@ -1095,7 +1095,7 @@ function ConnectionLines({
             onMouseEnter={() => { setHoveredKey(cp.key); onConnHover(cp.key); }}
             onMouseLeave={() => { setHoveredKey(null); onConnHover(null); }}
             onClick={() => onConnClick(cp.key)}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', pointerEvents: 'all' }}
           >
             {/* Wide transparent hit area */}
             <path d={cp.d} fill="none" stroke="transparent" strokeWidth={12} />
@@ -1463,13 +1463,8 @@ function ExpandedConnectionLines({ boards, positions, showI2C, showPCIe, highlig
   return (
     <svg
       ref={svgRef}
-      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', zIndex: 5, pointerEvents: 'all' }}
+      style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', zIndex: 5, pointerEvents: 'none' }}
       width={maxX} height={maxY}
-      onMouseLeave={() => { setTooltip(null); setHoveredKey(null); }}
-      onMouseMove={e => {
-        // keep tooltip tracking when moving within same hovered path
-        if (tooltip) handleMouseMove(e as React.MouseEvent<SVGSVGElement>, tooltip.path);
-      }}
     >
       <defs>
         {markerColors.map(color => {
@@ -1505,7 +1500,7 @@ function ExpandedConnectionLines({ boards, positions, showI2C, showPCIe, highlig
             onMouseEnter={e => { setHoveredKey(p.key); handleMouseMove(e as React.MouseEvent<SVGSVGElement>, p); }}
             onMouseLeave={() => { setHoveredKey(null); setTooltip(null); }}
             onMouseMove={e => handleMouseMove(e as React.MouseEvent<SVGSVGElement>, p)}
-            style={{ cursor: 'crosshair' }}
+            style={{ cursor: 'crosshair', pointerEvents: 'all' }}
           >
             {/* Wide transparent hit area */}
             <path d={p.d} fill="none" stroke="transparent" strokeWidth={12} />
