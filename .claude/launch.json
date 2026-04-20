@@ -2,6 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "main-web-app",
+      "runtimeExecutable": "/Applications/Cursor.app/Contents/Resources/app/resources/helpers/node",
+      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5175"],
+      "port": 5175,
+      "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/web-app"
+    },
+    {
       "name": "web-app (CSR拓扑编辑器独立预览)",
       "runtimeExecutable": "/Applications/Cursor.app/Contents/Resources/app/resources/helpers/node",
       "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173"],

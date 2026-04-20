@@ -4,7 +4,7 @@
  */
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html, Environment } from '@react-three/drei';
+import { OrbitControls, Html, Environment, RoundedBox, Text, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimStore } from './simStore';
 import {
@@ -17,10 +17,11 @@ import {
 } from './serverData';
 
 // ─── Grid → world coordinate transform ───────────────────────────────────
-// Scene spans x: -7.5→30.5, y: 0→17.3  →  center ≈ (11.5, 8.7)
+// Scene spans x: -12.2→25.2, y: 0→17.3  →  center ≈ (6.5, 8.7)
+// Uniform 1.0-unit gaps between BMC Card / Ext.Board / Main Board / Fans / PSU.
 // CX/CZ shift the whole scene so that center lands at world origin (0,0,0).
-const CX = -11;  // center offset X  (was -8 for old 11×8 board)
-const CZ = -9;   // center offset Z  (was -6 for old 11×8 board)
+const CX = -6.5; // center offset X — uniform-gap compact layout
+const CZ = -9;   // center offset Z
 const g2wx = (gx: number) => gx + CX;
 const g2wy = (gz: number) => gz;
 const g2wz = (gy: number) => gy + CZ;
@@ -47,6 +48,14 @@ function createPCBTexture(seed: number): THREE.CanvasTexture {
   // Base PCB green
   ctx.fillStyle = '#1a2a1a';
   ctx.fillRect(0, 0, S, S);
+
+  // Copper ground pour areas (faint, gives "plane fill" look)
+  ctx.fillStyle = 'rgba(176, 115, 50, 0.09)';
+  for (let i = 0; i < 3; i++) {
+    const px = (rng() * 0.5 + 0.12) * S, py = (rng() * 0.5 + 0.12) * S;
+    const pw = (rng() * 0.22 + 0.14) * S, ph = (rng() * 0.18 + 0.10) * S;
+    ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
+  }
 
   // Fine grid (circuit traces)
   ctx.strokeStyle = '#2a3f2a';
@@ -255,6 +264,7 @@ const PCB_MAT: Record<string, { color: string; roughness: number; metalness: num
   BASE_BOARD: { color: '#1a2416', roughness: 0.85, metalness: 0.10 },
   EXT_BOARD:  { color: '#1e2820', roughness: 0.80, metalness: 0.15 },
   RISER:      { color: '#2a2f3a', roughness: 0.75, metalness: 0.35 },
+  BMC_CARD:   { color: '#112036', roughness: 0.78, metalness: 0.22 },
 };
 
 function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
@@ -266,6 +276,57 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
 
   const pcbTex = useMemo(() => createPCBTexture(hashStr(comp.id)), [comp.id]);
   useEffect(() => () => pcbTex.dispose(), [pcbTex]);
+
+  const chipPackages = useMemo(() => {
+    const rng = seededRng(hashStr(comp.id) + 999);
+    return Array.from({ length: 12 }, () => ({
+      x: (rng() - 0.5) * w * 0.80,
+      z: (rng() - 0.5) * d * 0.78,
+      cw: 0.12 + rng() * 0.20,
+      cd: 0.09 + rng() * 0.15,
+    }));
+  }, [comp.id, w, d]);
+
+  // ── DIMM layout (ROTATED 90°): 4 groups × 4 sticks flanking stacked CPUs ─
+  // Board rotation: CPUs are now stacked along Y (board-local Z): CPU0 at z≈-4, CPU1 at z≈+4.
+  // DIMM groups: z-frac in [-0.86, -0.28, +0.28, +0.86] of (d/2), each with 4 sticks along Z (pitch 0.18).
+  // Each DIMM stick is oriented horizontally (long along X).
+  const dimmSlots = useMemo(() => {
+    if (comp.type !== 'BASE_BOARD') return [];
+    const groupZfrac = [-0.86, -0.28, +0.28, +0.86];
+    const pitch = 0.18;
+    const dimmX = 0;   // DIMMs centered on board X; sticks extend along X
+    return groupZfrac.flatMap(gz =>
+      Array.from({ length: 4 }, (_, i) => ({
+        x: dimmX,
+        z: gz * (d / 2) + (i - 1.5) * pitch,
+      }))
+    );
+  }, [comp.type, w, d]);
+
+  // ── PCIe / expansion connectors along rear edge (image 3, items 1–12) ────
+  const pcieEdgeSlots = useMemo(() => {
+    if (comp.type !== 'BASE_BOARD') return [];
+    return Array.from({ length: 12 }, (_, i) => ({
+      x: -w * 0.43 + i * (w * 0.82 / 11),
+      z: d / 2 - 0.08,
+    }));
+  }, [comp.type, w, d]);
+
+  // ── EXT_BOARD: BMC/CPLD cluster + connector rows (image 5 layout) ─────────
+  const extBoardFeatures = useMemo(() => {
+    if (comp.type !== 'EXT_BOARD') return null;
+    return {
+      bmcChip:  { x: -w * 0.28, z: -d * 0.38 },
+      cpldChip: { x: -w * 0.28, z: -d * 0.20 },
+      phyChip:  { x: -w * 0.28, z: -d * 0.04 },
+      heatFin:  { x: -w * 0.28, z: -d * 0.38 },
+      connRows: Array.from({ length: 9 }, (_, i) => ({
+        z: -d * 0.44 + i * (d * 0.86 / 8),
+        xBase: w * 0.28,
+      })),
+    };
+  }, [comp.type, w, d]);
 
   useFrame(({ clock }) => {
     if (meshRef.current && effStatus === 'error') {
@@ -303,34 +364,438 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
         />
       </mesh>
 
+      {/* SMD chip packages scattered on PCB surface */}
+      {chipPackages.map((chip, i) => (
+        <mesh key={`chip-${i}`} position={[chip.x, dh / 2 + 0.04, chip.z]}>
+          <boxGeometry args={[chip.cw, 0.07, chip.cd]} />
+          <meshStandardMaterial color="#111118" roughness={0.55} metalness={0.22} />
+        </mesh>
+      ))}
+
+      {/* ── DDR5 DIMM sticks (BASE_BOARD, rotated 90°): 4 groups × 4 ── */}
+      {/* Refined style: PCB + gold fingers with DDR5 off-center notch,            */}
+      {/*                DRAM chips front+back, ejection latches, label sticker.    */}
+      {dimmSlots.map((pos, i) => {
+        const stickLen    = 2.90;   // along X (long axis after rotation)
+        const stickHeight = 0.94;   // along Y (vertical)
+        const stickThick  = 0.085;  // along Z (thin profile)
+        const fingerH     = 0.09;
+        const notchX      = 0.22;   // DDR5 notch offset from center along X
+        const notchW      = 0.12;
+        const hasError    = effStatus === 'error' && (i % 5 === 0);
+        // 8 DRAM chip positions along X on each face (front/back)
+        const chipXs = Array.from({ length: 8 }, (_, ci) => -stickLen / 2 + 0.22 + ci * 0.34);
+        return (
+          <group key={`dimm-${i}`} position={[pos.x, dh / 2 + stickHeight / 2 + 0.04, pos.z]}>
+            {/* DIMM PCB body (two halves with notch gap in middle-bottom) */}
+            {([-1, +1] as const).map((sign) => (
+              <mesh key={`pcb-${sign}`} position={[sign * ((stickLen / 2 - notchW / 2) / 2 + notchX / 4), 0, 0]}>
+                <boxGeometry args={[(stickLen - notchW) / 2 - notchX / 2, stickHeight, stickThick]} />
+                <meshStandardMaterial color="#152015" roughness={0.82} metalness={0.10} />
+              </mesh>
+            ))}
+            {/* Upper band connecting the two halves (above the notch) */}
+            <mesh position={[0, stickHeight * 0.18, 0]}>
+              <boxGeometry args={[stickLen * 0.92, stickHeight * 0.58, stickThick]} />
+              <meshStandardMaterial color="#152015" roughness={0.82} metalness={0.10} />
+            </mesh>
+
+            {/* Gold edge-contact fingers — split by the DDR5 notch (off-center) */}
+            {([-1, +1] as const).map((sign) => {
+              const segLen = sign < 0
+                ? (stickLen / 2 - notchX + notchW / 2) - 0.04
+                : (stickLen / 2 + notchX - notchW / 2) - 0.04;
+              const segCx = sign < 0
+                ? -(stickLen / 2) + segLen / 2 + 0.02
+                :  (stickLen / 2) - segLen / 2 - 0.02;
+              return (
+                <mesh key={`fg-${sign}`} position={[segCx, -stickHeight / 2 + fingerH / 2, 0]}>
+                  <boxGeometry args={[segLen, fingerH, stickThick + 0.002]} />
+                  <meshStandardMaterial color="#d4a85a" metalness={0.95} roughness={0.08} envMapIntensity={1.6} />
+                </mesh>
+              );
+            })}
+
+            {/* DDR5 off-center keying notch (dark gap) */}
+            <mesh position={[notchX, -stickHeight / 2 + fingerH / 2, 0]}>
+              <boxGeometry args={[notchW, fingerH + 0.005, stickThick + 0.01]} />
+              <meshStandardMaterial color="#05070a" roughness={0.95} metalness={0.02} />
+            </mesh>
+
+            {/* DRAM chips — front face (8× SDRAM packages) */}
+            {chipXs.map((cx, ci) => (
+              <mesh key={`cf-${ci}`} position={[cx, 0.04, stickThick / 2 + 0.022]}>
+                <boxGeometry args={[0.30, 0.30, 0.045]} />
+                <meshStandardMaterial
+                  color={hasError && ci === 3 ? '#4a2420' : '#121316'}
+                  roughness={0.58} metalness={0.20}
+                  emissive={hasError && ci === 3 ? '#ff4030' : '#000'}
+                  emissiveIntensity={hasError && ci === 3 ? 0.4 : 0}
+                />
+              </mesh>
+            ))}
+            {/* DRAM chips — back face */}
+            {chipXs.map((cx, ci) => (
+              <mesh key={`cb-${ci}`} position={[cx, 0.04, -stickThick / 2 - 0.022]}>
+                <boxGeometry args={[0.30, 0.30, 0.045]} />
+                <meshStandardMaterial color="#121316" roughness={0.58} metalness={0.20} />
+              </mesh>
+            ))}
+
+            {/* Center heat-spreader label strip (small white sticker, upper area) */}
+            <mesh position={[0, stickHeight * 0.36, stickThick / 2 + 0.05]}>
+              <boxGeometry args={[stickLen * 0.30, 0.14, 0.004]} />
+              <meshStandardMaterial color="#ececec" roughness={0.90} metalness={0.02} />
+            </mesh>
+
+            {/* Socket ejection latches at both X-ends (white plastic) */}
+            {([-1, +1] as const).map((sign) => (
+              <group key={`lat-${sign}`} position={[sign * (stickLen / 2 + 0.10), -stickHeight / 2 + 0.14, 0]}>
+                <mesh>
+                  <boxGeometry args={[0.16, 0.40, 0.12]} />
+                  <meshStandardMaterial color="#d8dce2" roughness={0.55} metalness={0.10} />
+                </mesh>
+                {/* latch lever */}
+                <mesh position={[sign * 0.05, 0.22, 0]}>
+                  <boxGeometry args={[0.08, 0.14, 0.09]} />
+                  <meshStandardMaterial color="#b4b8be" roughness={0.50} metalness={0.15} />
+                </mesh>
+              </group>
+            ))}
+
+            {/* Socket body (black plastic strip running along the stick length) */}
+            <mesh position={[0, -stickHeight / 2 - 0.06, 0]}>
+              <boxGeometry args={[stickLen + 0.22, 0.12, 0.22]} />
+              <meshStandardMaterial color="#0a0a0c" roughness={0.92} metalness={0.04} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* ── PCIe / expansion connectors along rear edge (BASE_BOARD, image 3) ── */}
+      {pcieEdgeSlots.map((slot, i) => (
+        <group key={`pcie-${i}`} position={[slot.x, dh / 2 + 0.27, slot.z]}>
+          {/* Connector housing — dark resin body */}
+          <mesh>
+            <boxGeometry args={[0.52, 0.52, 0.13]} />
+            <meshStandardMaterial color="#1a1d24" metalness={0.42} roughness={0.68} />
+          </mesh>
+          {/* Gold contact strip */}
+          <mesh position={[0, -0.29, 0]}>
+            <boxGeometry args={[0.42, 0.045, 0.09]} />
+            <meshStandardMaterial color="#c8a040" metalness={0.90} roughness={0.10} />
+          </mesh>
+          {/* Slot opening recess */}
+          <mesh position={[0, 0.05, -0.065]}>
+            <boxGeometry args={[0.38, 0.32, 0.005]} />
+            <meshStandardMaterial color="#050608" roughness={0.95} metalness={0.05} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* ── EXT_BOARD: BMC/CPLD cluster + connector rows (image 5 layout) ─── */}
+      {comp.type === 'EXT_BOARD' && extBoardFeatures && (
+        <>
+          {/* BMC chip with aluminium heat spreader (item 3-4 in image 5) */}
+          <group position={[extBoardFeatures.bmcChip.x, dh / 2, extBoardFeatures.bmcChip.z]}>
+            <mesh position={[0, 0.14, 0]}>
+              <boxGeometry args={[0.80, 0.28, 0.80]} />
+              <meshStandardMaterial color="#28282e" metalness={0.62} roughness={0.38} />
+            </mesh>
+            {/* Heat spreader lid */}
+            <mesh position={[0, 0.30, 0]}>
+              <boxGeometry args={[0.70, 0.06, 0.70]} />
+              <meshStandardMaterial color="#4a4a52" metalness={0.80} roughness={0.28} />
+            </mesh>
+            {/* Spreader fins */}
+            {Array.from({ length: 4 }, (_, fi) => (
+              <mesh key={fi} position={[-0.25 + fi * 0.17, 0.34, 0]}>
+                <boxGeometry args={[0.03, 0.08, 0.62]} />
+                <meshStandardMaterial color="#3a3a42" metalness={0.75} roughness={0.32} />
+              </mesh>
+            ))}
+          </group>
+
+          {/* CPLD chip (item 5 in image 5) */}
+          <mesh position={[extBoardFeatures.cpldChip.x, dh / 2 + 0.07, extBoardFeatures.cpldChip.z]}>
+            <boxGeometry args={[0.52, 0.13, 0.52]} />
+            <meshStandardMaterial color="#0e1012" metalness={0.28} roughness={0.75} />
+          </mesh>
+
+          {/* PHY / voltage regulator chip */}
+          <mesh position={[extBoardFeatures.phyChip.x, dh / 2 + 0.06, extBoardFeatures.phyChip.z]}>
+            <boxGeometry args={[0.42, 0.11, 0.42]} />
+            <meshStandardMaterial color="#111318" metalness={0.25} roughness={0.80} />
+          </mesh>
+
+          {/* Small power connector pair near front (items 1-2 in image 5) */}
+          {([-0.22, 0.22] as number[]).map((xOff, pi) => (
+            <mesh key={pi} position={[-w * 0.40 + xOff, dh / 2 + 0.10, -d * 0.44]}>
+              <boxGeometry args={[0.30, 0.20, 0.18]} />
+              <meshStandardMaterial color="#c8a040" metalness={0.88} roughness={0.14} />
+            </mesh>
+          ))}
+
+          {/* Connector rows along right edge (items 7–35 in image 5) */}
+          {extBoardFeatures.connRows.map((row, ri) => (
+            <group key={`erow-${ri}`} position={[row.xBase, dh / 2 + 0.09, row.z]}>
+              {/* 5 connector pins per row */}
+              {Array.from({ length: 5 }, (_, pi) => (
+                <mesh key={pi} position={[pi * 0.20, 0, 0]}>
+                  <boxGeometry args={[0.13, 0.18, 0.10]} />
+                  <meshStandardMaterial color="#c0a830" metalness={0.88} roughness={0.14} />
+                </mesh>
+              ))}
+              {/* Connector housing strip */}
+              <mesh position={[0.40, -0.02, 0]}>
+                <boxGeometry args={[1.10, 0.14, 0.10]} />
+                <meshStandardMaterial color="#1a1d24" metalness={0.38} roughness={0.72} />
+              </mesh>
+            </group>
+          ))}
+        </>
+      )}
+
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
     </>
   );
 }
 
-// ─── CPU heatsink mesh ────────────────────────────────────────────────────
+// ─── BMC Card mesh — plug-in management card with SoC/DDR/Flash/MGMT port ─
+// Uses @react-three/drei <RoundedBox> & <Text> (open-source library resources)
+function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
+  const { w, d, h } = comp.size;
+  const dh = Math.max(h, 0.1);
+  const em = statusEmissive(effStatus);
+  const mat = PCB_MAT.BMC_CARD;
+
+  const pcbTex = useMemo(() => createPCBTexture(hashStr(comp.id)), [comp.id]);
+  useEffect(() => () => pcbTex.dispose(), [pcbTex]);
+
+  // Blinking heartbeat LED for BMC status
+  const ledRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!ledRef.current) return;
+    const m = ledRef.current.material as THREE.MeshStandardMaterial;
+    const t = clock.getElapsedTime();
+    // Double-beat pattern characteristic of BMC status LEDs
+    const beat = (Math.sin(t * Math.PI * 2) * 0.5 + 0.5) *
+                 (Math.sin(t * Math.PI * 8) * 0.5 + 0.5);
+    m.emissiveIntensity = 0.35 + 1.25 * beat;
+  });
+
+  // Chip/feature layout: board spans w:5.2, d:12.0 → center at (0,0)
+  return (
+    <>
+      {/* PCB body */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[w, dh, d]} />
+        <meshStandardMaterial
+          color={mat.color}
+          roughness={mat.roughness}
+          metalness={mat.metalness}
+          envMapIntensity={0.5}
+          emissive={new THREE.Color(em.color)}
+          emissiveIntensity={em.intensity}
+          opacity={effStatus === 'offline' ? 0.38 : 1}
+          transparent={effStatus === 'offline'}
+        />
+      </mesh>
+
+      {/* Top-face PCB texture overlay */}
+      <mesh position={[0, dh / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[w - 0.06, d - 0.06]} />
+        <meshStandardMaterial
+          map={pcbTex}
+          roughness={0.78}
+          metalness={0.10}
+          transparent
+          opacity={effStatus === 'offline' ? 0.25 : 0.92}
+        />
+      </mesh>
+
+      {/* ─ BMC SoC (Hi1711-class) — centered, with aluminium IHS and fine fins ─ */}
+      <group position={[0, dh / 2, -d * 0.28]}>
+        {/* Substrate */}
+        <mesh position={[0, 0.02, 0]}>
+          <boxGeometry args={[1.40, 0.05, 1.40]} />
+          <meshStandardMaterial color="#0c0e12" roughness={0.82} metalness={0.12} />
+        </mesh>
+        {/* SoC die package */}
+        <mesh position={[0, 0.10, 0]}>
+          <boxGeometry args={[1.05, 0.12, 1.05]} />
+          <meshStandardMaterial color="#1a1a22" roughness={0.45} metalness={0.35} />
+        </mesh>
+        {/* Aluminium heat spreader (rounded) */}
+        <RoundedBox position={[0, 0.24, 0]} args={[1.25, 0.14, 1.25]} radius={0.04} smoothness={3} castShadow>
+          <meshStandardMaterial color="#8a8d94" metalness={0.82} roughness={0.28} />
+        </RoundedBox>
+        {/* Low-profile finnage */}
+        {Array.from({ length: 7 }, (_, fi) => (
+          <mesh key={fi} position={[-0.52 + fi * 0.18, 0.36, 0]}>
+            <boxGeometry args={[0.04, 0.10, 1.02]} />
+            <meshStandardMaterial color="#6d7078" metalness={0.80} roughness={0.30} />
+          </mesh>
+        ))}
+        {/* SoC silk-screen text */}
+        <Text
+          position={[0, 0.44, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.14}
+          color="#e4e6ea"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.004}
+          outlineColor="#101216"
+        >
+          BMC SoC
+        </Text>
+      </group>
+
+      {/* ─ DDR4 SDRAM for BMC (single chip) ─ */}
+      <mesh position={[-w * 0.30, dh / 2 + 0.055, 0.0]}>
+        <boxGeometry args={[0.55, 0.10, 0.95]} />
+        <meshStandardMaterial color="#14151a" roughness={0.65} metalness={0.18} />
+      </mesh>
+      <mesh position={[w * 0.30, dh / 2 + 0.055, 0.0]}>
+        <boxGeometry args={[0.55, 0.10, 0.95]} />
+        <meshStandardMaterial color="#14151a" roughness={0.65} metalness={0.18} />
+      </mesh>
+
+      {/* ─ SPI Flash ROM (BMC firmware) ─ */}
+      <mesh position={[0, dh / 2 + 0.045, d * 0.02]}>
+        <boxGeometry args={[0.34, 0.08, 0.54]} />
+        <meshStandardMaterial color="#0f1115" roughness={0.72} metalness={0.12} />
+      </mesh>
+      <Text
+        position={[0, dh / 2 + 0.092, d * 0.02]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.065}
+        color="#c8ccd4"
+        anchorX="center"
+        anchorY="middle"
+      >
+        FLASH
+      </Text>
+
+      {/* ─ MGMT RJ45 GbE port (front-facing) ─ */}
+      <group position={[0, dh / 2 + 0.22, d * 0.36]}>
+        <mesh>
+          <boxGeometry args={[1.00, 0.50, 0.85]} />
+          <meshStandardMaterial color="#1a1d24" metalness={0.35} roughness={0.75} />
+        </mesh>
+        {/* Jack opening */}
+        <mesh position={[0, 0.04, 0.43]}>
+          <boxGeometry args={[0.75, 0.35, 0.02]} />
+          <meshStandardMaterial color="#04060a" roughness={0.9} metalness={0.05} />
+        </mesh>
+        {/* Link + ACT LEDs (green / amber) */}
+        <mesh ref={ledRef} position={[-0.26, 0.18, 0.44]}>
+          <boxGeometry args={[0.10, 0.06, 0.012]} />
+          <meshStandardMaterial color="#50ffa0" emissive="#20ffb0" emissiveIntensity={0.8} />
+        </mesh>
+        <mesh position={[0.26, 0.18, 0.44]}>
+          <boxGeometry args={[0.10, 0.06, 0.012]} />
+          <meshStandardMaterial color="#ffb050" emissive="#ffa830" emissiveIntensity={0.55} />
+        </mesh>
+      </group>
+
+      {/* ─ VGA (DE-15) debug output, blue shell ─ */}
+      <group position={[0, dh / 2 + 0.20, d * 0.18]}>
+        <mesh>
+          <boxGeometry args={[1.25, 0.42, 0.42]} />
+          <meshStandardMaterial color="#1f3a6a" metalness={0.30} roughness={0.68} />
+        </mesh>
+        {/* Metal shield */}
+        <mesh position={[0, 0, 0.21]}>
+          <boxGeometry args={[1.20, 0.34, 0.04]} />
+          <meshStandardMaterial color="#a8adb3" metalness={0.88} roughness={0.25} />
+        </mesh>
+      </group>
+
+      {/* ─ Serial/debug header pin row (2×5) ─ */}
+      <group position={[-w * 0.30, dh / 2 + 0.035, -d * 0.05]}>
+        {Array.from({ length: 10 }, (_, pi) => {
+          const col = pi % 2, row = Math.floor(pi / 2);
+          return (
+            <mesh key={pi} position={[col * 0.09, 0.05, -0.18 + row * 0.09]}>
+              <boxGeometry args={[0.05, 0.10, 0.05]} />
+              <meshStandardMaterial color="#c8a040" metalness={0.90} roughness={0.14} />
+            </mesh>
+          );
+        })}
+        {/* Header base */}
+        <mesh position={[0.045, 0.015, -0.09]}>
+          <boxGeometry args={[0.20, 0.04, 0.52]} />
+          <meshStandardMaterial color="#0a0a0c" roughness={0.92} metalness={0.05} />
+        </mesh>
+      </group>
+
+      {/* ─ Small status LEDs row (heartbeat, error, activity) ─ */}
+      {([0, 1, 2] as number[]).map((li) => (
+        <mesh key={`sled-${li}`} position={[w * 0.30 - li * 0.22, dh / 2 + 0.04, -d * 0.44]}>
+          <boxGeometry args={[0.14, 0.05, 0.08]} />
+          <meshStandardMaterial
+            color={li === 0 ? '#30ff80' : li === 1 ? '#ff7030' : '#60a8ff'}
+            emissive={li === 0 ? '#20ff80' : li === 1 ? '#ff6020' : '#4090ff'}
+            emissiveIntensity={0.6}
+          />
+        </mesh>
+      ))}
+
+      {/* ─ Card-edge gold fingers (along right edge, facing ext_board) ─ */}
+      <mesh position={[w / 2 - 0.02, -dh / 2 + 0.08, 0]}>
+        <boxGeometry args={[0.08, 0.14, d * 0.88]} />
+        <meshStandardMaterial color="#d4a85a" metalness={0.95} roughness={0.08} envMapIntensity={1.6} />
+      </mesh>
+      {/* Edge-notch (keying slot) */}
+      <mesh position={[w / 2 - 0.02, -dh / 2 + 0.08, 0]}>
+        <boxGeometry args={[0.10, 0.16, 0.20]} />
+        <meshStandardMaterial color="#05070a" roughness={0.9} metalness={0.05} />
+      </mesh>
+
+      {/* ─ "BMC" product silk-screen label on top-left corner ─ */}
+      <Text
+        position={[-w * 0.32, dh / 2 + 0.005, d * 0.44]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.18}
+        color="#c9d6ea"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.006}
+        outlineColor="#0b1222"
+      >
+        BMC
+      </Text>
+
+      {/* Thin chip-outline edges for visual sharpness (drei <Edges>) */}
+      <mesh>
+        <boxGeometry args={[w, dh, d]} />
+        <meshBasicMaterial visible={false} />
+        <Edges color="#101418" threshold={20} />
+      </mesh>
+
+      <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
+    </>
+  );
+}
+
+// ─── CPU bare-die mesh (no heatsink) ─────────────────────────────────────
+// Shows the Kunpeng 920 with its Integrated Heat Spreader (IHS) visible.
 function CPUMesh({ comp, isSelected, effStatus }: SpecProps) {
   const { w, d, h } = comp.size;
   const dh = Math.max(h, 0.1);
   const em = statusEmissive(effStatus);
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // Heatsink geometry — base + fins
-  const NUM_FINS  = 22;
-  const baseH     = dh * 0.28;
-  const finH      = dh * 0.75;
-  const finDepth  = d * 0.92;
-  const finThick  = 0.044;
-  const spacing   = w / (NUM_FINS + 1);
+  // Layer heights (bottom→top): LGA pins, substrate PCB, die+IHS, optional label
+  const pinH       = 0.03;
+  const substrateH = 0.08;
+  const ihsH       = dh - pinH - substrateH;          // remaining height for IHS+die stack
 
-  const finPositions = useMemo(() => {
-    const arr: number[] = [];
-    for (let i = 0; i < NUM_FINS; i++) arr.push(-w / 2 + (i + 1) * spacing);
-    return arr;
-  }, [w, spacing]);
-
-  const baseY = -dh / 2 + baseH / 2;
-  const finY  = -dh / 2 + baseH + finH / 2;
+  // IHS is slightly smaller than substrate (real CPU look — PCB rim visible)
+  const ihsW = w * 0.78;
+  const ihsD = d * 0.78;
 
   useFrame(({ clock }) => {
     if (meshRef.current && effStatus === 'error') {
@@ -339,39 +804,100 @@ function CPUMesh({ comp, isSelected, effStatus }: SpecProps) {
     }
   });
 
-  // Aluminium heatsink — mid-grey, high metalness
-  const heatsinkColor = '#3a3a3a';
+  const baseY     = -dh / 2;
+  const pinY      = baseY + pinH / 2;
+  const substrateY = baseY + pinH + substrateH / 2;
+  const ihsY      = baseY + pinH + substrateH + ihsH / 2;
 
   return (
     <>
-      {/* Heatsink base plate */}
-      <mesh ref={meshRef} castShadow position={[0, baseY, 0]}>
-        <boxGeometry args={[w, baseH, d]} />
+      {/* ── LGA gold contact pad (bottom) ── */}
+      <mesh position={[0, pinY, 0]}>
+        <boxGeometry args={[w * 0.94, pinH, d * 0.94]} />
+        <meshStandardMaterial color="#b8860b" metalness={0.95} roughness={0.12} />
+      </mesh>
+
+      {/* ── Substrate PCB (dark green FR-4 with visible rim) ── */}
+      <mesh position={[0, substrateY, 0]} castShadow receiveShadow>
+        <boxGeometry args={[w, substrateH, d]} />
         <meshStandardMaterial
-          color={heatsinkColor} roughness={0.55} metalness={0.75}
-          emissive={new THREE.Color(em.color)} emissiveIntensity={em.intensity}
+          color="#14231a" roughness={0.86} metalness={0.08}
           opacity={effStatus === 'offline' ? 0.38 : 1} transparent={effStatus === 'offline'}
         />
       </mesh>
 
-      {/* Cooling fins */}
-      {finPositions.map((x, i) => (
-        <mesh key={i} castShadow position={[x, finY, 0]}>
-          <boxGeometry args={[finThick, finH, finDepth]} />
-          <meshStandardMaterial color={heatsinkColor} roughness={0.55} metalness={0.75} />
+      {/* Tiny SMD capacitors on substrate (black, around IHS perimeter) */}
+      {([
+        [-w * 0.42, -d * 0.32], [-w * 0.42, d * 0.32],
+        [w * 0.42, -d * 0.32], [w * 0.42, d * 0.32],
+        [-w * 0.32, -d * 0.42], [w * 0.32, d * 0.42],
+      ] as [number, number][]).map(([cx, cz], i) => (
+        <mesh key={`cap-${i}`} position={[cx, substrateY + substrateH / 2 + 0.015, cz]}>
+          <boxGeometry args={[0.10, 0.03, 0.06]} />
+          <meshStandardMaterial color="#222" roughness={0.70} metalness={0.20} />
         </mesh>
       ))}
 
-      {/* CPU substrate (bottom — dark-green PCB ceramic) */}
-      <mesh position={[0, -dh / 2 - 0.03, 0]}>
-        <boxGeometry args={[w * 0.88, 0.06, d * 0.88]} />
-        <meshStandardMaterial color="#1a2416" roughness={0.9} metalness={0.0} />
+      {/* ── Integrated Heat Spreader (IHS) — brushed nickel-plated copper ── */}
+      <RoundedBox
+        ref={meshRef as unknown as React.Ref<THREE.Mesh>}
+        position={[0, ihsY, 0]}
+        args={[ihsW, ihsH, ihsD]}
+        radius={0.04}
+        smoothness={4}
+        castShadow
+      >
+        <meshStandardMaterial
+          color="#c4c6cc" metalness={0.92} roughness={0.34}
+          emissive={new THREE.Color(em.color)} emissiveIntensity={em.intensity}
+          envMapIntensity={1.3}
+          opacity={effStatus === 'offline' ? 0.38 : 1} transparent={effStatus === 'offline'}
+        />
+      </RoundedBox>
+
+      {/* Beveled edge accent (slight darker inner rim) */}
+      <mesh position={[0, ihsY + ihsH / 2 + 0.0005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[Math.min(ihsW, ihsD) * 0.38, Math.min(ihsW, ihsD) * 0.47, 64]} />
+        <meshBasicMaterial color="#8a8d93" transparent opacity={0.35} />
       </mesh>
 
-      {/* LGA pin area on bottom */}
-      <mesh position={[0, -dh / 2 - 0.02, 0]}>
-        <boxGeometry args={[w * 0.76, 0.015, d * 0.76]} />
-        <meshStandardMaterial color="#B8860B" metalness={0.95} roughness={0.1} />
+      {/* ── Laser-etched CPU identification on IHS top face ── */}
+      <Text
+        position={[0, ihsY + ihsH / 2 + 0.002, -d * 0.14]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.32}
+        color="#2a2e34"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+      >
+        Kunpeng 920
+      </Text>
+      <Text
+        position={[0, ihsY + ihsH / 2 + 0.002, d * 0.04]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.18}
+        color="#3a3e44"
+        anchorX="center"
+        anchorY="middle"
+      >
+        HiSilicon · 64-Core · ARMv8.2
+      </Text>
+      <Text
+        position={[0, ihsY + ihsH / 2 + 0.002, d * 0.22]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.12}
+        color="#454a52"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {comp.id === 'cpu_0' ? 'SOCKET 0  ·  2.6 GHz' : 'SOCKET 1  ·  2.6 GHz'}
+      </Text>
+
+      {/* Triangle orientation marker on IHS corner */}
+      <mesh position={[-ihsW / 2 + 0.18, ihsY + ihsH / 2 + 0.003, -ihsD / 2 + 0.18]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.07, 3]} />
+        <meshBasicMaterial color="#2a2e34" />
       </mesh>
 
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
@@ -404,62 +930,135 @@ function getFanBladeGeo(r: number): THREE.ExtrudeGeometry {
   return geo;
 }
 
-// ─── Fan mesh ─────────────────────────────────────────────────────────────
+// ─── Fan mesh — TaiShan 200 2280 dual-rotor hot-swap module ───────────────
+// Each module houses 2×80mm counter-rotating fans side-by-side (X axis split)
 function FANMesh({ comp, isSelected, effStatus }: SpecProps) {
   const { w, d, h } = comp.size;
-  const dh   = Math.max(h, 0.1);
-  const r    = Math.min(w, d) / 2 * 0.82;
-  const bladeGroupRef = useRef<THREE.Group>(null);
+  const dh    = Math.max(h, 0.1);
+  const fanR  = Math.min(w * 0.40, d * 0.42);   // radius for each rotor
+  const offX  = w * 0.26;                         // X offset: left fan / right fan
+  const blade0Ref = useRef<THREE.Group>(null);
+  const blade1Ref = useRef<THREE.Group>(null);
 
-  const bladeGeo = useMemo(() => getFanBladeGeo(r), [r]);
+  const bladeGeo = useMemo(() => getFanBladeGeo(fanR), [fanR]);
+
+  const discY = dh / 2 - fanR * 0.05;
 
   useFrame(() => {
-    if (!bladeGroupRef.current) return;
-    const speed = effStatus === 'offline' ? 0 : effStatus === 'error' ? 0.008 : 0.055;
-    bladeGroupRef.current.rotation.y += speed;
+    const spd = effStatus === 'offline' ? 0 : effStatus === 'error' ? 0.008 : 0.055;
+    if (blade0Ref.current) blade0Ref.current.rotation.y += spd;
+    if (blade1Ref.current) blade1Ref.current.rotation.y -= spd;   // counter-rotate
   });
-
-  // Fan sits at top of the frame
-  const discY = dh / 2 - r * 0.04;
 
   return (
     <>
-      {/* Frame body — deep blue-grey, non-metallic plastic/aluminium */}
+      {/* Module housing — extruded aluminium, dark charcoal */}
       <mesh castShadow receiveShadow>
         <boxGeometry args={[w, dh, d]} />
         <meshStandardMaterial
-          color="#252830" metalness={0.4} roughness={0.7}
-          emissive={effStatus === 'warning' ? '#F59E0B' : '#000'} emissiveIntensity={effStatus === 'warning' ? 0.15 : 0}
-          opacity={effStatus === 'offline' ? 0.38 : 1} transparent={effStatus === 'offline'}
+          color="#252830" metalness={0.42} roughness={0.68}
+          emissive={effStatus === 'warning' ? '#F59E0B' : '#000'}
+          emissiveIntensity={effStatus === 'warning' ? 0.14 : 0}
+          opacity={effStatus === 'offline' ? 0.38 : 1}
+          transparent={effStatus === 'offline'}
         />
       </mesh>
 
-      {/* Fan shroud disc */}
-      <mesh position={[0, discY, 0]}>
-        <cylinderGeometry args={[r, r, 0.06, 32]} />
-        <meshStandardMaterial color="#1a1c20" metalness={0.35} roughness={0.75} />
+      {/* Centre divider rib between the two rotors */}
+      <mesh position={[0, dh * 0.1, 0]}>
+        <boxGeometry args={[0.07, dh * 0.88, d * 0.94]} />
+        <meshStandardMaterial color="#30333e" metalness={0.5} roughness={0.6} />
       </mesh>
 
-      {/* Rotating blade group */}
-      {effStatus !== 'offline' && (
-        <group ref={bladeGroupRef} position={[0, discY + 0.01, 0]}>
-          {/* Hub */}
-          <mesh>
-            <cylinderGeometry args={[r * 0.22, r * 0.22, 0.1, 16]} />
-            <meshStandardMaterial color="#20222a" metalness={0.45} roughness={0.65} />
+      {/* ── Left rotor (index 0) ── */}
+      <group position={[-offX, 0, 0]}>
+        {/* Shroud disc */}
+        <mesh position={[0, discY, 0]}>
+          <cylinderGeometry args={[fanR, fanR, 0.06, 32]} />
+          <meshStandardMaterial color="#1a1c20" metalness={0.35} roughness={0.75} />
+        </mesh>
+        {/* Guard rings */}
+        {[0.44, 0.72, 0.97].map((t, i) => (
+          <mesh key={`gl-${i}`} position={[0, discY + 0.05, 0]}>
+            <ringGeometry args={[fanR * t - 0.018, fanR * t, 24]} />
+            <meshStandardMaterial color="#22252e" side={THREE.DoubleSide} metalness={0.55} roughness={0.45} />
           </mesh>
-          {/* 5 blades — dark blue-grey, low metalness */}
-          {Array.from({ length: 5 }, (_, i) => (
-            <mesh key={i} geometry={bladeGeo} rotation={[0, (i * Math.PI * 2) / 5, 0]}>
-              <meshStandardMaterial color="#1a1c20" metalness={0.3} roughness={0.8} />
+        ))}
+        {/* Guard spokes */}
+        {Array.from({ length: 4 }, (_, i) => (
+          <mesh key={`sl-${i}`} position={[0, discY + 0.05, 0]} rotation={[0, (i * Math.PI) / 4, 0]}>
+            <planeGeometry args={[0.026, fanR * 2.0]} />
+            <meshStandardMaterial color="#22252e" side={THREE.DoubleSide} />
+          </mesh>
+        ))}
+        {/* Rotating blade group — CW */}
+        {effStatus !== 'offline' && (
+          <group ref={blade0Ref} position={[0, discY + 0.01, 0]}>
+            <mesh>
+              <cylinderGeometry args={[fanR * 0.22, fanR * 0.22, 0.10, 16]} />
+              <meshStandardMaterial color="#20222a" metalness={0.45} roughness={0.65} />
             </mesh>
-          ))}
-        </group>
-      )}
+            {Array.from({ length: 5 }, (_, i) => (
+              <mesh key={i} geometry={bladeGeo} rotation={[0, (i * Math.PI * 2) / 5, 0]}>
+                <meshStandardMaterial color="#1a1c20" metalness={0.3} roughness={0.8} />
+              </mesh>
+            ))}
+          </group>
+        )}
+      </group>
 
-      {/* Corner screw holes */}
+      {/* ── Right rotor (index 1, counter-rotating) ── */}
+      <group position={[+offX, 0, 0]}>
+        <mesh position={[0, discY, 0]}>
+          <cylinderGeometry args={[fanR, fanR, 0.06, 32]} />
+          <meshStandardMaterial color="#1a1c20" metalness={0.35} roughness={0.75} />
+        </mesh>
+        {[0.44, 0.72, 0.97].map((t, i) => (
+          <mesh key={`gr-${i}`} position={[0, discY + 0.05, 0]}>
+            <ringGeometry args={[fanR * t - 0.018, fanR * t, 24]} />
+            <meshStandardMaterial color="#22252e" side={THREE.DoubleSide} metalness={0.55} roughness={0.45} />
+          </mesh>
+        ))}
+        {Array.from({ length: 4 }, (_, i) => (
+          <mesh key={`sr-${i}`} position={[0, discY + 0.05, 0]} rotation={[0, (i * Math.PI) / 4, 0]}>
+            <planeGeometry args={[0.026, fanR * 2.0]} />
+            <meshStandardMaterial color="#22252e" side={THREE.DoubleSide} />
+          </mesh>
+        ))}
+        {effStatus !== 'offline' && (
+          <group ref={blade1Ref} position={[0, discY + 0.01, 0]}>
+            <mesh>
+              <cylinderGeometry args={[fanR * 0.22, fanR * 0.22, 0.10, 16]} />
+              <meshStandardMaterial color="#20222a" metalness={0.45} roughness={0.65} />
+            </mesh>
+            {Array.from({ length: 5 }, (_, i) => (
+              <mesh key={i} geometry={bladeGeo} rotation={[0, (i * Math.PI * 2) / 5, 0]}>
+                <meshStandardMaterial color="#1a1c20" metalness={0.3} roughness={0.8} />
+              </mesh>
+            ))}
+          </group>
+        )}
+      </group>
+
+      {/* Hot-swap handle strip — front face bottom edge */}
+      <mesh position={[0, -dh / 2 + 0.07, -d / 2 + 0.04]}>
+        <boxGeometry args={[w * 0.88, 0.14, 0.09]} />
+        <meshStandardMaterial color="#3a3d4a" metalness={0.60} roughness={0.50} />
+      </mesh>
+
+      {/* Status LED on handle */}
+      <mesh position={[w * 0.36, -dh / 2 + 0.07, -d / 2 + 0.09]}>
+        <boxGeometry args={[0.08, 0.08, 0.015]} />
+        <meshStandardMaterial
+          color={effStatus === 'error' ? '#ff3333' : effStatus === 'warning' ? '#ff9900' : '#00dd55'}
+          emissive={effStatus === 'error' ? '#ff3333' : effStatus === 'warning' ? '#ff9900' : '#00dd55'}
+          emissiveIntensity={effStatus === 'offline' ? 0 : 0.85}
+        />
+      </mesh>
+
+      {/* Corner retention screws */}
       {[[-w / 2 + 0.12, -d / 2 + 0.12], [w / 2 - 0.12, -d / 2 + 0.12],
-        [-w / 2 + 0.12, d / 2 - 0.12], [w / 2 - 0.12,  d / 2 - 0.12]].map(([sx, sz], i) => (
+        [-w / 2 + 0.12,  d / 2 - 0.12], [w / 2 - 0.12,  d / 2 - 0.12]].map(([sx, sz], i) => (
         <mesh key={i} position={[sx as number, dh / 2 + 0.005, sz as number]}>
           <cylinderGeometry args={[0.05, 0.05, 0.01, 8]} />
           <meshStandardMaterial color="#555" metalness={0.9} />
@@ -477,6 +1076,7 @@ function HDDMesh({ comp, isSelected, effStatus }: SpecProps) {
   const dh = Math.max(h, 0.1);
   const em = statusEmissive(effStatus);
   const meshRef = useRef<THREE.Mesh>(null);
+  const ledRef  = useRef<THREE.Mesh>(null);
 
   const labelTex = useMemo(() => createHDDLabelTexture(comp.labelEn), [comp.labelEn]);
   useEffect(() => () => labelTex.dispose(), [labelTex]);
@@ -485,6 +1085,12 @@ function HDDMesh({ comp, isSelected, effStatus }: SpecProps) {
     if (meshRef.current && effStatus === 'error') {
       const mat = meshRef.current.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = 0.12 + 0.22 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2));
+    }
+    if (ledRef.current && effStatus !== 'offline') {
+      const ledMat = ledRef.current.material as THREE.MeshStandardMaterial;
+      ledMat.emissiveIntensity = effStatus === 'error'
+        ? 0.95
+        : 0.28 + 0.67 * (Math.sin(clock.getElapsedTime() * 7.5) > 0 ? 1 : 0);
     }
   });
 
@@ -518,6 +1124,16 @@ function HDDMesh({ comp, isSelected, effStatus }: SpecProps) {
       <mesh position={[-w * 0.28, 0, d / 2 - 0.03]}>
         <boxGeometry args={[w * 0.2, dh * 0.5, 0.06]} />
         <meshStandardMaterial color="#B8860B" metalness={0.95} roughness={0.08} />
+      </mesh>
+
+      {/* Activity LED — front face, blinks blue (or red on error) */}
+      <mesh ref={ledRef} position={[w * 0.43, dh * 0.32, -d / 2 - 0.01]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.026, 0.026, 0.012, 8]} />
+        <meshStandardMaterial
+          color={effStatus === 'error' ? '#ef4444' : '#3b82f6'}
+          emissive={effStatus === 'error' ? '#ef4444' : '#3b82f6'}
+          emissiveIntensity={0.85}
+        />
       </mesh>
 
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
@@ -628,6 +1244,12 @@ function PSUMesh({ comp, isSelected, effStatus }: SpecProps) {
         />
       </mesh>
 
+      {/* Model label plate — brushed silver badge on front face */}
+      <mesh position={[w * 0.22, dh * 0.36, -d / 2 - 0.009]}>
+        <boxGeometry args={[w * 0.38, dh * 0.14, 0.009]} />
+        <meshStandardMaterial color="#c0c4cc" metalness={0.82} roughness={0.22} />
+      </mesh>
+
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
     </>
   );
@@ -639,12 +1261,12 @@ function IOPanelMesh({ comp, isSelected, effStatus }: SpecProps) {
   const dh = Math.max(h, 0.1);
   const em = statusEmissive(effStatus);
 
-  // Port definitions (x offset, w, h, label)
+  // Port definitions — each with its own realistic color
   const ports = [
-    { x: -w * 0.35, pw: w * 0.13, ph: dh * 0.35 },  // USB-A ×2
-    { x: -w * 0.15, pw: w * 0.13, ph: dh * 0.35 },
-    { x:  w * 0.05, pw: w * 0.18, ph: dh * 0.50 },  // RJ45
-    { x:  w * 0.30, pw: w * 0.12, ph: dh * 0.28 },  // VGA
+    { x: -w * 0.35, pw: w * 0.13, ph: dh * 0.35, color: '#1435c8' },  // USB-A #1 blue
+    { x: -w * 0.15, pw: w * 0.13, ph: dh * 0.35, color: '#1435c8' },  // USB-A #2 blue
+    { x:  w * 0.05, pw: w * 0.18, ph: dh * 0.50, color: '#1a1e25' },  // RJ45 near-black
+    { x:  w * 0.30, pw: w * 0.12, ph: dh * 0.28, color: '#162065' },  // VGA dark blue
   ];
 
   return (
@@ -659,11 +1281,172 @@ function IOPanelMesh({ comp, isSelected, effStatus }: SpecProps) {
         />
       </mesh>
 
-      {/* Port cutouts / connectors (front face, dark gold) */}
+      {/* Port cutouts / connectors (front face, color-coded by type) */}
       {ports.map((p, i) => (
         <mesh key={i} position={[p.x, 0, -d / 2 - 0.008]}>
           <boxGeometry args={[p.pw, p.ph, 0.015]} />
-          <meshStandardMaterial color="#B8860B" metalness={0.95} roughness={0.1} />
+          <meshStandardMaterial color={p.color} metalness={0.30} roughness={0.55} />
+        </mesh>
+      ))}
+
+      <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
+    </>
+  );
+}
+
+// ─── NVMe mesh — U.2 NVMe SSD (PCIe Gen4 ×4) ─────────────────────────────
+function NVMEMesh({ comp, isSelected, effStatus }: SpecProps) {
+  const { w, d, h } = comp.size;   // w:3.2 d:1.8 h:0.8 → box [3.2, 0.8, 1.8]
+  const dh  = Math.max(h, 0.1);
+  const em  = statusEmissive(effStatus);
+  const ledRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (!ledRef.current || effStatus === 'offline') return;
+    const t   = clock.getElapsedTime();
+    const mat = ledRef.current.material as THREE.MeshStandardMaterial;
+    const hz  = effStatus === 'warning' ? 2.0 : 4.5;
+    const blink = 0.25 + 0.75 * Math.abs(Math.sin(t * Math.PI * hz));
+    const col = effStatus === 'error' ? '#ff2200'
+      : effStatus === 'warning' ? '#ffaa00' : '#1155ff';
+    mat.color.set(col);
+    mat.emissive.set(col);
+    mat.emissiveIntensity = blink * 0.9;
+  });
+
+  return (
+    <>
+      {/* Heat-spreader body — brushed dark aluminium */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[w, dh, d]} />
+        <meshStandardMaterial
+          color="#292e3a" metalness={0.72} roughness={0.26}
+          emissive={new THREE.Color(em.color)} emissiveIntensity={em.intensity}
+          opacity={effStatus === 'offline' ? 0.38 : 1} transparent={effStatus === 'offline'}
+        />
+      </mesh>
+
+      {/* Top label plate */}
+      <mesh position={[0, dh / 2 + 0.001, d * 0.05]}>
+        <planeGeometry args={[w * 0.86, d * 0.70]} />
+        <meshStandardMaterial color="#1c1f2b" metalness={0.15} roughness={0.88} />
+      </mesh>
+
+      {/* PCIe NVMe brand stripe */}
+      <mesh position={[0, dh / 2 + 0.002, d * 0.28]}>
+        <planeGeometry args={[w * 0.65, 0.055]} />
+        <meshStandardMaterial color="#c084fc" emissive="#c084fc" emissiveIntensity={0.38} />
+      </mesh>
+      <mesh position={[0, dh / 2 + 0.002, d * 0.35]}>
+        <planeGeometry args={[w * 0.65, 0.028]} />
+        <meshStandardMaterial color="#7a5aaa" emissive="#7a5aaa" emissiveIntensity={0.18} />
+      </mesh>
+
+      {/* U.2 connector strip — rear face */}
+      <mesh position={[0, -dh / 2 + 0.065, d / 2 - 0.008]}>
+        <boxGeometry args={[w * 0.80, 0.13, 0.022]} />
+        <meshStandardMaterial color="#c8a040" metalness={0.92} roughness={0.13} />
+      </mesh>
+      {/* Connector teeth */}
+      {Array.from({ length: 12 }, (_, i) => (
+        <mesh key={i} position={[-w * 0.36 + i * (w * 0.72 / 12), -dh / 2 + 0.065, d / 2 - 0.005]}>
+          <boxGeometry args={[0.022, 0.10, 0.016]} />
+          <meshStandardMaterial color="#b08830" metalness={0.95} roughness={0.08} />
+        </mesh>
+      ))}
+
+      {/* Activity LED — front face top-right corner */}
+      <mesh ref={ledRef} position={[w * 0.41, dh / 2 - 0.09, -d / 2 + 0.008]}>
+        <boxGeometry args={[0.07, 0.07, 0.012]} />
+        <meshStandardMaterial color="#1155ff" emissive="#1155ff" emissiveIntensity={0.65} roughness={0.1} />
+      </mesh>
+
+      {/* Side heat-fin grooves (pairs of thin ridges) */}
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={i} position={[0, dh / 2 + 0.001, -d * 0.42 + i * (d * 0.84 / 4)]}>
+          <boxGeometry args={[w + 0.002, 0.012, 0.018]} />
+          <meshStandardMaterial color="#333848" metalness={0.65} roughness={0.38} />
+        </mesh>
+      ))}
+
+      <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
+    </>
+  );
+}
+
+// ─── NIC card mesh — OCP 3.0 NIC (4×25GbE SFP28) ─────────────────────────
+function NicCardMesh({ comp, isSelected, effStatus }: SpecProps) {
+  const { w, d, h } = comp.size;   // w:5.5 d:0.5 h:2.1
+  const dh = Math.max(h, 0.1);
+  const em = statusEmissive(effStatus);
+
+  // 4 SFP28 cages, evenly spaced along the card face
+  const sfpW = 0.38, sfpH = 0.30, sfpD = 0.06;
+  const sfpSpacing = w / 5.0;
+  const sfpXBase   = -w * 0.30;
+
+  return (
+    <>
+      {/* PCB card body — dark FR4 green */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[w, dh, d]} />
+        <meshStandardMaterial
+          color="#192018" metalness={0.22} roughness={0.72}
+          emissive={new THREE.Color(em.color)} emissiveIntensity={em.intensity}
+          opacity={effStatus === 'offline' ? 0.38 : 1} transparent={effStatus === 'offline'}
+        />
+      </mesh>
+
+      {/* Faceplate — brushed silver aluminium bracket */}
+      <mesh position={[0, 0, -d / 2 + 0.012]}>
+        <boxGeometry args={[w, dh * 0.92, 0.024]} />
+        <meshStandardMaterial color="#2c3040" metalness={0.68} roughness={0.32} />
+      </mesh>
+
+      {/* 4× SFP28 cage openings */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <group key={i} position={[sfpXBase + i * sfpSpacing, dh * 0.10, -d / 2 + 0.015]}>
+          {/* Cage shell */}
+          <mesh>
+            <boxGeometry args={[sfpW, sfpH, sfpD]} />
+            <meshStandardMaterial color="#101418" metalness={0.52} roughness={0.58} />
+          </mesh>
+          {/* Dark port recess */}
+          <mesh position={[0, 0, -sfpD / 2 - 0.001]}>
+            <boxGeometry args={[sfpW * 0.70, sfpH * 0.60, 0.008]} />
+            <meshStandardMaterial color="#040507" roughness={0.92} metalness={0.08} />
+          </mesh>
+          {/* Link/activity LED — top-right of cage */}
+          <mesh position={[sfpW * 0.28, sfpH * 0.54, 0]}>
+            <boxGeometry args={[0.045, 0.045, sfpD + 0.004]} />
+            <meshStandardMaterial
+              color={effStatus === 'normal' ? '#00cc44' : effStatus === 'warning' ? '#ffaa00' : '#222'}
+              emissive={effStatus === 'normal' ? '#00cc44' : effStatus === 'warning' ? '#ffaa00' : '#000'}
+              emissiveIntensity={effStatus === 'offline' ? 0 : 0.72}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      {/* PCIe gold edge connector */}
+      <mesh position={[0, -dh / 2 + 0.065, 0]}>
+        <boxGeometry args={[w * 0.84, 0.13, d * 0.82]} />
+        <meshStandardMaterial color="#c8a040" metalness={0.93} roughness={0.11} />
+      </mesh>
+      {/* Connector finger teeth */}
+      {Array.from({ length: 16 }, (_, i) => (
+        <mesh key={i} position={[-w * 0.40 + i * (w * 0.80 / 16), -dh / 2 + 0.065, 0]}>
+          <boxGeometry args={[0.022, 0.135, d * 0.68]} />
+          <meshStandardMaterial color="#b09030" metalness={0.96} roughness={0.07} />
+        </mesh>
+      ))}
+
+      {/* Small PCB SMD components on face */}
+      {[[-w * 0.38, dh * 0.38], [w * 0.22, dh * 0.38],
+        [-w * 0.10, -dh * 0.15], [w * 0.38, -dh * 0.20]].map(([cx, cy], i) => (
+        <mesh key={i} position={[cx, cy, d / 2 + 0.001]}>
+          <boxGeometry args={[0.14, 0.12, 0.02]} />
+          <meshStandardMaterial color="#0a0c10" roughness={0.85} metalness={0.15} />
         </mesh>
       ))}
 
@@ -821,12 +1604,15 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
       {/* Specialized mesh per component type */}
       {(comp.type === 'BASE_BOARD' || comp.type === 'EXT_BOARD' || comp.type === 'RISER')
         && <PCBMesh    {...specProps} />}
-      {comp.type === 'CPU'      && <CPUMesh    {...specProps} />}
-      {comp.type === 'FAN'      && <FANMesh    {...specProps} />}
-      {comp.type === 'HDD'      && <HDDMesh    {...specProps} />}
-      {comp.type === 'PSU'      && <PSUMesh    {...specProps} />}
-      {comp.type === 'IO_PANEL' && <IOPanelMesh {...specProps} />}
-      {comp.type === 'EEPROM'   && <GenericMesh {...specProps} />}
+      {comp.type === 'BMC_CARD' && <BmcCardMesh  {...specProps} />}
+      {comp.type === 'CPU'      && <CPUMesh      {...specProps} />}
+      {comp.type === 'FAN'      && <FANMesh      {...specProps} />}
+      {comp.type === 'HDD'      && <HDDMesh      {...specProps} />}
+      {comp.type === 'NVME'     && <NVMEMesh     {...specProps} />}
+      {comp.type === 'PSU'      && <PSUMesh      {...specProps} />}
+      {comp.type === 'NIC_CARD' && <NicCardMesh  {...specProps} />}
+      {comp.type === 'IO_PANEL' && <IOPanelMesh  {...specProps} />}
+      {comp.type === 'EEPROM'   && <GenericMesh  {...specProps} />}
 
       {/* Always-on thin dark silhouette outline — gives the "product photo" edge */}
       <lineSegments renderOrder={-1}>
@@ -1214,6 +2000,9 @@ function SceneLights() {
 
       {/* 5. Floor bounce */}
       <pointLight position={[0, -2, 0]} intensity={0.15} color="#1a2840" />
+
+      {/* 6. Warm front accent — lifts front-panel detail (IO, HDD bays) */}
+      <directionalLight position={[6, 5, 22]} intensity={0.10} color="#c8a060" />
     </>
   );
 }
@@ -1272,6 +2061,24 @@ function BusGlowLights() {
   );
 }
 
+// ─── Server chassis wireframe outline ────────────────────────────────────
+// Surrounds the main board area (board spans world X: -10→10, Z: -7→7, Y: 0→3.2).
+// The HDD bay extends to Z≈-9 so the chassis box shifts -1 in Z.
+function ServerChassis() {
+  const geo = useMemo(
+    () => new THREE.EdgesGeometry(new THREE.BoxGeometry(22.6, 3.3, 17.8)),
+    [],
+  );
+  useEffect(() => () => geo.dispose(), [geo]);
+  return (
+    <group position={[0, 1.65, -1]}>
+      <lineSegments geometry={geo}>
+        <lineBasicMaterial color="#1e3060" opacity={0.20} transparent />
+      </lineSegments>
+    </group>
+  );
+}
+
 // ─── Main scene ───────────────────────────────────────────────────────────
 function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void }) {
   const snapshotTimer = useRef(0);
@@ -1315,8 +2122,11 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       <SceneLights />
       <BusGlowLights />
 
-      {/* ── Environment map: warehouse HDR for metal reflections ── */}
-      <Environment preset="warehouse" />
+      {/* ── Environment map: city HDR — sharper metal/glass reflections ── */}
+      <Environment preset="city" />
+
+      {/* ── Server chassis outline ─────────────────────────────── */}
+      <ServerChassis />
 
       {/* ── Ground — subtle grid matching reference dark style ── */}
       <gridHelper args={[80, 80, '#12151f', '#0e1018']} position={[0, -0.02, 0]} />
@@ -1351,7 +2161,7 @@ export function IsoCanvas() {
       <Canvas
         camera={{ position: [18, 14, 18], fov: 45 }}
         shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.18 }}
         dpr={[1, 2]}
         style={{ background: '#0b0d14' }}
         onCreated={({ gl }) => {
