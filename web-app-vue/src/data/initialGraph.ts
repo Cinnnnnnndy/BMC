@@ -86,7 +86,7 @@ function E(
   id: string, source: string, target: string,
   opts: { color?: string; dashed?: boolean; label?: string; sh?: string; th?: string } = {},
 ): Edge {
-  const color = opts.color ?? C.purple;
+  const color = opts.color ?? C.blue;
   return {
     id,
     source,

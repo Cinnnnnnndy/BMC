@@ -1,327 +1,142 @@
 <script setup lang="ts">
+// Unified topology view.
+// Layout: BMC → EXU → board groups (left → right, mind-map style).
+// Each card shows inline: header + SN/PN dropdown + I2C bus / mux / chip tree.
 import { computed, markRaw, onMounted, ref } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
-import type { Node, Edge, NodeDragEvent, NodeMouseEvent } from '@vue-flow/core';
 
-import { buildInitialNodes, buildInitialEdges } from './data/initialGraph';
-import { computeAutoLayout } from './composables/useAutoLayout';
-import { C } from './data/palette';
+import BmcNode        from './nodes/BmcNode.vue';
+import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 
-import GroupNode from './nodes/GroupNode.vue';
-import BusNode from './nodes/BusNode.vue';
-import SMBusNode from './nodes/SMBusNode.vue';
-import MuxNode from './nodes/MuxNode.vue';
-import ChipNode from './nodes/ChipNode.vue';
-import BigChipNode from './nodes/BigChipNode.vue';
+import { buildMindmap } from './data/mindmap';
+import type { BoardGroup, BoardRecord } from './data/boards';
 
-// VueFlow's Node type is deeply generic (GraphNode) — using `any` at the
-// ref boundary avoids TS2589 "excessively deep" errors while keeping runtime
-// behavior identical. Individual callbacks still narrow when useful.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNode = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyEdge = any;
 
-// ── State ──────────────────────────────────────────────────────────────
-const nodes = ref<AnyNode[]>(buildInitialNodes() as AnyNode[]);
-const edges = ref<AnyEdge[]>(buildInitialEdges() as AnyEdge[]);
-const layoutReady = ref(false);
-const selectedNode = ref<AnyNode | null>(null);
-const lockedNodes = ref<Set<string>>(new Set());
-const panelOpen = ref(true);
-
-interface ContextMenuState { x: number; y: number; nodeId: string }
-const contextMenu = ref<ContextMenuState | null>(null);
-
-interface EditingNode { id: string; x: number; y: number; value: string }
-const editingNode = ref<EditingNode | null>(null);
-
-const { fitView, onNodeDragStop, vueFlowRef, viewport, project } = useVueFlow();
-
-// ── Node types (must be markRaw to skip Vue reactivity on component defs) ──
+// ── Node types ─────────────────────────────────────────────────────────
 const nodeTypes = {
-  group:   markRaw(GroupNode),
-  bus:     markRaw(BusNode),
-  smbus:   markRaw(SMBusNode),
-  mux:     markRaw(MuxNode),
-  chip:    markRaw(ChipNode),
-  bigchip: markRaw(BigChipNode),
+  bmc:        markRaw(BmcNode),
+  boardgroup: markRaw(BoardGroupNode),
 };
 
-// ── Mount: run inner auto-layout and fit view ──────────────────────────
-onMounted(() => {
-  // next tick — allow VueFlow to register nodes
-  queueMicrotask(() => {
-    nodes.value = computeAutoLayout(buildInitialNodes(), buildInitialEdges());
-    layoutReady.value = true;
-    setTimeout(() => fitView({ padding: 0.08 }), 60);
-  });
-});
+const { fitView } = useVueFlow();
 
-// ── Track locked nodes after drag ──────────────────────────────────────
-onNodeDragStop((event: NodeDragEvent) => {
-  const targets = event.nodes ?? (event.node ? [event.node] : []);
-  const next = new Set(lockedNodes.value);
-  for (const n of targets) next.add(n.id);
-  lockedNodes.value = next;
-});
+// ── State ──────────────────────────────────────────────────────────────
+const selectedByGroup = ref<Record<string, string>>({});
+const activeNode      = ref<AnyNode | null>(null);
+
+function handleSelect(groupId: string, boardId: string) {
+  selectedByGroup.value = { ...selectedByGroup.value, [groupId]: boardId };
+  nodes.value = nodes.value.map((n) =>
+    n.id === groupId ? { ...n, data: { ...n.data, selectedId: boardId } } : n,
+  );
+}
+
+const built = buildMindmap(handleSelect, selectedByGroup.value);
+const nodes = ref<AnyNode[]>(built.nodes);
+const edges = ref<AnyEdge[]>(built.edges);
+
+onMounted(() => setTimeout(() => fitView({ padding: 0.10 }), 80));
 
 // ── Interactions ───────────────────────────────────────────────────────
-function onNodeClick(ev: NodeMouseEvent) {
-  selectedNode.value = ev.node;
-  contextMenu.value = null;
+function onNodeClick(ev: { node: AnyNode }) {
+  activeNode.value = ev.node;
 }
-
-function onNodeContextMenu(ev: NodeMouseEvent) {
-  (ev.event as MouseEvent).preventDefault();
-  const me = ev.event as MouseEvent;
-  contextMenu.value = { x: me.clientX, y: me.clientY, nodeId: ev.node.id };
-}
-
 function onPaneClick() {
-  selectedNode.value = null;
-  contextMenu.value = null;
-  editingNode.value = null;
+  activeNode.value = null;
+}
+function handleResetLayout() {
+  const next = buildMindmap(handleSelect, selectedByGroup.value);
+  nodes.value = next.nodes;
+  edges.value = next.edges;
+  setTimeout(() => fitView({ padding: 0.10 }), 80);
+}
+function handleFit() {
+  fitView({ padding: 0.10 });
+}
+function handleResetSelections() {
+  const reset: Record<string, string> = {};
+  for (const g of built.groups) reset[g.id] = g.boards[0].id;
+  selectedByGroup.value = reset;
+  nodes.value = nodes.value.map((n) =>
+    n.type === 'boardgroup' && reset[n.id]
+      ? { ...n, data: { ...n.data, selectedId: reset[n.id] } }
+      : n,
+  );
 }
 
-function onNodeDoubleClick(ev: NodeMouseEvent) {
-  const n = ev.node;
-  const d = n.data as Record<string, unknown>;
-  const value = String(d.label ?? d.chipType ?? '');
-  editingNode.value = { id: n.id, x: n.position.x, y: n.position.y, value };
-}
-
-function commitEdit() {
-  const e = editingNode.value;
-  if (!e) return;
-  nodes.value = nodes.value.map((n) => {
-    if (n.id !== e.id) return n;
-    const d = (n.data ?? {}) as Record<string, unknown>;
-    const newData = 'chipType' in d
-      ? { ...d, chipType: e.value }
-      : { ...d, label: e.value };
-    return { ...n, data: newData };
-  });
-  editingNode.value = null;
-}
-
-function handleDelete(nodeId: string) {
-  nodes.value = nodes.value.filter((n) => n.id !== nodeId);
-  edges.value = edges.value.filter((e) => e.source !== nodeId && e.target !== nodeId);
-  if (selectedNode.value?.id === nodeId) selectedNode.value = null;
-  contextMenu.value = null;
-}
-
-function handleShowPanel(nodeId: string) {
-  const n = nodes.value.find((x) => x.id === nodeId);
-  if (n) selectedNode.value = n;
-}
-
-// ── Auto-layout actions ────────────────────────────────────────────────
-function handleAutoLayout() {
-  layoutReady.value = false;
-  queueMicrotask(() => {
-    nodes.value = computeAutoLayout(nodes.value, edges.value);
-    layoutReady.value = true;
-    setTimeout(() => fitView({ padding: 0.08 }), 50);
-  });
-}
-
-function handleClearLocked() {
-  lockedNodes.value = new Set();
-  handleAutoLayout();
-}
-
-// ── Export ─────────────────────────────────────────────────────────────
-function handleExportJSON() {
-  const blob = new Blob([JSON.stringify({ nodes: nodes.value, edges: edges.value }, null, 2)],
-    { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'topology.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function handleExportSVG() {
-  const el = vueFlowRef.value?.querySelector('.vue-flow') ?? vueFlowRef.value;
-  if (!el) return;
-  const xml = new XMLSerializer().serializeToString(el);
-  const blob = new Blob([xml], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'topology.svg';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ── Palette drag & drop ────────────────────────────────────────────────
-function onDragStart(e: DragEvent, type: string) {
-  e.dataTransfer?.setData('node-type', type);
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-}
-
-function onDrop(e: DragEvent) {
-  e.preventDefault();
-  const type = e.dataTransfer?.getData('node-type');
-  if (!type) return;
-  const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  const position = project({
-    x: e.clientX - bounds.left,
-    y: e.clientY - bounds.top,
-  });
-
-  const id = `new_${type}_${Date.now()}`;
-  let newNode: Node;
-  if (type === 'bus') {
-    newNode = { id, type: 'bus', position, data: { label: 'i2cbus_new' } } as Node;
-  } else if (type === 'smbus') {
-    newNode = { id, type: 'smbus', position, data: { label: 'smbus_new' } } as Node;
-  } else if (type === 'mux') {
-    newNode = { id, type: 'mux', position, data: { label: 'Pca9545' },
-      style: { width: '48px', height: '48px' } } as Node;
-  } else if (type === 'board') {
-    newNode = { id, type: 'group', position, data: { label: 'New_Board' },
-      style: { width: '200px', height: '150px' }, selectable: false } as Node;
-  } else {
-    newNode = { id, type: 'chip', position, data: { chipType: type } } as Node;
-  }
-  nodes.value = [...nodes.value, newNode];
-}
-
-// ── MiniMap node color ─────────────────────────────────────────────────
-function miniColor(n: Node): string {
-  if (n.type === 'bus')   return C.pink;
-  if (n.type === 'smbus') return C.green;
-  if (n.type === 'mux')   return C.purple;
-  if (n.type === 'chip' || n.type === 'bigchip') return '#3a3a5a';
-  return 'transparent';
-}
-
-// ── Edit overlay position (world → screen) ─────────────────────────────
-const editOverlayStyle = computed(() => {
-  const e = editingNode.value;
-  if (!e) return {};
-  const vp = viewport.value;
-  return {
-    left: `${e.x * vp.zoom + vp.x}px`,
-    top: `${e.y * vp.zoom + vp.y}px`,
-  };
+// ── Property panel ─────────────────────────────────────────────────────
+const activeGroup = computed<BoardGroup | null>(() => {
+  const n = activeNode.value;
+  if (!n || n.type !== 'boardgroup') return null;
+  return n.data.group as BoardGroup;
+});
+const activeBoard = computed<BoardRecord | null>(() => {
+  const g = activeGroup.value;
+  if (!g) return null;
+  const id = selectedByGroup.value[g.id] ?? g.boards[0].id;
+  return g.boards.find((b) => b.id === id) ?? g.boards[0];
 });
 
-// ── Close context menu on any outside click ────────────────────────────
-function closeContextMenu() { contextMenu.value = null; }
-
-// ── Property panel helpers ─────────────────────────────────────────────
-const typeLabel: Record<string, string> = {
-  group: '板卡容器', bus: 'I2C 总线', smbus: 'SMBus',
-  mux: 'Pca9545 复用器', chip: '芯片', bigchip: '芯片（大）',
+// ── MiniMap colours ────────────────────────────────────────────────────
+const TYPE_COLOR: Record<string, string> = {
+  BCU: '#22c55e', CLU: '#f59e0b', EXU: '#a855f7',
+  IEU: '#06b6d4', SEU: '#ec4899', NICCard: '#3b82f6',
+  Unknown: '#6b7280',
 };
-
-function getFieldValue(n: Node) {
-  const d = n.data as Record<string, unknown>;
-  return String(d.label ?? d.chipType ?? '—');
+function miniColor(n: AnyNode) {
+  if (n.type === 'bmc') return '#4f6ef7';
+  const g = n.data?.group as BoardGroup | undefined;
+  return TYPE_COLOR[g?.type ?? 'Unknown'] ?? '#6b7280';
 }
+
+const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.length, 0));
 </script>
 
 <template>
   <div class="topo-root">
-    <!-- ── Left palette ──────────────────────────────────────────── -->
-    <aside :class="['topo-palette', panelOpen ? 'open' : 'closed']">
-      <button
-        class="palette-toggle"
-        :style="{ alignSelf: panelOpen ? 'flex-end' : 'center' }"
-        @click="panelOpen = !panelOpen"
-      >{{ panelOpen ? '←' : '☰' }}</button>
+    <!-- ── Left panel ────────────────────────────────────────────── -->
+    <aside class="topo-palette open">
+      <div class="palette-section-title">拓扑视图 Vue</div>
 
-      <template v-if="panelOpen">
-        <div class="palette-section-title">图元面板</div>
+      <div class="pp-field">
+        <div class="pp-field-label">布局</div>
+        <div class="pp-field-value">思维导图（BMC → EXU → 板组）</div>
+      </div>
+      <div class="pp-field">
+        <div class="pp-field-label">数据源</div>
+        <div class="pp-field-value">openUBMC（{{ totalBoards }} 张物理板）</div>
+      </div>
+      <div class="pp-field">
+        <div class="pp-field-label">I2C 数据</div>
+        <div class="pp-field-value">模拟数据（待 .sr 解析打通）</div>
+      </div>
 
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'bus')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.pink }" /> I2C Bus
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'smbus')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.green }" /> SMBus
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'mux')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.purple }" /> Pca9545
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'Eeprom')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.chipColor.Eeprom }" /> Eeprom
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'CPU')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.chipColor.CPU }" /> CPU
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'Lm75')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.chipColor.Lm75 }" /> Lm75
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'Smc')"
-        >
-          <span class="palette-item-dot" :style="{ background: C.chipColor.Smc }" /> Smc
-        </div>
-        <div
-          class="palette-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, 'board')"
-        >
-          <span class="palette-item-dot" :style="{ background: 'var(--text-dim)' }" /> Board
-        </div>
+      <div class="palette-section-title" style="margin-top:16px;">分组</div>
+      <ul class="grp-summary">
+        <li v-for="g in built.groups" :key="g.id">
+          <span class="grp-s-badge" :style="{ background: (TYPE_COLOR[g.type] ?? '#6b7280') + '28', color: TYPE_COLOR[g.type] ?? '#6b7280' }">
+            {{ g.shortLabel }}
+          </span>
+          <span class="grp-s-name">{{ g.name }}</span>
+          <span class="grp-s-count">× {{ g.boards.length }}</span>
+        </li>
+      </ul>
 
-        <div v-if="lockedNodes.size > 0" class="palette-lock-hint">
-          {{ lockedNodes.size }} 个节点已锁定
-        </div>
-
-        <div style="margin-top: 24px;">
-          <div class="palette-section-title">操作</div>
-          <button class="palette-action primary" @click="handleAutoLayout">自动布局</button>
-          <button class="palette-action" @click="handleAutoLayout">重新布局</button>
-          <button class="palette-action" @click="handleClearLocked">清除锁定</button>
-          <button class="palette-action" @click="handleExportJSON">导出 JSON</button>
-          <button class="palette-action" @click="handleExportSVG">导出 SVG</button>
-        </div>
-      </template>
+      <div class="palette-section-title" style="margin-top:16px;">操作</div>
+      <button class="palette-action primary" @click="handleResetLayout">重置布局</button>
+      <button class="palette-action" @click="handleFit">适应画布</button>
+      <button class="palette-action" @click="handleResetSelections">全部重置为首张</button>
     </aside>
 
     <!-- ── Canvas ────────────────────────────────────────────────── -->
-    <div
-      class="topo-canvas-wrap"
-      @dragover.prevent
-      @drop="onDrop"
-    >
-      <div v-if="!layoutReady" class="topo-loading">布局计算中...</div>
-
+    <div class="topo-canvas-wrap">
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -331,87 +146,83 @@ function getFieldValue(n: Node) {
         :min-zoom="0.1"
         :max-zoom="2.5"
         :nodes-draggable="true"
-        :nodes-connectable="true"
-        :connect-on-click="false"
+        :nodes-connectable="false"
         :elements-selectable="true"
         :pan-on-drag="true"
         @node-click="onNodeClick"
-        @node-double-click="onNodeDoubleClick"
-        @node-context-menu="onNodeContextMenu"
         @pane-click="onPaneClick"
       >
-        <Background pattern-color="#2a2a3a" :gap="20" :size="1.2" />
+        <Background pattern-color="#151528" :gap="24" :size="0.9" />
         <Controls />
         <MiniMap
           :node-color="miniColor"
           mask-color="rgba(8,8,18,0.65)"
-          :style="{ background: '#141420', border: '1px solid #2e2e4e', borderRadius: '8px' }"
+          :style="{ background:'#141420', border:'1px solid #2e2e4e', borderRadius:'8px' }"
         />
       </VueFlow>
-
-      <!-- Edit overlay -->
-      <div
-        v-if="editingNode"
-        class="topo-edit-overlay"
-        :style="editOverlayStyle"
-      >
-        <input
-          v-model="editingNode.value"
-          @blur="commitEdit"
-          @keydown.enter="commitEdit"
-          @keydown.escape="editingNode = null"
-          autofocus
-        />
-      </div>
     </div>
 
     <!-- ── Property panel ────────────────────────────────────────── -->
-    <div v-if="selectedNode" class="topo-property-panel" @click.stop>
+    <div v-if="activeGroup && activeBoard" class="topo-property-panel" @click.stop>
       <div class="pp-header">
-        <span>节点属性</span>
-        <button class="pp-close" @click="selectedNode = null">✕</button>
+        <span>板卡详情</span>
+        <button class="pp-close" @click="activeNode = null">✕</button>
       </div>
       <div class="pp-body">
         <div class="pp-field">
-          <div class="pp-field-label">节点 ID</div>
-          <div class="pp-field-value">{{ selectedNode.id }}</div>
-        </div>
-        <div class="pp-field">
           <div class="pp-field-label">类型</div>
-          <div class="pp-field-value">{{ typeLabel[selectedNode.type ?? ''] ?? selectedNode.type ?? '—' }}</div>
+          <div class="pp-field-value">{{ activeGroup.label }}</div>
         </div>
         <div class="pp-field">
-          <div class="pp-field-label">名称 / 标签</div>
-          <div class="pp-field-value">{{ getFieldValue(selectedNode) }}</div>
+          <div class="pp-field-label">同类板数量</div>
+          <div class="pp-field-value">{{ activeGroup.boards.length }}</div>
         </div>
         <div class="pp-field">
-          <div class="pp-field-label">所属板卡</div>
-          <div class="pp-field-value">{{ (selectedNode as any).parentNode ?? '（顶层）' }}</div>
+          <div class="pp-field-label">当前 SN</div>
+          <div class="pp-field-value mono">{{ activeBoard.sn }}</div>
         </div>
         <div class="pp-field">
-          <div class="pp-field-label">位置 X</div>
-          <div class="pp-field-value">{{ Math.round(selectedNode.position.x) }}</div>
+          <div class="pp-field-label">Part Number</div>
+          <div class="pp-field-value mono">{{ activeBoard.partNumber }}</div>
         </div>
         <div class="pp-field">
-          <div class="pp-field-label">位置 Y</div>
-          <div class="pp-field-value">{{ Math.round(selectedNode.position.y) }}</div>
+          <div class="pp-field-label">源文件</div>
+          <div class="pp-field-value mono pp-files">
+            <div v-for="f in activeBoard.files" :key="f">{{ f }}</div>
+          </div>
         </div>
       </div>
-      <div class="pp-footer">
-        <button class="pp-delete" @click="handleDelete(selectedNode!.id)">删除节点</button>
-      </div>
-    </div>
-
-    <!-- ── Context menu ──────────────────────────────────────────── -->
-    <div
-      v-if="contextMenu"
-      class="topo-context-menu"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      @click.stop
-    >
-      <button @click="handleShowPanel(contextMenu!.nodeId); closeContextMenu()">编辑属性</button>
-      <button class="danger" @click="handleDelete(contextMenu!.nodeId)">删除节点</button>
-      <button @click="closeContextMenu">复制节点</button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.grp-summary {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.grp-summary li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary, #98a0b8);
+}
+.grp-s-badge {
+  display: inline-block;
+  min-width: 44px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 10px;
+  text-align: center;
+}
+.grp-s-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grp-s-count { opacity: 0.6; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.pp-files { display: flex; flex-direction: column; gap: 2px; word-break: break-all; }
+</style>

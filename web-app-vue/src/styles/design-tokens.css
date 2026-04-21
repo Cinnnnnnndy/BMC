@@ -19,20 +19,20 @@
   --surface-border-base: rgba(255, 255, 255, 0.24);
 
   /* Topology canvas tokens */
-  --canvas-bg: #13131f;
-  --canvas-dot: #2a2a3a;
-  --node-bg: #252535;
-  --node-label-bg: #1e1e2e;
-  --node-label-color: #9a9aaa;
-  --node-mux-label-bg: #1a1a2e;
-  --board-bg: rgba(0, 0, 0, 0.50);
-  --board-label: rgba(255, 255, 255, 0.38);
-  --board-border: rgba(58, 100, 140, 0.50);
+  --canvas-bg: #09090e;
+  --canvas-dot: #141428;
+  --node-bg: #0e0f1a;
+  --node-label-bg: #0a0b14;
+  --node-label-color: rgba(255,255,255,0.55);
+  --node-mux-label-bg: #0d0d1e;
+  --board-bg: rgba(255, 255, 255, 0.02);
+  --board-label: rgba(255, 255, 255, 0.55);
+  --board-border: rgba(255, 255, 255, 0.12);
 
-  /* Chip icon SVG colors */
-  --chip-icon-body: rgba(58, 58, 80, 0.18);
+  /* Chip icon SVG colors — white translucent pins to match reference */
+  --chip-icon-body: rgba(0, 0, 0, 0.35);
   --chip-icon-core: transparent;
-  --chip-icon-pin: #6a6a8a;
+  --chip-icon-pin: rgba(255, 255, 255, 0.50);
 }
 
 :root[data-theme='light'] {
