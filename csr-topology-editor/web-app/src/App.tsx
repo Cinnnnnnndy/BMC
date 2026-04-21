@@ -39,7 +39,7 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 export default function App() {
   const vscode = getVscode();
   const [csr, setCsr] = useState<CSRDocument | null>(null);
-  const [activeTab, setActiveTab] = useState<'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'csrAdaptation'>('topology');
+  const [activeTab, setActiveTab] = useState<'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'csrAdaptation' | 'vueTopo'>('topology');
   const [eventDef, setEventDef] = useState<Record<string, unknown> | null>(null);
   const [dirty, setDirty] = useState(false);
   const [fileName, setFileName] = useState<string>('');
@@ -49,6 +49,7 @@ export default function App() {
   const [showServerView, setShowServerView] = useState(false);
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
+  const [showVueTopo, setShowVueTopo] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -195,8 +196,9 @@ export default function App() {
       if (viewId === 'hwTopology') { setShowHwTopology(true); return; }
       if (viewId === 'serverView') { setShowServerView(true); return; }
       if (viewId === 'threeD') { setShowThreeD(true); return; }
+      if (viewId === 'vueTopo') { setShowVueTopo(true); return; }
       // Project-dependent views: load first project with rootSrPath then set tab
-      const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'csrAdaptation';
+      const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'csrAdaptation' | 'vueTopo';
       setActiveTab(tabId);
       const firstProject = HARDWARE_PROJECTS.find((p) => p.rootSrPath);
       if (firstProject) {
@@ -214,6 +216,7 @@ export default function App() {
     { id: 'sensor' as const, label: '传感器配置' },
     { id: 'simulator' as const, label: '仿真调试' },
     { id: 'csrAdaptation' as const, label: 'CSR拓扑代码适配尝试' },
+    { id: 'vueTopo' as const, label: 'CSR拓扑Vue视图' },
   ];
 
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
@@ -266,6 +269,28 @@ export default function App() {
             src={threeDSrc}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="3D仿真视图"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (showVueTopo) {
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+    const vueSrc = base.endsWith('/') ? base + 'vue-topo/' : base + '/vue-topo/';
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#09090e', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowVueTopo(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · CSR 拓扑 Vue 视图</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <iframe
+            src={vueSrc}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="CSR拓扑Vue视图"
           />
         </div>
       </div>
@@ -384,6 +409,13 @@ export default function App() {
         {activeTab === 'sensor' && <SensorConfig csr={csr} onChange={handleCsrChange} />}
         {activeTab === 'simulator' && <Simulator csr={csr} />}
         {activeTab === 'csrAdaptation' && <CsrCodeAdaptationView />}
+        {activeTab === 'vueTopo' && (
+          <iframe
+            src={(() => { const b = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/'; return b.endsWith('/') ? b + 'vue-topo/' : b + '/vue-topo/'; })()}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            title="CSR拓扑Vue视图"
+          />
+        )}
       </main>
     </div>
   );

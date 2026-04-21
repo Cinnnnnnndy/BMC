@@ -24,13 +24,32 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: csr-topology-editor/web-app/package-lock.json
+          # Cache both lockfiles so either change invalidates the cache
+          cache-dependency-path: |
+            csr-topology-editor/web-app/package-lock.json
+            web-app-vue/package-lock.json
 
-      - name: Install dependencies
+      # ── 1. Build Vue topology view ────────────────────────────────────
+      # Output goes straight into the React app's public/ directory so Vite
+      # will copy it into dist/ automatically during the React build below.
+      - name: Install Vue dependencies
+        run: npm ci
+        working-directory: web-app-vue
+
+      - name: Build Vue topology view
+        run: |
+          npx vite build \
+            --base /BMC/vue-topo/ \
+            --outDir ../csr-topology-editor/web-app/public/vue-topo \
+            --emptyOutDir
+        working-directory: web-app-vue
+
+      # ── 2. Build React app (picks up public/vue-topo/ automatically) ──
+      - name: Install React dependencies
         run: npm ci
         working-directory: csr-topology-editor/web-app
 
-      - name: Build
+      - name: Build React app
         run: npm run build
         working-directory: csr-topology-editor/web-app
 
