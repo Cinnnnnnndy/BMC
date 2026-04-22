@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boards · 3D Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --page-bg: #eef2f6;
+      --canvas-bg: #f7f9fc;
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --panel-border: #d8e0e8;
+      --panel-border-strong: #c7d3df;
+      --text-primary: #111827;
+      --text-secondary: #667085;
+      --text-muted: #98a2b3;
+      --accent: #2457d6;
+      --accent-soft: #e8f0ff;
+      --success-bg: #ecfdf3;
+      --success-border: #b7e4c7;
+      --success-text: #067647;
+      --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 14px 36px rgba(15, 23, 42, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      font-weight: 400;
+      color: var(--text-primary);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      margin: 0; padding: 0;
+      overflow: hidden;
+      background: var(--page-bg);
+    }
+
+    .app-shell {
+      position: relative;
+      width: 100%; height: 100vh;
+      overflow: hidden;
+    }
+
+    .canvas-frame {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #three-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ── overlay elements ─────────────────────────────── */
+    .top-left-badge,
+    .top-right-actions,
+    .tool-dock,
+    .inspector-panel,
+    .light-panel {
+      position: absolute;
+      z-index: 2;
+    }
+
+    /* ── top-left badge ───────────────────────────────── */
+    .top-left-badge {
+      top: 16px; left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      background: var(--panel-bg);
+      box-shadow: var(--shadow-sm);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 32px; height: 32px;
+      border-radius: 12px;
+      background: #ffd84d;
+      color: #111827;
+      flex: none;
+    }
+
+    .brand-mark i {
+      font-size: 15px;
+    }
+
+    .brand-copy { display: grid; gap: 2px; }
+    .brand-copy strong { font-size: 13px; font-weight: 700; }
+    .brand-copy span { font-size: 11px; color: var(--text-secondary); }
+
+    /* ── top-right ────────────────────────────────────── */
+    .top-right-actions {
+      top: 16px; right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--success-border);
+      background: var(--success-bg);
+      color: var(--success-text);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-chip__dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success-text);
+    }
+
+    /* ── inspector panel ──────────────────────────────── */
+    .inspector-panel {
+      top: 74px; right: 18px;
+      width: 260px;
+      padding: 16px;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      background: var(--panel-bg);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(14px);
+      display: grid;
+      gap: 10px;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .inspector-panel.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(8px);
+    }
+
+    .panel-title {
+      margin: 0 0 4px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .panel-divider {
+      height: 1px;
+      background: var(--panel-border);
+      margin: 0;
+    }
+
+    .panel-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .panel-row__label {
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .panel-row__value {
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    /* ── tool dock ────────────────────────────────────── */
+    .tool-dock {
+      left: 50%; bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      background: var(--panel-bg);
+      box-shadow: var(--shadow-md);
+      transform: translateX(-50%);
+      backdrop-filter: blur(14px);
+    }
+
+    .tool-button {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      min-width: 42px;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #475467;
+      cursor: pointer;
+      transition:
+        transform 160ms ease,
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease;
+    }
+
+    .tool-button i { font-size: 14px; }
+
+    .tool-button:hover { transform: translateY(-1px); }
+
+    .tool-button.is-active {
+      background: var(--accent-soft);
+      border-color: #c7d7fe;
+      color: var(--accent);
+    }
+
+    .tool-tooltip {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      padding: 6px 10px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 10px;
+      background: rgba(17, 24, 39, 0.94);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+      transform: translateX(-50%) translateY(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    .tool-tooltip::after {
+      content: "";
+      position: absolute;
+      top: 100%; left: 50%;
+      width: 8px; height: 8px;
+      background: rgba(17, 24, 39, 0.94);
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    .tool-button:hover .tool-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .tool-dock__group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-dock__divider {
+      width: 1px;
+      align-self: stretch;
+      background: var(--panel-border);
+    }
+
+    .tool-button--text {
+      min-width: 40px;
+      padding: 0;
+    }
+
+    .tool-button--compact {
+      min-width: 40px;
+      padding: 0;
+    }
+
+    .zoom-readout {
+      min-width: 64px;
+      padding: 0 10px;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #344054;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 38px;
+    }
+
+    /* ── light panel ──────────────────────────────────── */
+    #camera-panel {
+      top: 460px; right: 18px;
+    }
+
+    .light-panel {
+      top: 310px; right: 18px;
+      width: 260px;
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      background: var(--panel-bg);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .light-panel__header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .light-panel__header:hover { background: rgba(0,0,0,0.02); }
+
+    .light-panel__title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .light-panel__chevron {
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: transform 200ms ease;
+      flex: none;
+    }
+
+    .light-panel.is-collapsed .light-panel__chevron { transform: rotate(-90deg); }
+
+    .light-panel__body {
+      max-height: 160px;
+      overflow: hidden;
+      transition: max-height 220ms ease, opacity 200ms ease;
+      opacity: 1;
+      padding: 0 14px 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .light-panel.is-collapsed .light-panel__body {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-row__label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      width: 52px;
+      flex: none;
+    }
+
+    .slider-row input[type=range] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--panel-border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(36,87,214,0.35);
+      cursor: pointer;
+    }
+
+    .slider-row input[type=range]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(36,87,214,0.35);
+      cursor: pointer;
+    }
+
+    .slider-row__val {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      width: 34px;
+      text-align: right;
+      flex: none;
+    }
+
+    /* loading overlay */
+    #loading {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--canvas-bg);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: opacity 400ms ease;
+    }
+
+    #loading.fade-out { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading model…</div>
+
+  <div class="app-shell">
+    <div class="canvas-frame">
+      <canvas id="three-canvas"></canvas>
+
+      <!-- top-left badge -->
+      <header class="top-left-badge">
+        <div class="brand-mark">
+          <i class="fa-solid fa-microchip" aria-hidden="true"></i>
+        </div>
+        <div class="brand-copy">
+          <strong>Boards</strong>
+          <span>3D Viewer</span>
+        </div>
+      </header>
+
+      <!-- top-right status -->
+      <div class="top-right-actions">
+        <div class="status-chip" id="status-chip">
+          <div class="status-chip__dot"></div>
+          <span id="status-text">Loading…</span>
+        </div>
+      </div>
+
+      <!-- inspector panel -->
+      <aside class="inspector-panel" id="inspector-panel">
+        <p class="panel-title">Boards</p>
+        <div class="panel-divider"></div>
+        <div class="panel-row">
+          <span class="panel-row__label">File</span>
+          <span class="panel-row__value">boards.glb</span>
+        </div>
+        <div class="panel-row">
+          <span class="panel-row__label">Size</span>
+          <span class="panel-row__value" id="info-size">—</span>
+        </div>
+        <div class="panel-row">
+          <span class="panel-row__label">Meshes</span>
+          <span class="panel-row__value" id="info-meshes">—</span>
+        </div>
+        <div class="panel-row">
+          <span class="panel-row__label">Materials</span>
+          <span class="panel-row__value" id="info-materials">—</span>
+        </div>
+        <div class="panel-divider"></div>
+        <div class="panel-row">
+          <span class="panel-row__label">Zoom</span>
+          <span class="panel-row__value" id="info-zoom">100%</span>
+        </div>
+      </aside>
+
+      <!-- light panel -->
+      <aside class="light-panel" id="light-panel">
+        <div class="light-panel__header" id="btn-light-toggle">
+          <i class="fa-solid fa-sun" aria-hidden="true" style="font-size:13px;flex:none;color:var(--text-secondary)"></i>
+          <p class="light-panel__title">Light</p>
+          <i class="fa-solid fa-chevron-down light-panel__chevron" aria-hidden="true"></i>
+        </div>
+        <div class="light-panel__body">
+          <div class="slider-row">
+            <span class="slider-row__label">Intensity</span>
+            <input type="range" id="light-intensity" min="0.1" max="3.0" step="0.05" value="3.0">
+            <span class="slider-row__val" id="light-intensity-val">3.0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-row__label">Azimuth</span>
+            <input type="range" id="light-azimuth" min="0" max="360" step="1" value="141">
+            <span class="slider-row__val" id="light-azimuth-val">141°</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-row__label">Elevation</span>
+            <input type="range" id="light-elevation" min="5" max="85" step="1" value="12">
+            <span class="slider-row__val" id="light-elevation-val">12°</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- camera panel -->
+      <aside class="light-panel" id="camera-panel">
+        <div class="light-panel__header" id="btn-camera-toggle">
+          <i class="fa-solid fa-video" aria-hidden="true" style="font-size:13px;flex:none;color:var(--text-secondary)"></i>
+          <p class="light-panel__title">Camera</p>
+          <i class="fa-solid fa-chevron-down light-panel__chevron" aria-hidden="true"></i>
+        </div>
+        <div class="light-panel__body">
+          <div class="slider-row">
+            <span class="slider-row__label">Azimuth</span>
+            <input type="range" id="camera-azimuth" min="0" max="360" step="1" value="151">
+            <span class="slider-row__val" id="camera-azimuth-val">151°</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-row__label">Height</span>
+            <input type="range" id="camera-elevation" min="5" max="85" step="1" value="48">
+            <span class="slider-row__val" id="camera-elevation-val">48°</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- tool dock -->
+      <nav class="tool-dock">
+        <div class="tool-dock__group">
+          <button class="tool-button tool-button--text" id="btn-view-switch" title="切换视角">
+            <i class="fa-solid fa-cube" aria-hidden="true"></i>
+            <span class="tool-tooltip">视角切换</span>
+          </button>
+        </div>
+        <div class="tool-dock__divider" aria-hidden="true"></div>
+        <div class="tool-dock__group">
+          <button class="tool-button tool-button--text" id="btn-lib-boards" title="Boards 库">
+            <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+            <span class="tool-tooltip">Boards 库入口</span>
+          </button>
+          <button class="tool-button tool-button--text" id="btn-lib-chips" title="Chips 库">
+            <i class="fa-solid fa-microchip" aria-hidden="true"></i>
+            <span class="tool-tooltip">Chips 库入口</span>
+          </button>
+          <button class="tool-button tool-button--text" id="btn-lib-connectors" title="Connectors 库">
+            <i class="fa-solid fa-plug" aria-hidden="true"></i>
+            <span class="tool-tooltip">Connectors 库入口</span>
+          </button>
+        </div>
+        <div class="tool-dock__divider" aria-hidden="true"></div>
+        <div class="tool-dock__group">
+          <button class="tool-button tool-button--compact" id="btn-zoom-out" title="缩小">
+            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+            <span class="tool-tooltip">缩小</span>
+          </button>
+          <div class="zoom-readout" id="zoom-chip" title="当前缩放">100%</div>
+          <button class="tool-button tool-button--compact" id="btn-zoom-in" title="放大">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span class="tool-tooltip">放大</span>
+          </button>
+          <button class="tool-button tool-button--text" id="btn-zoom-fit" title="适配视图">
+            <i class="fa-solid fa-maximize" aria-hidden="true"></i>
+            <span class="tool-tooltip">适配视图</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

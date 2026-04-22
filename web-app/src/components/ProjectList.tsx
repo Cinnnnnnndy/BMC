@@ -201,6 +201,35 @@ function HwTopologyThumb() {
   );
 }
 
+function ThreeDThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#080812" />
+      {/* Floor grid */}
+      {[20, 35, 50, 65, 80].map((x, i) => (
+        <line key={'v' + i} x1={x} y1="55" x2={x + 30} y2="85" stroke="#1e3a5f" strokeWidth="0.5" strokeOpacity="0.6" />
+      ))}
+      {[0, 1, 2, 3].map((i) => (
+        <line key={'h' + i} x1={20 + i * 5} y1={55 + i * 7.5} x2={20 + i * 5 + 120} y2={55 + i * 7.5} stroke="#1e3a5f" strokeWidth="0.5" strokeOpacity="0.4" />
+      ))}
+      {/* Server box isometric */}
+      <polygon points="50,18 110,18 130,38 70,38" fill="#1a2744" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.9" />
+      <polygon points="50,18 50,52 70,72 70,38" fill="#0f1a30" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.7" />
+      <polygon points="110,18 110,52 130,72 130,38" fill="#0d1526" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.7" />
+      {/* Slot lines on front face */}
+      {[24, 31, 38, 45].map((y, i) => (
+        <line key={i} x1="51" y1={y} x2="109" y2={y} stroke="#3b82f6" strokeWidth="0.5" strokeOpacity="0.4" />
+      ))}
+      {/* Glow dots */}
+      <circle cx="58" cy="21" r="2" fill="#22d3ee" opacity="0.9" />
+      <circle cx="64" cy="21" r="2" fill="#4ade80" opacity="0.9" />
+      <circle cx="70" cy="21" r="2" fill="#f97316" opacity="0.9" />
+      {/* 3D label */}
+      <text x="80" y="13" textAnchor="middle" fontSize="7" fill="#60a5fa" fontFamily="monospace" opacity="0.7">3D · openUBMC</text>
+    </svg>
+  );
+}
+
 function ServerAssocThumb() {
   return (
     <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
@@ -231,7 +260,85 @@ function ServerAssocThumb() {
   );
 }
 
+function VueTopoThumb() {
+  // Mini mind-map: BMC (left) → EXU (centre tall) → 7 board groups (right)
+  // Colours match the Vue app's palette: pink I2C, teal HiSport, indigo BMC→EXU
+  const boardColors = ['#e879f9','#22d3ee','#e879f9','#e879f9','#e879f9','#22d3ee','#6b7280'];
+  const boardY     = [3, 16, 27, 39, 52, 63, 75];
+  const boardH     = [11,10, 11, 11, 10, 11, 10];
+  const handleY    = [11, 24, 37, 50, 63, 76, 88]; // evenly spaced inside EXU
+  const busColors  = ['#e879f9','#e879f9','#e879f9','#4ade80','#22d3ee','#e879f9','#e879f9','#e879f9'];
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#09090e" />
+
+      {/* BMC node */}
+      <rect x="2" y="35" width="26" height="30" rx="2"
+            fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.22)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <text x="15" y="43" textAnchor="middle" fontSize="5.5" fill="rgba(255,255,255,0.75)" fontFamily="sans-serif" fontWeight="bold">BMC</text>
+      {[49, 55, 61].map((y, i) => (
+        <React.Fragment key={i}>
+          <rect x="4" y={y} width="8" height="3" rx="1" fill="none" stroke={i === 2 ? '#22d3ee' : '#e879f9'} strokeWidth="0.55" />
+          <line x1="12" y1={y+1.5} x2="27" y2={y+1.5} stroke={i === 2 ? '#22d3ee' : '#e879f9'} strokeWidth="0.45" />
+        </React.Fragment>
+      ))}
+
+      {/* BMC → EXU edge */}
+      <line x1="28" y1="50" x2="38" y2="50" stroke="#818cf8" strokeWidth="1" />
+      <circle cx="28" cy="50" r="1.2" fill="#818cf8" />
+
+      {/* EXU node (tall) */}
+      <rect x="38" y="2" width="36" height="96" rx="2"
+            fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.18)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <text x="56" y="10" textAnchor="middle" fontSize="5" fill="rgba(255,255,255,0.65)" fontFamily="sans-serif" fontWeight="bold">EXU</text>
+      {/* Bus rows inside EXU */}
+      {busColors.map((c, i) => {
+        const y = 13 + i * 10;
+        return (
+          <React.Fragment key={i}>
+            <rect x="40" y={y} width="9" height="3.5" rx="1" fill="none" stroke={c} strokeWidth="0.55" />
+            <line x1="49" y1={y+1.75} x2="73" y2={y+1.75} stroke={c} strokeWidth="0.4" />
+            <rect x="53" y={y} width="5" height="3.5" rx="0.8" fill={c+'18'} stroke={c} strokeWidth="0.4" />
+            <rect x="60" y={y} width="5" height="3.5" rx="0.8" fill={c+'18'} stroke={c} strokeWidth="0.4" />
+          </React.Fragment>
+        );
+      })}
+      {/* Fan-out handle dots on EXU right */}
+      {handleY.map((y, i) => (
+        <circle key={i} cx="74" cy={y} r="1.8" fill={boardColors[i]} />
+      ))}
+
+      {/* Board group nodes */}
+      {boardY.map((y, i) => (
+        <React.Fragment key={i}>
+          {/* Edge EXU → board */}
+          <line x1="74" y1={handleY[i]} x2="86" y2={y + boardH[i] / 2}
+                stroke={boardColors[i]} strokeWidth="0.7" opacity="0.85" />
+          {/* Board card */}
+          <rect x="86" y={y} width="70" height={boardH[i]} rx="1.5"
+                fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.6" strokeDasharray="1.5 1.2" />
+          {/* Bus line inside board */}
+          <rect x="88" y={y+3} width="6" height="3" rx="0.8" fill="none" stroke={boardColors[i]} strokeWidth="0.5" />
+          <line x1="94" y1={y+4.5} x2="154" y2={y+4.5} stroke={boardColors[i]} strokeWidth="0.35" />
+          {[98, 105, 112].map((cx) => (
+            <rect key={cx} x={cx} y={y+2} width="4.5" height="5" rx="0.7"
+                  fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.15)" strokeWidth="0.4" />
+          ))}
+        </React.Fragment>
+      ))}
+    </svg>
+  );
+}
+
 const VIEW_ENTRIES: ViewEntry[] = [
+  {
+    id: 'threeD',
+    name: '3D仿真',
+    desc: '服务器整机三维可视化交互',
+    accent: '#22d3ee',
+    bg: '#080812',
+    thumb: <ThreeDThumb />,
+  },
   {
     id: 'topology',
     name: '拓扑视图',
@@ -288,13 +395,21 @@ const VIEW_ENTRIES: ViewEntry[] = [
     bg: '#1a0f0a',
     thumb: <EventThumb />,
   },
+  {
+    id: 'vueTopo',
+    name: 'CSR 拓扑 Vue 视图',
+    desc: 'BMC → EXU → 板组思维导图，内联 I2C 总线拓扑',
+    accent: '#e879f9',
+    bg: '#09090e',
+    thumb: <VueTopoThumb />,
+  },
 ];
 
 export function ProjectList({ projects, onSelect, onUpload, onOpenView }: Props) {
   return (
     <div className="project-list-page">
       <div className="project-list-container">
-        <h1 className="project-list-title">openUBMC CSR 拓扑编辑器</h1>
+        <h1 className="project-list-title">openUBMC Studio</h1>
         <p className="project-list-subtitle">选择整机项目开始编辑，或按视图类型快速进入</p>
 
         {/* ── Section 1: 按视图 ── */}
