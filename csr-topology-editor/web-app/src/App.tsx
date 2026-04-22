@@ -277,7 +277,7 @@ export default function App() {
 
   if (showVueTopo) {
     const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-    const vueSrc = base.endsWith('/') ? base + 'vue-topo/' : base + '/vue-topo/';
+    const vueSrc = base.endsWith('/') ? base + 'vue-topo/index.html' : base + '/vue-topo/index.html';
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#09090e', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -411,7 +411,7 @@ export default function App() {
         {activeTab === 'csrAdaptation' && <CsrCodeAdaptationView />}
         {activeTab === 'vueTopo' && (
           <iframe
-            src={(() => { const b = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/'; return b.endsWith('/') ? b + 'vue-topo/' : b + '/vue-topo/'; })()}
+            src={(() => { const b = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/'; return b.endsWith('/') ? b + 'vue-topo/index.html' : b + '/vue-topo/index.html'; })()}
             style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
             title="CSR拓扑Vue视图"
           />
