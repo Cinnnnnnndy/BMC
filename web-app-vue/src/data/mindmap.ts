@@ -1,6 +1,12 @@
 // Build the mind-map (BMC → EXU → board groups) as VueFlow nodes/edges.
 import { markRaw } from 'vue';
-import { BOARDS, groupBoards, type BoardGroup } from './boards';
+import {
+  BOARDS,
+  groupBoards,
+  classifyGroups,
+  isOnCanvas,
+  type BoardGroup,
+} from './boards';
 
 // ── Column X positions ────────────────────────────────────────────────
 // Wider gaps so smoothstep edge curves have room to fan out.
@@ -48,16 +54,25 @@ export interface MindmapBuildResult {
   nodes: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   edges: any[];
+  /** All groups (canvas + list-only). */
   groups: BoardGroup[];
+  /** Groups that only live in the left list (state='unclassified'). */
+  unclassifiedGroups: BoardGroup[];
 }
 
 export function buildMindmap(
   onSelect: (groupId: string, boardId: string) => void,
   selected: Record<string, string> = {},
 ): MindmapBuildResult {
-  const groups      = groupBoards(BOARDS);
-  const exuGroups   = groups.filter((g) => g.category === 'exu');
-  const childGroups = groups.filter((g) => g.category !== 'exu');
+  // 1. Raw grouping (by type+name)
+  // 2. classifyGroups attaches resolution state + injects demo cases
+  // 3. Split canvas vs list-only
+  const allGroups          = classifyGroups(groupBoards(BOARDS));
+  const canvasGroups       = allGroups.filter(isOnCanvas);
+  const unclassifiedGroups = allGroups.filter((g) => !isOnCanvas(g));
+
+  const exuGroups   = canvasGroups.filter((g) => g.category === 'exu');
+  const childGroups = canvasGroups.filter((g) => g.category !== 'exu');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nodes: any[] = [];
@@ -139,7 +154,6 @@ export function buildMindmap(
     const g          = childGroups[i];
     const nid        = g.id;
     const edgeColor  = TYPE_EDGE_COLOR[g.type] ?? '#9ca3af';
-    const isUnknown  = g.category === 'unknown';
 
     nodes.push({
       id:       nid,
@@ -147,7 +161,8 @@ export function buildMindmap(
       position: { x: COL_X[2], y: childY },
       data: {
         group:      g,
-        selectedId: selected[g.id] ?? g.boards[0].id,
+        // boards may be empty for type-placeholder / missing — guard it
+        selectedId: selected[g.id] ?? g.boards[0]?.id ?? '',
         onSelect,
         // children have no outgoing edges, so no sourceHandles
       },
@@ -156,6 +171,33 @@ export function buildMindmap(
     });
 
     if (parentExuId) {
+      // ── Edge style per resolution state ────────────────────────────
+      // resolved          → solid, full opacity
+      // multi-match       → dashed, amber, "needs user choice"
+      // type-placeholder  → dashed, yellow
+      // missing           → dashed, red, lower opacity
+      let stroke = edgeColor;
+      let dash: string | undefined;
+      let opacity = 0.88;
+      switch (g.state) {
+        case 'multi-match':
+          stroke = '#f59e0b';
+          dash = '5 3';
+          break;
+        case 'type-placeholder':
+          stroke = '#eab308';
+          dash = '5 3';
+          break;
+        case 'missing':
+          stroke = '#ef4444';
+          dash = '3 3';
+          opacity = 0.75;
+          break;
+        case 'resolved':
+        default:
+          break;
+      }
+
       edges.push({
         id:           `e-${parentExuId}-${nid}`,
         source:       parentExuId,
@@ -164,10 +206,10 @@ export function buildMindmap(
         targetHandle: 'l',
         type:         'smoothstep',
         style: {
-          stroke:          isUnknown ? '#9ca3af' : edgeColor,
+          stroke,
           strokeWidth:     1.5,
-          strokeDasharray: isUnknown ? '6 4' : undefined,
-          opacity:         0.88,
+          strokeDasharray: dash,
+          opacity,
         },
       });
     }
@@ -175,5 +217,5 @@ export function buildMindmap(
     childY += nodeH(g) + NODE_V_GAP;
   }
 
-  return { nodes, edges, groups };
+  return { nodes, edges, groups: allGroups, unclassifiedGroups };
 }

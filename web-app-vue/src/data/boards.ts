@@ -53,6 +53,48 @@ export const BOARDS: BoardRecord[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
+// Resolution state — drives how a board group is rendered in the topology.
+//
+//   resolved           1.1  Unique .sr match. Board drawn normally. Dropdown
+//                           stays as a *switcher* (variants of same type).
+//   multi-match        1.2  Multiple .sr files matched by Bom+Id+AuxId.
+//                           Board rendered as placeholder; dropdown options
+//                           are the candidate files (with relative paths).
+//   type-placeholder   2.1  IdentifyMode != 2 and Type is known. Board
+//                           rendered as type-placeholder; dropdown lists all
+//                           boards of that Type.
+//   unclassified       2.2  Type missing or unknown. Group is NOT drawn on
+//                           canvas — it only appears in the left list, where
+//                           the user can assign it to a pending slot.
+//   missing            1.3  File referenced by the Connector was not found.
+//                           Board drawn with default image + red error label.
+//                           (Stays on canvas — does not go to 未分类.)
+// ─────────────────────────────────────────────────────────────────────────
+export type ResolutionState =
+  | 'resolved'
+  | 'multi-match'
+  | 'type-placeholder'
+  | 'unclassified'
+  | 'missing';
+
+/** Describes the upstream Connector object that produced this group. */
+export interface ConnectorRef {
+  /** id of the parent group (BMC / EXU / etc.) that owns the Connector */
+  parentGroupId: string;
+  /** Connector name from the .sr file, e.g. 'I2c_1', 'HiSport_2', 'JTAG_1' */
+  connectorName: string;
+  bom?: string;
+  id?: string;
+  auxId?: string;
+  /** 2 → resolve by Bom+Id+AuxId filename. Other values → resolve by Type. */
+  identifyMode?: number;
+  /** Type field used when IdentifyMode != 2. */
+  type?: string;
+  /** Bom+Id+AuxId concatenated — what we expected to match. */
+  expectedFile?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Group model used by the mind-map view.
 // Boards with the same (type, name) are collapsed into one node; the node
 // has a searchable dropdown to switch between variants.
@@ -70,6 +112,17 @@ export interface BoardGroup {
   boards: BoardRecord[];
   /** Category for tree placement */
   category: 'bmc' | 'exu' | 'child' | 'unknown';
+
+  // ── Resolution state (set by classifyGroups) ────────────────────────
+  state: ResolutionState;
+  /** Upstream Connector that produced this group. */
+  connectorRef?: ConnectorRef;
+  /** For state='multi-match': candidate .sr files that all matched. */
+  fileMatches?: Array<{ file: string; relPath: string }>;
+  /** For state='type-placeholder': the pool of boards of the same Type. */
+  typeCandidates?: BoardRecord[];
+  /** For state='missing': the filename that was expected but not found. */
+  missingFile?: string;
 }
 
 // Friendly Chinese labels for each board type
@@ -117,6 +170,10 @@ export function groupBoards(boards: BoardRecord[] = BOARDS): BoardGroup[] {
       shortLabel,
       boards: list,
       category: isExu ? 'exu' : isUnknown ? 'unknown' : 'child',
+      // Default every real group to 'resolved'. The classifier below may
+      // override this and may also *inject* synthetic groups that exercise
+      // the other four states for demonstration.
+      state: isUnknown ? 'unclassified' : 'resolved',
     });
   }
 
@@ -132,3 +189,176 @@ export function groupBoards(boards: BoardRecord[] = BOARDS): BoardGroup[] {
   });
   return groups;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// classifyGroups(): assign ResolutionState to every group and inject a few
+// synthesized groups so the UI demonstrates all five states.
+//
+// In a production build this would be driven by the .sr-file parser that
+// reads each upstream Connector object (IdentifyMode / Bom / Id / AuxId /
+// Type) and looks up the matching file(s) in the board library. For now we
+// hand-craft the interesting cases so the UI can be exercised.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Canonical parent group id used by all demo Connector references. */
+const DEMO_PARENT = 'grp-EXU-ExpBoard_1';
+
+/**
+ * Post-processes groupBoards() output:
+ *   1. Enriches existing groups with connector metadata (demo values).
+ *   2. Injects demo groups for multi-match / type-placeholder / missing /
+ *      unclassified states.
+ */
+export function classifyGroups(groups: BoardGroup[]): BoardGroup[] {
+  // Enrich the BMC → EXU chain with demo Connector info so the right panel
+  // has something to show. Real data would come from the .sr parser.
+  const enriched = groups.map((g) => {
+    if (g.type === 'EXU') {
+      return {
+        ...g,
+        connectorRef: {
+          parentGroupId: 'bmc-root',
+          connectorName: 'I2c_3',
+          bom: g.boards[0]?.partNumber,
+          id: '01',
+          auxId: '01',
+          identifyMode: 2,
+          expectedFile: `${g.boards[0]?.partNumber}_${g.boards[0]?.sn}.sr`,
+        },
+      };
+    }
+    if (g.category === 'child' && g.state === 'resolved') {
+      return {
+        ...g,
+        connectorRef: {
+          parentGroupId: DEMO_PARENT,
+          connectorName: `I2c_${(g.type[0] || 'x').toLowerCase()}`,
+          bom: g.boards[0]?.partNumber,
+          id: '01',
+          auxId: '00',
+          identifyMode: 2,
+          expectedFile: `${g.boards[0]?.partNumber}_${g.boards[0]?.sn}.sr`,
+        },
+      };
+    }
+    return g;
+  });
+
+  // The pool used by type-placeholder demo is all IEU boards.
+  const ieuPool = groups.find((g) => g.type === 'IEU')?.boards ?? [];
+  const seuPool = groups.find((g) => g.type === 'SEU')?.boards ?? [];
+
+  // ── Injected demo groups (exercise every state) ─────────────────────
+  const demoMultiMatch: BoardGroup = {
+    id: 'grp-demo-multimatch',
+    type: 'IEU',
+    name: 'RiserCard_Demo',
+    label: 'Riser 卡 (IEU) · RiserCard_Demo',
+    shortLabel: 'IEU',
+    boards: ieuPool.length >= 2 ? [ieuPool[0]] : [],
+    category: 'child',
+    state: 'multi-match',
+    connectorRef: {
+      parentGroupId: DEMO_PARENT,
+      connectorName: 'I2c_4',
+      bom: '14100513',
+      id: '02',
+      auxId: '03',
+      identifyMode: 2,
+      expectedFile: '14100513_00000001040302_*.sr',
+    },
+    fileMatches: ieuPool.slice(0, 3).map((b, i) => ({
+      file: b.files[0],
+      relPath: `./vendor/openUBMC/${['taishan', 'tianchi', 'altas'][i] ?? 'misc'}/`,
+    })),
+  };
+
+  const demoTypePlaceholder: BoardGroup = {
+    id: 'grp-demo-typeplaceholder',
+    type: 'SEU',
+    name: '待选具体型号',
+    label: '存储/转接板 (SEU) · 未指定具体型号',
+    shortLabel: 'SEU',
+    boards: [],   // No specific board picked yet
+    category: 'child',
+    state: 'type-placeholder',
+    connectorRef: {
+      parentGroupId: DEMO_PARENT,
+      connectorName: 'I2c_5',
+      id: '03',
+      auxId: '01',
+      identifyMode: 1,
+      type: 'SEU',
+    },
+    typeCandidates: seuPool,
+  };
+
+  const demoMissing: BoardGroup = {
+    id: 'grp-demo-missing',
+    type: 'NICCard',
+    name: 'NICCard_Missing',
+    label: '网卡 (NICCard) · 文件缺失',
+    shortLabel: 'NICCard',
+    boards: [],
+    category: 'child',
+    state: 'missing',
+    connectorRef: {
+      parentGroupId: DEMO_PARENT,
+      connectorName: 'HSP_6',
+      bom: '14220247',
+      id: '05',
+      auxId: '02',
+      identifyMode: 2,
+      expectedFile: '14220247_00000001100302099999.sr',
+    },
+    missingFile: '14220247_00000001100302099999.sr',
+  };
+
+  const demoUnclassified: BoardGroup = {
+    id: 'grp-demo-unclassified',
+    type: 'Unknown',
+    name: 'MysteryConnector_I2c_7',
+    label: '未分类 · I2c_7 下游',
+    shortLabel: '未分类',
+    boards: [],
+    category: 'unknown',
+    state: 'unclassified',
+    connectorRef: {
+      parentGroupId: DEMO_PARENT,
+      connectorName: 'I2c_7',
+      identifyMode: 1,
+      // no Type -> we really don't know
+    },
+  };
+
+  return [
+    ...enriched,
+    demoMultiMatch,
+    demoTypePlaceholder,
+    demoMissing,
+    demoUnclassified,
+  ];
+}
+
+/** True when the group should render on the main canvas. */
+export function isOnCanvas(g: BoardGroup): boolean {
+  return g.state !== 'unclassified';
+}
+
+/** Friendly labels for each resolution state. */
+export const STATE_LABEL: Record<ResolutionState, string> = {
+  'resolved':         '已解析',
+  'multi-match':      '多匹配',
+  'type-placeholder': '待选型号',
+  'unclassified':     '未分类',
+  'missing':          '文件缺失',
+};
+
+/** Status colour tokens used across the app. */
+export const STATE_COLOR: Record<ResolutionState, string> = {
+  'resolved':         '#22c55e',
+  'multi-match':      '#f59e0b',
+  'type-placeholder': '#eab308',
+  'unclassified':     '#6b7280',
+  'missing':          '#ef4444',
+};
