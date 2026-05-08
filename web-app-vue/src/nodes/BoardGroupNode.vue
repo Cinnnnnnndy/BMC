@@ -328,6 +328,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   user-select: none;
   cursor: grab;
   position: relative;
+  /* Allow topology chips to be dragged outside the card boundary */
+  overflow: visible;
 }
 .group-node.is-selected {
   border-color: rgba(255,255,255,0.32);
@@ -453,6 +455,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   margin-top: 10px;
   border-top: 1px solid rgba(120,130,170,0.15);
   padding-top: 6px;
+  /* Allow dragged chips to overflow the card width without a scrollbar */
+  overflow: visible;
 }
 .topo-header {
   display: flex;
