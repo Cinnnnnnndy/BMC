@@ -8,9 +8,12 @@
  * when nodes are dragged.
  *
  * Drag system mirrors the React project:
- *   mousedown → capture (stopPropagation so VueFlow node-drag is blocked)
- *   mousemove on document → update position
- *   mouseup on document  → release
+ *   pointerdown → capture (stopPropagation blocks VueFlow's pointerdown handler)
+ *   pointermove on document → update position
+ *   pointerup on document  → release
+ *
+ * IMPORTANT: VueFlow uses pointerdown (not mousedown) for node-drag detection.
+ * Using mousedown.stop would NOT block VueFlow; we must use pointerdown.stop.
  */
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -219,8 +222,9 @@ interface DragState {
 const drag    = ref<DragState | null>(null);
 const hotKey  = ref<string | null>(null);  // key of element being dragged (for z-index / cursor)
 
-function onItemDown(key: string, e: MouseEvent) {
-  // Stop VueFlow from treating this as a node-drag start
+function onItemDown(key: string, e: PointerEvent) {
+  // stopPropagation on pointerdown blocks VueFlow's node-drag handler
+  // (VueFlow listens on pointerdown, NOT mousedown — so mousedown.stop would be a no-op against it)
   e.stopPropagation();
   e.preventDefault();
 
@@ -231,7 +235,7 @@ function onItemDown(key: string, e: MouseEvent) {
   hotKey.value = key;
 }
 
-function onDocMove(e: MouseEvent) {
+function onDocMove(e: PointerEvent) {
   const d = drag.value;
   if (!d) return;
   positions.value = {
@@ -249,12 +253,12 @@ function onDocUp() {
 }
 
 onMounted(() => {
-  document.addEventListener('mousemove', onDocMove);
-  document.addEventListener('mouseup',   onDocUp);
+  document.addEventListener('pointermove', onDocMove);
+  document.addEventListener('pointerup',   onDocUp);
 });
 onBeforeUnmount(() => {
-  document.removeEventListener('mousemove', onDocMove);
-  document.removeEventListener('mouseup',   onDocUp);
+  document.removeEventListener('pointermove', onDocMove);
+  document.removeEventListener('pointerup',   onDocUp);
 });
 
 // ─── Reset layout ────────────────────────────────────────────────────────
@@ -298,7 +302,7 @@ function resetLayout() {
           background:  bus.color + '18',
           color:       bus.color,
         }"
-        @mousedown="(e) => onItemDown(bk(bus.id), e)"
+        @pointerdown="(e) => onItemDown(bk(bus.id), e)"
       >
         <svg width="13" height="13" viewBox="0 0 13 13" style="flex-shrink:0">
           <circle cx="6.5" cy="6.5" r="5.5" :stroke="bus.color" stroke-width="1.5" fill="none" />
@@ -319,7 +323,7 @@ function resetLayout() {
           top:  (positions[ck(bus.id, ci)]?.y ?? 0) + 'px',
           '--cc': cc(chip.chipType),
         }"
-        @mousedown="(e) => onItemDown(ck(bus.id, ci), e)"
+        @pointerdown="(e) => onItemDown(ck(bus.id, ci), e)"
       >
         <div class="chip-icon-box"><ChipIcon :size="26" /></div>
         <div class="chip-lbl">{{ chip.label }}</div>
@@ -334,7 +338,7 @@ function resetLayout() {
             left: (positions[mk(bus.id)]?.x ?? 0) + 'px',
             top:  (positions[mk(bus.id)]?.y ?? 0) + 'px',
           }"
-          @mousedown="(e) => onItemDown(mk(bus.id), e)"
+          @pointerdown="(e) => onItemDown(mk(bus.id), e)"
         >
           <div class="mux-icon-box"><ChipIcon :size="26" /></div>
           <div class="mux-lbl">{{ bus.mux.label }}</div>
@@ -359,7 +363,7 @@ function resetLayout() {
             top:  (positions[fck(bus.id, fi)]?.y ?? 0) + 'px',
             '--cc': cc(chip.chipType),
           }"
-          @mousedown="(e) => onItemDown(fck(bus.id, fi), e)"
+          @pointerdown="(e) => onItemDown(fck(bus.id, fi), e)"
         >
           <div class="chip-icon-box"><ChipIcon :size="22" /></div>
           <div class="chip-lbl">{{ chip.label }}</div>
@@ -371,7 +375,7 @@ function resetLayout() {
     <button
       class="reset-btn"
       title="重置元素位置"
-      @mousedown.stop
+      @pointerdown.stop
       @click="resetLayout"
     >↺ 重置</button>
   </div>

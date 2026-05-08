@@ -156,6 +156,10 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       'state-missing':         state === 'missing',
     }"
   >
+    <!-- ── Drag handle bar (grab here to move the whole card) ──── -->
+    <div class="drag-handle" title="拖动移动卡片">
+      <span class="drag-grip">⠿</span>
+    </div>
     <Handle
       type="target" :position="Position.Left" id="l"
       :style="{ width: '8px', height: '8px', background: accent, border: '2px solid #0b0d12', left: '-5px' }"
@@ -186,11 +190,12 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     >{{ stateHint }}</div>
 
     <!-- ── Variant selector ──────────────────────────────────────── -->
-    <div class="combo-wrap">
+    <!-- nodrag: VueFlow's built-in mechanism — pointer events on this subtree don't start node-drag -->
+    <div class="combo-wrap nodrag nopan">
       <button
         class="group-combo-btn"
         :class="{ 'needs-action': needsAction }"
-        @mousedown.stop
+        @pointerdown.stop
         @click="toggleOpen"
       >
         <template v-if="selected">
@@ -208,7 +213,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
         <span class="combo-caret" :class="{ open }">▾</span>
       </button>
 
-    <div v-if="open" class="combo-dropdown" @mousedown.stop>
+    <div v-if="open" class="combo-dropdown" @pointerdown.stop>
       <!-- Multi-match state: list candidate sr files, not SN variants -->
       <template v-if="state === 'multi-match' && group.fileMatches?.length">
         <div class="combo-section-label">候选 sr 文件 · {{ group.fileMatches.length }} 个</div>
@@ -261,7 +266,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     </div><!-- /combo-wrap -->
 
     <!-- ── I2C topology (only for resolved / multi-match boards) ──── -->
-    <div v-if="state === 'resolved' || state === 'multi-match'" class="topo-section">
+    <!-- nodrag so chip drags inside don't fire VueFlow node-drag -->
+    <div v-if="state === 'resolved' || state === 'multi-match'" class="topo-section nodrag nopan">
       <div class="topo-header" @click.stop="topoCollapsed = !topoCollapsed">
         <span class="topo-header-label" :style="{ color: accent }">I2C 拓扑</span>
         <span class="topo-toggle">{{ topoCollapsed ? '▶' : '▼' }}</span>
@@ -338,6 +344,31 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
 }
 .group-node.is-unknown { opacity: 0.65; }
+
+/* ── Drag handle bar ── */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+  margin: -2px -12px 6px -12px;   /* stretch to full card width */
+  border-radius: 10px 10px 0 0;
+  cursor: grab;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.12s;
+}
+.drag-handle:hover {
+  background: rgba(255,255,255,0.06);
+}
+.drag-grip {
+  font-size: 11px;
+  color: rgba(255,255,255,0.20);
+  letter-spacing: 1px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
 
 /* ── Header ── */
 .group-header {
