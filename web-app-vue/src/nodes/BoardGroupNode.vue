@@ -319,7 +319,9 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 
 <style scoped>
 .group-node {
-  width: 360px;
+  /* min-width so the card starts at 360px but can grow as chips are dragged right */
+  min-width: 360px;
+  width: max-content;
   padding: 10px 12px 12px;
   border-radius: 10px;
   background: var(--board-bg, rgba(255,255,255,0.02));
@@ -328,7 +330,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   user-select: none;
   cursor: grab;
   position: relative;
-  /* Allow topology chips to be dragged outside the card boundary */
+  /* Card grows to wrap draggable topology content */
   overflow: visible;
 }
 .group-node.is-selected {

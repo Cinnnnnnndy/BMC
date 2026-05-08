@@ -267,7 +267,7 @@ function resetLayout() {
   <div
     class="mt-root"
     :class="{ 'is-dragging': !!drag }"
-    :style="{ height: containerH + 'px', minWidth: containerW + 'px' }"
+    :style="{ height: containerH + 'px', width: containerW + 'px' }"
   >
     <!-- ── SVG wire layer (pointer-events:none, sits below chips) ── -->
     <svg
