@@ -7,6 +7,182 @@
 
   let configData = {}; // 当前配置的JavaScript对象
 
+  // ==================== 快速启动模板 ====================
+  var TEMPLATE_STANDARD_1U = `slot_id: 1
+cooling_config:
+  smart_cooling_state: Enabled
+  smart_cooling_mode: EnergySaving
+  init_level_in_startup: 100
+  fan_board_num: 1
+  level_percent_range: [10, 100]
+  minimal_level: 10
+  max_limi_level: 100
+  pid_control_mode: 1
+  disk_row_temperature_available: false
+  sensor_location_supported: false
+  min_allowed_fan_speed_enabled: false
+  mixed_mode_supported: false
+cooling_requirements:
+  - id: 1
+    requirement_id: "\${Slot}_CpuTemp"
+    description: CPU温度
+    temperature_type: Cpu
+    monitoring_status: "<=/Scanner_Cpu1.Status"
+    monitoring_value: "<=/Scanner_Cpu1.Value"
+    failed_value: 80
+    target_temperature_celsius: 65
+    max_allowed_temperature_celsius: 85
+    smart_cooling_target_temperature: [62, 68, 60]
+    enabled: "true"
+    active_in_standby: false
+cooling_policies:
+  - policy_idx: 1
+    description: 节能策略
+    exp_cond_val: EnergySaving
+    actual_cond_val: "<=/CoolingConfig_1.SmartCoolingMode"
+    hysteresis: 1
+    temperature_range_low: [-127, 25, 50, 75]
+    temperature_range_high: [25, 50, 75, 127]
+    speed_range_low: [10, 30, 60, 100]
+    speed_range_high: [30, 60, 100, 100]
+cooling_areas:
+  - area_id: 1
+    requirement_idx: 1
+    policy_idx_group: [1]
+    fan_idx_group: [1, 2]
+    priority: 1
+    description: 主调速区域
+cooling_fans:
+  - fan_id: 1
+    slot: 1
+    front_presence: "<=/Fan_1.FrontPresence"
+    rear_presence: "<=/Fan_1.RearPresence"
+    front_status: "<=/Fan_1.FrontStatus"
+    rear_status: "<=/Fan_1.RearStatus"
+    hardware_pwm: "#/Accessor_Fan1_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇1
+  - fan_id: 2
+    slot: 2
+    front_presence: "<=/Fan_2.FrontPresence"
+    rear_presence: "<=/Fan_2.RearPresence"
+    front_status: "<=/Fan_2.FrontStatus"
+    rear_status: "<=/Fan_2.RearStatus"
+    hardware_pwm: "#/Accessor_Fan2_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇2
+`;
+
+  var TEMPLATE_DUAL_2U = `slot_id: 1
+cooling_config:
+  smart_cooling_state: Enabled
+  smart_cooling_mode: EnergySaving
+  init_level_in_startup: 100
+  fan_board_num: 2
+  level_percent_range: [10, 100]
+  minimal_level: 10
+  max_limi_level: 100
+  pid_control_mode: 2
+  disk_row_temperature_available: true
+  sensor_location_supported: true
+  min_allowed_fan_speed_enabled: true
+  mixed_mode_supported: false
+cooling_requirements:
+  - id: 1
+    requirement_id: "\${Slot}_CpuTemp1"
+    description: CPU1温度
+    temperature_type: Cpu
+    monitoring_status: "<=/Scanner_Cpu1.Status"
+    monitoring_value: "<=/Scanner_Cpu1.Value"
+    failed_value: 90
+    target_temperature_celsius: 65
+    max_allowed_temperature_celsius: 90
+    smart_cooling_target_temperature: [60, 68, 58]
+    enabled: "true"
+    active_in_standby: false
+  - id: 2
+    requirement_id: "\${Slot}_CpuTemp2"
+    description: CPU2温度
+    temperature_type: Cpu
+    monitoring_status: "<=/Scanner_Cpu2.Status"
+    monitoring_value: "<=/Scanner_Cpu2.Value"
+    failed_value: 90
+    target_temperature_celsius: 65
+    max_allowed_temperature_celsius: 90
+    smart_cooling_target_temperature: [60, 68, 58]
+    enabled: "true"
+    active_in_standby: false
+cooling_policies:
+  - policy_idx: 1
+    description: 节能策略
+    exp_cond_val: EnergySaving
+    actual_cond_val: "<=/CoolingConfig_1.SmartCoolingMode"
+    hysteresis: 1
+    temperature_range_low: [-127, 20, 45, 65]
+    temperature_range_high: [20, 45, 65, 127]
+    speed_range_low: [10, 25, 55, 100]
+    speed_range_high: [25, 55, 100, 100]
+  - policy_idx: 2
+    description: 高性能策略
+    exp_cond_val: HighPerformance
+    actual_cond_val: "<=/CoolingConfig_1.SmartCoolingMode"
+    hysteresis: 1
+    temperature_range_low: [-127, 15, 35, 55]
+    temperature_range_high: [15, 35, 55, 127]
+    speed_range_low: [30, 50, 75, 100]
+    speed_range_high: [50, 75, 100, 100]
+cooling_areas:
+  - area_id: 1
+    requirement_idx: 1
+    policy_idx_group: [1, 2]
+    fan_idx_group: [1, 2, 3, 4]
+    priority: 1
+    description: CPU1调速区域
+  - area_id: 2
+    requirement_idx: 2
+    policy_idx_group: [1, 2]
+    fan_idx_group: [1, 2, 3, 4]
+    priority: 2
+    description: CPU2调速区域
+cooling_fans:
+  - fan_id: 1
+    slot: 1
+    front_presence: "<=/Fan_1.FrontPresence"
+    rear_presence: "<=/Fan_1.RearPresence"
+    front_status: "<=/Fan_1.FrontStatus"
+    rear_status: "<=/Fan_1.RearStatus"
+    hardware_pwm: "#/Accessor_Fan1_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇1
+  - fan_id: 2
+    slot: 2
+    front_presence: "<=/Fan_2.FrontPresence"
+    rear_presence: "<=/Fan_2.RearPresence"
+    front_status: "<=/Fan_2.FrontStatus"
+    rear_status: "<=/Fan_2.RearStatus"
+    hardware_pwm: "#/Accessor_Fan2_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇2
+  - fan_id: 3
+    slot: 3
+    front_presence: "<=/Fan_3.FrontPresence"
+    rear_presence: "<=/Fan_3.RearPresence"
+    front_status: "<=/Fan_3.FrontStatus"
+    rear_status: "<=/Fan_3.RearStatus"
+    hardware_pwm: "#/Accessor_Fan3_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇3
+  - fan_id: 4
+    slot: 4
+    front_presence: "<=/Fan_4.FrontPresence"
+    rear_presence: "<=/Fan_4.RearPresence"
+    front_status: "<=/Fan_4.FrontStatus"
+    rear_status: "<=/Fan_4.RearStatus"
+    hardware_pwm: "#/Accessor_Fan4_PWM.Value"
+    max_supported_pwm: 255
+    description: 风扇4
+`;
+
   // ==================== 候选列表工具函数 ====================
 
   // 生成候选列表 [{id, label}]
@@ -118,6 +294,28 @@
       document.getElementById('output-panel').style.display = 'none';
     });
 
+    // 模板下拉菜单
+    var btnTemplate = document.getElementById('btn-template');
+    var templateMenu = document.getElementById('template-menu');
+    if (btnTemplate && templateMenu) {
+      btnTemplate.addEventListener('click', function(e) {
+        e.stopPropagation();
+        templateMenu.style.display = templateMenu.style.display === 'none' ? 'block' : 'none';
+      });
+      templateMenu.querySelectorAll('.template-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          var tpl = item.dataset.template;
+          var yamlStr = tpl === 'standard1u' ? TEMPLATE_STANDARD_1U : TEMPLATE_DUAL_2U;
+          document.getElementById('yaml-editor').value = yamlStr;
+          loadYaml(yamlStr);
+          templateMenu.style.display = 'none';
+        });
+      });
+      document.addEventListener('click', function() {
+        templateMenu.style.display = 'none';
+      });
+    }
+
     // 添加实体按钮
     document.querySelectorAll('.btn-add').forEach(btn => {
       btn.addEventListener('click', () => addEntity(btn.dataset.entity));
@@ -196,7 +394,42 @@
       setInputValue('f-max-allowed-speed-percent', ac.max_allowed_speed_percent);
       setInputValue('f-min-allowed-speed-percent', ac.min_allowed_speed_percent);
     }
+
+    // 更新大纲导航计数
+    updateOutlineNav();
   }
+
+  // ==================== 大纲导航 ====================
+  function updateOutlineNav() {
+    function setCount(id, n) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = n;
+    }
+    setCount('count-requirements', (configData.cooling_requirements || []).length);
+    setCount('count-policies', (configData.cooling_policies || []).length);
+    setCount('count-areas', (configData.cooling_areas || []).length);
+    setCount('count-abnormal-fans', (configData.abnormal_fans || []).length);
+    setCount('count-fan-types', (configData.fan_types || []).length);
+    setCount('count-cooling-fans', (configData.cooling_fans || []).length);
+    var fanGroups = (configData.basic_cooling_config && configData.basic_cooling_config.fan_groups) ? configData.basic_cooling_config.fan_groups : [];
+    setCount('count-fan-groups', fanGroups.length);
+  }
+
+  // 大纲导航点击跳转
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.outline-link').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        var href = link.getAttribute('href');
+        if (!href || href === '#') return;
+        var target = document.querySelector(href);
+        if (!target) return;
+        e.preventDefault();
+        // 如果目标是列表容器，滚动到其父 fieldset
+        var scrollTarget = target.closest ? target.closest('fieldset') || target : target;
+        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  });
 
   function setInputValue(id, val) {
     const el = document.getElementById(id);
@@ -236,39 +469,39 @@
         </div>
       </div>
       <div class="form-grid">
-        <label>ID <input type="number" value="${req.id||''}" data-field="id" min="0"></label>
-        <label>RequirementId <input type="text" value="${req.requirement_id||''}" data-field="requirement_id" placeholder="全局唯一ID，支持\${Slot}语法"></label>
-        <label>说明 <input type="text" value="${req.description||''}" data-field="description"></label>
+        <label>ID <input type="number" value="${req.id||''}" data-entity-id="${req.id}" data-field="id" min="0"></label>
+        <label>RequirementId <input type="text" value="${req.requirement_id||''}" data-entity-id="${req.id}" data-field="requirement_id" placeholder="全局唯一ID，支持\${Slot}语法"></label>
+        <label>说明 <input type="text" value="${req.description||''}" data-entity-id="${req.id}" data-field="description"></label>
         <label>温度类型
-          <select data-field="temperature_type">
+          <select data-entity-id="${req.id}" data-field="temperature_type">
             <option value="">-- 选择 --</option>
             ${temperatureTypeOptions(req.temperature_type)}
           </select>
         </label>
-        <label>温度状态(CSR同步) <input type="text" value="${req.monitoring_status||''}" data-field="monitoring_status" placeholder="<=/Scanner_Xxx.Status"></label>
-        <label>温度值(CSR同步) <input type="text" value="${req.monitoring_value||''}" data-field="monitoring_value" placeholder="<=/Scanner_Xxx.Value"></label>
-        <label>异常调速转速(%) <input type="number" value="${req.failed_value!=null?req.failed_value:''}" data-field="failed_value" min="0" max="100"></label>
+        <label>温度状态(CSR同步) <input type="text" value="${req.monitoring_status||''}" data-entity-id="${req.id}" data-field="monitoring_status" placeholder="<=/Scanner_Xxx.Status"></label>
+        <label>温度值(CSR同步) <input type="text" value="${req.monitoring_value||''}" data-entity-id="${req.id}" data-field="monitoring_value" placeholder="<=/Scanner_Xxx.Value"></label>
+        <label>异常调速转速(%) <input type="number" value="${req.failed_value!=null?req.failed_value:''}" data-entity-id="${req.id}" data-field="failed_value" min="0" max="100"></label>
         <label>备用温度点ID ${renderSelect(getCandidateList('cooling_requirements', req.id), req.backup_requirement_idx, 'backup_requirement_idx')}</label>
-        <label>目标温度(℃) <input type="number" value="${req.target_temperature_celsius!=null?req.target_temperature_celsius:''}" data-field="target_temperature_celsius"></label>
-        <label>满转门限(℃) <input type="number" value="${req.max_allowed_temperature_celsius!=null?req.max_allowed_temperature_celsius:''}" data-field="max_allowed_temperature_celsius"></label>
-        <label>三模式目标温度[节能,高性能,低噪] <input type="text" value="${req.smart_cooling_target_temperature?req.smart_cooling_target_temperature.join(', '):''}" data-field="smart_cooling_target_temperature"></label>
-        <label>传感器名称(CSR引用) <input type="text" value="${req.sensor_name||''}" data-field="sensor_name" placeholder="#/Sensor.SensorName"></label>
+        <label>目标温度(℃) <input type="number" value="${req.target_temperature_celsius!=null?req.target_temperature_celsius:''}" data-entity-id="${req.id}" data-field="target_temperature_celsius"></label>
+        <label>满转门限(℃) <input type="number" value="${req.max_allowed_temperature_celsius!=null?req.max_allowed_temperature_celsius:''}" data-entity-id="${req.id}" data-field="max_allowed_temperature_celsius"></label>
+        <label>三模式目标温度[节能,高性能,低噪] <input type="text" value="${req.smart_cooling_target_temperature?req.smart_cooling_target_temperature.join(', '):''}" data-entity-id="${req.id}" data-field="smart_cooling_target_temperature"></label>
+        <label>传感器名称(CSR引用) <input type="text" value="${req.sensor_name||''}" data-entity-id="${req.id}" data-field="sensor_name" placeholder="#/Sensor.SensorName"></label>
         <label>支持自定义调速
-          <select data-field="custom_supported">
+          <select data-entity-id="${req.id}" data-field="custom_supported">
             <option value="false" ${!req.custom_supported?'selected':''}>否</option>
             <option value="true" ${req.custom_supported?'selected':''}>是</option>
           </select>
         </label>
-        <label>自定义目标温度(℃) <input type="number" value="${req.custom_target_temperature_celsius!=null?req.custom_target_temperature_celsius:''}" data-field="custom_target_temperature_celsius"></label>
-        <label>自定义温度范围[最小,最大] <input type="text" value="${req.target_temperature_range_celsius?req.target_temperature_range_celsius.join(', '):''}" data-field="target_temperature_range_celsius" placeholder="如: 45, 60"></label>
-        <label>使能(CSR语法) <input type="text" value="${req.enabled||''}" data-field="enabled" placeholder="true/false 或 CSR语法字符串"></label>
+        <label>自定义目标温度(℃) <input type="number" value="${req.custom_target_temperature_celsius!=null?req.custom_target_temperature_celsius:''}" data-entity-id="${req.id}" data-field="custom_target_temperature_celsius"></label>
+        <label>自定义温度范围[最小,最大] <input type="text" value="${req.target_temperature_range_celsius?req.target_temperature_range_celsius.join(', '):''}" data-entity-id="${req.id}" data-field="target_temperature_range_celsius" placeholder="如: 45, 60"></label>
+        <label>使能(CSR语法) <input type="text" value="${req.enabled||''}" data-entity-id="${req.id}" data-field="enabled" placeholder="true/false 或 CSR语法字符串"></label>
         <label>Standby调速
-          <select data-field="active_in_standby">
+          <select data-entity-id="${req.id}" data-field="active_in_standby">
             <option value="false" ${!req.active_in_standby?'selected':''}>否</option>
             <option value="true" ${req.active_in_standby?'selected':''}>是</option>
           </select>
         </label>
-        <label>冷却介质 <input type="text" value="${req.cooling_medium||''}" data-field="cooling_medium" placeholder="Liquid 表示液冷"></label>
+        <label>冷却介质 <input type="text" value="${req.cooling_medium||''}" data-entity-id="${req.id}" data-field="cooling_medium" placeholder="Liquid 表示液冷"></label>
       </div>`;
   }
 
@@ -277,46 +510,98 @@
     return types.map(t => `<option value="${t}" ${t===selected?'selected':''}>${t}</option>`).join('');
   }
 
+  // ==================== 迷你曲线预览 ====================
+  function buildMiniCurveSvg(policy, idx) {
+    var W = 120, H = 48;
+    var tempLow = policy.temperature_range_low;
+    var speedLow = policy.speed_range_low;
+    var svgAttr = 'class="mini-curve-svg" data-policy-idx="' + idx + '" width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg" style="background:#1a1a2e;border-radius:3px;"';
+
+    if (!tempLow || !Array.isArray(tempLow) || tempLow.length < 2 || !speedLow || !Array.isArray(speedLow) || speedLow.length < 2) {
+      return '<svg ' + svgAttr + '><text x="' + (W/2) + '" y="' + (H/2+5) + '" text-anchor="middle" fill="#666" font-size="11">无曲线</text></svg>';
+    }
+
+    var TEMP_MIN = -127, TEMP_MAX = 127;
+    var SPEED_MIN = 0, SPEED_MAX = 100;
+    var padX = 4, padY = 4;
+    var w = W - padX * 2, h = H - padY * 2;
+
+    var points = [];
+    var len = Math.min(tempLow.length, speedLow.length);
+    for (var i = 0; i < len; i++) {
+      var t = tempLow[i];
+      var s = speedLow[i];
+      if (typeof t !== 'number' || typeof s !== 'number') continue;
+      var x = padX + ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * w;
+      var y = padY + (1 - (s - SPEED_MIN) / (SPEED_MAX - SPEED_MIN)) * h;
+      points.push(x.toFixed(1) + ',' + y.toFixed(1));
+    }
+
+    if (points.length < 2) {
+      return '<svg ' + svgAttr + '><text x="' + (W/2) + '" y="' + (H/2+5) + '" text-anchor="middle" fill="#666" font-size="11">无曲线</text></svg>';
+    }
+
+    var polyline = '<polyline points="' + points.join(' ') + '" fill="none" stroke="#4361ee" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>';
+    // Draw axis lines faintly
+    var axisY = (padY + h).toFixed(1);
+    var axis = '<line x1="' + padX + '" y1="' + axisY + '" x2="' + (padX + w) + '" y2="' + axisY + '" stroke="#333" stroke-width="0.5"/>';
+    return '<svg ' + svgAttr + '>' + axis + polyline + '</svg>';
+  }
+
+  function renderMiniCurve(policyIdx) {
+    var svgEl = document.querySelector('[data-policy-idx="' + policyIdx + '"].mini-curve-svg');
+    if (!svgEl) return;
+    var policies = configData.cooling_policies || [];
+    var policy = policies[policyIdx];
+    if (!policy) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = buildMiniCurveSvg(policy, policyIdx);
+    var newSvg = tmp.firstChild;
+    if (newSvg) svgEl.parentNode.replaceChild(newSvg, svgEl);
+  }
+
   // CoolingPolicy渲染
   function renderPolicy(policy, idx, key) {
+    var miniSvg = buildMiniCurveSvg(policy, idx);
     return `
       <div class="entity-item-header">
         <span class="entity-item-title">策略 #${policy.policy_idx} - ${policy.description || ''}</span>
-        <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${miniSvg}
           <button class="btn-edit-curve" data-idx="${idx}">编辑曲线</button>
           <button class="btn-remove" data-key="${key}" data-idx="${idx}">删除</button>
         </div>
       </div>
       <div class="form-grid">
-        <label>策略ID <input type="number" value="${policy.policy_idx||''}" data-field="policy_idx" min="0"></label>
-        <label>说明 <input type="text" value="${policy.description||''}" data-field="description"></label>
+        <label>策略ID <input type="number" value="${policy.policy_idx||''}" data-entity-id="${policy.policy_idx}" data-field="policy_idx" min="0"></label>
+        <label>说明 <input type="text" value="${policy.description||''}" data-entity-id="${policy.policy_idx}" data-field="description"></label>
         <label>预期条件
-          <select data-field="exp_cond_val">
+          <select data-entity-id="${policy.policy_idx}" data-field="exp_cond_val">
             ${['EnergySaving','LowNoise','HighPerformance','Custom','LiquidCooling'].map(m => `<option value="${m}" ${m===policy.exp_cond_val?'selected':''}>${m}</option>`).join('')}
           </select>
         </label>
-        <label>实际条件(CSR同步) <input type="text" value="${policy.actual_cond_val||''}" data-field="actual_cond_val" placeholder="<=/CoolingConfig_1.SmartCoolingMode"></label>
-        <label>迟滞量 <input type="number" value="${policy.hysteresis||0}" data-field="hysteresis"></label>
+        <label>实际条件(CSR同步) <input type="text" value="${policy.actual_cond_val||''}" data-entity-id="${policy.policy_idx}" data-field="actual_cond_val" placeholder="<=/CoolingConfig_1.SmartCoolingMode"></label>
+        <label>迟滞量 <input type="number" value="${policy.hysteresis||0}" data-entity-id="${policy.policy_idx}" data-field="hysteresis"></label>
         <label>策略类型
-          <select data-field="policy_type">
+          <select data-entity-id="${policy.policy_idx}" data-field="policy_type">
             <option value="">-- 默认 --</option>
             <option value="InletCustom" ${policy.policy_type==='InletCustom'?'selected':''}>InletCustom</option>
             <option value="DiskCustom" ${policy.policy_type==='DiskCustom'?'selected':''}>DiskCustom</option>
           </select>
         </label>
-        <label>PCIe卡名称(逗号分隔) <input type="text" value="${(policy.pcie_card_name||[]).join(', ')}" data-field="pcie_card_name" placeholder="如: NpuHbmCard"></label>
-        <label>硬盘背板名称(逗号分隔) <input type="text" value="${(policy.hdd_backplane_name||[]).join(', ')}" data-field="hdd_backplane_name"></label>
-        <label>后置硬盘背板名称(逗号分隔) <input type="text" value="${(policy.hdd_rear_backplane_name||[]).join(', ')}" data-field="hdd_rear_backplane_name"></label>
+        <label>PCIe卡名称(逗号分隔) <input type="text" value="${(policy.pcie_card_name||[]).join(', ')}" data-entity-id="${policy.policy_idx}" data-field="pcie_card_name" placeholder="如: NpuHbmCard"></label>
+        <label>硬盘背板名称(逗号分隔) <input type="text" value="${(policy.hdd_backplane_name||[]).join(', ')}" data-entity-id="${policy.policy_idx}" data-field="hdd_backplane_name"></label>
+        <label>后置硬盘背板名称(逗号分隔) <input type="text" value="${(policy.hdd_rear_backplane_name||[]).join(', ')}" data-entity-id="${policy.policy_idx}" data-field="hdd_rear_backplane_name"></label>
         <label>风扇类型 ${renderCheckboxDropdown(getCandidateList('fan_types'), policy.fan_type, 'fan_type')}</label>
-        <label>冷却介质 <input type="text" value="${policy.cooling_medium||''}" data-field="cooling_medium" placeholder="Liquid 表示液冷"></label>
+        <label>冷却介质 <input type="text" value="${policy.cooling_medium||''}" data-entity-id="${policy.policy_idx}" data-field="cooling_medium" placeholder="Liquid 表示液冷"></label>
         <label>支持自定义调速
-          <select data-field="custom_supported">
+          <select data-entity-id="${policy.policy_idx}" data-field="custom_supported">
             <option value="false" ${!policy.custom_supported?'selected':''}>否</option>
             <option value="true" ${policy.custom_supported?'selected':''}>是</option>
           </select>
         </label>
         <label>硬盘温度失效时生效
-          <select data-field="disk_temp_unavailable_to_valid">
+          <select data-entity-id="${policy.policy_idx}" data-field="disk_temp_unavailable_to_valid">
             <option value="false" ${!policy.disk_temp_unavailable_to_valid?'selected':''}>否</option>
             <option value="true" ${policy.disk_temp_unavailable_to_valid?'selected':''}>是</option>
           </select>
@@ -332,13 +617,13 @@
         <button class="btn-remove" data-key="${key}" data-idx="${idx}">删除</button>
       </div>
       <div class="form-grid">
-        <label>区域ID <input type="number" value="${area.area_id||''}" data-field="area_id" min="0"></label>
+        <label>区域ID <input type="number" value="${area.area_id||''}" data-entity-id="${area.area_id}" data-field="area_id" min="0"></label>
         <label>关联温度点ID ${renderSelect(getCandidateList('cooling_requirements'), area.requirement_idx, 'requirement_idx')}</label>
         <label>关联策略ID列表 ${renderCheckboxDropdown(getCandidateList('cooling_policies'), area.policy_idx_group, 'policy_idx_group')}</label>
-        <label>风扇ID列表(从小到大) <input type="text" value="${(area.fan_idx_group||[]).join(', ')}" data-field="fan_idx_group" placeholder="逗号分隔，如: 1, 2, 3, 4"></label>
-        <label>优先级 <input type="number" value="${area.priority||1}" data-field="priority" min="1"></label>
-        <label>说明 <input type="text" value="${area.description||''}" data-field="description"></label>
-        <label>液冷设备ID列表(逗号分隔) <input type="text" value="${(area.liquid_cooling_device_group||[]).join(', ')}" data-field="liquid_cooling_device_group" placeholder="逗号分隔"></label>
+        <label>风扇ID列表(从小到大) <input type="text" value="${(area.fan_idx_group||[]).join(', ')}" data-entity-id="${area.area_id}" data-field="fan_idx_group" placeholder="逗号分隔，如: 1, 2, 3, 4"></label>
+        <label>优先级 <input type="number" value="${area.priority||1}" data-entity-id="${area.area_id}" data-field="priority" min="1"></label>
+        <label>说明 <input type="text" value="${area.description||''}" data-entity-id="${area.area_id}" data-field="description"></label>
+        <label>液冷设备ID列表(逗号分隔) <input type="text" value="${(area.liquid_cooling_device_group||[]).join(', ')}" data-entity-id="${area.area_id}" data-field="liquid_cooling_device_group" placeholder="逗号分隔"></label>
       </div>`;
   }
 
@@ -866,13 +1151,25 @@
       const li = document.createElement('li');
       li.innerHTML = `<span class="err-level ${err.level}">[${err.level === 'error' ? '错误' : '警告'}]</span> ${err.entity} #${err.id}: ${err.message}`;
       li.addEventListener('click', () => {
-        // 尝试定位到对应字段
-        const field = document.querySelector(`[data-field="${err.field}"]`);
+        // 优先按 entity-id + field 精准定位
+        var field = null;
+        if (err.id != null && err.field) {
+          field = document.querySelector(`[data-entity-id="${err.id}"][data-field="${err.field}"]`);
+        }
+        // 回退：仅按 field 名定位
+        if (!field && err.field) {
+          field = document.querySelector(`[data-field="${err.field}"]`);
+        }
         if (field) {
+          // 若实体项被折叠（父项 display:none），尝试展开
+          var entityItem = field.closest('.entity-item');
+          if (entityItem && entityItem.style.display === 'none') {
+            entityItem.style.display = '';
+          }
           field.scrollIntoView({ behavior: 'smooth', block: 'center' });
           field.focus();
-          field.classList.add('field-error');
-          setTimeout(() => field.classList.remove('field-error'), 3000);
+          field.classList.add('field-highlight');
+          setTimeout(() => field.classList.remove('field-highlight'), 3000);
         }
       });
       list.appendChild(li);
@@ -946,6 +1243,8 @@
     // 直接从 configData 生成 YAML，不走 collectFormData 避免旧 _sourceData 覆盖
     const yamlText = jsyaml.dump(configData, { lineWidth: -1, noRefs: true });
     document.getElementById('yaml-editor').value = yamlText;
+    // 更新对应策略卡的迷你曲线预览
+    renderMiniCurve(currentCurvePolicyIdx);
   };
 
   // 曲线编辑器按钮绑定
@@ -965,9 +1264,24 @@
       if (dropdown) {
         // 关闭其他下拉菜单
         document.querySelectorAll('.multi-select-dropdown.open').forEach(d => {
-          if (d !== dropdown) d.classList.remove('open');
+          if (d !== dropdown) { d.classList.remove('open'); d.classList.remove('open-up'); }
         });
-        dropdown.classList.toggle('open');
+        var isOpen = dropdown.classList.contains('open');
+        if (!isOpen) {
+          // 判断下方是否有足够空间
+          var rect = dropdown.getBoundingClientRect();
+          var panelHeight = 180; // max-height of msd-panel
+          var spaceBelow = window.innerHeight - rect.bottom;
+          if (spaceBelow < panelHeight && rect.top > panelHeight) {
+            dropdown.classList.add('open-up');
+          } else {
+            dropdown.classList.remove('open-up');
+          }
+          dropdown.classList.add('open');
+        } else {
+          dropdown.classList.remove('open');
+          dropdown.classList.remove('open-up');
+        }
       }
       return;
     }
@@ -976,6 +1290,7 @@
     // 点击外部关闭所有
     document.querySelectorAll('.multi-select-dropdown.open').forEach(d => {
       d.classList.remove('open');
+      d.classList.remove('open-up');
     });
   });
 
@@ -1018,6 +1333,8 @@
     renderSelect: renderSelect,
     renderCheckboxDropdown: renderCheckboxDropdown,
     removeEntity: removeEntity,
-    renderForm: renderForm
+    renderForm: renderForm,
+    renderMiniCurve: renderMiniCurve,
+    updateOutlineNav: updateOutlineNav
   };
 })();

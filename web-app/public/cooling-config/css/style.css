@@ -5,7 +5,7 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 /* 工具栏 */
 .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: #1a1a2e; color: #fff; }
 .toolbar h1 { font-size: 18px; font-weight: 600; }
-.toolbar-actions { display: flex; gap: 8px; }
+.toolbar-actions { display: flex; gap: 8px; align-items: center; }
 .toolbar-actions button, .toolbar-actions .btn-primary {
   padding: 6px 16px; border: 1px solid #555; border-radius: 4px; background: #2d2d44; color: #fff; cursor: pointer; font-size: 13px;
 }
@@ -13,10 +13,47 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .btn-primary { background: #4361ee !important; border-color: #4361ee !important; }
 .btn-primary:hover { background: #3a56d4 !important; }
 
+/* 模板下拉菜单 */
+.template-dropdown { position: relative; }
+.template-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; min-width: 160px;
+  background: #2d2d44; border: 1px solid #555; border-radius: 4px;
+  z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.template-item {
+  padding: 8px 14px; font-size: 13px; color: #ccc; cursor: pointer;
+  border-bottom: 1px solid #3d3d5c;
+}
+.template-item:last-child { border-bottom: none; }
+.template-item:hover { background: #3d3d5c; color: #fff; }
+
 /* 主内容双栏 */
 .main-content { display: flex; height: calc(100vh - 52px - 200px); min-height: 400px; }
 .yaml-panel, .form-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .yaml-panel { border-right: 1px solid #ddd; }
+
+/* 左侧大纲导航 */
+.outline-nav {
+  width: 200px; min-width: 200px; background: #1a1a2e; color: #ccc;
+  display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+  border-right: 1px solid #2d2d44;
+}
+.outline-title {
+  padding: 10px 12px 6px; font-size: 12px; font-weight: 700; color: #4361ee;
+  text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2d2d44;
+}
+.outline-list { list-style: none; padding: 6px 0; }
+.outline-list li { }
+.outline-link {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px; font-size: 12px; color: #aaa; text-decoration: none;
+  border-left: 2px solid transparent; transition: all 0.15s;
+}
+.outline-link:hover { color: #fff; background: #2d2d44; border-left-color: #4361ee; }
+.outline-count {
+  background: #2d2d44; color: #88f; border-radius: 9px; padding: 1px 7px;
+  font-size: 11px; font-weight: 600; min-width: 22px; text-align: center;
+}
 .panel-header { padding: 8px 12px; background: #e8e8e8; font-weight: 600; font-size: 14px; border-bottom: 1px solid #ddd; }
 
 /* YAML编辑器 */
@@ -132,3 +169,20 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 }
 .multi-select-dropdown .msd-panel label:hover { background: #f0f4ff; }
 .multi-select-dropdown .msd-panel input[type="checkbox"] { margin: 0; cursor: pointer; }
+
+/* 多选下拉方向自适应：向上展开 */
+.multi-select-dropdown.open-up .msd-panel {
+  top: auto; bottom: 100%; border-top: 1px solid #ccc; border-bottom: none;
+  border-radius: 3px 3px 0 0;
+}
+
+/* 校验错误高亮 */
+.field-highlight {
+  outline: 2px solid #f39c12 !important; background: #fffbe6 !important;
+  transition: outline 0.3s;
+}
+
+/* 迷你曲线预览 SVG */
+.mini-curve-svg {
+  display: block; flex-shrink: 0; border-radius: 3px; cursor: default;
+}

@@ -13,6 +13,13 @@
     <h1>能效调速配置编辑器</h1>
     <div class="toolbar-actions">
       <button id="btn-load" title="加载YAML文件">加载YAML</button>
+      <div class="template-dropdown" id="template-dropdown">
+        <button id="btn-template" title="快速启动模板">模板 ▾</button>
+        <div class="template-menu" id="template-menu" style="display:none">
+          <div class="template-item" data-template="standard1u">标准1U服务器</div>
+          <div class="template-item" data-template="dual2u">双路高密服务器</div>
+        </div>
+      </div>
       <button id="btn-save" title="保存YAML文件">保存YAML</button>
       <button id="btn-generate" class="btn-primary" title="生成CSR Objects片段">生成CSR</button>
       <input type="file" id="file-input" accept=".yaml,.yml" style="display:none">
@@ -25,8 +32,22 @@
     <ul id="error-list"></ul>
   </div>
 
-  <!-- 主内容区：双栏布局 -->
+  <!-- 主内容区：左侧大纲 + 双栏布局 -->
   <main class="main-content">
+    <!-- 左侧大纲导航 -->
+    <nav class="outline-nav" id="outline-nav">
+      <div class="outline-title">大纲</div>
+      <ul class="outline-list">
+        <li><a href="#config-section" class="outline-link">全局配置 <span class="outline-count">1</span></a></li>
+        <li><a href="#requirements-list" class="outline-link" id="outline-requirements">温度点 <span class="outline-count" id="count-requirements">0</span></a></li>
+        <li><a href="#policies-list" class="outline-link" id="outline-policies">调速策略 <span class="outline-count" id="count-policies">0</span></a></li>
+        <li><a href="#areas-list" class="outline-link" id="outline-areas">调速区域 <span class="outline-count" id="count-areas">0</span></a></li>
+        <li><a href="#abnormal-fans-list" class="outline-link" id="outline-abnormal-fans">异常风扇 <span class="outline-count" id="count-abnormal-fans">0</span></a></li>
+        <li><a href="#fan-types-list" class="outline-link" id="outline-fan-types">风扇类型 <span class="outline-count" id="count-fan-types">0</span></a></li>
+        <li><a href="#cooling-fans-list" class="outline-link" id="outline-cooling-fans">调速风扇 <span class="outline-count" id="count-cooling-fans">0</span></a></li>
+        <li><a href="#fan-groups-list" class="outline-link" id="outline-fan-groups">风扇组 <span class="outline-count" id="count-fan-groups">0</span></a></li>
+      </ul>
+    </nav>
     <!-- 左侧：YAML编辑器 -->
     <section class="yaml-panel">
       <div class="panel-header">YAML 配置</div>
