@@ -16,8 +16,8 @@
       <div class="template-dropdown" id="template-dropdown">
         <button id="btn-template" title="快速启动模板">模板 ▾</button>
         <div class="template-menu" id="template-menu" style="display:none">
-          <div class="template-item" data-template="standard1u">标准1U服务器</div>
-          <div class="template-item" data-template="dual2u">双路高密服务器</div>
+          <button type="button" class="template-item" data-template="standard1u">标准1U服务器</button>
+          <button type="button" class="template-item" data-template="dual2u">双路高密服务器</button>
         </div>
       </div>
       <button id="btn-save" title="保存YAML文件">保存YAML</button>
@@ -27,7 +27,7 @@
   </header>
 
   <!-- 校验错误提示区域 -->
-  <div id="validation-errors" class="validation-errors" style="display:none">
+  <div id="validation-errors" class="validation-errors" style="display:none" aria-live="assertive" aria-atomic="true">
     <div class="error-header">校验错误 <button id="btn-close-errors">关闭</button></div>
     <ul id="error-list"></ul>
   </div>
@@ -190,7 +190,7 @@
             <button id="btn-add-node">添加节点</button>
             <button id="btn-delete-node">删除选中节点</button>
           </div>
-          <canvas id="curve-canvas" width="700" height="350"></canvas>
+          <canvas id="curve-canvas" width="700" height="350" role="img" aria-label="调速曲线编辑器，交互数据见下方表格" aria-describedby="curve-data-table"></canvas>
           <div id="curve-data-table" class="curve-table-container"></div>
         </fieldset>
       </div>
@@ -199,9 +199,9 @@
 
   <!-- CSR输出区域 -->
   <footer class="output-panel" id="output-panel" style="display:none">
-    <div class="output-tabs">
-      <button class="tab-btn active" data-tab="psr">PSR 片段</button>
-      <button class="tab-btn" data-tab="sr">SR 片段</button>
+    <div class="output-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="psr" role="tab" aria-selected="true" aria-controls="psr-output">PSR 片段</button>
+      <button class="tab-btn" data-tab="sr" role="tab" aria-selected="false" aria-controls="sr-output">SR 片段</button>
       <button id="btn-copy-psr">复制PSR</button>
       <button id="btn-copy-sr">复制SR</button>
       <button id="btn-download-psr">下载PSR</button>

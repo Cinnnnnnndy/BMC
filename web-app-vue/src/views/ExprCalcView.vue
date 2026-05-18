@@ -531,21 +531,22 @@ function insertFunc(funcName: string) {
         <div class="header-actions">
           <!-- History button -->
           <div class="history-wrap">
-            <button class="icon-btn" title="历史记录" @click.stop="historyOpen = !historyOpen; loadHistory()">
+            <button class="icon-btn" aria-label="历史记录" title="历史记录" :aria-expanded="historyOpen" aria-controls="history-dropdown-panel" @click.stop="historyOpen = !historyOpen; loadHistory()">
               🕐
             </button>
-            <div v-if="historyOpen" class="history-dropdown" @click.stop>
+            <div v-if="historyOpen" id="history-dropdown-panel" class="history-dropdown" @click.stop>
               <div class="history-header">最近表达式</div>
               <div v-if="historyList.length === 0" class="history-empty">暂无历史</div>
-              <div
+              <button
                 v-for="(entry, i) in historyList"
                 :key="i"
+                type="button"
                 class="history-item"
                 @click="useHistoryEntry(entry)"
               >
                 <span class="history-expr">{{ entry.expr.slice(0, 60) }}{{ entry.expr.length > 60 ? '…' : '' }}</span>
                 <span class="history-time">{{ formatHistoryTime(entry.timestamp) }}</span>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -566,11 +567,11 @@ function insertFunc(funcName: string) {
 
       <!-- Function reference (collapsible) -->
       <div class="func-ref-wrap">
-        <button class="collapse-toggle" @click="funcRefCollapsed = !funcRefCollapsed">
+        <button class="collapse-toggle" :aria-expanded="!funcRefCollapsed" aria-controls="func-ref-panel" @click="funcRefCollapsed = !funcRefCollapsed">
           <span class="toggle-arrow" :class="{ open: !funcRefCollapsed }">▸</span>
           📖 函数参考
         </button>
-        <div v-if="!funcRefCollapsed" class="func-ref-grid">
+        <div v-if="!funcRefCollapsed" id="func-ref-panel" class="func-ref-grid">
           <div v-for="cat in funcCategories" :key="cat.name" class="func-cat">
             <div class="func-cat-name">{{ cat.name }}</div>
             <div v-for="fn in cat.funcs" :key="fn.name" class="func-card">
@@ -595,10 +596,11 @@ function insertFunc(funcName: string) {
       </div>
       <div class="input-list">
         <div v-for="i in inputCount" :key="i" class="input-row">
-          <span class="input-badge">${{ i }}</span>
+          <label class="input-badge" :for="'expr-input-'+i">${{ i }}</label>
           <input
             type="text"
             class="input-field"
+            :id="'expr-input-'+i"
             :placeholder="`输入 $${i} 的值`"
             v-model="inputVals[i - 1]"
             @input="runEval"
@@ -626,12 +628,12 @@ function insertFunc(funcName: string) {
       </div>
 
       <!-- Final result -->
-      <div class="result-box" v-if="!evalError && finalResult !== null" style="margin-top:16px">
+      <div class="result-box" v-if="!evalError && finalResult !== null" style="margin-top:16px" aria-live="polite" aria-atomic="true">
         <div class="section-title">✨ 最终结果</div>
         <div class="final-value">{{ formatVal(finalResult) }}</div>
         <button class="copy-btn" @click="navigator.clipboard.writeText(String(finalResult))">📋 复制</button>
       </div>
-      <div class="error-box" v-if="evalError" style="margin-top:16px">
+      <div class="error-box" v-if="evalError" style="margin-top:16px" aria-live="polite" aria-atomic="true">
         <div class="section-title">⚠ 错误</div>
         <div class="error-text">{{ evalError }}</div>
       </div>
@@ -642,12 +644,12 @@ function insertFunc(funcName: string) {
 
     <!-- ══ BATCH TEST CASE PANEL ══ -->
     <div class="section">
-      <button class="collapse-toggle panel-toggle" @click="testPanelCollapsed = !testPanelCollapsed">
+      <button class="collapse-toggle panel-toggle" :aria-expanded="!testPanelCollapsed" aria-controls="test-panel-body" @click="testPanelCollapsed = !testPanelCollapsed">
         <span class="toggle-arrow" :class="{ open: !testPanelCollapsed }">▾</span>
         批量测试用例
       </button>
 
-      <div v-if="!testPanelCollapsed" class="test-panel-body">
+      <div v-if="!testPanelCollapsed" id="test-panel-body" class="test-panel-body">
         <!-- Format instructions -->
         <div class="format-hint">
           <div class="format-hint-title">格式说明</div>
@@ -681,15 +683,15 @@ function insertFunc(funcName: string) {
               💾 导出 ▾
             </button>
             <div v-if="exportDropOpen" class="export-dropdown" @click.stop>
-              <div class="export-item" @click="exportAs('tsv')">TSV（制表符分隔）</div>
-              <div class="export-item" @click="exportAs('markdown')">Markdown 表格</div>
-              <div class="export-item" @click="exportAs('json')">JSON 数组</div>
+              <button type="button" class="export-item" @click="exportAs('tsv')">TSV（制表符分隔）</button>
+              <button type="button" class="export-item" @click="exportAs('markdown')">Markdown 表格</button>
+              <button type="button" class="export-item" @click="exportAs('json')">JSON 数组</button>
             </div>
           </div>
         </div>
 
         <!-- Summary -->
-        <div v-if="batchSummary" style="margin-top:14px">
+        <div v-if="batchSummary" style="margin-top:14px" aria-live="polite" aria-atomic="true">
           <div class="section-title">📊 统计</div>
           <div class="summary-row">
             <div class="stat-chip">共 <strong>{{ batchSummary.total }}</strong></div>
@@ -704,7 +706,14 @@ function insertFunc(funcName: string) {
           <div class="results-scroll">
             <table class="results-table">
               <thead>
-                <tr><th>#</th><th>输入</th><th>预期</th><th>实际</th><th>状态</th><th></th></tr>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">输入</th>
+                  <th scope="col">预期</th>
+                  <th scope="col">实际</th>
+                  <th scope="col">状态</th>
+                  <th scope="col"><span class="sr-only">操作</span></th>
+                </tr>
               </thead>
               <tbody>
                 <tr
@@ -890,6 +899,15 @@ function insertFunc(funcName: string) {
   cursor: pointer;
   border-bottom: 1px solid rgba(42,48,80,0.5);
   transition: background 0.1s;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 .history-item:last-child { border-bottom: none; }
 .history-item:hover { background: rgba(79,110,247,0.12); }
@@ -1179,6 +1197,14 @@ function insertFunc(funcName: string) {
   color: var(--fg);
   cursor: pointer;
   border-bottom: 1px solid rgba(42,48,80,0.5);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  display: block;
 }
 .export-item:last-child { border-bottom: none; }
 .export-item:hover { background: rgba(79,110,247,0.15); }
@@ -1227,12 +1253,14 @@ function insertFunc(funcName: string) {
   color: var(--ok);
   border-radius: 2px;
   padding: 0 1px;
+  text-decoration: underline;
 }
 .diff-act-extra {
   background: rgba(248,113,113,0.3);
   color: var(--error);
   border-radius: 2px;
   padding: 0 1px;
+  text-decoration: line-through;
 }
 
 /* Debug row button */
@@ -1247,4 +1275,17 @@ function insertFunc(funcName: string) {
   white-space: nowrap;
 }
 .debug-row-btn:hover { background: #253260; color: #fff; }
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>

@@ -281,6 +281,15 @@ const rulerMarks = [
   { bit: 0,  pct: (32 / 32) * 100 - 0.5 },  // right edge (bit 0)
 ];
 
+// Accessible aria-label for the 32-bit bitmap
+const bitmapAriaLabel = computed(() => {
+  const segs = bitFields.map(f => {
+    const raw = f.valRef().trim();
+    return `${f.label}=${raw ? '0x' + raw.toUpperCase() : '--'}`;
+  });
+  return `32位命令字可视化：${segs.join('，')}`;
+});
+
 onMounted(() => {
   loadHistory();
   loadCopyFormat();
@@ -298,6 +307,8 @@ onMounted(() => {
         <button
           class="btn btn-ghost history-btn"
           :class="{ active: showHistory }"
+          :aria-expanded="showHistory"
+          aria-controls="history-panel"
           @click="showHistory = !showHistory"
         >
           🕐 历史
@@ -306,7 +317,7 @@ onMounted(() => {
       </div>
 
       <!-- ── History panel ──────────────────────────────────────────────── -->
-      <div class="history-panel" v-if="showHistory">
+      <div class="history-panel" id="history-panel" v-if="showHistory">
         <div v-if="history.length === 0" class="history-empty">暂无历史记录</div>
         <div v-else>
           <div
@@ -320,7 +331,7 @@ onMounted(() => {
             <button class="btn btn-ghost btn-tiny" @click="restoreHistory(entry)">回填</button>
           </div>
           <div class="history-footer">
-            <a class="clear-history-link" @click="clearHistory">清空历史</a>
+            <button type="button" class="clear-history-link" @click="clearHistory">清空历史</button>
           </div>
         </div>
       </div>
@@ -332,7 +343,7 @@ onMounted(() => {
       </div>
 
       <!-- ── A. 32-bit bitmap visualizer ───────────────────────────────── -->
-      <div class="bitmap-wrap">
+      <div class="bitmap-wrap" role="img" :aria-label="bitmapAriaLabel">
         <div class="bitmap-bar">
           <div
             v-for="seg in bitSegments"
@@ -370,6 +381,7 @@ onMounted(() => {
             <input
               type="text"
               class="offset-input"
+              aria-label="输入偏移量，支持十进制如 809893888 或十六进制如 0x30440100"
               placeholder="十进制 如: 809893888  或十六进制 如: 0x30440100"
               v-model="decInput"
               @keydown.enter="parseDecimal"
@@ -384,7 +396,7 @@ onMounted(() => {
       <div class="arrow-indicator">⇅</div>
 
       <!-- ── Real-time result ───────────────────────────────────────────── -->
-      <div class="section result-section">
+      <div class="section result-section" aria-live="polite" aria-atomic="true">
         <div class="section-title">⚡ 实时计算结果</div>
         <div class="result-display">
           <div class="result-row">
@@ -411,14 +423,14 @@ onMounted(() => {
         <div class="fields-row primary-row">
           <!-- Function 1/3 -->
           <div class="field-item fn-field">
-            <label class="field-label">
+            <label class="field-label" for="input-fn">
               功能码(Function)
               <span class="field-bits">6-bit</span>
               <span class="help-icon" title="范围 0x00–0x3F (0–63)">❓</span>
             </label>
             <div class="hex-input-wrapper" :class="{ 'has-error': fnErr }">
               <span class="hex-prefix">0x</span>
-              <input type="text" class="hex-input" maxlength="2" placeholder="00"
+              <input type="text" class="hex-input" id="input-fn" maxlength="2" placeholder="00"
                 :value="fnVal"
                 @input="onHexInput('function', ($event.target as HTMLInputElement).value, v => fnVal = v)"
                 @blur="blurField('function', fnVal, e => fnErr = e)"
@@ -429,14 +441,14 @@ onMounted(() => {
 
           <!-- Command 2/3 -->
           <div class="field-item cmd-field">
-            <label class="field-label">
+            <label class="field-label" for="input-cmd">
               命令码(Command)
               <span class="field-bits">16-bit</span>
               <span class="help-icon" title="范围 0x0000–0xFFFF (0–65535)">❓</span>
             </label>
             <div class="hex-input-wrapper" :class="{ 'has-error': cmdErr }">
               <span class="hex-prefix">0x</span>
-              <input type="text" class="hex-input" maxlength="4" placeholder="0000"
+              <input type="text" class="hex-input" id="input-cmd" maxlength="4" placeholder="0000"
                 :value="cmdVal"
                 @input="onHexInput('command', ($event.target as HTMLInputElement).value, v => cmdVal = v)"
                 @blur="blurField('command', cmdVal, e => cmdErr = e)"
@@ -453,14 +465,14 @@ onMounted(() => {
         <div class="fields-row control-row">
           <!-- MS -->
           <div class="field-item">
-            <label class="field-label">
+            <label class="field-label" for="input-ms">
               读取方式(MS)
               <span class="field-bits">1-bit</span>
               <span class="help-icon" title="0x0=多读, 0x1=单读">❓</span>
             </label>
             <div class="hex-input-wrapper" :class="{ 'has-error': msErr }">
               <span class="hex-prefix">0x</span>
-              <input type="text" class="hex-input" maxlength="1" placeholder="0"
+              <input type="text" class="hex-input" id="input-ms" maxlength="1" placeholder="0"
                 :value="msVal"
                 @input="onHexInput('ms', ($event.target as HTMLInputElement).value, v => msVal = v)"
                 @blur="blurField('ms', msVal, e => msErr = e)"
@@ -471,14 +483,14 @@ onMounted(() => {
 
           <!-- RW -->
           <div class="field-item">
-            <label class="field-label">
+            <label class="field-label" for="input-rw">
               读写方向(RW)
               <span class="field-bits">1-bit</span>
               <span class="help-icon" title="0x0=写, 0x1=读">❓</span>
             </label>
             <div class="hex-input-wrapper" :class="{ 'has-error': rwErr }">
               <span class="hex-prefix">0x</span>
-              <input type="text" class="hex-input" maxlength="1" placeholder="0"
+              <input type="text" class="hex-input" id="input-rw" maxlength="1" placeholder="0"
                 :value="rwVal"
                 @input="onHexInput('rw', ($event.target as HTMLInputElement).value, v => rwVal = v)"
                 @blur="blurField('rw', rwVal, e => rwErr = e)"
@@ -489,14 +501,14 @@ onMounted(() => {
 
           <!-- Parameter -->
           <div class="field-item">
-            <label class="field-label">
+            <label class="field-label" for="input-param">
               参数(Parameter)
               <span class="field-bits">8-bit</span>
               <span class="help-icon" title="范围 0x00–0xFF (0–255)">❓</span>
             </label>
             <div class="hex-input-wrapper" :class="{ 'has-error': paramErr }">
               <span class="hex-prefix">0x</span>
-              <input type="text" class="hex-input" maxlength="2" placeholder="00"
+              <input type="text" class="hex-input" id="input-param" maxlength="2" placeholder="00"
                 :value="paramVal"
                 @input="onHexInput('parameter', ($event.target as HTMLInputElement).value, v => paramVal = v)"
                 @blur="blurField('parameter', paramVal, e => paramErr = e)"
@@ -523,6 +535,7 @@ onMounted(() => {
             :disabled="!resultOk"
             @click.stop="showFormatMenu = !showFormatMenu"
             title="选择复制格式"
+            aria-label="选择复制格式"
           >▾</button>
           <div class="format-menu" v-if="showFormatMenu && resultOk">
             <div
@@ -692,6 +705,10 @@ export default {
   text-decoration: underline;
   opacity: 0.7;
   transition: opacity 0.15s;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
 }
 .clear-history-link:hover { opacity: 1; color: var(--error); }
 
@@ -757,7 +774,7 @@ export default {
 }
 .seg-range {
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.92);
   line-height: 1;
 }
 
@@ -779,7 +796,6 @@ export default {
   font-size: 9px;
   color: var(--desc);
   line-height: 1;
-  opacity: 0.6;
 }
 .ruler-label {
   font-size: 9px;

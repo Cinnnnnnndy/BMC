@@ -23,6 +23,14 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .template-item {
   padding: 8px 14px; font-size: 13px; color: #ccc; cursor: pointer;
   border-bottom: 1px solid #3d3d5c;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  display: block;
 }
 .template-item:last-child { border-bottom: none; }
 .template-item:hover { background: #3d3d5c; color: #fff; }
@@ -51,7 +59,7 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 }
 .outline-link:hover { color: #fff; background: #2d2d44; border-left-color: #4361ee; }
 .outline-count {
-  background: #2d2d44; color: #88f; border-radius: 9px; padding: 1px 7px;
+  background: #2d2d44; color: #99aaff; border-radius: 9px; padding: 1px 7px;
   font-size: 11px; font-weight: 600; min-width: 22px; text-align: center;
 }
 .panel-header { padding: 8px 12px; background: #e8e8e8; font-weight: 600; font-size: 14px; border-bottom: 1px solid #ddd; }
@@ -81,7 +89,7 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .entity-item { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 8px; position: relative; }
 .entity-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .entity-item-title { font-weight: 600; font-size: 13px; color: #1a1a2e; }
-.btn-remove { font-size: 11px; padding: 1px 8px; border: 1px solid #e74c3c; border-radius: 3px; background: transparent; color: #e74c3c; cursor: pointer; }
+.btn-remove { font-size: 11px; padding: 1px 8px; border: 1px solid #c0392b; border-radius: 3px; background: transparent; color: #c0392b; cursor: pointer; }
 .btn-remove:hover { background: #fde; }
 
 /* CSR输出区域 */
@@ -102,7 +110,7 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 #error-list li { padding: 3px 0; font-size: 12px; cursor: pointer; border-bottom: 1px solid #fdd; }
 #error-list li:hover { background: #fee; }
 #error-list li .err-level { font-weight: 600; margin-right: 6px; }
-#error-list li .err-level.error { color: #e74c3c; }
+#error-list li .err-level.error { color: #c0392b; }
 #error-list li .err-level.warning { color: #f39c12; }
 
 /* 字段校验错误 */
