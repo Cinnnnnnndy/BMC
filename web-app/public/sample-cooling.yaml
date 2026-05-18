@@ -1,0 +1,381 @@
+# 能效调速统一配置文件
+# 基于 openUBMC 调速配置规范
+# 本文件为单一配置源，可直接编辑或通过Web页面编辑
+
+# 槽位号（用于CSR对象命名中的SlotId，默认为1）
+slot_id: 1
+
+# ============================================================
+# 全局配置 (CoolingConfig)
+# 每个整机配置仅有一个，生成到PSR片段中
+# ============================================================
+cooling_config:
+  # 智能调速使能状态: "Enabled" 使能 / "Disabled" 不使能
+  smart_cooling_state: "Enabled"
+  # 智能调速模式: "EnergySaving" 节能(默认) / "LowNoise" 低噪 / "HighPerformance" 高性能 / "Custom" 自定义 / "LiquidCooling" 液冷
+  smart_cooling_mode: "EnergySaving"
+  # 手动设置转速级别(百分比)允许的范围 [最小值, 最大值]
+  level_percent_range: [10, 100]
+  # 初始转速百分比(BMC复位过程到pid接管前下发转速)，范围[0,100]，默认100
+  init_level_in_startup: 100
+  # 含有调速风扇的风扇板个数(多风扇板机型需配置)，默认1
+  fan_board_num: 1
+  # 背板上硬盘温度是否能正常获取，false表示有硬盘温度获取不到
+  disk_row_temperature_available: false
+  # HDD硬盘最大温度(摄氏度)，硬盘温度参与调速，默认32768(无效值)
+  sys_hdds_max_temperature: 32768
+  # SSD硬盘最大温度(仅SAS/SATA，摄氏度)，默认32768(无效值)
+  sys_ssds_max_temperature: 32768
+  # 是否支持温度海洋，不支持机型可不配置
+  sensor_location_supported: false
+  # 允许下发的最小风扇转速百分比，范围[0,100]
+  minimal_level: 0
+  # 允许下发的最大风扇转速百分比，范围[0,100]
+  max_limi_level: 100
+  # PID目标调速控制模式: 1=慢升快降, 2=快升慢降, 3=慢升慢降, 4=快升快降
+  pid_control_mode: 1
+  # M.2 硬盘最大温度(摄氏度)，默认32768(无效值)
+  sys_m2s_max_temperature: 32768
+  # 所有SSD介质硬盘的最大温度(摄氏度)，包含NVMe，默认32768(无效值)
+  sys_all_ssds_max_temperature: 32768
+  # 失联状态场景风扇转速百分比，管理软件与风扇组件通信异常时使用
+  min_allowed_fan_speed_percent: 35
+  # 失联状态风扇转速使能状态
+  min_allowed_fan_speed_enabled: false
+  # 是否支持风液混合模式散热场景
+  mixed_mode_supported: false
+
+# ============================================================
+# 温度点列表 (CoolingRequirement)
+# 一个温度点对应一个对象，生成到SR片段中
+# ============================================================
+cooling_requirements:
+  # --- 温度点6: 入风口环温调速（主温度点，备用温度点为8） ---
+  - id: 6
+    # 全局唯一ID，支持动态语法如: "${Slot} |> expr((6 << 8) | $1)"
+    requirement_id: 6
+    # 中文说明
+    description: "入风口温度点"
+    # 温度类型枚举: Cpu/Outlet/Disk/Memory/PCH/VRD/VDDQ/NPUHb/NPUAiCore/NPUBoard/Inlet/SoCBoardOutlet/SoCBoardInlet/InvalidType
+    temperature_type: "Inlet"
+    # 温度点状态(CSR同步语法)，同步传感器的状态值
+    monitoring_status: "<=/Scanner_Lm75_Inlet.Status"
+    # 温度点值(CSR同步语法)，同步传感器的温度读数值
+    monitoring_value: "<=/Scanner_Lm75_Inlet.Value"
+    # 温度点状态异常时触发的异常调速转速百分比，null表示不触发
+    failed_value: 80
+    # 备用温度点ID（当主温度点获取失败时使用备用温度点的值）
+    backup_requirement_idx: 8
+    # 该温度点关联的传感器名称(CSR引用语法)
+    sensor_name: "#/ThresholdSensor_InletTemp.SensorName"
+    # 是否作为备份温度点
+    is_backup_requirement: false
+    # 某些温度值获取不到时该调速策略是否生效
+    obtain_temp_faild_to_valid: false
+    # 温度点失效液冷调速值（液冷环境中泵流速）
+    liquid_failed_value: 0
+
+  # --- 温度点7: 出风口目标调速 ---
+  - id: 7
+    requirement_id: 7
+    description: "出风口温度点"
+    temperature_type: "Outlet"
+    monitoring_status: "<=/Scanner_Lm75_Outlet.Status"
+    monitoring_value: "<=/Scanner_Lm75_Outlet.Value"
+    # 温度点异常时将风扇转速拉至80%
+    failed_value: 80
+    # 目标温度值(默认节能模式)，单位:摄氏度
+    target_temperature_celsius: 45
+    # 触发满转的温度门限
+    max_allowed_temperature_celsius: 60
+    # 自定义目标温度值允许范围 [最小, 最大]
+    target_temperature_range_celsius: [45, 60]
+    # SmartCooling三种模式的目标温度 [节能, 高性能, 低噪]
+    smart_cooling_target_temperature: [50, 47, 53]
+    # 是否支持自定义调速曲线
+    custom_supported: true
+    # 自定义模式的目标温度值
+    custom_target_temperature_celsius: 52
+    # 关联的传感器名称
+    sensor_name: "#/ThresholdSensor_OutletTemp.SensorName"
+
+  # --- 温度点8: 备用温度点（风扇板温度） ---
+  - id: 8
+    requirement_id: 8
+    description: "备用温度点(风扇板温度)"
+    monitoring_status: "<=/Scanner_FanBrdTemp.Status"
+    monitoring_value: "<=/Scanner_FanBrdTemp.Value"
+    sensor_name: "#/ThresholdSensor_FanBoardTemp.SensorName"
+
+# ============================================================
+# 调速策略列表 (CoolingPolicy)
+# 一条环温调速曲线对应一个对象，生成到SR片段中
+# ============================================================
+cooling_policies:
+  # --- 策略6: 节能模式环温调速曲线 ---
+  - id: 6
+    # 全局唯一策略ID
+    policy_idx: 6
+    description: "节能模式环温调速"
+    # 预期生效条件: "EnergySaving"/"LowNoise"/"HighPerformance"/"Custom"/"LiquidCooling"
+    exp_cond_val: "EnergySaving"
+    # 实际条件(CSR同步语法)，同步CoolingConfig的当前模式
+    actual_cond_val: "<=/CoolingConfig_1.SmartCoolingMode"
+    # 关联的风扇类型名称列表(引用FanType的Name字段)，null表示不限制风扇类型
+    fan_type: ["02314BLG 8038+", "02314BLG 8080+ Twins"]
+    # 迟滞量(当前温度小于等于全速值减迟滞量时退出满转)
+    hysteresis: 1
+    # 是否支持自定义调速曲线
+    custom_supported: false
+    # 硬盘温度获取失败时该调速策略是否生效，硬盘调速场景使用
+    disk_temp_unavailable_to_valid: false
+    # 前置硬盘背板名称列表，背板在位时匹配生效
+    hdd_backplane_name: []
+    # 后置硬盘背板名称列表，背板在位时匹配生效
+    hdd_rear_backplane_name: []
+    # 线性调速策略温度区间左值(与右值配对，左闭右开)
+    temperature_range_low: [-127, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
+    # 线性调速策略温度区间右值
+    temperature_range_high: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 127]
+    # 转速区间左值(百分比)
+    speed_range_low: [30, 30, 30, 30, 30, 30, 30, 34, 38, 42, 46, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 100, 100, 100, 100, 100]
+    # 转速区间右值(百分比)
+    speed_range_high: [30, 30, 30, 30, 30, 30, 30, 34, 38, 42, 46, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 100, 100, 100, 100, 100]
+
+  # --- 策略7: 高性能模式环温调速曲线 ---
+  - id: 7
+    policy_idx: 7
+    description: "高性能模式环温调速"
+    exp_cond_val: "HighPerformance"
+    actual_cond_val: "<=/CoolingConfig_1.SmartCoolingMode"
+    hysteresis: 1
+    temperature_range_low: [-127, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
+    temperature_range_high: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 127]
+    speed_range_low: [40, 40, 40, 40, 40, 40, 42, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+    speed_range_high: [40, 40, 40, 40, 40, 40, 42, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+
+# ============================================================
+# 调速区域列表 (CoolingArea)
+# 将温度点、调速策略、风扇关联起来，生成到PSR片段中
+# ============================================================
+cooling_areas:
+  # --- 区域6: 入风口调速区域 ---
+  - id: 6
+    # 全局唯一区域ID
+    area_id: 6
+    description: "入风口调速区域"
+    # 关联的温度点id(对应CoolingRequirement的id)
+    requirement_idx: 6
+    # 关联的调速策略id列表(对应CoolingPolicy的id)
+    policy_idx_group: [6, 7]
+    # 参与该区域调速的风扇ID列表(必须从小到大排序)
+    fan_idx_group: [1, 2, 3, 4]
+    # 调速区域优先级(数值越小优先级越高，默认1)
+    priority: 1
+
+  # --- 区域7: 出风口调速区域 ---
+  - id: 7
+    area_id: 7
+    description: "出风口调速区域"
+    requirement_idx: 7
+    # 不参与环温调速，仅目标调速
+    policy_idx_group: []
+    fan_idx_group: [1, 2, 3, 4]
+
+  # --- 区域8: 备用温度点占位区域 ---
+  - id: 8
+    area_id: 8
+    description: "备用温度点占位区域"
+    requirement_idx: 8
+    policy_idx_group: []
+    fan_idx_group: []
+
+# ============================================================
+# 异常风扇列表 (AbnormalFan)
+# 定义风扇异常时触发的异常调速行为，生成到PSR片段中
+# ============================================================
+abnormal_fans:
+  # --- 异常风扇1: 风扇1转速异常 ---
+  - id: 1
+    description: "风扇1转速异常处理"
+    # 关联的异常风扇索引
+    fan_idx: 1
+    # 异常状态: "AbnormalRotation" 转速异常 / "NotInPosition" 不在位
+    status: "AbnormalRotation"
+    # 触发异常后，参与异常调速的风扇ID列表
+    fan_group: [1, 2]
+    # 异常调速目标转速百分比(默认80)
+    speed_percentage: 80
+    priority: 1
+
+# ============================================================
+# 风扇类型列表 (FanType)
+# 风扇型号识别对象，用于BMC运行时自动识别风扇型号，生成到PSR片段中
+# ============================================================
+fan_types:
+  # --- FanType 1: 单转子风扇型号 ---
+  - name: "02314BLG 8038+"
+    description: "单转子8038风扇"
+    # 型号代号(用于CSR对象命名 FanType_{代号})
+    model_code: "8038P"
+    # BOM编码(物料管理)
+    bom: "BOM32030275"
+    # 部件编码
+    part_number: "02314BLG"
+    # 风扇型号索引(系统中唯一)
+    index: 1
+    # 系统ID
+    system_id: 1
+    # 前转子最大转速(RPM)
+    front_max_speed: 15000
+    # 后转子最大转速(RPM)
+    rear_max_speed: 15000
+    # 是否为双转子风扇
+    is_twins: false
+    # 型号识别转速范围(设置特定转速后检测风扇响应是否在此范围内来判断型号)
+    identify_range_low: 3230
+    identify_range_high: 4750
+    # 风扇直径(mm)
+    fan_diameter_mm: 80
+
+  # --- FanType 2: 双转子风扇型号 ---
+  - name: "02314BLG 8080+ Twins"
+    description: "双转子8080风扇"
+    # 型号代号(用于CSR对象命名 FanType_{代号})
+    model_code: "8080P"
+    bom: "BOM32030276"
+    part_number: "02314BLG"
+    index: 2
+    system_id: 1
+    front_max_speed: 12000
+    rear_max_speed: 12000
+    is_twins: true
+    identify_range_low: 5000
+    identify_range_high: 6500
+    # 风扇直径(mm)
+    fan_diameter_mm: 80
+
+# ============================================================
+# 调速风扇列表 (CoolingFan)
+# 风扇调速抽象对象，引用物理风扇硬件信息，用于调速控制，生成到PSR片段中
+# 每个物理风扇(Fan)对应一个CoolingFan，CLU风扇板中配置
+# ============================================================
+cooling_fans:
+  # --- CoolingFan 1~8: 8槽位双转子风扇系统 ---
+  - fan_id: 1
+    slot: 1
+    description: "调速风扇1"
+    # 前转子在位状态(CSR同步语法，引用物理Fan对象)
+    front_presence: "<=/Fan_1.FrontPresence"
+    # 后转子在位状态(CSR同步语法)
+    rear_presence: "<=/Fan_1.RearPresence"
+    # 前转子状态: 1=异常 0=正常(CSR同步语法)
+    front_status: "<=/Fan_1.FrontStatus"
+    # 后转子状态: 1=异常 0=正常(CSR同步语法)
+    rear_status: "<=/Fan_1.RearStatus"
+    # 风扇硬件占空比(CSR引用语法，指向 Accessor 对象)
+    hardware_pwm: "#/Accessor_Fan1_PWM.Value"
+    # 最大支持转速(PWM百分比对应值)
+    max_supported_pwm: 255
+
+  - fan_id: 2
+    slot: 2
+    description: "调速风扇2"
+    front_presence: "<=/Fan_2.FrontPresence"
+    rear_presence: "<=/Fan_2.RearPresence"
+    front_status: "<=/Fan_2.FrontStatus"
+    rear_status: "<=/Fan_2.RearStatus"
+    hardware_pwm: "#/Accessor_Fan2_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 3
+    slot: 3
+    description: "调速风扇3"
+    front_presence: "<=/Fan_3.FrontPresence"
+    rear_presence: "<=/Fan_3.RearPresence"
+    front_status: "<=/Fan_3.FrontStatus"
+    rear_status: "<=/Fan_3.RearStatus"
+    hardware_pwm: "#/Accessor_Fan3_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 4
+    slot: 4
+    description: "调速风扇4"
+    front_presence: "<=/Fan_4.FrontPresence"
+    rear_presence: "<=/Fan_4.RearPresence"
+    front_status: "<=/Fan_4.FrontStatus"
+    rear_status: "<=/Fan_4.RearStatus"
+    hardware_pwm: "#/Accessor_Fan4_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 5
+    slot: 5
+    description: "调速风扇5"
+    front_presence: "<=/Fan_5.FrontPresence"
+    rear_presence: "<=/Fan_5.RearPresence"
+    front_status: "<=/Fan_5.FrontStatus"
+    rear_status: "<=/Fan_5.RearStatus"
+    hardware_pwm: "#/Accessor_Fan5_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 6
+    slot: 6
+    description: "调速风扇6"
+    front_presence: "<=/Fan_6.FrontPresence"
+    rear_presence: "<=/Fan_6.RearPresence"
+    front_status: "<=/Fan_6.FrontStatus"
+    rear_status: "<=/Fan_6.RearStatus"
+    hardware_pwm: "#/Accessor_Fan6_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 7
+    slot: 7
+    description: "调速风扇7"
+    front_presence: "<=/Fan_7.FrontPresence"
+    rear_presence: "<=/Fan_7.RearPresence"
+    front_status: "<=/Fan_7.FrontStatus"
+    rear_status: "<=/Fan_7.RearStatus"
+    hardware_pwm: "#/Accessor_Fan7_PWM.Value"
+    max_supported_pwm: 255
+
+  - fan_id: 8
+    slot: 8
+    description: "调速风扇8"
+    front_presence: "<=/Fan_8.FrontPresence"
+    rear_presence: "<=/Fan_8.RearPresence"
+    front_status: "<=/Fan_8.FrontStatus"
+    rear_status: "<=/Fan_8.RearStatus"
+    hardware_pwm: "#/Accessor_Fan8_PWM.Value"
+    max_supported_pwm: 255
+
+# ============================================================
+# 风扇组配置 (BasicCoolingConfig + FanGroup)
+# 风扇组间转速差和PSU风扇转速校准，生成到PSR片段中
+# ============================================================
+basic_cooling_config:
+  # 风扇组间转速差阈值百分比，null表示不进行转速差计算
+  fan_group_speed_diff_threshold_percent: 20
+  # PSU风扇转速值校准(在最大风扇组转速基础上加此值下发给PSU)，null表示不进行PSU转速下发
+  psu_fan_speed_calibration: 5
+  # 风扇组列表
+  fan_groups:
+    - id: 1
+      # 风扇组1关联的风扇ID列表
+      fan_slots: [1, 2, 3, 4, 5]
+    - id: 2
+      # 风扇组2关联的风扇ID列表
+      fan_slots: [6, 7, 8, 9, 10]
+
+# ============================================================
+# 风冷散热配置 (AirCoolingConfig)
+# 风扇手动控制模式的转速范围和初始转速，生成到PSR片段中
+# ============================================================
+air_cooling_config:
+  # 手动设置转速百分比允许范围 [最小, 最大]，最小不低于10%以避免风扇停转
+  speed_percent_range: [10, 100]
+  # 开机风扇初始转速百分比，建议设高以保证启动安全
+  initial_speed_percent: 100
+  # 风扇自动调速允许的最大转速百分比，可配置CSR语法根据液冷漏液状态动态调整
+  max_allowed_speed_percent: 100
+  # 失联状态场景风扇转速百分比（管理软件与风扇组件通信异常时下发此转速）
+  min_allowed_speed_percent: 35

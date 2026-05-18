@@ -260,6 +260,127 @@ function ServerAssocThumb() {
   );
 }
 
+function SmcOffsetThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a0d18" />
+      {/* Result display */}
+      <rect x="8" y="8" width="144" height="26" rx="3" fill="#0f1a3a" stroke="#4f6ef7" strokeWidth="1" strokeOpacity="0.7" />
+      <text x="80" y="18" textAnchor="middle" fontSize="6" fill="#7c8cf8" fontFamily="monospace" opacity="0.7">⚡ 实时计算结果</text>
+      <text x="80" y="28" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#7c8cf8" fontFamily="monospace">0x30 020 101</text>
+      {/* Arrow */}
+      <text x="80" y="44" textAnchor="middle" fontSize="10" fill="#4a5080" fontFamily="monospace">⇅</text>
+      {/* Fields grid */}
+      {[
+        { x: 8,   y: 48, w: 60, label: 'Function', val: '0x 0C', bits: '6-bit' },
+        { x: 76,  y: 48, w: 76, label: 'Command',  val: '0x 0080', bits: '16-bit' },
+        { x: 8,   y: 72, w: 60, label: 'MS',       val: '0x 0', bits: '1-bit' },
+        { x: 76,  y: 72, w: 76, label: 'Parameter',val: '0x 01', bits: '8-bit' },
+      ].map(({ x, y, w, label, val, bits }, i) => (
+        <g key={i}>
+          <text x={x + 2} y={y + 8} fontSize="5" fill="#98a0b8" fontFamily="sans-serif">{label} <tspan fill="#4a5080">{bits}</tspan></text>
+          <rect x={x} y={y + 10} width={w} height="10" rx="2" fill="#141b30" stroke="#2a3050" strokeWidth="0.6" />
+          <text x={x + 6} y={y + 18} fontSize="6" fill="#c4cadc" fontFamily="monospace">{val}</text>
+        </g>
+      ))}
+      {/* RW field */}
+      <rect x="8" y="84" width="60" height="10" rx="2" fill="#141b30" stroke="#2a3050" strokeWidth="0.6" />
+      <text x="14" y="92" fontSize="5" fill="#98a0b8" fontFamily="sans-serif">RW <tspan fill="#4a5080">1-bit</tspan></text>
+      <text x="36" y="92" fontSize="6" fill="#c4cadc" fontFamily="monospace">0x 1</text>
+    </svg>
+  );
+}
+
+function ExprCalcThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a0d18" />
+      {/* Expression input */}
+      <rect x="8" y="8" width="144" height="14" rx="2" fill="#131826" stroke="#2a3050" strokeWidth="0.7" />
+      <text x="14" y="18" fontSize="6.5" fill="#7c8cf8" fontFamily="monospace">$1 | add $2 | toHex 8</text>
+      {/* Mode toggle */}
+      <rect x="8" y="26" width="70" height="9" rx="2" fill="#4f6ef7" opacity="0.9" />
+      <text x="43" y="33" textAnchor="middle" fontSize="5.5" fill="#fff" fontFamily="sans-serif">🐛 调试模式</text>
+      <rect x="82" y="26" width="70" height="9" rx="2" fill="#131826" stroke="#2a3050" strokeWidth="0.5" />
+      <text x="117" y="33" textAnchor="middle" fontSize="5.5" fill="#6b7498" fontFamily="sans-serif">📋 用例模式</text>
+      {/* Inputs */}
+      <rect x="8" y="40" width="144" height="22" rx="2" fill="#0e1220" stroke="#2a3050" strokeWidth="0.6" />
+      <text x="12" y="49" fontSize="5.5" fill="#7c8cf8" fontFamily="sans-serif">📥 输入参数</text>
+      <rect x="12" y="52" width="14" height="7" rx="1" fill="#1e2a4a" />
+      <text x="19" y="58" textAnchor="middle" fontSize="5" fill="#7c8cf8" fontFamily="monospace">$1</text>
+      <rect x="30" y="52" width="56" height="7" rx="1" fill="#131826" stroke="#2a3050" strokeWidth="0.5" />
+      <text x="36" y="58" fontSize="5" fill="#c4cadc" fontFamily="monospace">255</text>
+      <rect x="93" y="52" width="14" height="7" rx="1" fill="#1e2a4a" />
+      <text x="100" y="58" textAnchor="middle" fontSize="5" fill="#7c8cf8" fontFamily="monospace">$2</text>
+      <rect x="111" y="52" width="37" height="7" rx="1" fill="#131826" stroke="#2a3050" strokeWidth="0.5" />
+      <text x="117" y="58" fontSize="5" fill="#c4cadc" fontFamily="monospace">16</text>
+      {/* Pipeline stages */}
+      <rect x="8" y="67" width="144" height="8" rx="1.5" fill="#131826" />
+      <rect x="8" y="67" width="3" height="8" rx="1" fill="#4f6ef7" />
+      <text x="15" y="73" fontSize="5.5" fill="#98a0b8" fontFamily="monospace">add $2</text>
+      <text x="90" y="73" fontSize="5.5" fill="#e6e8ef" fontFamily="monospace">→ "271"</text>
+      <rect x="8" y="78" width="144" height="8" rx="1.5" fill="#131826" />
+      <rect x="8" y="78" width="3" height="8" rx="1" fill="#4f6ef7" />
+      <text x="15" y="84" fontSize="5.5" fill="#98a0b8" fontFamily="monospace">toHex 8</text>
+      <text x="90" y="84" fontSize="5.5" fill="#7c8cf8" fontFamily="monospace">→ "0x0000010F"</text>
+      {/* Final result */}
+      <rect x="8" y="89" width="144" height="9" rx="2" fill="#1a2a4a" stroke="#4f6ef7" strokeWidth="0.7" />
+      <text x="80" y="96" textAnchor="middle" fontSize="6" fontWeight="bold" fill="#7c8cf8" fontFamily="monospace">"0x0000010F"</text>
+    </svg>
+  );
+}
+
+function CoolingConfigThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a100e" />
+      {/* Header */}
+      <rect x="0" y="0" width="160" height="14" fill="#0d1a16" />
+      <text x="8" y="10" fontSize="6.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">能效调速配置编辑器</text>
+      <rect x="94" y="2" width="22" height="9" rx="1.5" fill="#1f3a2a" stroke="#34d399" strokeWidth="0.5" />
+      <text x="105" y="8.5" textAnchor="middle" fontSize="5" fill="#34d399" fontFamily="sans-serif">加载YAML</text>
+      <rect x="120" y="2" width="18" height="9" rx="1.5" fill="#1f3a2a" stroke="#34d399" strokeWidth="0.5" />
+      <text x="129" y="8.5" textAnchor="middle" fontSize="5" fill="#34d399" fontFamily="sans-serif">保存</text>
+      <rect x="141" y="2" width="16" height="9" rx="1.5" fill="#059669" />
+      <text x="149" y="8.5" textAnchor="middle" fontSize="5" fill="#fff" fontFamily="sans-serif">生成</text>
+      {/* Left YAML panel */}
+      <rect x="0" y="14" width="68" height="86" fill="#060e0b" />
+      <text x="4" y="22" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_config:</text>
+      <text x="4" y="29" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  smart_cooling_state:</text>
+      <text x="4" y="36" fontSize="5" fill="#34d399" fontFamily="monospace">    Enabled</text>
+      <text x="4" y="43" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  fan_board_num: 1</text>
+      <text x="4" y="50" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  init_level: 100</text>
+      <text x="4" y="57" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_requirements:</text>
+      <text x="4" y="64" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  - id: 6</text>
+      <text x="4" y="71" fontSize="5" fill="#4a8a6a" fontFamily="monospace">    name: 入风口</text>
+      {/* Divider */}
+      <line x1="68" y1="14" x2="68" y2="100" stroke="#1a2a22" strokeWidth="0.8" />
+      {/* Right form panel */}
+      <text x="72" y="22" fontSize="5.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">全局配置</text>
+      {[
+        { y: 26, label: '槽位号', val: '1' },
+        { y: 35, label: '调速模式', val: 'EnergySaving' },
+        { y: 44, label: '转速范围', val: '10, 100' },
+        { y: 53, label: '风扇板数量', val: '1' },
+        { y: 62, label: 'PID控制模式', val: '1-慢升快降' },
+      ].map(({ y, label, val }, i) => (
+        <g key={i}>
+          <text x="72" y={y + 7} fontSize="4.5" fill="#6b8a78" fontFamily="sans-serif">{label}</text>
+          <rect x="72" y={y + 9} width="82" height="7" rx="1" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+          <text x="76" y={y + 15} fontSize="4.5" fill="#a7d9c2" fontFamily="monospace">{val}</text>
+        </g>
+      ))}
+      {/* Fieldset labels */}
+      <rect x="70" y="74" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+      <text x="74" y="80" fontSize="4.5" fill="#34d399" fontFamily="sans-serif">温度点列表 (CoolingRequirement)</text>
+      <rect x="70" y="84" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+      <text x="74" y="90" fontSize="4.5" fill="#34d399" fontFamily="sans-serif">调速策略列表 (CoolingPolicy)</text>
+      <rect x="70" y="94" width="88" height="5" rx="1.5" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+      <text x="74" y="98" fontSize="4" fill="#34d399" fontFamily="sans-serif">调速区域列表 (CoolingArea)</text>
+    </svg>
+  );
+}
+
 function VueTopoThumb() {
   // Mini mind-map: BMC (left) → EXU (centre tall) → 7 board groups (right)
   // Colours match the Vue app's palette: pink I2C, teal HiSport, indigo BMC→EXU
@@ -402,6 +523,30 @@ const VIEW_ENTRIES: ViewEntry[] = [
     accent: '#e879f9',
     bg: '#09090e',
     thumb: <VueTopoThumb />,
+  },
+  {
+    id: 'smcOffset',
+    name: 'SMC 偏移量计算器',
+    desc: '功能码/命令码/参数字段编解码，十进制与十六进制互转',
+    accent: '#7c8cf8',
+    bg: '#0a0d18',
+    thumb: <SmcOffsetThumb />,
+  },
+  {
+    id: 'exprCalc',
+    name: '批量表达式计算器',
+    desc: '管道表达式实时调试 + 批量用例对比验证',
+    accent: '#4f6ef7',
+    bg: '#0a0d18',
+    thumb: <ExprCalcThumb />,
+  },
+  {
+    id: 'coolingConfig',
+    name: '能效调速配置模板',
+    desc: 'YAML 可视化编辑，生成 CSR Objects 片段',
+    accent: '#34d399',
+    bg: '#0a100e',
+    thumb: <CoolingConfigThumb />,
   },
 ];
 

@@ -49,6 +49,9 @@ export default function App() {
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
   const [showVueTopo, setShowVueTopo] = useState(false);
+  const [showSmcOffset, setShowSmcOffset] = useState(false);
+  const [showExprCalc, setShowExprCalc] = useState(false);
+  const [showCoolingConfig, setShowCoolingConfig] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -196,6 +199,9 @@ export default function App() {
       if (viewId === 'serverView') { setShowServerView(true); return; }
       if (viewId === 'threeD') { setShowThreeD(true); return; }
       if (viewId === 'vueTopo') { setShowVueTopo(true); return; }
+      if (viewId === 'smcOffset') { setShowSmcOffset(true); return; }
+      if (viewId === 'exprCalc') { setShowExprCalc(true); return; }
+      if (viewId === 'coolingConfig') { setShowCoolingConfig(true); return; }
       // Project-dependent views: load first project with rootSrPath then set tab
       const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo';
       setActiveTab(tabId);
@@ -282,6 +288,36 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none' }} title="CSR拓扑Vue视图" />
+        </div>
+      </div>
+    );
+  }
+
+  if (showSmcOffset || showExprCalc || showCoolingConfig) {
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+    const vueSrc = base.endsWith('/') ? base + 'vue-topo/index.html' : base + '/vue-topo/index.html';
+    const tab = showSmcOffset ? 'smc' : showExprCalc ? 'expr' : 'cooling';
+    const labels: Record<string, string> = {
+      smc:     'SMC 偏移量计算器',
+      expr:    '批量表达式计算器',
+      cooling: '能效调速配置模板',
+    };
+    const bgColors: Record<string, string> = {
+      smc:     '#0a0d18',
+      expr:    '#0a0d18',
+      cooling: '#0a100e',
+    };
+    const onClose = () => { setShowSmcOffset(false); setShowExprCalc(false); setShowCoolingConfig(false); };
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2240', background: bgColors[tab], display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #2a3050', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · {labels[tab]}</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <iframe src={`${vueSrc}#${tab}`} style={{ width: '100%', height: '100%', border: 'none' }} title={labels[tab]} />
         </div>
       </div>
     );
