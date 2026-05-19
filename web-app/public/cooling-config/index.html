@@ -90,38 +90,43 @@
             </label>
             <label>HDD最大温度(℃) <input type="number" id="f-sys-hdds-max-temp" data-path="cooling_config.sys_hdds_max_temperature" value="32768" step="0.1"></label>
             <label>SSD最大温度(℃) <input type="number" id="f-sys-ssds-max-temp" data-path="cooling_config.sys_ssds_max_temperature" value="32768" step="0.1"></label>
-            <label>支持温度海洋
-              <select id="f-sensor-location-supported" data-path="cooling_config.sensor_location_supported">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
-            </label>
-            <label>最小转速百分比(%) <input type="number" id="f-minimal-level" data-path="cooling_config.minimal_level" min="0" max="100" value="0"></label>
-            <label>最大转速百分比(%) <input type="number" id="f-max-limi-level" data-path="cooling_config.max_limi_level" min="0" max="100" value="100"></label>
-            <label>PID控制模式
-              <select id="f-pid-control-mode" data-path="cooling_config.pid_control_mode">
-                <option value="1">1 - 慢升快降</option>
-                <option value="2">2 - 快升慢降</option>
-                <option value="3">3 - 慢升慢降</option>
-                <option value="4">4 - 快升快降</option>
-              </select>
-            </label>
-            <label>M.2最大温度(℃) <input type="number" id="f-sys-m2s-max-temp" data-path="cooling_config.sys_m2s_max_temperature" value="32768" step="0.1"></label>
-            <label>所有SSD最大温度(℃) <input type="number" id="f-sys-all-ssds-max-temp" data-path="cooling_config.sys_all_ssds_max_temperature" value="32768" step="0.1"></label>
-            <label>失联状态风扇转速(%) <input type="number" id="f-min-allowed-fan-speed" data-path="cooling_config.min_allowed_fan_speed_percent" min="0" max="100"></label>
-            <label>失联转速使能
-              <select id="f-min-allowed-fan-speed-enabled" data-path="cooling_config.min_allowed_fan_speed_enabled">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
-            </label>
-            <label>支持风液混合
-              <select id="f-mixed-mode-supported" data-path="cooling_config.mixed_mode_supported">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
-            </label>
           </div>
+          <details class="advanced-config">
+            <summary class="advanced-summary">高级参数 <span class="advanced-count">9</span></summary>
+            <div class="form-grid" style="margin-top:8px">
+              <label>支持温度海洋
+                <select id="f-sensor-location-supported" data-path="cooling_config.sensor_location_supported">
+                  <option value="false">false</option>
+                  <option value="true">true</option>
+                </select>
+              </label>
+              <label>最小转速百分比(%) <input type="number" id="f-minimal-level" data-path="cooling_config.minimal_level" min="0" max="100" value="0"></label>
+              <label>最大转速百分比(%) <input type="number" id="f-max-limi-level" data-path="cooling_config.max_limi_level" min="0" max="100" value="100"></label>
+              <label>PID控制模式
+                <select id="f-pid-control-mode" data-path="cooling_config.pid_control_mode">
+                  <option value="1">1 - 慢升快降</option>
+                  <option value="2">2 - 快升慢降</option>
+                  <option value="3">3 - 慢升慢降</option>
+                  <option value="4">4 - 快升快降</option>
+                </select>
+              </label>
+              <label>M.2最大温度(℃) <input type="number" id="f-sys-m2s-max-temp" data-path="cooling_config.sys_m2s_max_temperature" value="32768" step="0.1"></label>
+              <label>所有SSD最大温度(℃) <input type="number" id="f-sys-all-ssds-max-temp" data-path="cooling_config.sys_all_ssds_max_temperature" value="32768" step="0.1"></label>
+              <label>失联状态风扇转速(%) <input type="number" id="f-min-allowed-fan-speed" data-path="cooling_config.min_allowed_fan_speed_percent" min="0" max="100"></label>
+              <label>失联转速使能
+                <select id="f-min-allowed-fan-speed-enabled" data-path="cooling_config.min_allowed_fan_speed_enabled">
+                  <option value="false">false</option>
+                  <option value="true">true</option>
+                </select>
+              </label>
+              <label>支持风液混合
+                <select id="f-mixed-mode-supported" data-path="cooling_config.mixed_mode_supported">
+                  <option value="false">false</option>
+                  <option value="true">true</option>
+                </select>
+              </label>
+            </div>
+          </details>
         </fieldset>
 
         <!-- 温度点列表 -->

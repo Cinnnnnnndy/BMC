@@ -338,8 +338,7 @@ onMounted(() => {
 
       <!-- ── Info box ───────────────────────────────────────────────────── -->
       <div class="info-box">
-        <strong>SMC 命令字格式：</strong><br>
-        功能码(6位) | 命令码(16位) | 读取方式(1位) | 读写方向(1位) | 参数(8位)
+        <strong>SMC 命令字</strong>是一个 32 位整数，拆分为 5 个字段，颜色区块对应位图中的各段。
       </div>
 
       <!-- ── A. 32-bit bitmap visualizer ───────────────────────────────── -->
@@ -393,7 +392,11 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="arrow-indicator">⇅</div>
+      <div class="direction-bridge">
+        <div class="bridge-hint bridge-up">← 反查：粘贴偏移量，自动填入各字段</div>
+        <div class="bridge-symbol">⇅</div>
+        <div class="bridge-hint bridge-down">编码：填写各字段，自动生成偏移量 →</div>
+      </div>
 
       <!-- ── Real-time result ───────────────────────────────────────────── -->
       <div class="section result-section" aria-live="polite" aria-atomic="true">
@@ -714,14 +717,14 @@ export default {
 
 /* ── Info box ───────────────────────────────────────────────────────────── */
 .info-box {
-  padding: 12px 16px;
+  padding: 9px 14px;
   background: var(--quote-bg);
-  border-left: 4px solid var(--accent);
+  border-left: 3px solid rgba(124, 140, 248, 0.5);
   border-radius: 4px;
-  margin-bottom: 20px;
-  font-size: 13px;
+  margin-bottom: 16px;
+  font-size: 12px;
   line-height: 1.6;
-  color: var(--fg);
+  color: var(--desc);
 }
 
 /* ── A. Bitmap visualizer ───────────────────────────────────────────────── */
@@ -979,16 +982,32 @@ export default {
 .error-message { color: var(--error); font-size: 11px; min-height: 15px; }
 .warning-message { color: var(--warn); font-size: 11px; margin-top: 4px; }
 
-/* Arrow */
-.arrow-indicator {
-  text-align: center;
+/* Bidirectional bridge */
+.direction-bridge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 0;
+  margin: -2px 0;
+}
+.bridge-hint {
+  font-size: 11px;
   color: var(--desc);
+  letter-spacing: 0.25px;
+  opacity: 0.85;
+  font-style: italic;
+}
+.bridge-symbol {
   font-size: 20px;
-  margin: -6px 0;
+  color: var(--desc);
+  line-height: 1.1;
 }
 
 /* ── D. Button row with copy dropdown ───────────────────────────────────── */
 .button-row { display: flex; gap: 12px; margin-top: 22px; align-items: center; }
+.copy-btn-wrap { flex: 1; }
+.copy-main { width: 100%; justify-content: center; }
 
 .copy-btn-wrap {
   position: relative;

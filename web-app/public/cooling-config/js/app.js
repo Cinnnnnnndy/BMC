@@ -429,7 +429,66 @@ cooling_fans:
         scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // 大纲导航滚动高亮（scroll spy）
+    initOutlineScrollSpy();
   });
+
+  function initOutlineScrollSpy() {
+    var formPanel = document.querySelector('.form-panel');
+    if (!formPanel) return;
+
+    // 大纲项 → 对应 fieldset 映射
+    var sections = [
+      { linkId: null,                    selector: '#config-section' },
+      { linkId: 'outline-requirements',  selector: '#requirements-list' },
+      { linkId: 'outline-policies',      selector: '#policies-list' },
+      { linkId: 'outline-areas',         selector: '#areas-list' },
+      { linkId: 'outline-abnormal-fans', selector: '#abnormal-fans-list' },
+      { linkId: 'outline-fan-types',     selector: '#fan-types-list' },
+      { linkId: 'outline-cooling-fans',  selector: '#cooling-fans-list' },
+      { linkId: 'outline-fan-groups',    selector: '#fan-groups-list' },
+    ];
+
+    function getFieldset(selector) {
+      var el = document.querySelector(selector);
+      if (!el) return null;
+      return el.closest('fieldset') || el;
+    }
+
+    function updateActiveLink() {
+      var panelTop = formPanel.getBoundingClientRect().top;
+      var activeIdx = 0;
+      sections.forEach(function(sec, i) {
+        var fs = getFieldset(sec.selector);
+        if (!fs) return;
+        var rect = fs.getBoundingClientRect();
+        // Section is considered active when its top is at or above the middle of the panel
+        if (rect.top - panelTop <= formPanel.clientHeight / 2) {
+          activeIdx = i;
+        }
+      });
+
+      // Remove active from all links
+      document.querySelectorAll('.outline-link').forEach(function(l) {
+        l.classList.remove('active');
+      });
+
+      // Set active on matched link
+      var activeSection = sections[activeIdx];
+      if (activeSection.linkId) {
+        var activeLink = document.getElementById(activeSection.linkId);
+        if (activeLink) activeLink.classList.add('active');
+      } else {
+        // First item (全局配置) — match by href
+        var firstLink = document.querySelector('.outline-link[href="#config-section"]');
+        if (firstLink) firstLink.classList.add('active');
+      }
+    }
+
+    formPanel.addEventListener('scroll', updateActiveLink);
+    updateActiveLink();
+  }
 
   function setInputValue(id, val) {
     const el = document.getElementById(id);

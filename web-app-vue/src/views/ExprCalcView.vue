@@ -519,6 +519,12 @@ function insertFunc(funcName: string) {
   exprText.value = exprText.value + insert;
   funcRefCollapsed.value = true;
 }
+
+// Quick-start examples
+function quickFill(expr: string) {
+  exprText.value = expr;
+  runEval();
+}
 </script>
 
 <template>
@@ -558,6 +564,30 @@ function insertFunc(funcName: string) {
         spellcheck="false"
         @input="runEval"
       />
+
+      <!-- Quick-start: visible only when expression is empty -->
+      <div v-if="!exprText.trim()" class="quick-start">
+        <div class="qs-label">快速开始</div>
+        <div class="qs-cards">
+          <button class="qs-card" type="button" @click="quickFill('$1 | toHex 8')">
+            <code class="qs-expr">$1 | toHex 8</code>
+            <span class="qs-desc">数字 → 8位十六进制</span>
+          </button>
+          <button class="qs-card" type="button" @click="quickFill('$1 | shr 8 | and 0xFF')">
+            <code class="qs-expr">$1 | shr 8 | and 0xFF</code>
+            <span class="qs-desc">提取第2字节</span>
+          </button>
+          <button class="qs-card" type="button" @click="quickFill('$1 | add $2 | toHex 8')">
+            <code class="qs-expr">$1 | add $2 | toHex 8</code>
+            <span class="qs-desc">两数相加转十六进制</span>
+          </button>
+          <button class="qs-card" type="button" @click="quickFill('$1 | string.format \'%08X\'')">
+            <code class="qs-expr">$1 | string.format '%08X'</code>
+            <span class="qs-desc">格式化大写十六进制</span>
+          </button>
+        </div>
+      </div>
+
       <div class="expr-hint">
         支持: <code>$1 $2...</code> 输入 &nbsp;|&nbsp;
         <code>add sub mul div mod and or xor shl shr not toHex toBin toInt</code> &nbsp;|&nbsp;
@@ -630,7 +660,10 @@ function insertFunc(funcName: string) {
       <!-- Final result -->
       <div class="result-box" v-if="!evalError && finalResult !== null" style="margin-top:16px" aria-live="polite" aria-atomic="true">
         <div class="section-title">✨ 最终结果</div>
-        <div class="final-value">{{ formatVal(finalResult) }}</div>
+        <div class="final-value">
+          {{ String(finalResult) }}
+          <span v-if="typeof finalResult === 'string'" class="type-badge">字符串</span>
+        </div>
         <button class="copy-btn" @click="navigator.clipboard.writeText(String(finalResult))">📋 复制</button>
       </div>
       <div class="error-box" v-if="evalError" style="margin-top:16px" aria-live="polite" aria-atomic="true">
@@ -1287,5 +1320,67 @@ function insertFunc(funcName: string) {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Quick-start examples */
+.quick-start {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.qs-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--desc);
+  margin-bottom: 8px;
+}
+.qs-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.qs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.qs-card:hover {
+  border-color: var(--accent2);
+  background: rgba(79, 110, 247, 0.08);
+}
+.qs-expr {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.qs-desc {
+  font-size: 11px;
+  color: var(--desc);
+}
+
+/* Type badge on final result */
+.type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--desc);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: inherit;
 }
 </style>
