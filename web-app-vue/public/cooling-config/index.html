@@ -3,225 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>能效调速配置编辑器</title>
+  <title>能效调速配置 · openUBMC Studio</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 </head>
 <body>
-  <!-- 顶部工具栏 -->
-  <header class="toolbar">
-    <h1>能效调速配置编辑器</h1>
-    <div class="toolbar-actions">
-      <button id="btn-load" title="加载YAML文件">加载YAML</button>
-      <div class="template-dropdown" id="template-dropdown">
-        <button id="btn-template" title="快速启动模板">模板 ▾</button>
-        <div class="template-menu" id="template-menu" style="display:none">
-          <button type="button" class="template-item" data-template="standard1u">标准1U服务器</button>
-          <button type="button" class="template-item" data-template="dual2u">双路高密服务器</button>
+<div class="shell">
+
+  <nav class="tabbar" aria-label="Studio tabs">
+    <div class="brand"><span class="dot"></span><span>openUBMC Studio</span></div>
+    <div class="tabs">
+      <span class="tab active"><a href="#">Power &amp; Fan</a> <span class="badge">YAML</span></span>
+    </div>
+  </nav>
+
+  <main class="page">
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar">
+      <div class="toolbar-title">
+        <h1>能效调速配置</h1>
+        <span class="meta" id="tb-filename">platform-thermal.yaml</span>
+      </div>
+      <div class="toolbar-status">
+        <span class="save-pulse"></span>
+        <span style="font-size:11.5px;color:var(--text-dim);font-family:var(--font-mono);" id="tb-status">已自动保存</span>
+      </div>
+      <div class="toolbar-actions">
+        <div class="seg" id="view-mode" style="font-size:12px;">
+          <button class="active" data-view="split">分屏</button>
+          <button data-view="form">仅表单</button>
+          <button data-view="yaml">仅 YAML</button>
+        </div>
+        <div class="err-popover-wrap">
+          <button class="btn btn-secondary validate-btn" id="btn-validate">
+            校验
+            <span class="err-count" id="err-count" style="display:none;">0</span>
+          </button>
+          <div class="err-popover" id="err-popover"></div>
+        </div>
+        <button class="btn btn-green" id="btn-generate">生成 CSR ↓</button>
+      </div>
+    </div>
+
+    <div class="editor-layout" id="editor-layout">
+
+      <!-- ══ YAML pane ══ -->
+      <div class="yaml-pane">
+        <div class="yaml-head">
+          <span class="lbl">YAML 源码 <span class="filename">platform-thermal.yaml</span></span>
+          <div class="actions">
+            <button id="yaml-fold-comments" class="active" title="折叠/展开注释">注释折叠</button>
+            <button id="yaml-copy" title="复制全部 YAML">复制</button>
+          </div>
+        </div>
+        <div class="yaml-body">
+          <div class="yaml-gutter" id="yaml-gutter"></div>
+          <pre class="yaml-code" id="yaml-code"></pre>
         </div>
       </div>
-      <button id="btn-save" title="保存YAML文件">保存YAML</button>
-      <button id="btn-generate" class="btn-primary" title="生成CSR Objects片段">生成CSR</button>
-      <input type="file" id="file-input" accept=".yaml,.yml" style="display:none">
-    </div>
-  </header>
 
-  <!-- 校验错误提示区域 -->
-  <div id="validation-errors" class="validation-errors" style="display:none" aria-live="assertive" aria-atomic="true">
-    <div class="error-header">校验错误 <button id="btn-close-errors">关闭</button></div>
-    <ul id="error-list"></ul>
-  </div>
+      <!-- ══ Form pane ══ -->
+      <div class="form-pane">
+        <div class="form-pane-inner">
 
-  <!-- 主内容区：左侧大纲 + 双栏布局 -->
-  <main class="main-content">
-    <!-- 左侧大纲导航 -->
-    <nav class="outline-nav" id="outline-nav">
-      <div class="outline-title">大纲</div>
-      <ul class="outline-list">
-        <li><a href="#config-section" class="outline-link">全局配置 <span class="outline-count">1</span></a></li>
-        <li><a href="#requirements-list" class="outline-link" id="outline-requirements">温度点 <span class="outline-count" id="count-requirements">0</span></a></li>
-        <li><a href="#policies-list" class="outline-link" id="outline-policies">调速策略 <span class="outline-count" id="count-policies">0</span></a></li>
-        <li><a href="#areas-list" class="outline-link" id="outline-areas">调速区域 <span class="outline-count" id="count-areas">0</span></a></li>
-        <li><a href="#abnormal-fans-list" class="outline-link" id="outline-abnormal-fans">异常风扇 <span class="outline-count" id="count-abnormal-fans">0</span></a></li>
-        <li><a href="#fan-types-list" class="outline-link" id="outline-fan-types">风扇类型 <span class="outline-count" id="count-fan-types">0</span></a></li>
-        <li><a href="#cooling-fans-list" class="outline-link" id="outline-cooling-fans">调速风扇 <span class="outline-count" id="count-cooling-fans">0</span></a></li>
-        <li><a href="#fan-groups-list" class="outline-link" id="outline-fan-groups">风扇组 <span class="outline-count" id="count-fan-groups">0</span></a></li>
-      </ul>
-    </nav>
-    <!-- 左侧：YAML编辑器 -->
-    <section class="yaml-panel">
-      <div class="panel-header">YAML 配置</div>
-      <textarea id="yaml-editor" spellcheck="false" placeholder="在此粘贴或编辑YAML配置..."></textarea>
-    </section>
+          <!-- Sticky quick-nav -->
+          <div class="quick-nav" id="quick-nav"></div>
 
-    <!-- 右侧：表单区域 -->
-    <section class="form-panel">
-      <div class="panel-header">配置表单</div>
-      <div id="form-container" class="form-container">
-
-        <!-- 全局配置 -->
-        <fieldset class="entity-card" id="config-section">
-          <legend>全局配置 (CoolingConfig)</legend>
-          <div class="form-grid">
-            <label>槽位号 <input type="number" id="f-slot-id" data-path="slot_id" min="1" value="1"></label>
-            <label>智能调速状态
-              <select id="f-smart-cooling-state" data-path="cooling_config.smart_cooling_state">
-                <option value="Enabled">Enabled (使能)</option>
-                <option value="Disabled">Disabled (不使能)</option>
-              </select>
-            </label>
-            <label>调速模式
-              <select id="f-smart-cooling-mode" data-path="cooling_config.smart_cooling_mode">
-                <option value="EnergySaving">EnergySaving (节能)</option>
-                <option value="LowNoise">LowNoise (低噪)</option>
-                <option value="HighPerformance">HighPerformance (高性能)</option>
-                <option value="Custom">Custom (自定义)</option>
-                <option value="LiquidCooling">LiquidCooling (液冷)</option>
-              </select>
-            </label>
-            <label>转速范围 [最小, 最大] <input type="text" id="f-level-percent-range" data-path="cooling_config.level_percent_range" placeholder="如: 10, 100"></label>
-            <label>初始转速百分比 <input type="number" id="f-init-level" data-path="cooling_config.init_level_in_startup" min="0" max="100" value="100"></label>
-            <label>风扇板数量 <input type="number" id="f-fan-board-num" data-path="cooling_config.fan_board_num" min="1" max="255" value="1"></label>
-            <label>硬盘温度可获取
-              <select id="f-disk-row-temp-avail" data-path="cooling_config.disk_row_temperature_available">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
-            </label>
-            <label>HDD最大温度(℃) <input type="number" id="f-sys-hdds-max-temp" data-path="cooling_config.sys_hdds_max_temperature" value="32768" step="0.1"></label>
-            <label>SSD最大温度(℃) <input type="number" id="f-sys-ssds-max-temp" data-path="cooling_config.sys_ssds_max_temperature" value="32768" step="0.1"></label>
+          <div class="step-flow" style="margin-top:2px;">
+            <span>① 全局</span><span class="arrow">→</span>
+            <span>② 温度点</span><span class="arrow">→</span>
+            <span>③ 风扇</span><span class="arrow">→</span>
+            <span>④ 调速策略</span><span class="arrow">→</span>
+            <span>⑤ 绑定区域</span>
+            <span style="flex:1"></span>
+            <span style="color:var(--text-dim);">先定义元素，再做绑定</span>
           </div>
-          <details class="advanced-config">
-            <summary class="advanced-summary">高级参数 <span class="advanced-count">9</span></summary>
-            <div class="form-grid" style="margin-top:8px">
-              <label>支持温度海洋
-                <select id="f-sensor-location-supported" data-path="cooling_config.sensor_location_supported">
-                  <option value="false">false</option>
-                  <option value="true">true</option>
-                </select>
-              </label>
-              <label>最小转速百分比(%) <input type="number" id="f-minimal-level" data-path="cooling_config.minimal_level" min="0" max="100" value="0"></label>
-              <label>最大转速百分比(%) <input type="number" id="f-max-limi-level" data-path="cooling_config.max_limi_level" min="0" max="100" value="100"></label>
-              <label>PID控制模式
-                <select id="f-pid-control-mode" data-path="cooling_config.pid_control_mode">
-                  <option value="1">1 - 慢升快降</option>
-                  <option value="2">2 - 快升慢降</option>
-                  <option value="3">3 - 慢升慢降</option>
-                  <option value="4">4 - 快升快降</option>
-                </select>
-              </label>
-              <label>M.2最大温度(℃) <input type="number" id="f-sys-m2s-max-temp" data-path="cooling_config.sys_m2s_max_temperature" value="32768" step="0.1"></label>
-              <label>所有SSD最大温度(℃) <input type="number" id="f-sys-all-ssds-max-temp" data-path="cooling_config.sys_all_ssds_max_temperature" value="32768" step="0.1"></label>
-              <label>失联状态风扇转速(%) <input type="number" id="f-min-allowed-fan-speed" data-path="cooling_config.min_allowed_fan_speed_percent" min="0" max="100"></label>
-              <label>失联转速使能
-                <select id="f-min-allowed-fan-speed-enabled" data-path="cooling_config.min_allowed_fan_speed_enabled">
-                  <option value="false">false</option>
-                  <option value="true">true</option>
-                </select>
-              </label>
-              <label>支持风液混合
-                <select id="f-mixed-mode-supported" data-path="cooling_config.mixed_mode_supported">
-                  <option value="false">false</option>
-                  <option value="true">true</option>
-                </select>
-              </label>
+
+          <!-- (1) Global -->
+          <section class="section" id="sec-global">
+            <div class="section-head">
+              <span class="order">①</span>
+              <span class="h">全局配置 <span class="subt">slot_id · cooling_config</span></span>
             </div>
-          </details>
-        </fieldset>
+            <div class="global-grid">
+              <div class="field-mini">
+                <span class="lab">slot_id</span>
+                <input id="f-slot-id" value="1" />
+              </div>
+              <div class="field-mini">
+                <span class="lab">smart cooling</span>
+                <select id="f-smart-state">
+                  <option value="Enabled" selected>Enabled</option>
+                  <option value="Disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="field-mini">
+                <span class="lab">default duty (%)</span>
+                <input id="f-default-duty" type="number" min="0" max="100" value="40" />
+              </div>
+              <div class="field-mini">
+                <span class="lab">fan zones</span>
+                <input id="f-fan-zones" type="number" min="1" max="8" value="2" />
+              </div>
+              <div class="field-mini">
+                <span class="lab">psu calibration</span>
+                <select id="f-psu-cal">
+                  <option>Enabled</option><option selected>Auto</option><option>Disabled</option>
+                </select>
+              </div>
+              <div class="field-mini">
+                <span class="lab">sample period (ms)</span>
+                <input id="f-sample-period" type="number" min="100" step="100" value="1000" />
+              </div>
+            </div>
+          </section>
 
-        <!-- 温度点列表 -->
-        <fieldset class="entity-card">
-          <legend>温度点列表 (CoolingRequirement) <button class="btn-add" data-entity="cooling_requirements">+ 添加</button></legend>
-          <div id="requirements-list" class="entity-list"></div>
-        </fieldset>
+          <!-- (2) Temperature points -->
+          <section class="section" id="sec-temp">
+            <div class="section-head">
+              <span class="order">②</span>
+              <span class="h">温度监控点 <span class="subt">cooling_requirements</span></span>
+              <span class="count" id="cnt-temp">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="temp">+ 新增温度点</button>
+            </div>
+            <div class="row-list" id="list-temp"></div>
+          </section>
 
-        <!-- 调速策略列表 -->
-        <fieldset class="entity-card">
-          <legend>调速策略列表 (CoolingPolicy) <button class="btn-add" data-entity="cooling_policies">+ 添加</button></legend>
-          <div id="policies-list" class="entity-list"></div>
-        </fieldset>
+          <!-- (3) Fans -->
+          <section class="section" id="sec-fan">
+            <div class="section-head">
+              <span class="order">③</span>
+              <span class="h">风扇配置 <span class="subt">cooling_fans · 执行器</span></span>
+              <span class="count" id="cnt-fan">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fan">+ 新增风扇</button>
+            </div>
+            <div class="row-list" id="list-fan"></div>
+          </section>
 
-        <!-- 调速区域列表 -->
-        <fieldset class="entity-card">
-          <legend>调速区域列表 (CoolingArea) <button class="btn-add" data-entity="cooling_areas">+ 添加</button></legend>
-          <div id="areas-list" class="entity-list"></div>
-        </fieldset>
+          <!-- (4) Policies -->
+          <section class="section" id="sec-policy">
+            <div class="section-head">
+              <span class="order">④</span>
+              <span class="h">调速策略 <span class="subt">cooling_policies · 温度 → 转速曲线</span></span>
+              <span class="count" id="cnt-policy">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="policy">+ 新增策略</button>
+            </div>
+            <div class="row-list" id="list-policy"></div>
+          </section>
 
-        <!-- 异常风扇列表 -->
-        <fieldset class="entity-card">
-          <legend>异常风扇列表 (AbnormalFan) <button class="btn-add" data-entity="abnormal_fans">+ 添加</button></legend>
-          <div id="abnormal-fans-list" class="entity-list"></div>
-        </fieldset>
+          <!-- (5) Areas -->
+          <section class="section" id="sec-area">
+            <div class="section-head">
+              <span class="order">⑤</span>
+              <span class="h">调速区域 <span class="subt">cooling_areas · 温度点 + 策略 + 风扇的绑定</span></span>
+              <span class="count" id="cnt-area">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="area">+ 新增区域</button>
+            </div>
 
-        <!-- 风扇类型列表 -->
-        <fieldset class="entity-card">
-          <legend>风扇类型列表 (FanType) <button class="btn-add" data-entity="fan_types">+ 添加</button></legend>
-          <div id="fan-types-list" class="entity-list"></div>
-        </fieldset>
+            <!-- Server diagram -->
+            <div class="server-diagram">
+              <div class="server-svg-wrap" id="server-svg-host"></div>
+              <div class="server-side">
+                <div class="lbl">机箱视图</div>
+                <div class="legend-row"><span class="sw" style="background:var(--accent);"></span>当前区域绑定的风扇</div>
+                <div class="legend-row"><span class="sw" style="background:rgba(52,211,153,0.25);"></span>已被其他区域绑定</div>
+                <div class="legend-row"><span class="sw" style="background:#2a4738;"></span>未绑定</div>
+                <div class="legend-row"><span class="sw" style="background:rgba(240,101,112,0.18);"></span>孤立未引用</div>
+                <div class="hint">悬停区域行 / 点击风扇 = 切换当前区域绑定</div>
+              </div>
+            </div>
 
-        <!-- 调速风扇列表 -->
-        <fieldset class="entity-card">
-          <legend>调速风扇列表 (CoolingFan) <button class="btn-add" data-entity="cooling_fans">+ 添加</button></legend>
-          <div id="cooling-fans-list" class="entity-list"></div>
-        </fieldset>
+            <div class="row-list" id="list-area"></div>
+          </section>
 
-        <!-- 风冷散热配置 -->
-        <fieldset class="entity-card">
-          <legend>风冷散热配置 (AirCoolingConfig)</legend>
-          <div class="form-grid">
-            <label>手动转速百分比范围 [最小, 最大] <input type="text" id="f-speed-percent-range" data-path="air_cooling_config.speed_percent_range" placeholder="如: 10, 100"></label>
-            <label>开机初始转速百分比 <input type="number" id="f-initial-speed-percent" data-path="air_cooling_config.initial_speed_percent" min="0" max="100" value="100"></label>
-            <label>自动调速最大转速(%) <input type="text" id="f-max-allowed-speed-percent" data-path="air_cooling_config.max_allowed_speed_percent" placeholder="如: 100 或 CSR语法"></label>
-            <label>失联状态风扇转速(%) <input type="number" id="f-min-allowed-speed-percent" data-path="air_cooling_config.min_allowed_speed_percent" min="0" max="100"></label>
-          </div>
-        </fieldset>
-
-        <!-- 风扇组配置 -->
-        <fieldset class="entity-card">
-          <legend>风扇组配置 (BasicCoolingConfig)</legend>
-          <div class="form-grid">
-            <label>风扇组转速差阈值(%) <input type="number" id="f-fan-group-diff" data-path="basic_cooling_config.fan_group_speed_diff_threshold_percent"></label>
-            <label>PSU风扇转速校准值 <input type="number" id="f-psu-calibration" data-path="basic_cooling_config.psu_fan_speed_calibration"></label>
-          </div>
-          <div id="fan-groups-list" class="entity-list"></div>
-          <button class="btn-add" data-entity="basic_cooling_config.fan_groups">+ 添加风扇组</button>
-        </fieldset>
-
-        <!-- 曲线编辑器区域 -->
-        <fieldset class="entity-card" id="curve-section" style="display:none">
-          <legend>调速曲线编辑器</legend>
-          <div class="curve-toolbar">
-            <span id="curve-policy-name"></span>
-            <button id="btn-add-node">添加节点</button>
-            <button id="btn-delete-node">删除选中节点</button>
-          </div>
-          <canvas id="curve-canvas" width="700" height="350" role="img" aria-label="调速曲线编辑器，交互数据见下方表格" aria-describedby="curve-data-table"></canvas>
-          <div id="curve-data-table" class="curve-table-container"></div>
-        </fieldset>
+        </div>
       </div>
-    </section>
+    </div>
+
+    <!-- CSR drawer -->
+    <div class="csr-drawer" id="csr-drawer">
+      <div class="csr-handle" id="csr-handle">
+        <div>
+          <span class="ttl">CSR 对象片段</span>
+          <span class="ttl-meta" id="csr-meta">PSR · — KB</span>
+        </div>
+        <div class="center">
+          <div class="seg" id="csr-tab">
+            <button class="active" data-tab="psr">PSR</button>
+            <button data-tab="sr">SR</button>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost" id="btn-csr-copy">复制</button>
+          <button class="btn btn-ghost" id="btn-csr-download">下载</button>
+          <span class="caret-up">▲</span>
+        </div>
+      </div>
+      <div class="csr-body" id="csr-body">
+        <pre class="csr-code" id="csr-code"></pre>
+      </div>
+    </div>
+
   </main>
+</div>
 
-  <!-- CSR输出区域 -->
-  <footer class="output-panel" id="output-panel" style="display:none">
-    <div class="output-tabs" role="tablist">
-      <button class="tab-btn active" data-tab="psr" role="tab" aria-selected="true" aria-controls="psr-output">PSR 片段</button>
-      <button class="tab-btn" data-tab="sr" role="tab" aria-selected="false" aria-controls="sr-output">SR 片段</button>
-      <button id="btn-copy-psr">复制PSR</button>
-      <button id="btn-copy-sr">复制SR</button>
-      <button id="btn-download-psr">下载PSR</button>
-      <button id="btn-download-sr">下载SR</button>
-      <button id="btn-close-output">关闭</button>
-    </div>
-    <div class="output-content">
-      <pre id="psr-output" class="csr-output"></pre>
-      <pre id="sr-output" class="csr-output" style="display:none"></pre>
-    </div>
-  </footer>
+<div class="toast" id="toast"></div>
 
-  <script src="js/validator.js"></script>
-  <script src="js/converter.js"></script>
-  <script src="js/curve-editor.js"></script>
-  <script src="js/app.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
