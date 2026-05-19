@@ -389,11 +389,11 @@ const histOpen = ref(false);
           <div class="phase-title">管道表达式</div>
           <div class="phase-sub">由输入变量 $N 和 | 分隔的操作符组成。在下方面板点击任意操作符追加到当前光标位置。</div>
         </div>
-        <span class="phase-status">{{ ph1Status }}</span>
+        <span v-if="ph1Status && ph1Status !== '空'" class="phase-status">{{ ph1Status }}</span>
         <!-- History -->
         <div class="hist-wrap" @click.stop>
-          <button class="btn-ghost btn-hist" @click="histOpen=!histOpen; loadHistory()">
-            <span class="hist-icon">🕐</span> 历史
+          <button class="btn btn-ghost btn-hist" @click="histOpen=!histOpen; loadHistory()">
+            历史
           </button>
           <div v-if="histOpen" class="hist-drop">
             <div class="hist-hdr">最近表达式</div>
@@ -468,7 +468,7 @@ const histOpen = ref(false);
           <div class="phase-title">输入参数</div>
           <div class="phase-sub">表达式中引用的 $N 会自动出现在这里。每个变量可填写值和备注（如 "CPU 温度"）。</div>
         </div>
-        <span class="phase-status" :style="{ color: missingIdx.length ? 'var(--warn)' : 'var(--ok)' }">{{ ph2Status }}</span>
+        <span v-if="ph2Status && ph2Status !== '—'" class="phase-status" :style="{ color: missingIdx.length ? 'var(--warn)' : 'var(--ok)' }">{{ ph2Status }}</span>
       </div>
 
       <div v-if="!exprText.trim()" class="no-vars-hint">① 中尚未引用任何 $N，下方将随表达式自动填充输入框</div>
@@ -495,7 +495,7 @@ const histOpen = ref(false);
           <div class="phase-title">管道处理</div>
           <div class="phase-sub">实时展开每个阶段的输入、操作和输出，标注数据类型。最后一行给出最终结果。</div>
         </div>
-        <span class="phase-status" :style="{ color: ph3Error ? 'var(--err)' : ph3Done ? 'var(--ok)' : '' }">{{ ph3Status }}</span>
+        <span v-if="ph3Status && ph3Status !== '空'" class="phase-status" :style="{ color: ph3Error ? 'var(--err)' : ph3Done ? 'var(--ok)' : '' }">{{ ph3Status }}</span>
       </div>
 
       <!-- Empty states -->
@@ -556,8 +556,8 @@ const histOpen = ref(false);
           <div class="phase-title">批量用例 <span class="ph4-sub">· 复用 ① 的表达式</span></div>
           <div class="phase-sub">用一组真实「输入 → 预期值」数据，验证 ① 的表达式是否对每一组都得到正确结果。</div>
         </div>
-        <span class="phase-status" :style="{ color: tcTotal ? (tcPassed===tcTotal ? 'var(--ok)' : tcPassed===0 ? 'var(--err)' : 'var(--warn)') : '' }">
-          {{ tcTotal ? `${tcPassed} / ${tcTotal} 通过` : `0 个用例` }}
+        <span v-if="tcTotal > 0" class="phase-status" :style="{ color: tcPassed===tcTotal ? 'var(--ok)' : tcPassed===0 ? 'var(--err)' : 'var(--warn)' }">
+          {{ `${tcPassed} / ${tcTotal} 通过` }}
         </span>
       </div>
 
@@ -750,8 +750,7 @@ export default { name: 'ExprCalcView' };
 .ph4-sub { font-size:11.5px; color:var(--text-dim); font-weight:400; }
 
 /* history button compact */
-.btn-hist { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-.hist-icon { font-size:13px; line-height:1; }
+.btn-hist { white-space:nowrap; }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
 @media (max-width:640px) {
