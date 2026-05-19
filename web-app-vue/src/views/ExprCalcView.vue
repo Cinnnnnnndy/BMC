@@ -259,6 +259,30 @@ loadHistory();
 /* ─── Quick fill ─────────────────────────────────────────────────────────── */
 function quickFill(expr: string) { exprText.value=expr; runEval(); }
 
+/* ─── Reset / Load sample ────────────────────────────────────────────────── */
+function reset() {
+  exprText.value = '';
+  inputVals.value = [];
+  inputLabels.value = [];
+  stageResults.value = [];
+  finalResult.value = null;
+  testcases.value = [];
+  csvText.value = '';
+  tcRunDone.value = false;
+}
+function loadSample() {
+  reset();
+  exprText.value = '$1 | add $2 | mul 2 | toHex 4';
+  inputVals.value  = ['100', '28'];
+  inputLabels.value = ['温度基值', '偏移量'];
+  testcases.value = [
+    { vals: ['100', '28'], expected: '0x00a0' },
+    { vals: ['200', '56'], expected: '0x0200' },
+    { vals: ['0',   '0'],  expected: '0x0000' },
+  ];
+  runEval();
+}
+
 /* ─── Phase 1 status ─────────────────────────────────────────────────────── */
 const ph1Status = computed(() => {
   const s=parsePipe(exprText.value); if (!s.length) return '空';
@@ -350,6 +374,10 @@ const histOpen = ref(false);
           <span class="page-badge">管道 · 调试 · 验证</span>
         </div>
         <div class="page-sub">管道表达式实时调试，$N 参数绑定，第 4 阶段支持批量用例 CSV 导入对比</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-ghost" @click="reset">重置</button>
+        <button class="btn btn-secondary" @click="loadSample">载入示例</button>
       </div>
     </div>
 
@@ -690,6 +718,7 @@ export default { name: 'ExprCalcView' };
 .page-title { font-size:16px; font-weight:600; margin:0; letter-spacing:.01em; color:var(--text); }
 .page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.3); border-radius:4px; padding:2px 8px; white-space:nowrap; }
 .page-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
+.head-actions { display:flex; gap:8px; flex-shrink:0; align-items:flex-start; }
 
 /* ── Phase frame ───────────────────────────────────────────────────────── */
 .phase {
@@ -728,6 +757,7 @@ export default { name: 'ExprCalcView' };
 @media (max-width:640px) {
   .phase { padding:12px 14px; }
   .page-head { flex-direction:column; gap:8px; }
+  .head-actions { width:100%; }
   .input-row { grid-template-columns:44px 1fr; }
   .input-row .lbl-input { grid-column:1/-1; width:100%; }
   .tc-toolbar { flex-wrap:wrap; }
