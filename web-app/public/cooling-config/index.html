@@ -72,11 +72,14 @@
           <div class="step-flow" style="margin-top:2px;">
             <span>① 全局</span><span class="arrow">→</span>
             <span>② 温度点</span><span class="arrow">→</span>
-            <span>③ 风扇</span><span class="arrow">→</span>
+            <span>③ 调速风扇</span><span class="arrow">→</span>
             <span>④ 调速策略</span><span class="arrow">→</span>
-            <span>⑤ 绑定区域</span>
+            <span>⑤ 绑定区域</span><span class="arrow">→</span>
+            <span>⑥ 风扇类型</span><span class="arrow">·</span>
+            <span>⑦ 异常风扇</span><span class="arrow">·</span>
+            <span>⑧ 风扇组</span>
             <span style="flex:1"></span>
-            <span style="color:var(--text-dim);">先定义元素，再做绑定</span>
+            <span style="color:var(--text-dim);">先定义，再绑定</span>
           </div>
 
           <!-- (1) Global -->
@@ -178,6 +181,42 @@
             </div>
 
             <div class="row-list" id="list-area"></div>
+          </section>
+
+          <!-- ⑥ Fan Types -->
+          <section class="section" id="sec-fantype">
+            <div class="section-head">
+              <span class="order">⑥</span>
+              <span class="h">风扇类型 <span class="subt">fan_types · 型号与规格定义</span></span>
+              <span class="count" id="cnt-fantype">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fanType">+ 新增类型</button>
+            </div>
+            <div class="row-list" id="list-fantype"></div>
+          </section>
+
+          <!-- ⑦ Abnormal Fans -->
+          <section class="section" id="sec-abnormal">
+            <div class="section-head">
+              <span class="order">⑦</span>
+              <span class="h">异常风扇 <span class="subt">abnormal_fans · 异常行为监控规则</span></span>
+              <span class="count" id="cnt-abnormal">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="abnormalFan">+ 新增规则</button>
+            </div>
+            <div class="row-list" id="list-abnormal"></div>
+          </section>
+
+          <!-- ⑧ Fan Groups -->
+          <section class="section" id="sec-fangroup">
+            <div class="section-head">
+              <span class="order">⑧</span>
+              <span class="h">风扇组 <span class="subt">basic_cooling_config · fan_groups · 控制分组</span></span>
+              <span class="count" id="cnt-fangroup">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fanGroup">+ 新增风扇组</button>
+            </div>
+            <div class="row-list" id="list-fangroup"></div>
           </section>
 
         </div>

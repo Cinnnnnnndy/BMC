@@ -1,394 +1,393 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
 
-// ── Field definitions ────────────────────────────────────────────────────────
-const FIELDS = [
-  { key: 'fn',    label: '功能码',   eng: 'Function',  bits: 6,  msb: 31, lsb: 26, max: 0x3F,   maxLen: 2, placeholder: '00', color: '#7c8cf8', hint: '0x00–0x3F (0–63)' },
-  { key: 'cmd',   label: '命令码',   eng: 'Command',   bits: 16, msb: 25, lsb: 10, max: 0xFFFF, maxLen: 4, placeholder: '0000', color: '#4f9ef7', hint: '0x0000–0xFFFF (0–65535)' },
-  { key: 'ms',    label: '读取方式', eng: 'MS',        bits: 1,  msb: 9,  lsb: 9,  max: 0x1,    maxLen: 1, placeholder: '0', color: '#f7a24f', hint: '0=多读, 1=单读' },
-  { key: 'rw',    label: '读写方向', eng: 'RW',        bits: 1,  msb: 8,  lsb: 8,  max: 0x1,    maxLen: 1, placeholder: '0', color: '#4fd97a', hint: '0=写, 1=读' },
-  { key: 'param', label: '参数',     eng: 'Parameter', bits: 8,  msb: 7,  lsb: 0,  max: 0xFF,   maxLen: 2, placeholder: '00', color: '#e879a4', hint: '0x00–0xFF (0–255)' },
-] as const;
-type FieldKey = typeof FIELDS[number]['key'];
+/* ─── Field definitions ─────────────────────────────────────────────────── */
+type FieldKey = 'func' | 'cmd' | 'ms' | 'rw' | 'param';
+interface FieldDef { hi: number; lo: number; width: number; hexDigits: number; shortLabel: string; }
+const FIELDS: Record<FieldKey, FieldDef> = {
+  func:  { hi: 31, lo: 26, width: 6,  hexDigits: 2, shortLabel: 'Function' },
+  cmd:   { hi: 25, lo: 10, width: 16, hexDigits: 4, shortLabel: 'Command'  },
+  ms:    { hi: 9,  lo: 9,  width: 1,  hexDigits: 1, shortLabel: 'MS'       },
+  rw:    { hi: 8,  lo: 8,  width: 1,  hexDigits: 1, shortLabel: 'RW'       },
+  param: { hi: 7,  lo: 0,  width: 8,  hexDigits: 2, shortLabel: 'Param'    },
+};
+const FIELD_ORDER: FieldKey[] = ['func','cmd','ms','rw','param'];
+const FUNC_LOOKUP: Record<number, string> = {
+  0x01:'系统管理 System', 0x02:'电源管理 Power', 0x03:'风扇控制 Fan',
+  0x0C:'温度管理 Thermal', 0x10:'存储 Storage', 0x20:'网络 Network',
+};
+const MS_LABEL: Record<number, string> = { 0:'Multi-read', 1:'Single-read' };
+const RW_LABEL: Record<number, string> = { 0:'Write', 1:'Read' };
 
-// ── Core state ───────────────────────────────────────────────────────────────
-const hexInput  = ref('00000000');   // 8 hex digits, no prefix
-const decInput  = ref('0');
-const fieldVals = ref<Record<FieldKey, string>>({ fn: '', cmd: '', ms: '', rw: '', param: '' });
-const fieldErrs = ref<Record<FieldKey, string>>({ fn: '', cmd: '', ms: '', rw: '', param: '' });
-const resultOk  = ref(false);
-const copied    = ref<'all-hex' | 'all-dec' | 'all' | FieldKey | null>(null);
+const HUE_COLOR: Record<FieldKey, string> = {
+  func: '#f59e6b', cmd: '#4f6ef7', ms: '#a78bfa', rw: '#34d399', param: '#f5b454'
+};
 
-// prevent feedback loops
-let _syncing = false;
+/* ─── State ─────────────────────────────────────────────────────────────── */
+const fieldVals  = reactive<Record<FieldKey, number | null>>({ func:null, cmd:null, ms:null, rw:null, param:null });
+const fieldTexts = reactive<Record<FieldKey, string>>({ func:'', cmd:'', ms:'', rw:'', param:'' });
+const fieldErrs  = reactive<Record<FieldKey, string>>({ func:'', cmd:'', ms:'', rw:'', param:'' });
+const hexVal = ref('');
+const decVal = ref('');
+const hexErr = ref('');
+const decErr = ref('');
+const copyFmt    = ref<'hex'|'dec'|'both'|'c'|'json'>('hex');
+const fmtOpen    = ref(false);
+const copiedFld  = ref<FieldKey | null>(null);
+const copiedAll  = ref(false);
+const toastMsg   = ref('');
+let   toastTimer: ReturnType<typeof setTimeout>;
 
-// ── Encode / decode ──────────────────────────────────────────────────────────
-function encode(fn: number, cmd: number, ms: number, rw: number, param: number): number {
-  return (((fn << 26) | (cmd << 10) | (ms << 9) | (rw << 8) | param) >>> 0);
+interface HistEntry { word: number; parts: Record<string, number>; ts: number; }
+const history = ref<HistEntry[]>([]);
+const HIST_KEY = 'ubmc.smc.history.v2';
+
+/* ─── Math ──────────────────────────────────────────────────────────────── */
+function pad(s: string, n: number): string { return s.length >= n ? s : '0'.repeat(n - s.length) + s; }
+function composeWord(): number {
+  let w = 0;
+  for (const k of FIELD_ORDER) { const v = fieldVals[k]; if (v !== null) w = (w | ((v << FIELDS[k].lo) >>> 0)) >>> 0; }
+  return w >>> 0;
 }
-function decode(offset: number) {
-  const o = offset >>> 0;
-  return {
-    fn:    (o >>> 26) & 0x3F,
-    cmd:   (o >>> 10) & 0xFFFF,
-    ms:    (o >>>  9) & 0x1,
-    rw:    (o >>>  8) & 0x1,
-    param:  o         & 0xFF,
-  };
+function decomposeWord(w: number): Record<FieldKey, number> {
+  const out = {} as Record<FieldKey, number>;
+  for (const k of FIELD_ORDER) { const mask = (1 << FIELDS[k].width) - 1; out[k] = (w >>> FIELDS[k].lo) & mask; }
+  return out;
 }
-function fmtHex(v: number, digits: number): string {
-  return v.toString(16).toUpperCase().padStart(digits, '0');
-}
-function parseHex(s: string): number {
-  const t = s.trim();
-  if (!t) return NaN;
-  return parseInt(t, 16);
-}
+function anySet(): boolean { return FIELD_ORDER.some(k => fieldVals[k] !== null); }
+function fmtHex(w: number): string { return '0x' + pad(w.toString(16).toUpperCase(), 8); }
 
-// ── Syncing top offset ↔ fields ──────────────────────────────────────────────
-function onHexChange(raw: string) {
-  if (_syncing) return;
-  const clean = raw.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 8);
-  hexInput.value = clean;
-  const num = clean ? parseInt(clean, 16) : NaN;
-  if (isNaN(num)) return;
-  _syncing = true;
-  decInput.value = String(num >>> 0);
-  applyDecodeToFields(num >>> 0);
-  _syncing = false;
-}
-
-function onDecChange(raw: string) {
-  if (_syncing) return;
-  const clean = raw.replace(/\D/g, '');
-  decInput.value = clean;
-  const num = clean ? parseInt(clean, 10) : NaN;
-  if (isNaN(num) || num < 0) return;
-  _syncing = true;
-  hexInput.value = (num >>> 0).toString(16).toUpperCase().padStart(8, '0');
-  applyDecodeToFields(num >>> 0);
-  _syncing = false;
-}
-
-function applyDecodeToFields(offset: number) {
-  const d = decode(offset);
-  const fld = fieldVals.value;
-  fld.fn    = fmtHex(d.fn,    2);
-  fld.cmd   = fmtHex(d.cmd,   4);
-  fld.ms    = fmtHex(d.ms,    1);
-  fld.rw    = fmtHex(d.rw,    1);
-  fld.param = fmtHex(d.param, 2);
-  for (const k of Object.keys(fieldErrs.value) as FieldKey[]) fieldErrs.value[k] = '';
-  resultOk.value = true;
+/* ─── Parse ─────────────────────────────────────────────────────────────── */
+function parseLoose(raw: string, maxBits: number): { ok: boolean; value: number | null; err?: string } {
+  const s = raw.trim();
+  if (!s) return { ok:true, value:null };
+  let n: number;
+  if (/^0x/i.test(s)) {
+    if (!/^0x[0-9a-f]+$/i.test(s)) return { ok:false, value:null, err:'不是合法的十六进制' };
+    n = parseInt(s.slice(2), 16);
+  } else if (/^[0-9a-f]+$/i.test(s) && /[a-f]/i.test(s)) {
+    n = parseInt(s, 16);
+  } else if (/^-?[0-9]+$/.test(s)) {
+    n = parseInt(s, 10);
+  } else return { ok:false, value:null, err:'只接受 dec 或 0x hex' };
+  if (!Number.isFinite(n) || n < 0) return { ok:false, value:null, err:'非法数字' };
+  const max = maxBits === 32 ? 0xFFFFFFFF : ((1 << maxBits) - 1);
+  if (n > max) return { ok:false, value:null, err:`超出 ${maxBits}-bit 范围` };
+  return { ok:true, value: n >>> 0 };
 }
 
-function onFieldInput(key: FieldKey, raw: string) {
-  const f = FIELDS.find(f => f.key === key)!;
-  const clean = raw.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, f.maxLen);
-  fieldVals.value[key] = clean;
-  recomputeOffset();
+/* ─── Input handlers ────────────────────────────────────────────────────── */
+function syncFromWord(w: number, skip: 'hex'|'dec'|'') {
+  if (skip !== 'hex') hexVal.value = fmtHex(w);
+  if (skip !== 'dec') decVal.value = String(w);
+  hexErr.value = ''; decErr.value = '';
+  const parts = decomposeWord(w);
+  FIELD_ORDER.forEach(k => {
+    fieldVals[k]  = parts[k];
+    fieldTexts[k] = '0x' + pad(parts[k].toString(16).toUpperCase(), FIELDS[k].hexDigits);
+    fieldErrs[k]  = '';
+  });
 }
-
-function onFieldBlur(key: FieldKey) {
-  const f = FIELDS.find(f => f.key === key)!;
-  const v = parseHex(fieldVals.value[key]);
-  fieldErrs.value[key] = (!isNaN(v) && v >= 0 && v <= f.max) ? '' : '超出范围';
-}
-
-function recomputeOffset() {
-  if (_syncing) return;
-  const vals = fieldVals.value;
-  const fn    = parseHex(vals.fn);
-  const cmd   = parseHex(vals.cmd);
-  const ms    = parseHex(vals.ms);
-  const rw    = parseHex(vals.rw);
-  const param = parseHex(vals.param);
-  const f = FIELDS;
-  const ok = !isNaN(fn)    && fn    >= 0 && fn    <= f[0].max &&
-             !isNaN(cmd)   && cmd   >= 0 && cmd   <= f[1].max &&
-             !isNaN(ms)    && ms    >= 0 && ms    <= f[2].max &&
-             !isNaN(rw)    && rw    >= 0 && rw    <= f[3].max &&
-             !isNaN(param) && param >= 0 && param <= f[4].max;
-  resultOk.value = ok;
-  if (ok) {
-    const off = encode(fn, cmd, ms, rw, param);
-    _syncing = true;
-    hexInput.value = off.toString(16).toUpperCase().padStart(8, '0');
-    decInput.value = String(off);
-    _syncing = false;
+function onTopInput(src: 'hex'|'dec') {
+  const raw = src === 'hex' ? hexVal.value : decVal.value;
+  hexErr.value = ''; decErr.value = '';
+  if (!raw.trim()) {
+    FIELD_ORDER.forEach(k => { fieldVals[k]=null; fieldTexts[k]=''; fieldErrs[k]=''; });
+    if (src==='hex') decVal.value=''; else hexVal.value=''; return;
   }
+  const r = parseLoose(raw, 32);
+  if (!r.ok) { if (src==='hex') hexErr.value=r.err||''; else decErr.value=r.err||''; return; }
+  syncFromWord(r.value!, src);
+}
+function onFieldInput(k: FieldKey) {
+  fieldErrs[k] = '';
+  const r = parseLoose(fieldTexts[k], FIELDS[k].width);
+  if (!r.ok) { fieldErrs[k]=r.err||''; return; }
+  fieldVals[k] = r.value;
+  if (anySet()) { const w = composeWord(); hexVal.value=fmtHex(w); decVal.value=String(w); hexErr.value=''; decErr.value=''; }
+}
+function onFieldBlur(k: FieldKey) {
+  const v = fieldVals[k];
+  if (v !== null) fieldTexts[k] = '0x' + pad(v.toString(16).toUpperCase(), FIELDS[k].hexDigits);
 }
 
-// ── Computed: 32 bit cells ───────────────────────────────────────────────────
+/* ─── Computed ──────────────────────────────────────────────────────────── */
 const bitCells = computed(() => {
-  const hex = hexInput.value;
-  const num  = hex ? parseInt(hex, 16) : NaN;
-  const hasVal = resultOk.value && !isNaN(num);
-  return Array.from({ length: 32 }, (_, i) => {
-    const bitPos = 31 - i;
-    let color: string, fkey: FieldKey;
-    if (bitPos >= 26)      { color = '#7c8cf8'; fkey = 'fn';    }
-    else if (bitPos >= 10) { color = '#4f9ef7'; fkey = 'cmd';   }
-    else if (bitPos === 9) { color = '#f7a24f'; fkey = 'ms';    }
-    else if (bitPos === 8) { color = '#4fd97a'; fkey = 'rw';    }
-    else                   { color = '#e879a4'; fkey = 'param'; }
-    const bitVal = hasVal ? ((num >>> bitPos) & 1) : null;
-    return { bitPos, fkey, color, bitVal, hasVal };
+  const w = composeWord(); const set = anySet();
+  return Array.from({length:32}, (_,col) => {
+    const bitIdx = 31 - col;
+    let hue: FieldKey;
+    if (bitIdx >= 26) hue='func'; else if (bitIdx >= 10) hue='cmd';
+    else if (bitIdx === 9) hue='ms'; else if (bitIdx === 8) hue='rw'; else hue='param';
+    return { bitIdx, hue, on: set && ((w >>> bitIdx) & 1)===1, set,
+      isBoundary: [5,21,22,23].includes(col),
+      isPosBound: [31,26,25,10,9,8,7,0].includes(bitIdx) };
   });
 });
 
-// ── Computed: per-field decimal display ──────────────────────────────────────
-const fieldDec = computed<Record<FieldKey, string>>(() => {
-  const out = {} as Record<FieldKey, string>;
-  for (const f of FIELDS) {
-    const v = parseHex(fieldVals.value[f.key]);
-    out[f.key] = isNaN(v) ? '--' : String(v);
-  }
-  return out;
-});
+function fDec(k: FieldKey): string { const v=fieldVals[k]; return v===null?'—':String(v); }
+function fHex(k: FieldKey): string { const v=fieldVals[k]; return v===null?'—':'0x'+pad(v.toString(16).toUpperCase(),FIELDS[k].hexDigits); }
+function fSem(k: FieldKey): string {
+  const v=fieldVals[k]; if (v===null) return '';
+  if (k==='func') return FUNC_LOOKUP[v] ? '· '+FUNC_LOOKUP[v] : '';
+  if (k==='ms')   return '· '+(MS_LABEL[v]||'');
+  if (k==='rw')   return '· '+(RW_LABEL[v]||'');
+  return '';
+}
 
-// ── Copy helpers ─────────────────────────────────────────────────────────────
-type CopyId = 'all-hex' | 'all-dec' | 'all' | FieldKey;
-async function doCopy(text: string, id: CopyId) {
-  await navigator.clipboard.writeText(text);
-  copied.value = id;
-  setTimeout(() => { if (copied.value === id) copied.value = null; }, 1500);
+/* ─── Copy ──────────────────────────────────────────────────────────────── */
+function formattedCopy(fmt: string): string {
+  const w=composeWord(), hex=fmtHex(w), dec=String(w);
+  switch (fmt) {
+    case 'dec':  return dec;
+    case 'both': return `${hex} (${dec})`;
+    case 'c':    return hex+'u';
+    case 'json': {
+      const p=decomposeWord(w);
+      return JSON.stringify({ offset:hex, func:'0x'+pad(p.func.toString(16).toUpperCase(),2),
+        cmd:'0x'+pad(p.cmd.toString(16).toUpperCase(),4), ms:p.ms, rw:p.rw,
+        param:'0x'+pad(p.param.toString(16).toUpperCase(),2) });
+    }
+    default: return hex;
+  }
 }
-function copyAllHex() {
-  if (!resultOk.value) return;
-  doCopy('0x' + hexInput.value, 'all-hex');
-}
-function copyAllDec() {
-  if (!resultOk.value) return;
-  doCopy(decInput.value, 'all-dec');
-}
-function copyField(key: FieldKey) {
-  const hex = fieldVals.value[key];
-  if (!hex) return;
-  const dec = fieldDec.value[key];
-  doCopy(`0x${hex.toUpperCase()} (${dec})`, key);
+function preview(fmt: string): string {
+  if (!anySet()) return fmt==='hex'?'0x00000000':'—';
+  const s=formattedCopy(fmt); return s.length>28?s.slice(0,26)+'…':s;
 }
 function copyAll() {
-  if (!resultOk.value) return;
-  const lines: string[] = [
-    `偏移量: 0x${hexInput.value.toUpperCase()} (${decInput.value})`,
-    '',
-    ...FIELDS.map(f => {
-      const hex = fieldVals.value[f.key];
-      const dec = fieldDec.value[f.key];
-      return `${f.eng.padEnd(10)} ${f.label.padEnd(6)} [${f.msb}:${f.lsb}]  0x${hex.toUpperCase().padStart(f.maxLen, '0')}  (${dec})`;
-    }),
-  ];
-  doCopy(lines.join('\n'), 'all');
-  pushHistory();
+  if (!anySet()) return;
+  const txt=formattedCopy(copyFmt.value);
+  navigator.clipboard?.writeText(txt);
+  showToast('已复制 '+(txt.length>36?txt.slice(0,34)+'…':txt));
+  saveToHistory(); copiedAll.value=true; setTimeout(()=>copiedAll.value=false,1200);
+}
+function doFmt(fmt: 'hex'|'dec'|'both'|'c'|'json') { copyFmt.value=fmt; fmtOpen.value=false; copyAll(); }
+function copyFldBtn(k: FieldKey) {
+  const v=fieldVals[k]; if (v===null) return;
+  const txt='0x'+pad(v.toString(16).toUpperCase(),FIELDS[k].hexDigits);
+  navigator.clipboard?.writeText(txt);
+  showToast(`已复制 ${FIELDS[k].shortLabel}: ${txt}`);
+  copiedFld.value=k; setTimeout(()=>copiedFld.value=null,1200);
 }
 
-// ── Reset ────────────────────────────────────────────────────────────────────
+/* ─── Reset / Sample ────────────────────────────────────────────────────── */
 function reset() {
-  for (const k of Object.keys(fieldVals.value) as FieldKey[]) {
-    fieldVals.value[k] = '';
-    fieldErrs.value[k] = '';
-  }
-  hexInput.value  = '00000000';
-  decInput.value  = '0';
-  resultOk.value  = false;
-  copied.value    = null;
+  FIELD_ORDER.forEach(k=>{ fieldVals[k]=null; fieldTexts[k]=''; fieldErrs[k]=''; });
+  hexVal.value=''; decVal.value=''; hexErr.value=''; decErr.value='';
 }
+function loadSample() { hexVal.value='0x30004500'; onTopInput('hex'); }
 
-// ── History ──────────────────────────────────────────────────────────────────
-interface Entry { hex: string; dec: string; fn: string; cmd: string; ms: string; rw: string; param: string; ts: number; }
-const history     = ref<Entry[]>([]);
-const showHistory = ref(false);
-const HIST_KEY    = 'smc-offset-history';
-
+/* ─── History ───────────────────────────────────────────────────────────── */
+function saveToHistory() {
+  if (!anySet()) return;
+  const snap:HistEntry = { word:composeWord(), parts:Object.fromEntries(FIELD_ORDER.map(k=>[k,fieldVals[k]??0])), ts:Date.now() };
+  if (history.value[0]?.word === snap.word) return;
+  history.value.unshift(snap); if (history.value.length>10) history.value.length=10;
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(history.value)); } catch {}
+}
 function loadHistory() {
-  try { const r = localStorage.getItem(HIST_KEY); if (r) history.value = JSON.parse(r); } catch { history.value = []; }
+  try { const s=localStorage.getItem(HIST_KEY); if (s) history.value=JSON.parse(s)||[]; } catch {}
 }
-function pushHistory() {
-  if (!resultOk.value) return;
-  const e: Entry = { hex: '0x' + hexInput.value, dec: decInput.value, ...fieldVals.value as any, ts: Date.now() };
-  if (history.value[0]?.hex === e.hex) return;
-  history.value.unshift(e);
-  if (history.value.length > 10) history.value = history.value.slice(0, 10);
-  localStorage.setItem(HIST_KEY, JSON.stringify(history.value));
+function restoreHist(i: number) {
+  const it=history.value[i]; if (!it) return;
+  FIELD_ORDER.forEach(k=>{ fieldVals[k]=it.parts[k]??0; fieldTexts[k]='0x'+pad((it.parts[k]??0).toString(16).toUpperCase(),FIELDS[k].hexDigits); fieldErrs[k]=''; });
+  hexVal.value=fmtHex(it.word); decVal.value=String(it.word); hexErr.value=''; decErr.value='';
+  showToast('已回填 '+fmtHex(it.word));
 }
-function restoreEntry(e: Entry) {
-  applyDecodeToFields(parseInt(e.hex.replace(/^0x/, ''), 16));
-  hexInput.value = e.hex.replace(/^0x/, '').toUpperCase().padStart(8, '0');
-  decInput.value = e.dec;
-  resultOk.value = true;
-  showHistory.value = false;
-}
-function clearHistory() { history.value = []; localStorage.removeItem(HIST_KEY); }
-function relTime(ts: number): string {
-  const d = Math.floor((Date.now() - ts) / 1000);
-  if (d < 60) return `${d}秒前`;
-  if (d < 3600) return `${Math.floor(d/60)}分钟前`;
-  return `${Math.floor(d/3600)}小时前`;
-}
+function clearHistory() { history.value=[]; try { localStorage.removeItem(HIST_KEY); } catch {} }
+function histTs(ts: number): string { const t=new Date(ts); return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); }
 
-onMounted(() => { loadHistory(); });
+/* ─── Toast ─────────────────────────────────────────────────────────────── */
+function showToast(msg: string) { toastMsg.value=msg; clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastMsg.value='',1600); }
+
+/* ─── Lifecycle ─────────────────────────────────────────────────────────── */
+function onKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s') { e.preventDefault(); saveToHistory(); showToast('已保存当前结果'); }
+}
+function closeFmt(e: Event) { if (!(e.target as HTMLElement).closest?.('.split-btn')) fmtOpen.value=false; }
+onMounted(() => { loadHistory(); window.addEventListener('keydown',onKeydown); document.addEventListener('click',closeFmt); });
+onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.removeEventListener('click',closeFmt); clearTimeout(toastTimer); });
 </script>
 
 <template>
   <div class="root">
-    <div class="container">
 
-      <!-- ── Header ─────────────────────────────────────────────────────── -->
-      <div class="hdr">
-        <div class="title">🧮 SMC 偏移量计算器</div>
-        <button class="btn-ghost" :class="{ active: showHistory }" @click="showHistory = !showHistory"
-          :aria-expanded="showHistory" aria-controls="hist-panel">
-          🕐 历史<span class="badge" v-if="history.length">{{ history.length }}</span>
-        </button>
+    <!-- Page header -->
+    <div class="page-head">
+      <div>
+        <h1>SMC 偏移量计算器</h1>
+        <div class="sub">32-bit 命令字 ↔ <b>功能码 · 命令码 · MS · RW · 参数</b> 双向同步。上方任一输入框、下方任一字段，编辑后整体即时联动。</div>
       </div>
-
-      <!-- ── History panel ──────────────────────────────────────────────── -->
-      <div id="hist-panel" class="hist-panel" v-if="showHistory">
-        <div v-if="!history.length" class="hist-empty">暂无历史记录</div>
-        <template v-else>
-          <div class="hist-row" v-for="(e, i) in history" :key="i">
-            <span class="hist-hex">{{ e.hex }}</span>
-            <span class="hist-dec">{{ e.dec }}</span>
-            <span class="hist-time">{{ relTime(e.ts) }}</span>
-            <button class="btn-mini" @click="restoreEntry(e); pushHistory()">回填</button>
-          </div>
-          <div class="hist-foot">
-            <button class="link-btn" @click="clearHistory">清空历史</button>
-          </div>
-        </template>
+      <div class="head-actions">
+        <button class="btn btn-ghost" @click="reset">重置</button>
+        <button class="btn btn-secondary" @click="loadSample">载入示例</button>
       </div>
-
-      <!-- ── TOP: Unified offset input ─────────────────────────────────── -->
-      <div class="offset-card">
-        <div class="offset-title">偏移量</div>
-        <div class="offset-rows">
-          <!-- Hex row -->
-          <div class="offset-row">
-            <span class="fmt-tag hex-tag">HEX</span>
-            <div class="offset-input-wrap">
-              <span class="prefix">0x</span>
-              <input
-                class="offset-input mono"
-                aria-label="十六进制偏移量"
-                :value="hexInput"
-                maxlength="8"
-                placeholder="00000000"
-                @input="onHexChange(($event.target as HTMLInputElement).value)"
-              />
-            </div>
-            <button class="copy-chip" :class="{ ok: copied === 'all-hex' }"
-              :disabled="!resultOk" @click="copyAllHex(); pushHistory()">
-              {{ copied === 'all-hex' ? '✅' : '⎘' }}
-            </button>
-          </div>
-          <!-- Dec row -->
-          <div class="offset-row">
-            <span class="fmt-tag dec-tag">DEC</span>
-            <div class="offset-input-wrap">
-              <input
-                class="offset-input mono"
-                aria-label="十进制偏移量"
-                :value="decInput"
-                placeholder="0"
-                inputmode="numeric"
-                @input="onDecChange(($event.target as HTMLInputElement).value)"
-              />
-            </div>
-            <button class="copy-chip" :class="{ ok: copied === 'all-dec' }"
-              :disabled="!resultOk" @click="copyAllDec(); pushHistory()">
-              {{ copied === 'all-dec' ? '✅' : '⎘' }}
-            </button>
-          </div>
-        </div>
-        <div class="offset-hint">编辑任意一行，另一行自动转换；同时解析到下方各字段。</div>
-      </div>
-
-      <!-- ── 32-bit grid ────────────────────────────────────────────────── -->
-      <div class="bits-wrap" role="img" :aria-label="`32位命令字：${FIELDS.map(f => f.label + '=0x' + (fieldVals[f.key] || '--')).join('，')}`">
-        <!-- Cells -->
-        <div class="bits-row">
-          <div
-            v-for="cell in bitCells"
-            :key="cell.bitPos"
-            class="bit-cell"
-            :style="{ background: cell.color, opacity: cell.hasVal ? (cell.bitVal === 1 ? 1 : 0.25) : 0.45 }"
-          >
-            <span class="bit-val">{{ cell.hasVal ? cell.bitVal : '' }}</span>
-          </div>
-        </div>
-        <!-- Bit numbers -->
-        <div class="bits-row bit-nums">
-          <div v-for="cell in bitCells" :key="cell.bitPos" class="bit-num-cell">
-            <span v-if="[31,26,25,10,9,8,7,0].includes(cell.bitPos)" class="bit-num-label">{{ cell.bitPos }}</span>
-          </div>
-        </div>
-        <!-- Field labels spanning under groups -->
-        <div class="field-spans">
-          <div v-for="f in FIELDS" :key="f.key" class="field-span"
-            :style="{ flex: `0 0 ${(f.bits / 32) * 100}%`, borderTop: `3px solid ${f.color}` }">
-            <span class="fspan-label" :style="{ color: f.color }">{{ f.key.toUpperCase() }} [{{ f.msb }}:{{ f.lsb }}]</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Fields ─────────────────────────────────────────────────────── -->
-      <div class="fields-card">
-        <div class="fields-title">组成字段</div>
-        <div class="field-list">
-          <div v-for="f in FIELDS" :key="f.key" class="field-row">
-            <!-- Color swatch -->
-            <div class="field-swatch" :style="{ background: f.color }"></div>
-            <!-- Labels -->
-            <div class="field-meta">
-              <div class="field-name">{{ f.label }}<span class="field-eng">{{ f.eng }}</span></div>
-              <div class="field-hint">{{ f.hint }}</div>
-            </div>
-            <!-- Input group -->
-            <div class="field-input-group">
-              <div class="hex-wrap" :class="{ err: fieldErrs[f.key] }">
-                <span class="hex-pfx">0x</span>
-                <input
-                  class="hex-inp mono"
-                  :id="`fld-${f.key}`"
-                  :maxlength="f.maxLen"
-                  :placeholder="f.placeholder"
-                  :value="fieldVals[f.key]"
-                  :aria-label="`${f.label} 十六进制输入`"
-                  @input="onFieldInput(f.key, ($event.target as HTMLInputElement).value)"
-                  @blur="onFieldBlur(f.key)"
-                />
-              </div>
-              <div class="field-dec-row">
-                <span class="field-dec-val">= {{ fieldDec[f.key] }}</span>
-                <span class="field-err" v-if="fieldErrs[f.key]">{{ fieldErrs[f.key] }}</span>
-              </div>
-            </div>
-            <!-- Per-field copy -->
-            <button class="copy-chip field-copy" :class="{ ok: copied === f.key }"
-              :disabled="!fieldVals[f.key]"
-              :aria-label="`复制${f.label}字段值`"
-              @click="copyField(f.key)">
-              {{ copied === f.key ? '✅' : '⎘' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Bottom actions ─────────────────────────────────────────────── -->
-      <div class="actions">
-        <button
-          class="btn-copy-all"
-          :disabled="!resultOk"
-          @click="copyAll"
-        >
-          <span v-if="copied === 'all'">✅ 已复制全部</span>
-          <span v-else>⎘ 复制全部结果</span>
-        </button>
-        <button class="btn-reset" @click="reset">✕ 重置</button>
-      </div>
-
     </div>
+
+    <!-- ① Offset bar -->
+    <div class="offset-bar">
+      <div class="section-h">
+        <span class="sec-title">偏移量 · 32-bit Offset</span>
+        <span class="sec-hint">输入十六进制或十进制，两边自动联动；下方字段同时刷新</span>
+      </div>
+      <div class="off-row">
+        <div class="offset-input-wrap" :class="{ invalid: hexErr, synced: anySet() && !hexErr }">
+          <div class="oiw-tag"><span>HEX · 0x...</span><span class="sync">●</span></div>
+          <input v-model="hexVal" @input="onTopInput('hex')" placeholder="0x00000000" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="offset-input-wrap" :class="{ invalid: decErr, synced: anySet() && !decErr }">
+          <div class="oiw-tag"><span>DEC · 0 – 4 294 967 295</span><span class="sync">●</span></div>
+          <input v-model="decVal" @input="onTopInput('dec')" placeholder="0" autocomplete="off" spellcheck="false" inputmode="numeric" />
+        </div>
+        <div class="offset-actions">
+          <div class="split-btn" @click.stop>
+            <button class="btn btn-primary btn-copy" :disabled="!anySet()" @click="copyAll">
+              {{ copiedAll ? '已复制 ✓' : '复制偏移量' }}
+            </button>
+            <button class="btn btn-primary btn-fmt-arr" :disabled="!anySet()" @click="fmtOpen = !fmtOpen">▾</button>
+            <div class="fmt-menu" :class="{ open: fmtOpen }">
+              <div class="fmt-item" :class="{ active: copyFmt === 'hex' }"  @click="doFmt('hex')">  <span>仅 HEX</span><span class="fp">{{ preview('hex') }}</span></div>
+              <div class="fmt-item" :class="{ active: copyFmt === 'dec' }"  @click="doFmt('dec')">  <span>仅 DEC</span><span class="fp">{{ preview('dec') }}</span></div>
+              <div class="fmt-item" :class="{ active: copyFmt === 'both' }" @click="doFmt('both')"> <span>HEX + DEC</span><span class="fp">{{ preview('both') }}</span></div>
+              <div class="fmt-item" :class="{ active: copyFmt === 'c' }"    @click="doFmt('c')">    <span>C 字面量</span><span class="fp">{{ preview('c') }}</span></div>
+              <div class="fmt-item" :class="{ active: copyFmt === 'json' }" @click="doFmt('json')"> <span>JSON 字段</span><span class="fp fp-sm">{ "func": …}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="offset-err">{{ hexErr || decErr }}</div>
+    </div>
+
+    <!-- ② Bitmap -->
+    <div class="bitmap-card">
+      <div class="section-h">
+        <span class="sec-title">32-bit 位图</span>
+        <span class="sec-hint">MSB → LSB · 每格 1 bit · 颜色与下方字段对应</span>
+      </div>
+      <div class="bit-grid-scroll">
+        <div class="bit-grid">
+          <!-- Row 1: field bands -->
+          <div class="field-band hue-func"  style="grid-column: 1/7">Function<span class="seg-info">[31:26]</span></div>
+          <div class="field-band hue-cmd"   style="grid-column: 7/23">Command<span class="seg-info">[25:10]</span></div>
+          <div class="field-band hue-ms"    style="grid-column: 23/24">MS</div>
+          <div class="field-band hue-rw"    style="grid-column: 24/25">RW</div>
+          <div class="field-band hue-param" style="grid-column: 25/33">Param<span class="seg-info">[7:0]</span></div>
+          <!-- Row 2: bit cells -->
+          <div v-for="c in bitCells" :key="c.bitIdx"
+            class="bit-cell"
+            :class="[`hue-${c.hue}`, { on: c.on, boundary: c.isBoundary }]">
+            {{ c.set ? (c.on ? '1' : '0') : '0' }}
+          </div>
+          <!-- Row 3: position labels -->
+          <div v-for="c in bitCells" :key="'p'+c.bitIdx" class="bit-pos" :class="{ boundary: c.isPosBound }">
+            {{ c.isPosBound ? c.bitIdx : '' }}
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="lchip"><span class="sw sw-func"></span>Function · [31:26] · 6b</span>
+        <span class="lchip"><span class="sw sw-cmd"></span>Command · [25:10] · 16b</span>
+        <span class="lchip"><span class="sw sw-ms"></span>MS · [9] · 1b</span>
+        <span class="lchip"><span class="sw sw-rw"></span>RW · [8] · 1b</span>
+        <span class="lchip"><span class="sw sw-param"></span>Param · [7:0] · 8b</span>
+      </div>
+    </div>
+
+    <!-- ③ Field cards -->
+    <div class="fields-card">
+      <div class="section-h">
+        <span class="sec-title">字段拆解 · 双向编辑</span>
+        <span class="sec-hint">输入 0x 开头即十六进制，否则按十进制解析</span>
+      </div>
+      <!-- Row 1: func + cmd (6fr / 16fr split) -->
+      <div class="fields-row r1">
+        <div class="field-card" :style="{ borderTopColor: HUE_COLOR.func }">
+          <div class="field-head">
+            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.func }"></span>Function · 功能码</span>
+            <span class="field-meta">[31:26] · 6b</span>
+          </div>
+          <div class="field-input-wrap">
+            <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
+              :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" autocomplete="off" spellcheck="false" />
+            <button class="field-copy" :class="{ copied: copiedFld==='func' }" :disabled="fieldVals.func===null" @click="copyFldBtn('func')">⧉</button>
+          </div>
+          <div class="field-foot">
+            <span class="pair">
+              <span :class="{ muted: fieldVals.func===null }"><span class="k">DEC </span><span class="v">{{ fDec('func') }}</span></span>
+              <span :class="{ muted: fieldVals.func===null }"><span class="k">HEX </span><span class="v">{{ fHex('func') }}</span></span>
+            </span>
+            <span class="semantic" :class="{ ferr: fieldErrs.func }">{{ fieldErrs.func || fSem('func') }}</span>
+          </div>
+        </div>
+        <div class="field-card" :style="{ borderTopColor: HUE_COLOR.cmd }">
+          <div class="field-head">
+            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.cmd }"></span>Command · 命令码</span>
+            <span class="field-meta">[25:10] · 16b · 0–0xFFFF</span>
+          </div>
+          <div class="field-input-wrap">
+            <input class="field-input" v-model="fieldTexts.cmd" @input="onFieldInput('cmd')" @blur="onFieldBlur('cmd')"
+              :class="{ invalid: fieldErrs.cmd }" placeholder="0x0000 / 0–65535" autocomplete="off" spellcheck="false" />
+            <button class="field-copy" :class="{ copied: copiedFld==='cmd' }" :disabled="fieldVals.cmd===null" @click="copyFldBtn('cmd')">⧉</button>
+          </div>
+          <div class="field-foot">
+            <span class="pair">
+              <span :class="{ muted: fieldVals.cmd===null }"><span class="k">DEC </span><span class="v">{{ fDec('cmd') }}</span></span>
+              <span :class="{ muted: fieldVals.cmd===null }"><span class="k">HEX </span><span class="v">{{ fHex('cmd') }}</span></span>
+            </span>
+            <span class="semantic" :class="{ ferr: fieldErrs.cmd }">{{ fieldErrs.cmd }}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Row 2: ms + rw + param -->
+      <div class="fields-row r2">
+        <div v-for="k in (['ms','rw','param'] as FieldKey[])" :key="k"
+          class="field-card" :style="{ borderTopColor: HUE_COLOR[k] }">
+          <div class="field-head">
+            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR[k] }"></span>
+              {{ k==='ms' ? 'MS · 读取方式' : k==='rw' ? 'RW · 读写方向' : 'Param · 参数' }}
+            </span>
+            <span class="field-meta">{{ k==='ms' ? '[9] · 1b' : k==='rw' ? '[8] · 1b' : '[7:0] · 8b · 0–0xFF' }}</span>
+          </div>
+          <div class="field-input-wrap">
+            <input class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
+              :class="{ invalid: fieldErrs[k] }"
+              :placeholder="k==='ms' || k==='rw' ? '0 / 1' : '0x00 / 0–255'" autocomplete="off" spellcheck="false" />
+            <button class="field-copy" :class="{ copied: copiedFld===k }" :disabled="fieldVals[k]===null" @click="copyFldBtn(k)">⧉</button>
+          </div>
+          <div class="field-foot">
+            <span class="pair">
+              <span :class="{ muted: fieldVals[k]===null }"><span class="k">DEC </span><span class="v">{{ fDec(k) }}</span></span>
+              <span v-if="k==='param'" :class="{ muted: fieldVals[k]===null }"><span class="k">HEX </span><span class="v">{{ fHex(k) }}</span></span>
+            </span>
+            <span class="semantic" :class="{ ferr: fieldErrs[k] }">{{ fieldErrs[k] || fSem(k) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ History -->
+    <div class="history-card">
+      <div class="section-h" style="margin:0;">
+        <span class="sec-title">最近 10 次计算</span>
+        <span class="hist-actions">
+          <span class="sec-hint">Ctrl+S 收集 · 点击回填</span>
+          <button class="btn btn-ghost btn-xs" @click="clearHistory">清空</button>
+        </span>
+      </div>
+      <ul class="history-list">
+        <li v-if="!history.length" class="history-empty" style="grid-column:1/-1;">尚无历史记录 · 复制即自动收藏</li>
+        <li v-for="(it,i) in history" :key="i" class="history-item" @click="restoreHist(i)">
+          <span class="idx">{{ String(i+1).padStart(2,' ') }}</span>
+          <span class="hval">{{ fmtHex(it.word) }}</span>
+          <span class="hts">{{ histTs(it.ts) }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" :class="{ show: toastMsg }">{{ toastMsg }}</div>
+
   </div>
 </template>
 
@@ -397,181 +396,232 @@ export default { name: 'SmcOffsetView' };
 </script>
 
 <style scoped>
-/* ── Variables ────────────────────────────────────────────────────────────── */
+/* ── CSS Variables ─────────────────────────────────────────────────────── */
 .root {
-  --fg:     #e6e8ef;
-  --bg:     #0e1117;
-  --card:   #131826;
-  --input:  #161b2b;
-  --border: #2a3050;
-  --desc:   #98a0b8;
-  --accent: #7c8cf8;
-  --accent2:#4f6ef7;
-  --error:  #f87171;
-  --mono:   ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bg:          #0b0d12;
+  --bg-elev-1:   #0f1218;
+  --bg-elev-2:   #131826;
+  --bg-elev-3:   #171c2d;
+  --border:      #1e2240;
+  --border-s:    #2a3050;
+  --text:        #e6e8ef;
+  --text-mute:   #98a0b8;
+  --text-dim:    #5a6280;
+  --placeholder: #3a4470;
+  --accent:      #4f6ef7;
+  --accent-hi:   #6b87ff;
+  --accent-soft: rgba(79,110,247,0.12);
+  --ok:          #34d399;
+  --err:         #f06570;
+  --hue-func:    #f59e6b;
+  --hue-cmd:     #4f6ef7;
+  --hue-ms:      #a78bfa;
+  --hue-rw:      #34d399;
+  --hue-param:   #f5b454;
+  --radius:      6px;
+  --radius-lg:   10px;
+  --font-mono:   ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-sans:   ui-sans-serif, -apple-system, 'Helvetica Neue', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
   min-height: 100%;
-  padding: 24px 16px 40px;
-  color: var(--fg);
+  padding: 24px 24px 48px;
   background: var(--bg);
-  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 13px;
-}
-.container { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-
-/* ── Header ─────────────────────────────────────────────────────────────── */
-.hdr { display: flex; align-items: center; justify-content: space-between; }
-.title { font-size: 19px; font-weight: 700; color: var(--accent); }
-.btn-ghost {
-  display: flex; align-items: center; gap: 6px;
-  background: #1e2540; border: 1px solid var(--border);
-  color: var(--desc); border-radius: 6px; padding: 6px 12px;
-  cursor: pointer; font-size: 12px; transition: color .15s, border-color .15s;
-}
-.btn-ghost:hover, .btn-ghost.active { color: var(--accent); border-color: var(--accent); }
-.badge {
-  background: var(--accent2); color: #fff; font-size: 10px; font-weight: 700;
-  border-radius: 99px; padding: 1px 6px; min-width: 16px; text-align: center;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column; gap: 14px;
+  max-width: 1000px; margin: 0 auto;
 }
 
-/* ── History ─────────────────────────────────────────────────────────────── */
-.hist-panel {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 12px 16px;
-  animation: slide-down 0.15s ease;
-}
-@keyframes slide-down { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
-.hist-empty { color: var(--desc); text-align: center; padding: 8px 0; }
-.hist-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-.hist-row:last-of-type { border-bottom: none; }
-.hist-hex { font-family: var(--mono); color: var(--accent); min-width: 110px; }
-.hist-dec { font-family: var(--mono); color: var(--desc); flex: 1; }
-.hist-time { color: var(--desc); white-space: nowrap; }
-.hist-foot { text-align: right; padding-top: 8px; }
-.btn-mini {
-  font-size: 11px; padding: 2px 8px; border-radius: 4px;
-  background: #1e2540; color: var(--desc); border: 1px solid var(--border); cursor: pointer;
-}
-.btn-mini:hover { background: var(--accent2); color: #fff; border-color: var(--accent2); }
-.link-btn { font-size: 12px; color: var(--desc); text-decoration: underline; cursor: pointer; background: none; border: none; }
-.link-btn:hover { color: var(--error); }
+/* ── Page header ───────────────────────────────────────────────────────── */
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.page-head h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; letter-spacing: .01em; }
+.page-head .sub { color: var(--text-mute); font-size: 12.5px; max-width: 560px; }
+.head-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
-/* ── Offset card ─────────────────────────────────────────────────────────── */
-.offset-card {
-  background: var(--card); border: 2px solid var(--accent2);
-  border-radius: 10px; padding: 18px 20px;
+/* ── Shared buttons ────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px;
+  border-radius: var(--radius); border: 1px solid transparent;
+  font-size: 12.5px; font-family: inherit; cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s; user-select: none;
 }
-.offset-title { font-weight: 700; font-size: 13px; color: var(--accent); margin-bottom: 14px; }
-.offset-rows { display: flex; flex-direction: column; gap: 10px; }
-.offset-row { display: flex; align-items: center; gap: 10px; }
-.fmt-tag {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.5px; border-radius: 4px;
-  padding: 3px 7px; width: 36px; text-align: center; flex-shrink: 0;
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hi); }
+.btn-primary:disabled { background: #2a3050; color: var(--text-dim); cursor: not-allowed; }
+.btn-secondary { background: #1e2540; color: var(--text-mute); border-color: var(--border); }
+.btn-secondary:hover { color: var(--text); background: #232a4a; }
+.btn-ghost { background: transparent; color: var(--text-mute); border-color: var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--border-s); }
+.btn-xs { height: 22px; padding: 0 8px; font-size: 11px; }
+
+/* ── Section heading ───────────────────────────────────────────────────── */
+.section-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
+.sec-title {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  padding-left: 10px; position: relative;
 }
-.hex-tag { background: rgba(124,140,248,0.18); color: #7c8cf8; }
-.dec-tag { background: rgba(79,110,247,0.18);  color: #4f9ef7; }
+.sec-title::before { content:""; position:absolute; left:0; top:2px; bottom:2px; width:3px; border-radius:2px; background:var(--accent); }
+.sec-hint { font-size: 11.5px; color: var(--text-dim); font-family: var(--font-mono); }
+
+/* ── Offset bar ────────────────────────────────────────────────────────── */
+.offset-bar { background: var(--bg-elev-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.off-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: stretch; }
+@media (max-width: 700px) { .off-row { grid-template-columns: 1fr; } }
+
 .offset-input-wrap {
-  flex: 1; display: flex; align-items: center;
-  background: var(--input); border: 1px solid var(--border); border-radius: 6px;
-  transition: border-color .2s;
+  background: var(--bg); border: 1px solid var(--border-s); border-radius: var(--radius);
+  padding: 8px 12px; display: flex; flex-direction: column; gap: 4px;
+  transition: border-color .12s, box-shadow .12s;
 }
-.offset-input-wrap:focus-within { border-color: var(--accent2); }
-.prefix {
-  padding: 9px 8px 9px 12px; font-family: var(--mono); font-size: 14px;
-  color: var(--desc); border-right: 1px solid var(--border); user-select: none;
-}
-.offset-input {
-  flex: 1; padding: 9px 12px; background: transparent; border: none;
-  font-size: 16px; font-weight: 600; color: var(--fg); outline: none;
-}
-.offset-hint { margin-top: 12px; font-size: 11px; color: var(--desc); line-height: 1.5; }
+.offset-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.offset-input-wrap.invalid { border-color: var(--err); box-shadow: 0 0 0 3px rgba(240,101,112,.12); }
+.offset-input-wrap.synced { border-color: rgba(79,110,247,.4); }
+.oiw-tag { display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.08em; }
+.sync { font-size: 10px; color: var(--text-dim); }
+.offset-input-wrap.synced .sync { color: var(--accent); }
+.offset-input-wrap input { background:transparent; border:0; color:var(--text); font-family:var(--font-mono); font-size:19px; font-weight:600; padding:0; outline:none; width:100%; letter-spacing:.02em; }
+.offset-input-wrap input::placeholder { color: var(--placeholder); font-weight: 500; }
 
-/* ── Copy chip ───────────────────────────────────────────────────────────── */
-.copy-chip {
-  width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--input); color: var(--desc); cursor: pointer; font-size: 14px;
-  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  transition: background .15s, color .15s, border-color .15s;
-}
-.copy-chip:not(:disabled):hover { background: var(--accent2); color: #fff; border-color: var(--accent2); }
-.copy-chip.ok { background: #1a3828; color: #4ade80; border-color: #4ade80; }
-.copy-chip:disabled { opacity: 0.35; cursor: not-allowed; }
+.offset-actions { display: flex; align-items: stretch; }
+.split-btn { position: relative; display: flex; }
+.btn-copy { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.btn-fmt-arr { border-left: 1px solid rgba(255,255,255,.18); border-top-left-radius:0; border-bottom-left-radius:0; padding: 0 9px; }
+.fmt-menu { position:absolute; top:calc(100% + 4px); right:0; background:var(--bg-elev-2); border:1px solid var(--border-s); border-radius:var(--radius); padding:4px; box-shadow:0 10px 30px rgba(0,0,0,.55); min-width:220px; z-index:10; display:none; }
+.fmt-menu.open { display: block; }
+.fmt-item { padding:7px 10px; border-radius:4px; color:var(--text); font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; }
+.fmt-item:hover { background: var(--bg-elev-3); }
+.fmt-item.active::after { content:"✓"; color:var(--accent); margin-left:6px; }
+.fp { font-family:var(--font-mono); font-size:11px; color:var(--text-dim); }
+.fp-sm { font-family:var(--font-mono); font-size:11px; color:var(--text-dim); }
 
-/* ── 32-bit grid ─────────────────────────────────────────────────────────── */
-.bits-wrap { user-select: none; }
-.bits-row { display: flex; gap: 1px; }
+.offset-err { margin-top: 8px; min-height: 14px; font-size: 11.5px; color: var(--err); font-family: var(--font-mono); }
+
+/* ── Bitmap card ───────────────────────────────────────────────────────── */
+.bitmap-card { background: var(--bg-elev-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; }
+.bit-grid-scroll { overflow-x: auto; }
+.bit-grid {
+  display: grid;
+  grid-template-columns: repeat(32, minmax(20px, 1fr));
+  grid-template-rows: auto auto auto;
+  gap: 0; min-width: 680px;
+}
+.field-band {
+  padding: 4px 0; text-align: center; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  background: var(--hue-func); color: #07120c; border-radius: 4px 4px 0 0; margin-right: 2px;
+  line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.field-band:last-of-type { margin-right: 0; }
+.field-band.hue-func   { background: var(--hue-func); color: #07120c; }
+.field-band.hue-cmd    { background: var(--hue-cmd);  color: #fff; }
+.field-band.hue-ms     { background: var(--hue-ms);   color: #fff; font-size: 9px; padding: 4px 0; }
+.field-band.hue-rw     { background: var(--hue-rw);   color: #07120c; font-size: 9px; padding: 4px 0; }
+.field-band.hue-param  { background: var(--hue-param); color: #07120c; }
+.seg-info { font-family:var(--font-mono); font-size:9.5px; opacity:.7; margin-left:6px; }
+
 .bit-cell {
-  flex: 1 1 0; min-width: 0; height: 34px;
-  border-radius: 2px; display: flex; align-items: center; justify-content: center;
-  transition: opacity .25s;
+  height: 28px; border: 1px solid var(--border); background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-dim);
+  border-right: 0; transition: background .15s, color .15s, border-color .15s;
 }
-.bit-val { font-family: var(--mono); font-size: 11px; font-weight: 700; color: rgba(255,255,255,.95); line-height: 1; }
+.bit-cell.boundary { border-right: 1px solid var(--border-s); }
+.bit-cell:last-child { border-right: 1px solid var(--border); }
+.bit-cell.hue-func.on  { background: rgba(245,158,107,.22); border-color: rgba(245,158,107,.5); color: #ffd0ad; }
+.bit-cell.hue-cmd.on   { background: rgba(79,110,247,.22);  border-color: rgba(79,110,247,.5);  color: #b9c8ff; }
+.bit-cell.hue-ms.on    { background: rgba(167,139,250,.22); border-color: rgba(167,139,250,.5); color: #d8caff; }
+.bit-cell.hue-rw.on    { background: rgba(52,211,153,.22);  border-color: rgba(52,211,153,.5);  color: #9bf0c8; }
+.bit-cell.hue-param.on { background: rgba(245,180,84,.22);  border-color: rgba(245,180,84,.5);  color: #ffd99e; }
 
-/* Bit number row */
-.bit-nums { margin-top: 2px; height: 18px; gap: 1px; }
-.bit-num-cell { flex: 1 1 0; min-width: 0; height: 18px; position: relative; }
-.bit-num-label {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  font-size: 9px; font-family: var(--mono); color: var(--desc); white-space: nowrap; line-height: 1;
+.bit-pos { text-align:center; font-family:var(--font-mono); font-size:9.5px; color:var(--text-dim); padding-top:5px; }
+.bit-pos.boundary { color: var(--text-mute); font-weight: 700; }
+
+.legend { display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:11px; color:var(--text-mute); font-family:var(--font-mono); }
+.lchip { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:10px; height:10px; border-radius:2px; display:inline-block; }
+.sw-func  { background: var(--hue-func); }
+.sw-cmd   { background: var(--hue-cmd); }
+.sw-ms    { background: var(--hue-ms); }
+.sw-rw    { background: var(--hue-rw); }
+.sw-param { background: var(--hue-param); }
+
+/* ── Field cards ───────────────────────────────────────────────────────── */
+.fields-card { background: var(--bg-elev-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; }
+.fields-row { display: grid; gap: 12px; margin-bottom: 12px; }
+.fields-row:last-child { margin-bottom: 0; }
+.fields-row.r1 { grid-template-columns: 6fr 16fr; }
+.fields-row.r2 { grid-template-columns: 1fr 1fr 2fr; }
+@media (max-width: 700px) { .fields-row.r1, .fields-row.r2 { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg-elev-2); border: 1px solid var(--border); border-top: 2px solid transparent;
+  border-radius: var(--radius); padding: 12px 12px 10px;
+  transition: border-color .12s, background .12s; position: relative; min-width: 0;
 }
+.field-card:focus-within { background: var(--bg-elev-3); }
+.field-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:8px; }
+.field-label { font-size:12.5px; font-weight:600; color:var(--text); display:inline-flex; align-items:center; gap:6px; }
+.swatch { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.field-meta { font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); white-space:nowrap; }
 
-/* Field spans row */
-.field-spans { display: flex; margin-top: 6px; gap: 1px; }
-.field-span { display: flex; align-items: flex-start; justify-content: center; padding-top: 4px; min-width: 0; overflow: hidden; }
-.fspan-label { font-size: 10px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ── Fields card ─────────────────────────────────────────────────────────── */
-.fields-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px 20px;
+.field-input-wrap { display:flex; gap:6px; }
+.field-input {
+  flex:1; background:var(--bg); border:1px solid var(--border-s); border-radius:var(--radius);
+  color:var(--text); font-family:var(--font-mono); font-size:14px; font-weight:600;
+  padding:7px 10px; outline:none; transition:border-color .12s, box-shadow .12s; min-width:0;
 }
-.fields-title { font-weight: 700; font-size: 13px; color: var(--accent); margin-bottom: 14px; }
-.field-list { display: flex; flex-direction: column; gap: 14px; }
-
-.field-row { display: flex; align-items: flex-start; gap: 12px; }
-.field-swatch { width: 4px; border-radius: 2px; flex-shrink: 0; align-self: stretch; margin-top: 2px; }
-.field-meta { width: 140px; flex-shrink: 0; }
-.field-name { font-weight: 600; font-size: 13px; color: var(--fg); }
-.field-eng { font-size: 11px; color: var(--desc); margin-left: 6px; font-weight: 400; }
-.field-hint { font-size: 11px; color: var(--desc); margin-top: 2px; line-height: 1.4; }
-
-.field-input-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.hex-wrap {
-  display: flex; align-items: center;
-  background: var(--input); border: 1px solid var(--border); border-radius: 6px;
-  transition: border-color .2s;
+.field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.field-input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
+.field-input::placeholder { color: var(--placeholder); }
+.field-copy {
+  width:30px; height:32px; padding:0; border-radius:var(--radius);
+  background:transparent; border:1px solid var(--border); color:var(--text-dim);
+  cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:all .12s; font-family:inherit; font-size:14px;
 }
-.hex-wrap:focus-within { border-color: var(--accent2); }
-.hex-wrap.err { border-color: var(--error); }
-.hex-pfx { padding: 7px 6px 7px 10px; font-family: var(--mono); font-size: 13px; color: var(--desc); border-right: 1px solid var(--border); user-select: none; }
-.hex-inp { flex: 1; padding: 7px 10px; background: transparent; border: none; font-family: var(--mono); font-size: 13px; color: var(--fg); outline: none; text-transform: uppercase; min-width: 0; }
-.hex-inp::placeholder { color: var(--desc); text-transform: none; }
+.field-copy:hover:not(:disabled) { color:var(--text); border-color:var(--accent); background:var(--bg-elev-3); }
+.field-copy:disabled { opacity:.4; cursor:not-allowed; }
+.field-copy.copied { color: var(--ok); border-color: var(--ok); }
 
-.field-dec-row { display: flex; align-items: center; gap: 8px; min-height: 16px; }
-.field-dec-val { font-size: 11px; color: var(--desc); font-family: var(--mono); }
-.field-err { font-size: 11px; color: var(--error); }
+.field-foot { display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); min-height:14px; }
+.pair { display:inline-flex; gap:8px; }
+.pair span { display:inline-flex; }
+.pair span.muted .v, .pair span.muted .k { color: var(--placeholder); }
+.k { color:var(--text-dim); margin-right:2px; }
+.v { color:var(--text); }
+.semantic { color:var(--text-mute); font-style:italic; }
+.semantic.ferr { color:var(--err); font-style:normal; }
 
-.field-copy { margin-top: 3px; }
-
-/* ── Actions ─────────────────────────────────────────────────────────────── */
-.actions { display: flex; align-items: center; gap: 10px; }
-.btn-copy-all {
-  flex: 1;
-  padding: 11px 20px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer;
-  background: var(--accent2); border: none; color: #fff;
-  transition: background .15s, opacity .15s;
-  letter-spacing: 0.2px;
+/* ── History card ──────────────────────────────────────────────────────── */
+.history-card { background:var(--bg-elev-1); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px; }
+.hist-actions { display:flex; align-items:center; gap:8px; }
+.history-list { list-style:none; padding:0; margin:8px 0 0; display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:6px; }
+.history-empty { padding:16px 12px; text-align:center; color:var(--text-dim); font-size:12px; }
+.history-item {
+  display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center;
+  padding:6px 10px; background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius); cursor:pointer; transition:all .1s;
 }
-.btn-copy-all:not(:disabled):hover { background: #6b87ff; }
-.btn-copy-all:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-reset {
-  padding: 11px 18px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;
-  background: #1e2540; border: 1px solid var(--border); color: var(--desc);
-  transition: background .15s, color .15s;
-  flex-shrink: 0;
-}
-.btn-reset:hover { background: #2a1020; color: var(--error); border-color: var(--error); }
+.history-item:hover { border-color:var(--accent); background:var(--bg-elev-2); }
+.idx { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-align:right; }
+.hval { font-family:var(--font-mono); font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hts { font-size:10px; color:var(--text-dim); font-family:var(--font-mono); }
 
-/* ── Utilities ───────────────────────────────────────────────────────────── */
-.mono { font-family: var(--mono); }
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:#0a0c12; border:1px solid var(--border-s); color:var(--text);
+  padding:8px 14px; border-radius:6px; font-size:12px;
+  opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30;
+  box-shadow:0 10px 30px rgba(0,0,0,.55);
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-thumb { background:var(--border-s); border-radius:3px; }
+::-webkit-scrollbar-track { background:transparent; }
 </style>

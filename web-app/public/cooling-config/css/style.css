@@ -882,6 +882,33 @@ a { color: inherit; text-decoration: none; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* === Curve expanded chart === */
+.curve-expanded {
+  padding: 10px 0 6px 40px;
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.btn-curve-toggle {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 3px;
+  padding: 4px 9px;
+  font-size: 10.5px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.btn-curve-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.btn-curve-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* === Scrollbars === */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
