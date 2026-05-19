@@ -215,13 +215,16 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
 
     <!-- Page header -->
     <div class="page-head">
-      <div>
-        <h1>SMC 偏移量计算器</h1>
-        <div class="sub">32-bit 命令字 ↔ <b>功能码 · 命令码 · MS · RW · 参数</b> 双向同步。上方任一输入框、下方任一字段，编辑后整体即时联动。</div>
+      <div class="page-head-info">
+        <div class="page-head-line">
+          <h1 class="page-title">SMC 偏移量计算器</h1>
+          <span class="page-badge">32-bit · 双向</span>
+        </div>
+        <div class="page-sub">功能码 · 命令码 · MS · RW · 参数，任意字段编辑后整体即时联动</div>
       </div>
       <div class="head-actions">
         <button class="btn btn-ghost" @click="reset">重置</button>
-        <button class="btn btn-secondary" @click="loadSample">载入示例</button>
+        <button class="btn btn-secondary" @click="loadSample">示例</button>
       </div>
     </div>
 
@@ -424,7 +427,7 @@ export default { name: 'SmcOffsetView' };
   --font-sans:   ui-sans-serif, -apple-system, 'Helvetica Neue', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
   min-height: 100%;
-  padding: 24px 24px 48px;
+  padding: 20px 28px 48px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -432,14 +435,31 @@ export default { name: 'SmcOffsetView' };
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   display: flex; flex-direction: column; gap: 14px;
-  max-width: 1000px; margin: 0 auto;
+  max-width: 960px; margin: 0 auto; width: 100%; box-sizing: border-box;
+}
+@media (max-width: 800px) {
+  .root { padding: 14px 16px 48px; }
+}
+@media (max-width: 520px) {
+  .root { padding: 12px 12px 48px; }
 }
 
-/* ── Page header ───────────────────────────────────────────────────────── */
-.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.page-head h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; letter-spacing: .01em; }
-.page-head .sub { color: var(--text-mute); font-size: 12.5px; max-width: 560px; }
-.head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+/* ── Page header (unified style) ───────────────────────────────────────── */
+.page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+.page-head-info { min-width:0; }
+.page-head-line { display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+.page-title { font-size:16px; font-weight:600; margin:0; letter-spacing:.01em; color:var(--text); }
+.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.3); border-radius:4px; padding:2px 8px; white-space:nowrap; }
+.page-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
+.head-actions { display:flex; gap:8px; flex-shrink:0; align-items:flex-start; }
+@media (max-width:640px) {
+  .page-head { flex-direction:column; gap:10px; }
+  .head-actions { width:100%; }
+  .fields-row.r1 { grid-template-columns: 1fr; }
+  .fields-row.r2 { grid-template-columns: 1fr 1fr; }
+  .off-row { grid-template-columns: 1fr; }
+  .history-list { grid-template-columns: 1fr; }
+}
 
 /* ── Shared buttons ────────────────────────────────────────────────────── */
 .btn {
@@ -471,7 +491,6 @@ export default { name: 'SmcOffsetView' };
 /* ── Offset bar ────────────────────────────────────────────────────────── */
 .offset-bar { background: var(--bg-elev-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
 .off-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: stretch; }
-@media (max-width: 700px) { .off-row { grid-template-columns: 1fr; } }
 
 .offset-input-wrap {
   background: var(--bg); border: 1px solid var(--border-s); border-radius: var(--radius);
@@ -555,7 +574,6 @@ export default { name: 'SmcOffsetView' };
 .fields-row:last-child { margin-bottom: 0; }
 .fields-row.r1 { grid-template-columns: 6fr 16fr; }
 .fields-row.r2 { grid-template-columns: 1fr 1fr 2fr; }
-@media (max-width: 700px) { .fields-row.r1, .fields-row.r2 { grid-template-columns: 1fr; } }
 
 .field-card {
   background: var(--bg-elev-2); border: 1px solid var(--border); border-top: 2px solid transparent;

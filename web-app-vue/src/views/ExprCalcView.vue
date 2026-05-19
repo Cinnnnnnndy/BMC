@@ -342,19 +342,31 @@ const histOpen = ref(false);
 <template>
   <div class="root" @click="histOpen=false">
 
+    <!-- Page header -->
+    <div class="page-head">
+      <div class="page-head-info">
+        <div class="page-head-line">
+          <h1 class="page-title">批量表达式计算器</h1>
+          <span class="page-badge">管道 · 调试 · 验证</span>
+        </div>
+        <div class="page-sub">管道表达式实时调试，$N 参数绑定，第 4 阶段支持批量用例 CSV 导入对比</div>
+      </div>
+    </div>
+
     <!-- ══ Phase 1: 管道表达式 ══════════════════════════════════════════════ -->
     <div class="phase">
       <div class="phase-head">
         <span class="phase-num">1</span>
-        <div>
+        <div class="phase-head-body">
           <div class="phase-title">管道表达式</div>
-          <div class="phase-sub">由输入变量 $N 和 | 分隔的操作符组成。在下方面板点击任意操作符以追加到当前光标位置。</div>
+          <div class="phase-sub">由输入变量 $N 和 | 分隔的操作符组成。在下方面板点击任意操作符追加到当前光标位置。</div>
         </div>
-        <div style="flex:1"></div>
         <span class="phase-status">{{ ph1Status }}</span>
         <!-- History -->
         <div class="hist-wrap" @click.stop>
-          <button class="btn-ghost" @click="histOpen=!histOpen; loadHistory()">🕐 历史</button>
+          <button class="btn-ghost btn-hist" @click="histOpen=!histOpen; loadHistory()">
+            <span class="hist-icon">🕐</span> 历史
+          </button>
           <div v-if="histOpen" class="hist-drop">
             <div class="hist-hdr">最近表达式</div>
             <div v-if="!historyList.length" class="hist-empty">暂无历史</div>
@@ -638,14 +650,20 @@ export default { name: 'ExprCalcView' };
   --font-sans:   ui-sans-serif, -apple-system, 'Helvetica Neue', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
   min-height: 100%;
-  padding: 24px 24px 48px;
+  padding: 20px 28px 48px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 13px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   display: flex; flex-direction: column; gap: 14px;
-  max-width: 1000px; margin: 0 auto;
+  max-width: 960px; margin: 0 auto; width: 100%; box-sizing: border-box;
+}
+@media (max-width: 800px) {
+  .root { padding: 14px 16px 48px; }
+}
+@media (max-width: 520px) {
+  .root { padding: 12px 12px 48px; }
 }
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
@@ -665,6 +683,14 @@ export default { name: 'ExprCalcView' };
 .btn-ghost-sm { background:transparent; color:var(--text-dim); border:1px solid var(--border); border-radius:var(--radius); padding:0 10px; cursor:pointer; font-size:12px; font-family:inherit; height:38px; white-space:nowrap; }
 .btn-ghost-sm:hover { color:var(--text); border-color:var(--border-s); }
 
+/* ── Page header ───────────────────────────────────────────────────────── */
+.page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+.page-head-info { min-width:0; }
+.page-head-line { display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+.page-title { font-size:16px; font-weight:600; margin:0; letter-spacing:.01em; color:var(--text); }
+.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.3); border-radius:4px; padding:2px 8px; white-space:nowrap; }
+.page-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
+
 /* ── Phase frame ───────────────────────────────────────────────────────── */
 .phase {
   background:var(--bg-elev-1); border:1px solid var(--border); border-radius:var(--radius-lg);
@@ -674,11 +700,14 @@ export default { name: 'ExprCalcView' };
 .phase.done { border-color: rgba(52,211,153,.25); }
 .phase.phase-error { border-color: rgba(240,101,112,.25); }
 
-.phase-head { display:grid; grid-template-columns:32px 1fr auto; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-.phase-head > *:nth-child(3) { /* status */ }
+/* ← KEY FIX: flex not grid — ensures hist-wrap never falls into a narrow column */
+.phase-head {
+  display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;
+}
+.phase-head-body { flex:1; min-width:0; }
 
 .phase-num {
-  width:26px; height:26px; border-radius:50%;
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
   background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.4);
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-mono); font-size:13px; font-weight:700;
@@ -688,8 +717,22 @@ export default { name: 'ExprCalcView' };
 
 .phase-title { font-size:13.5px; font-weight:600; color:var(--text); }
 .phase-sub { font-size:11.5px; color:var(--text-dim); margin-top:1px; }
-.phase-status { font-size:11px; color:var(--text-dim); font-family:var(--font-mono); grid-column:3; }
+.phase-status { font-size:11px; color:var(--text-dim); font-family:var(--font-mono); margin-left:auto; white-space:nowrap; }
 .ph4-sub { font-size:11.5px; color:var(--text-dim); font-weight:400; }
+
+/* history button compact */
+.btn-hist { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.hist-icon { font-size:13px; line-height:1; }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width:640px) {
+  .phase { padding:12px 14px; }
+  .page-head { flex-direction:column; gap:8px; }
+  .input-row { grid-template-columns:44px 1fr; }
+  .input-row .lbl-input { grid-column:1/-1; width:100%; }
+  .tc-toolbar { flex-wrap:wrap; }
+  .off-row { grid-template-columns:1fr; }
+}
 
 /* ── Expression input ──────────────────────────────────────────────────── */
 .expr-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:14px; }

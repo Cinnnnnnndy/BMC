@@ -127,11 +127,6 @@ const activeTab = ref<TabId>(initialTab());
 </style>
 
 <style>
-/* Global: non-topology views need vertical scroll */
-.smc-root,
-.expr-root {
-  overflow-y: auto;
-  height: 100%;
-  box-sizing: border-box;
-}
+/* Non-topology tool views need vertical scroll within view-area */
+.view-area > div { overflow-y: auto; height: 100%; }
 </style>
