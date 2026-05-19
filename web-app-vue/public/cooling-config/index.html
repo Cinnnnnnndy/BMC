@@ -66,20 +66,22 @@
       <div class="form-pane">
         <div class="form-pane-inner">
 
-          <!-- Sticky quick-nav -->
-          <div class="quick-nav" id="quick-nav"></div>
-
-          <div class="step-flow" style="margin-top:2px;">
-            <span>① 全局</span><span class="arrow">→</span>
-            <span>② 温度点</span><span class="arrow">→</span>
-            <span>③ 调速风扇</span><span class="arrow">→</span>
-            <span>④ 调速策略</span><span class="arrow">→</span>
-            <span>⑤ 绑定区域</span><span class="arrow">→</span>
-            <span>⑥ 风扇类型</span><span class="arrow">·</span>
-            <span>⑦ 异常风扇</span><span class="arrow">·</span>
-            <span>⑧ 风扇组</span>
-            <span style="flex:1"></span>
-            <span style="color:var(--text-dim);">先定义，再绑定</span>
+          <!-- Sticky bar: step-flow + collapsible entity nav -->
+          <div class="sticky-bar" id="sticky-bar">
+            <div class="step-flow">
+              <span>① 全局</span><span class="arrow">→</span>
+              <span>② 温度点</span><span class="arrow">→</span>
+              <span>③ 调速风扇</span><span class="arrow">→</span>
+              <span>④ 调速策略</span><span class="arrow">→</span>
+              <span>⑤ 绑定区域</span><span class="arrow">→</span>
+              <span>⑥ 风扇类型</span><span class="arrow">·</span>
+              <span>⑦ 异常风扇</span><span class="arrow">·</span>
+              <span>⑧ 风扇组</span>
+              <span style="flex:1"></span>
+              <span class="step-hint">先定义，再绑定</span>
+              <button class="nav-toggle" id="nav-toggle" title="展开/收起导航面板">▾</button>
+            </div>
+            <div class="quick-nav" id="quick-nav"></div>
           </div>
 
           <!-- (1) Global -->

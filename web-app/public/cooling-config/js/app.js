@@ -73,6 +73,7 @@ const state = {
     focusedArea:    1,
     activeRow:      null,
     expandedCurves: [],   // policy IDs with curve chart expanded
+    navCollapsed:   false, // entity nav panel collapsed state
   },
 };
 
@@ -88,16 +89,17 @@ function esc(s) {
    ================================================================== */
 function renderQuickNav() {
   const host = document.getElementById('quick-nav');
+  const collapsed = state.ui.navCollapsed;
   const groups = [
-    { key: 'temp',       label: '温度点', items: state.temps       },
-    { key: 'fan',        label: '调速风扇', items: state.fans      },
-    { key: 'policy',     label: '策略',   items: state.policies    },
-    { key: 'area',       label: '区域',   items: state.areas       },
-    { key: 'fantype',    label: '风扇类型', items: state.fanTypes  },
-    { key: 'abnormal',   label: '异常风扇', items: state.abnormalFans },
-    { key: 'fangroup',   label: '风扇组',  items: state.fanGroups  },
+    { key: 'temp',       label: '温度点',  items: state.temps         },
+    { key: 'fan',        label: '调速风扇', items: state.fans          },
+    { key: 'policy',     label: '策略',    items: state.policies       },
+    { key: 'area',       label: '区域',    items: state.areas          },
+    { key: 'fantype',    label: '风扇类型', items: state.fanTypes      },
+    { key: 'abnormal',   label: '异常风扇', items: state.abnormalFans  },
+    { key: 'fangroup',   label: '风扇组',  items: state.fanGroups      },
   ];
-  host.innerHTML = groups.map(g => `
+  host.innerHTML = `<div class="qn-rows">${groups.map(g => `
     <div class="qn-row">
       <span class="qn-label">${g.label} <b>${g.items.length}</b></span>
       <div class="qn-pills">
@@ -107,15 +109,41 @@ function renderQuickNav() {
         <button class="qn-add" data-add="${g.key}">+ 新增</button>
       </div>
     </div>
-  `).join('');
+  `).join('')}</div>`;
+
+  // Apply collapsed state
+  if (collapsed) host.classList.add('nav-collapsed');
+  else host.classList.remove('nav-collapsed');
+
   host.querySelectorAll('.qn-pill').forEach(el => el.addEventListener('click', () => jumpTo(el.dataset.jump)));
   host.querySelectorAll('.qn-add').forEach(el => el.addEventListener('click', () => addEntity(el.dataset.add)));
+
+  // Bind toggle button (in static HTML)
+  const toggle = document.getElementById('nav-toggle');
+  if (toggle) {
+    toggle.classList.toggle('nav-closed', collapsed);
+    toggle.onclick = () => {
+      state.ui.navCollapsed = !state.ui.navCollapsed;
+      renderQuickNav();
+      // re-measure after CSS transition finishes (0.22s)
+      setTimeout(updateStickyHeight, 240);
+    };
+  }
+  updateStickyHeight();
+}
+
+function updateStickyHeight() {
+  const bar = document.getElementById('sticky-bar');
+  if (!bar) return;
+  const h = bar.getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--sticky-h', h + 10 + 'px');
 }
 
 function jumpTo(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  updateStickyHeight();   // ensure --sticky-h is current before scroll
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   el.classList.add('active');
   setTimeout(() => el.classList.remove('active'), 1400);
   state.ui.activeRow = id;
