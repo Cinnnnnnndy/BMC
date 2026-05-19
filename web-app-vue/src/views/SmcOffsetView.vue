@@ -17,7 +17,7 @@ const decInput  = ref('0');
 const fieldVals = ref<Record<FieldKey, string>>({ fn: '', cmd: '', ms: '', rw: '', param: '' });
 const fieldErrs = ref<Record<FieldKey, string>>({ fn: '', cmd: '', ms: '', rw: '', param: '' });
 const resultOk  = ref(false);
-const copied    = ref<'all-hex' | 'all-dec' | FieldKey | null>(null);
+const copied    = ref<'all-hex' | 'all-dec' | 'all' | FieldKey | null>(null);
 
 // prevent feedback loops
 let _syncing = false;
@@ -148,7 +148,8 @@ const fieldDec = computed<Record<FieldKey, string>>(() => {
 });
 
 // ── Copy helpers ─────────────────────────────────────────────────────────────
-async function doCopy(text: string, id: 'all-hex' | 'all-dec' | FieldKey) {
+type CopyId = 'all-hex' | 'all-dec' | 'all' | FieldKey;
+async function doCopy(text: string, id: CopyId) {
   await navigator.clipboard.writeText(text);
   copied.value = id;
   setTimeout(() => { if (copied.value === id) copied.value = null; }, 1500);
@@ -166,6 +167,20 @@ function copyField(key: FieldKey) {
   if (!hex) return;
   const dec = fieldDec.value[key];
   doCopy(`0x${hex.toUpperCase()} (${dec})`, key);
+}
+function copyAll() {
+  if (!resultOk.value) return;
+  const lines: string[] = [
+    `偏移量: 0x${hexInput.value.toUpperCase()} (${decInput.value})`,
+    '',
+    ...FIELDS.map(f => {
+      const hex = fieldVals.value[f.key];
+      const dec = fieldDec.value[f.key];
+      return `${f.eng.padEnd(10)} ${f.label.padEnd(6)} [${f.msb}:${f.lsb}]  0x${hex.toUpperCase().padStart(f.maxLen, '0')}  (${dec})`;
+    }),
+  ];
+  doCopy(lines.join('\n'), 'all');
+  pushHistory();
 }
 
 // ── Reset ────────────────────────────────────────────────────────────────────
@@ -362,6 +377,14 @@ onMounted(() => { loadHistory(); });
 
       <!-- ── Bottom actions ─────────────────────────────────────────────── -->
       <div class="actions">
+        <button
+          class="btn-copy-all"
+          :disabled="!resultOk"
+          @click="copyAll"
+        >
+          <span v-if="copied === 'all'">✅ 已复制全部</span>
+          <span v-else>⎘ 复制全部结果</span>
+        </button>
         <button class="btn-reset" @click="reset">✕ 重置</button>
       </div>
 
@@ -531,11 +554,21 @@ export default { name: 'SmcOffsetView' };
 .field-copy { margin-top: 3px; }
 
 /* ── Actions ─────────────────────────────────────────────────────────────── */
-.actions { display: flex; justify-content: flex-end; }
+.actions { display: flex; align-items: center; gap: 10px; }
+.btn-copy-all {
+  flex: 1;
+  padding: 11px 20px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer;
+  background: var(--accent2); border: none; color: #fff;
+  transition: background .15s, opacity .15s;
+  letter-spacing: 0.2px;
+}
+.btn-copy-all:not(:disabled):hover { background: #6b87ff; }
+.btn-copy-all:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn-reset {
-  padding: 9px 20px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer;
+  padding: 11px 18px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;
   background: #1e2540; border: 1px solid var(--border); color: var(--desc);
   transition: background .15s, color .15s;
+  flex-shrink: 0;
 }
 .btn-reset:hover { background: #2a1020; color: var(--error); border-color: var(--error); }
 
