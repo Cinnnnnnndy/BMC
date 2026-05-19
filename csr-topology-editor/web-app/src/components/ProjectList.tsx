@@ -330,6 +330,93 @@ function VueTopoThumb() {
   );
 }
 
+function SmcOffsetThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a0d18" />
+      <rect x="8" y="8" width="144" height="26" rx="3" fill="#0f1a3a" stroke="#4f6ef7" strokeWidth="1" strokeOpacity="0.7" />
+      <text x="80" y="18" textAnchor="middle" fontSize="6" fill="#7c8cf8" fontFamily="monospace" opacity="0.7">32-bit 偏移量</text>
+      <text x="80" y="28" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#7c8cf8" fontFamily="monospace">0x0C020101</text>
+      <text x="80" y="44" textAnchor="middle" fontSize="10" fill="#4a5080" fontFamily="monospace">⇅</text>
+      {[
+        { x: 8,   y: 48, w: 60, label: 'Function', val: '0x0C', color: '#f59e6b' },
+        { x: 76,  y: 48, w: 76, label: 'Command',  val: '0x0080', color: '#4f6ef7' },
+        { x: 8,   y: 72, w: 36, label: 'MS',       val: '0x0', color: '#a78bfa' },
+        { x: 48,  y: 72, w: 36, label: 'RW',       val: '0x1', color: '#34d399' },
+        { x: 88,  y: 72, w: 64, label: 'Param',    val: '0x01', color: '#f5b454' },
+      ].map(({ x, y, w, label, val, color }, i) => (
+        <g key={i}>
+          <rect x={x} y={y} width={w} height="18" rx="2" fill="#0f1a3a" stroke={color} strokeWidth="0.8" strokeOpacity="0.6" />
+          <text x={x + 3} y={y + 7} fontSize="4.5" fill="#98a0b8" fontFamily="sans-serif">{label}</text>
+          <text x={x + 3} y={y + 15} fontSize="6" fill={color} fontFamily="monospace">{val}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function ExprCalcThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a0d18" />
+      <rect x="8" y="8" width="144" height="14" rx="2" fill="#131826" stroke="#2a3050" strokeWidth="0.7" />
+      <text x="14" y="18" fontSize="6.5" fill="#7c8cf8" fontFamily="monospace">$1 | add $2 | toHex 8</text>
+      {[
+        { y: 28, n: '①', op: '$1  = 255', color: '#4f6ef7', val: 'int · 255' },
+        { y: 42, n: '②', op: 'add 16',   color: '#4f6ef7', val: 'int · 271' },
+        { y: 56, n: '③', op: 'toHex 8',  color: '#f5b454', val: '"0x0000010f"' },
+      ].map(({ y, n, op, color, val }, i) => (
+        <g key={i}>
+          {i > 0 && <line x1="22" y1={y - 2} x2="22" y2={y} stroke="#2a3050" strokeWidth="0.8" />}
+          <rect x="8" y={y} width="144" height="12" rx="2" fill="#131826" stroke={color} strokeWidth="0.6" strokeOpacity="0.5" />
+          <circle cx="16" cy={y + 6} r="4" fill={color} fillOpacity="0.2" stroke={color} strokeWidth="0.6" />
+          <text x="16" y={y + 8.5} textAnchor="middle" fontSize="5" fill={color} fontFamily="monospace">{n}</text>
+          <text x="26" y={y + 8} fontSize="6" fill="#c4cadc" fontFamily="monospace">{op}</text>
+          <text x="145" y={y + 8} textAnchor="end" fontSize="5.5" fill="#6b7498" fontFamily="monospace">{val}</text>
+        </g>
+      ))}
+      <rect x="8" y="74" width="144" height="18" rx="2" fill="rgba(79,110,247,0.12)" stroke="#4f6ef7" strokeWidth="0.8" strokeOpacity="0.5" />
+      <text x="14" y="82" fontSize="5" fill="#7c8cf8" fontFamily="monospace" opacity="0.8">最终结果</text>
+      <text x="14" y="88" fontSize="8" fontWeight="bold" fill="#c4cadc" fontFamily="monospace">"0x0000010f"</text>
+    </svg>
+  );
+}
+
+function CoolingConfigThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a100e" />
+      <rect x="0" y="0" width="160" height="14" fill="#0d1a16" />
+      <text x="8" y="10" fontSize="6.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">能效调速配置编辑器</text>
+      <line x1="68" y1="14" x2="68" y2="100" stroke="#1a2a22" strokeWidth="0.8" />
+      <text x="4" y="22" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_config:</text>
+      <text x="4" y="29" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  smart_cooling:</text>
+      <text x="4" y="36" fontSize="5" fill="#34d399" fontFamily="monospace">    Enabled</text>
+      <text x="4" y="43" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  fan_board: 1</text>
+      <text x="4" y="50" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_req:</text>
+      <text x="4" y="57" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  - id: 1</text>
+      <text x="4" y="64" fontSize="5" fill="#4a8a6a" fontFamily="monospace">    temp: 35</text>
+      <text x="72" y="22" fontSize="5.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">全局配置</text>
+      {[
+        { y: 26, label: '槽位号', val: '1' },
+        { y: 38, label: '调速模式', val: 'EnergySaving' },
+        { y: 50, label: '风扇板数量', val: '1' },
+        { y: 62, label: '初始转速', val: '100%' },
+      ].map(({ y, label, val }, i) => (
+        <g key={i}>
+          <text x="72" y={y + 7} fontSize="4.5" fill="#6b8a78" fontFamily="sans-serif">{label}</text>
+          <rect x="72" y={y + 9} width="82" height="7" rx="1" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+          <text x="76" y={y + 15} fontSize="4.5" fill="#a7d9c2" fontFamily="monospace">{val}</text>
+        </g>
+      ))}
+      <rect x="70" y="76" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#34d399" strokeWidth="0.6" strokeOpacity="0.4" />
+      <text x="74" y="82" fontSize="4.5" fill="#34d399" fontFamily="sans-serif">① 全局 → ② 温度点 → ③ 调速风扇</text>
+      <rect x="70" y="87" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+      <text x="74" y="93" fontSize="4.5" fill="#6b8a78" fontFamily="sans-serif">④ 调速策略 → ⑤ 绑定区域</text>
+    </svg>
+  );
+}
+
 const VIEW_ENTRIES: ViewEntry[] = [
   {
     id: 'threeD',
@@ -402,6 +489,30 @@ const VIEW_ENTRIES: ViewEntry[] = [
     accent: '#e879f9',
     bg: '#09090e',
     thumb: <VueTopoThumb />,
+  },
+  {
+    id: 'smcOffset',
+    name: 'SMC 偏移量计算器',
+    desc: '功能码/命令码/参数字段编解码，十进制与十六进制互转',
+    accent: '#7c8cf8',
+    bg: '#0a0d18',
+    thumb: <SmcOffsetThumb />,
+  },
+  {
+    id: 'exprCalc',
+    name: '批量表达式计算器',
+    desc: '管道表达式实时调试 + 批量用例对比验证',
+    accent: '#4f6ef7',
+    bg: '#0a0d18',
+    thumb: <ExprCalcThumb />,
+  },
+  {
+    id: 'coolingConfig',
+    name: '能效调速配置模板',
+    desc: 'YAML 可视化编辑，生成 CSR Objects 片段',
+    accent: '#34d399',
+    bg: '#0a100e',
+    thumb: <CoolingConfigThumb />,
   },
 ];
 
