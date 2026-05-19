@@ -304,8 +304,11 @@ export default function App() {
   }
 
   if (showSmcOffset || showExprCalc || showCoolingConfig) {
-    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-    const vueSrc = base.endsWith('/') ? base + 'vue-topo/index.html' : base + '/vue-topo/index.html';
+    const base = (import.meta as { env?: { BASE_URL?: string; VITE_BUILD_TIME?: string } }).env?.BASE_URL || '/';
+    const buildV = (import.meta as { env?: { VITE_BUILD_TIME?: string } }).env?.VITE_BUILD_TIME || '0';
+    const vueTopo = base.endsWith('/') ? base + 'vue-topo/index.html' : base + '/vue-topo/index.html';
+    // ?v= busts browser/CDN cache on each deploy (VITE_BUILD_TIME injected by CI)
+    const vueSrc = `${vueTopo}?v=${buildV}`;
     const tab = showSmcOffset ? 'smc' : showExprCalc ? 'expr' : 'cooling';
     const labels: Record<string, string> = {
       smc:     'SMC 偏移量计算器',
