@@ -347,6 +347,9 @@ export const PSU_PARTS: CatalogPart[] = [
     baseColor: '#1e2026',
     metalness: 0.60,
     roughness: 0.60,
+    // HP PSU STEP exports with its long axis along X (238mm); rotate 90° about Y
+    // so the long axis runs front→back (Z) to seat correctly in the rear bay.
+    modelRotationDeg: [0, 90, 0],
     description: '900W AC-DC，1+1 热插拔冗余，效率 96%（Titanium），PMBus I2C 监控，AC 100-240V 宽压。',
   },
   {

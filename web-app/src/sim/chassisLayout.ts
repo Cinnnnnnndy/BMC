@@ -84,8 +84,8 @@ const LAYOUT: Record<string, LinkSpec> = {
 
   // ── ZONE 4: rear (y ≈ 28 → 38) ──────────────────────────────────────────
   // PSUs: long bricks at rear-right
-  psu_0: { catalogId: 'psu-delta-dps800ab-800w', grid: { x: 10.8, y: 28.5, z: 0 } },
-  psu_1: { catalogId: 'psu-delta-dps800ab-800w', grid: { x: 14.8, y: 28.5, z: 0 } },
+  psu_0: { catalogId: 'psu-huawei-900w-hot-swap', grid: { x: 10.8, y: 28.5, z: 0 } },
+  psu_1: { catalogId: 'psu-huawei-900w-hot-swap', grid: { x: 14.8, y: 28.5, z: 0 } },
   // PCIe risers (vertical cards) + OCP NIC at rear-left
   riser_0: { catalogId: 'riser-pcie4-x16-fhhl', grid: { x: 0.5, y: 29.5, z: 0 } },
   riser_1: { catalogId: 'riser-pcie4-x16-fhhl', grid: { x: 6.0, y: 29.5, z: 0 } },
