@@ -15,7 +15,7 @@ export function SimView() {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: '#05080f',
+        background: '#dde8f2',
         fontFamily: 'system-ui, -apple-system, sans-serif',
         overflow: 'hidden',
       }}
@@ -29,8 +29,8 @@ export function SimView() {
             position: 'relative',
             overflow: 'hidden',
             minWidth: 0,
-            /* Blueprint card frame: inset blue glow border */
-            boxShadow: 'inset 0 0 0 1px rgba(58,111,216,0.25)',
+            /* Light-mode frame: subtle inset border */
+            boxShadow: 'inset 0 0 0 1px rgba(140,170,210,0.20)',
           }}
         >
           <IsoCanvas />
@@ -50,10 +50,10 @@ export function SimView() {
               gap: 6,
               padding: '4px 14px',
               borderRadius: 20,
-              background: 'rgba(5,8,15,0.70)',
-              border: '1px solid rgba(58,111,216,0.35)',
+              background: 'rgba(255,255,255,0.60)',
+              border: '1px solid rgba(140,170,200,0.40)',
               backdropFilter: 'blur(6px)',
-              color: 'rgba(140,180,255,0.75)',
+              color: 'rgba(60,90,130,0.80)',
               fontSize: 11,
               fontWeight: 500,
               letterSpacing: '0.06em',
@@ -66,10 +66,10 @@ export function SimView() {
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d4a030', opacity: 0.9 }} />
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3bb86e', opacity: 0.9 }} />
             </span>
-            <span style={{ color: 'rgba(160,200,255,0.6)', margin: '0 2px' }}>·</span>
+            <span style={{ color: 'rgba(100,130,170,0.6)', margin: '0 2px' }}>·</span>
             <span>3D</span>
-            <span style={{ color: 'rgba(90,130,220,0.6)' }}>·</span>
-            <span style={{ color: 'rgba(160,200,255,0.55)' }}>openUBMC</span>
+            <span style={{ color: 'rgba(100,130,170,0.5)' }}>·</span>
+            <span style={{ color: 'rgba(80,110,150,0.65)' }}>openUBMC</span>
           </div>
 
           {/* Catalog toggle button — top-left overlay */}
@@ -86,9 +86,9 @@ export function SimView() {
               gap: 6,
               padding: '6px 12px',
               borderRadius: 8,
-              border: `1px solid ${catalogOpen ? 'rgba(58,111,216,0.55)' : 'rgba(58,111,216,0.20)'}`,
-              background: catalogOpen ? 'rgba(40,80,180,0.18)' : 'rgba(5,8,15,0.82)',
-              color: catalogOpen ? '#5b9cf6' : 'rgba(130,170,240,0.75)',
+              border: `1px solid ${catalogOpen ? 'rgba(80,120,180,0.50)' : 'rgba(120,150,190,0.30)'}`,
+              background: catalogOpen ? 'rgba(200,220,245,0.80)' : 'rgba(255,255,255,0.70)',
+              color: catalogOpen ? '#2a5a9a' : 'rgba(60,90,140,0.80)',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
@@ -106,7 +106,7 @@ export function SimView() {
               position: 'absolute',
               inset: 0,
               pointerEvents: 'none',
-              background: 'radial-gradient(ellipse at 50% 110%, rgba(30,60,140,0.18) 0%, transparent 65%)',
+              background: 'radial-gradient(ellipse at 50% 110%, rgba(160,185,210,0.12) 0%, transparent 65%)',
               zIndex: 1,
             }}
           />

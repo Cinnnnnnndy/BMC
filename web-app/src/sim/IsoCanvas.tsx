@@ -266,10 +266,10 @@ function StatusOutline({
       mat.opacity = 0.4 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2));
     }
   });
-  const idleOpacity = isSelected ? 0.85 : (effStatus === 'error' || effStatus === 'warning') ? 0.85 : 0.30;
+  const idleOpacity = isSelected ? 0.85 : (effStatus === 'error' || effStatus === 'warning') ? 0.85 : 0.22;
   const idleColor   = isSelected || effStatus === 'error' || effStatus === 'warning'
     ? outlineColor(isSelected, effStatus)
-    : '#2a5cbe';
+    : '#6888a4';
   return (
     <lineSegments ref={outRef} geometry={geo}>
       <lineBasicMaterial color={idleColor} transparent opacity={idleOpacity} />
@@ -2019,18 +2019,18 @@ function CameraResetHandler() {
   return null;
 }
 
-// ─── Scene lights (blueprint-atmosphere edition) ─────────────────────────
+// ─── Scene lights (light-mode edition) ───────────────────────────────────
 function SceneLights() {
   return (
     <>
-      {/* 1. Ambient — cool blue data-centre base */}
-      <ambientLight intensity={0.45} color="#7aaae8" />
+      {/* 1. Ambient — bright diffuse base for light background */}
+      <ambientLight intensity={0.72} color="#f0f4ff" />
 
-      {/* 2. Main key light — crisp overhead with blue-white tint */}
+      {/* 2. Main key light — warm-white overhead */}
       <directionalLight
         position={[15, 28, 12]}
-        intensity={1.2}
-        color="#d0e4ff"
+        intensity={1.1}
+        color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={FOG_FAR + 40}
@@ -2041,25 +2041,25 @@ function SceneLights() {
         shadow-bias={-0.001}
       />
 
-      {/* 3. Deep blue fill — gives holographic depth to back faces */}
+      {/* 3. Cool fill — soft blue-grey from behind/left */}
       <directionalLight
         position={[-12, 8, -10]}
-        intensity={0.55}
-        color="#2248a0"
+        intensity={0.30}
+        color="#c8d8f0"
       />
 
-      {/* 4. Front rim — picks out IO details */}
+      {/* 4. Front rim — slight warm fill to lift front panels */}
       <directionalLight
         position={[0, 2, 20]}
-        intensity={0.22}
-        color="#3d6ab8"
+        intensity={0.18}
+        color="#e8eef8"
       />
 
-      {/* 5. Floor bounce — blue glow from beneath, blueprint feel */}
-      <pointLight position={[0, -2, 0]} intensity={0.25} color="#1a3060" />
+      {/* 5. Floor bounce — very soft upward fill */}
+      <pointLight position={[0, -2, 0]} intensity={0.12} color="#d0dce8" />
 
-      {/* 6. Accent — subtle cyan edge highlight from upper-right */}
-      <directionalLight position={[6, 5, 22]} intensity={0.12} color="#4488cc" />
+      {/* 6. Secondary accent */}
+      <directionalLight position={[6, 5, 22]} intensity={0.08} color="#dce8f4" />
     </>
   );
 }
@@ -2130,7 +2130,7 @@ function ServerChassis() {
   return (
     <group position={[0, 1.65, -1]}>
       <lineSegments geometry={geo}>
-        <lineBasicMaterial color="#3a6fd8" opacity={0.65} transparent />
+        <lineBasicMaterial color="#7a9abe" opacity={0.40} transparent />
       </lineSegments>
     </group>
   );
@@ -2186,12 +2186,12 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       <ServerChassis />
 
       {/* ── Ground — subtle grid matching reference dark style ── */}
-      {/* Blueprint floor grid — visible cyan/blue lines like the card */}
-      <gridHelper args={[80, 60, '#1e4080', '#0d1e3c']} position={[0, -0.02, 0]} />
+      {/* Light-style floor grid — extends to horizon, fills entire canvas */}
+      <gridHelper args={[600, 300, '#b0c4d6', '#c8d6e2']} position={[0, -0.02, 0]} />
       {/* Shadow-receiving floor plane (invisible, only catches shadows) */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
         <planeGeometry args={[60, 60]} />
-        <shadowMaterial transparent opacity={0.38} />
+        <shadowMaterial transparent opacity={0.22} />
       </mesh>
 
       {/* ── Components ────────────────────────────────────── */}
@@ -2219,17 +2219,18 @@ export function IsoCanvas() {
       <Canvas
         camera={{ position: CAM_POS, fov: 45, far: FOG_FAR + 40 }}
         shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.18 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.95 }}
         dpr={[1, 2]}
-        style={{ background: '#05080f' }}
+        style={{ background: '#dde8f2' }}
         onCreated={({ gl }) => {
           // PCFSoftShadowMap produces smooth, realistic shadow edges
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
         onPointerMissed={() => useSimStore.getState().deselectAll()}
       >
-        <color attach="background" args={['#05080f']} />
-        <fog attach="fog" color="#05080f" near={FOG_NEAR} far={FOG_FAR} />
+        <color attach="background" args={['#dde8f2']} />
+        {/* Push fog very far so the grid extends to the horizon */}
+        <fog attach="fog" color="#dde8f2" near={FOG_FAR * 1.5} far={FOG_FAR * 4.0} />
 
         <OrbitControls
           makeDefault
