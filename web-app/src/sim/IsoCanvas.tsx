@@ -319,13 +319,16 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
   //    chassisLayout cpu_0/cpu_1); banks straddle them.
   const dimmSlots = useMemo(() => {
     if (comp.type !== 'BASE_BOARD') return [];
-    const bankZ = [-7.0, -1.4, 1.4, 7.0]; // above CPU0, below CPU0, above CPU1, below CPU1
-    const pitch = 0.42;                    // stick-to-stick spacing within a bank (along Z)
-    const dimmCenterX = 0;                 // centred on the CPUs (board centre)
+    // Rotated 90°: CPUs are side by side along X (board-local x ±4); the 4 DIMM
+    // banks flank them along X, sticks run along DEPTH (Z). Each DIMM group is
+    // also rotated 90° (about Y) so its long axis points along Z.
+    const bankX = [-7.0, -1.0, 1.0, 7.0]; // outer/inner of CPU1 (left), inner/outer of CPU0 (right)
+    const pitch = 0.42;                    // stick-to-stick spacing within a bank (along X)
+    const dimmCenterZ = 0;                 // centred in depth (board centre)
     const out: { x: number; z: number }[] = [];
-    for (const bz of bankZ)
+    for (const bx of bankX)
       for (let i = 0; i < 4; i++)
-        out.push({ x: dimmCenterX, z: bz + (i - 1.5) * pitch });
+        out.push({ x: bx + (i - 1.5) * pitch, z: dimmCenterZ });
     return out; // 4 banks × 4 = 16
   }, [comp.type, w, d]);
 
@@ -411,7 +414,7 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
         // 8 DRAM chip positions spread along the full stick length (both faces)
         const chipXs = Array.from({ length: 8 }, (_, ci) => -stickLen / 2 + 0.3 + ci * ((stickLen - 0.6) / 7));
         return (
-          <group key={`dimm-${i}`} position={[pos.x, dh / 2 + stickHeight / 2 + 0.04, pos.z]}>
+          <group key={`dimm-${i}`} position={[pos.x, dh / 2 + stickHeight / 2 + 0.04, pos.z]} rotation={[0, Math.PI / 2, 0]}>
             {/* DIMM PCB body (two halves with notch gap in middle-bottom) */}
             {([-1, +1] as const).map((sign) => (
               <mesh key={`pcb-${sign}`} position={[sign * ((stickLen / 2 - notchW / 2) / 2 + notchX / 4), 0, 0]}>

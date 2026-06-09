@@ -78,17 +78,18 @@ const LAYOUT: Record<string, LinkSpec> = {
   fan_2:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 9.2,  y: 9.0, z: 0 } },
   fan_3:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 12.8, y: 9.0, z: 0 } },
 
-  // ── ZONE 3: compute (y ≈ 10 → 28) ──────────────────────────────────────
-  // Mainboard: PORTRAIT board matching the real product photo (deeper than
-  // wide). w 11 (≈220mm) × d 18 (≈360mm). Board centre → world (x9, z19).
-  base_board: { sizeUnits: { w: 11, d: 18, h: 0.3 },  grid: { x: 3.5,  y: 10.0, z: 0 } },
-  // 2× Kunpeng (916/920), stacked along DEPTH, centred on the board width.
-  // CPU footprint 3.87×3.01 (77.4×60.2mm). grid.x 7 → world centre 8.935 ≈
-  // board centre x9. Board centre z = 10+9 = 19, so:
-  //   cpu_0 grid.y 13.5 → world z 15.0 → board-local z −4.0
-  //   cpu_1 grid.y 21.5 → world z 23.0 → board-local z +4.0  (matches dimmSlots)
-  cpu_0: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.0, y: 13.5, z: 0.3 } },
-  cpu_1: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.0, y: 21.5, z: 0.3 } },
+  // ── ZONE 3: compute (y ≈ 13 → 25) ──────────────────────────────────────
+  // Mainboard rotated 90° CCW vs the photo's portrait so it reads correctly
+  // in the iso view: CPUs sit SIDE BY SIDE along width (X), DIMM banks run
+  // along depth (Z). Board w 16 × d 11. Board centre → world (x11, z19).
+  base_board: { sizeUnits: { w: 16, d: 11, h: 0.3 },  grid: { x: 3.0,  y: 13.5, z: 0 } },
+  // 2× Kunpeng (916/920) side by side along width, centred in depth.
+  // CPU footprint 3.87×3.01. Board centre x11, z19, so:
+  //   cpu_1 grid.x 5  → world x 6.935  → board-local x −4 (left)
+  //   cpu_0 grid.x 13 → world x 14.935 → board-local x +4 (right)
+  //   both grid.y 17.5 → world z 19.0 → board-local z 0   (matches dimmSlots)
+  cpu_0: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 13.0, y: 17.5, z: 0.3 } },
+  cpu_1: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 5.0,  y: 17.5, z: 0.3 } },
 
   // management boards on the left flank — side by side, NOT stacked (they have
   // near-identical footprints, so overlapping them reads as one merged block).
