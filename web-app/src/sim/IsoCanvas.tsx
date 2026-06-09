@@ -312,20 +312,21 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
     }));
   }, [comp.id, w, d]);
 
-  // ── DIMM layout: TaiShan 2280 has 32 DDR4 DIMMs = 16 per CPU, in banks that
-  //    flank each CPU on its left and right. 4 banks × 8 sticks = 32.
-  //    Board-local Z of the two CPUs (must match chassisLayout cpu_0/cpu_1).
+  // ── DIMM layout: TaiShan 2280 (this config) has 16 DDR4 DIMMs = 8 per CPU.
+  //    Per the product photo, the DIMM slots are HORIZONTAL bars (long axis
+  //    along X) arranged in 4 banks — one above and one below each CPU (in
+  //    depth/Z), 4 sticks per bank. CPUs are at board-local Z ±4 (see
+  //    chassisLayout cpu_0/cpu_1); banks straddle them.
   const dimmSlots = useMemo(() => {
     if (comp.type !== 'BASE_BOARD') return [];
-    const cpuLocalZ = [-4.5, 2.5];  // front CPU, rear CPU (board centre = 0)
-    const bankX = [-3.6, 3.6];      // left / right of each CPU
-    const pitch = 0.16;
+    const bankZ = [-7.0, -1.4, 1.4, 7.0]; // above CPU0, below CPU0, above CPU1, below CPU1
+    const pitch = 0.42;                    // stick-to-stick spacing within a bank (along Z)
+    const dimmCenterX = 0;                 // centred on the CPUs (board centre)
     const out: { x: number; z: number }[] = [];
-    for (const cz of cpuLocalZ)
-      for (const bx of bankX)
-        for (let i = 0; i < 8; i++)
-          out.push({ x: bx, z: cz + (i - 3.5) * pitch });
-    return out;
+    for (const bz of bankZ)
+      for (let i = 0; i < 4; i++)
+        out.push({ x: dimmCenterX, z: bz + (i - 1.5) * pitch });
+    return out; // 4 banks × 4 = 16
   }, [comp.type, w, d]);
 
   // ── PCIe / expansion connectors along rear edge (image 3, items 1–12) ────
@@ -400,15 +401,15 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
       {/* Refined style: PCB + gold fingers with DDR5 off-center notch,            */}
       {/*                DRAM chips front+back, ejection latches, label sticker.    */}
       {dimmSlots.map((pos, i) => {
-        const stickLen    = 2.90;   // along X (long axis after rotation)
+        const stickLen    = 5.00;   // along X (long axis) — DDR4 RDIMM ≈ 100–133mm
         const stickHeight = 0.94;   // along Y (vertical)
         const stickThick  = 0.085;  // along Z (thin profile)
         const fingerH     = 0.09;
-        const notchX      = 0.22;   // DDR5 notch offset from center along X
+        const notchX      = 0.22;   // DDR4 notch offset from center along X
         const notchW      = 0.12;
         const hasError    = effStatus === 'error' && (i % 5 === 0);
-        // 8 DRAM chip positions along X on each face (front/back)
-        const chipXs = Array.from({ length: 8 }, (_, ci) => -stickLen / 2 + 0.22 + ci * 0.34);
+        // 8 DRAM chip positions spread along the full stick length (both faces)
+        const chipXs = Array.from({ length: 8 }, (_, ci) => -stickLen / 2 + 0.3 + ci * ((stickLen - 0.6) / 7));
         return (
           <group key={`dimm-${i}`} position={[pos.x, dh / 2 + stickHeight / 2 + 0.04, pos.z]}>
             {/* DIMM PCB body (two halves with notch gap in middle-bottom) */}

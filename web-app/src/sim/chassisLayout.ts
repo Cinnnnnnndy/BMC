@@ -78,24 +78,24 @@ const LAYOUT: Record<string, LinkSpec> = {
   fan_2:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 9.2,  y: 9.0, z: 0 } },
   fan_3:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 12.8, y: 9.0, z: 0 } },
 
-  // ── ZONE 3: compute (y ≈ 11.5 → 28) ─────────────────────────────────────
-  // Mainboard: real 2U board fills most of the 447mm chassis width.
-  // w 20 (≈400mm) × d 17 (≈340mm), aligned under the front drive bay span,
-  // ending just before the rear PSU bay (y ≈ 28.5).
-  base_board: { sizeUnits: { w: 20, d: 17, h: 0.3 },  grid: { x: 0.5,  y: 11.5, z: 0 } },
-  // 2× Kunpeng 920 (Hydra interconnect), centred on the board front-to-back so
-  // the 32 DIMMs (16/CPU, banks left+right) flank them. Board centre ≈ x9.5.
-  // CPU centre = grid.x + 1.935; grid.x 7.5 → centre 9.4. Board-local Z: cpu_0
-  // = (14+1.5)-20 = -4.5, cpu_1 = (21+1.5)-20 = +2.5  (matches dimmSlots).
-  // Real bare-package height (CPUMesh renders the whole height as the metal IHS,
-  // so an inflated height would look like a solid metal cube). ~4.7mm.
-  cpu_0: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.5, y: 14.0, z: 0.3 } },
-  cpu_1: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.5, y: 21.0, z: 0.3 } },
+  // ── ZONE 3: compute (y ≈ 10 → 28) ──────────────────────────────────────
+  // Mainboard: PORTRAIT board matching the real product photo (deeper than
+  // wide). w 11 (≈220mm) × d 18 (≈360mm). Board centre → world (x9, z19).
+  base_board: { sizeUnits: { w: 11, d: 18, h: 0.3 },  grid: { x: 3.5,  y: 10.0, z: 0 } },
+  // 2× Kunpeng (916/920), stacked along DEPTH, centred on the board width.
+  // CPU footprint 3.87×3.01 (77.4×60.2mm). grid.x 7 → world centre 8.935 ≈
+  // board centre x9. Board centre z = 10+9 = 19, so:
+  //   cpu_0 grid.y 13.5 → world z 15.0 → board-local z −4.0
+  //   cpu_1 grid.y 21.5 → world z 23.0 → board-local z +4.0  (matches dimmSlots)
+  cpu_0: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.0, y: 13.5, z: 0.3 } },
+  cpu_1: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 7.0, y: 21.5, z: 0.3 } },
 
   // management boards on the left flank — side by side, NOT stacked (they have
   // near-identical footprints, so overlapping them reads as one merged block).
-  ext_board: { sizeUnits: { w: 6, d: 13, h: 0.35 }, grid: { x: -7.0,  y: 12.5, z: 0 } },
-  bmc_card:  { catalogId: 'bmc-huawei-hi1711-card', grid: { x: -14.0, y: 13.0, z: 0 } },
+  // Ext (I/O) board: PORTRAIT, left of and ≈half the width of the mainboard,
+  // tops roughly aligned (matches the product photo). w 5 (≈100mm) × d 16.5.
+  ext_board: { sizeUnits: { w: 5, d: 16.5, h: 0.35 }, grid: { x: -2.5, y: 10.5, z: 0 } },
+  bmc_card:  { catalogId: 'bmc-huawei-hi1711-card', grid: { x: -9.5, y: 12.0, z: 0 } },
 
   // ── ZONE 4: rear (y ≈ 28 → 38) ──────────────────────────────────────────
   // PSUs: long bricks at rear-right
