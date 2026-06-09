@@ -26,7 +26,7 @@ jobs:
           cache: npm
           # Cache both lockfiles so either change invalidates the cache
           cache-dependency-path: |
-            csr-topology-editor/web-app/package-lock.json
+            web-app/package-lock.json
             web-app-vue/package-lock.json
 
       # ── 1. Build Vue topology view ────────────────────────────────────
@@ -40,23 +40,23 @@ jobs:
         run: |
           npx vite build \
             --base /BMC/vue-topo/ \
-            --outDir ../csr-topology-editor/web-app/public/vue-topo \
+            --outDir ../web-app/public/vue-topo \
             --emptyOutDir
         working-directory: web-app-vue
 
       # ── 2. Build React app (picks up public/vue-topo/ automatically) ──
       - name: Install React dependencies
         run: npm ci
-        working-directory: csr-topology-editor/web-app
+        working-directory: web-app
 
       - name: Build React app
-        run: npm run build
-        working-directory: csr-topology-editor/web-app
+        run: npx vite build --base /BMC/
+        working-directory: web-app
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: csr-topology-editor/web-app/dist
+          path: web-app/dist
 
   deploy:
     environment:
