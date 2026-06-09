@@ -1,0 +1,4 @@
+Source: GrabCAD — "Intel I350-T4V2BLK" (4-port GbE NIC)
+URL: https://grabcad.com/library/intel-i350-t4v2blk-1
+License: GrabCAD Community License (design use permitted)
+Library model for the e810 4x25G catalog slot (no scene placement yet)

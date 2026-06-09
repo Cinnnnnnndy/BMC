@@ -1,0 +1,5 @@
+Source: GrabCAD — "Intel Xeon E5-XXXXV3 (E5-2673v3)"
+URL: https://grabcad.com/library/intel-xeon-e5-xxxxv3-e-g-e5-2673v3-1
+License: GrabCAD Community License (design use permitted)
+Mapped to: cpu-kunpeng920-hi1620 (generic LGA server CPU package)
+Converted: occt STEP->GLB, modelRotationDeg [90,0,0] so IHS faces up

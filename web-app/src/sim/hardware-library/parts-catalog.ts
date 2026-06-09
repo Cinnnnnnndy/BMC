@@ -29,6 +29,9 @@ export const CPU_PARTS: CatalogPart[] = [
     partNumber: 'Hi1620',
     // LGA-style socket: substrate 77.4 × 60.2 mm, package height ~4.7 mm bare die
     dimensionsMM: { width: 77.4, height: 4.7, depth: 60.2 },
+    // The Xeon-package GLB exports with its thin axis along Z (IHS facing Z);
+    // rotate 90° about X so the IHS faces up (thin axis → Y/height).
+    modelRotationDeg: [90, 0, 0],
     mountingPoints: [
       { id: 'lga-socket', type: 'guide-pin', posMM: { x: 38.7, y: 0, z: 30.1 }, face: 'Y-' },
     ],
