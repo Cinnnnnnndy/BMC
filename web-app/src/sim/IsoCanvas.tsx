@@ -857,13 +857,6 @@ function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
         BMC
       </Text>
 
-      {/* Thin chip-outline edges for visual sharpness (drei <Edges>) */}
-      <mesh>
-        <boxGeometry args={[w, dh, d]} />
-        <meshBasicMaterial visible={false} />
-        <Edges color="#101418" threshold={20} />
-      </mesh>
-
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
     </>
   );
