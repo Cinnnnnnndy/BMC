@@ -642,6 +642,32 @@ export const RISER_PARTS: CatalogPart[] = [
     roughness: 0.75,
     description: 'PCIe 4.0 × 16 垂直转接卡，适用于 2U 机箱全高半长扩展槽，支持 GPU/FPGA/加速卡。',
   },
+  {
+    id: 'backplane-sata-2u',
+    name: 'SATA/SAS Drive Backplane (2U)',
+    labelEn: 'SATA Backplane',
+    labelZh: 'SATA/SAS 硬盘背板',
+    category: 'riser-card',
+    standards: ['SFF-8639', 'SATA'],
+    vendor: 'Generic OEM',
+    // Real backplane PCB with connectors: 219 × 67 × 36.5 mm
+    dimensionsMM: { width: 219, height: 67, depth: 36.5 },
+    mountingPoints: [
+      { id: 'mount-l', type: 'M3-screw', posMM: { x: 0, y: 33, z: 0 }, face: 'X-' },
+      { id: 'mount-r', type: 'M3-screw', posMM: { x: 219, y: 33, z: 0 }, face: 'X+' },
+    ],
+    connectors: [
+      { id: 'sata-bus', type: 'sata-data', face: 'Z+', posMM: { x: 110, y: 33, z: 36.5 }, gender: 'female' },
+      { id: 'pwr-in', type: 'ocp-power', face: 'Z+', posMM: { x: 20, y: 33, z: 36.5 }, gender: 'female' },
+    ],
+    thermal: { tdpWatts: 5, heatExhaustFace: 'Z-', requiresActiveCooling: false },
+    ratedPowerWatts: 5,
+    massGrams: 220,
+    baseColor: '#1e2820',
+    metalness: 0.15,
+    roughness: 0.80,
+    description: 'SATA/SAS 硬盘背板，前置盘位经此汇聚，向后通过 SAS 线缆接 RAID 控制卡。RYPCB01331A v1.2。',
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

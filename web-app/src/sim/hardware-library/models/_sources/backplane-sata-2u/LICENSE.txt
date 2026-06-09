@@ -1,0 +1,4 @@
+Source: GrabCAD — "SATA Backplane RYPCB01331A v1.2"
+URL: https://grabcad.com/library/sata-backplane-rypcb01331a-v1-2-1
+License: GrabCAD Community License (design use permitted)
+Converted: occt-import-js STEP->GLB, auto-fit to dimensionsMM (219x67x36.5)

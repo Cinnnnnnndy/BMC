@@ -1,0 +1,4 @@
+Source: GrabCAD — "2.5in SSD / 2.5 SSD reference model"
+URL: https://grabcad.com/library/2-5-ssd-reference-model-step-file-1
+License: GrabCAD Community License (design use permitted)
+Converted: occt-import-js STEP->GLB, auto-fit to dimensionsMM (U.2 69.85x15x100.4)

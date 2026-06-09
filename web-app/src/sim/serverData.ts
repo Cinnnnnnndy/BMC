@@ -363,6 +363,7 @@ export const HARDWARE_COMPONENTS: HardwareComponent[] = [
   {
     id: 'drive_backplane',
     type: 'RISER',
+    catalogId: 'backplane-sata-2u',
     label: '硬盘背板  SAS/SATA',
     labelEn: 'Backplane',
     grid: { x: 0.5, y: 8.2, z: 0 },
