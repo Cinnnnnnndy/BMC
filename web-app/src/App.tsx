@@ -1,15 +1,25 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { TopologyView } from './components/TopologyView';
-import { EventConfig } from './components/EventConfig';
-import { SensorConfig } from './components/SensorConfig';
-import { Simulator } from './components/Simulator';
+import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
+// Static imports — only small/shell components that are always shown
 import { ProjectList } from './components/ProjectList';
-import { TianChiBoardTopologyView } from './components/TianChiBoardTopologyView';
-import { SoftwareHardwareAssociationView } from './components/SoftwareHardwareAssociationView';
-import { ServerAssociationView } from './components/ServerAssociationView';
-import { HardwareTopologyCanvas } from './components/HardwareTopologyCanvas';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
+
+// ── Lazy-loaded views ──────────────────────────────────────────────────────
+// Each view (and its CSS + vendor libs) is downloaded only when first opened.
+// The three.js/R3F bundle (~1.5 MB) stays out of the initial load entirely.
+const lazy = <T extends React.ComponentType<never>>(
+  load: () => Promise<{ [k: string]: T }>,
+  name: string
+) => React.lazy(() => load().then((m) => ({ default: m[name] as T })));
+
+const TopologyView               = lazy(() => import('./components/TopologyView'),               'TopologyView');
+const EventConfig                = lazy(() => import('./components/EventConfig'),                'EventConfig');
+const SensorConfig               = lazy(() => import('./components/SensorConfig'),               'SensorConfig');
+const Simulator                  = lazy(() => import('./components/Simulator'),                  'Simulator');
+const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardTopologyView'),   'TianChiBoardTopologyView');
+const SoftwareHardwareAssociationView = lazy(() => import('./components/SoftwareHardwareAssociationView'), 'SoftwareHardwareAssociationView');
+const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
+const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
 
 /** VSCode webview API bridge — called at most once per page */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -56,6 +66,23 @@ function useHashTab(): [TabId, (tab: TabId) => void] {
     window.location.hash = tab;   // updates URL → triggers hashchange → state updates
   }, []);
   return [activeTab, setActiveTab];
+}
+
+/** Minimal full-screen loader shown while a lazy chunk is downloading */
+function ViewLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', width: '100%',
+      color: 'var(--foreground-muted, #64748b)',
+      fontSize: 13, gap: 8,
+    }}>
+      <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid currentColor',
+        borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      加载中…
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 }
 
 export default function App() {
@@ -253,7 +280,7 @@ export default function App() {
           <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC 硬件拓扑视图</span>
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <HardwareTopologyCanvas />
+          <Suspense fallback={<ViewLoader />}><HardwareTopologyCanvas /></Suspense>
         </div>
       </div>
     );
@@ -268,7 +295,7 @@ export default function App() {
           </button>
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <ServerAssociationView />
+          <Suspense fallback={<ViewLoader />}><ServerAssociationView /></Suspense>
         </div>
       </div>
     );
@@ -415,6 +442,7 @@ export default function App() {
         </button>
       </header>
       <main className="app-main">
+        <Suspense fallback={<ViewLoader />}>
         {activeTab === 'topology' && <TopologyView csr={csr} onChange={handleCsrChange} projectId={currentProjectId} />}
         {activeTab === 'boardTopology' && currentProjectId === 'huawei-tianchi' && <TianChiBoardTopologyView />}
         {activeTab === 'association' && <SoftwareHardwareAssociationView csr={csr} />}
@@ -428,6 +456,7 @@ export default function App() {
             title="CSR拓扑Vue视图"
           />
         )}
+        </Suspense>
       </main>
     </div>
   );
