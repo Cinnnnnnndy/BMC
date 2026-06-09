@@ -65,11 +65,12 @@ const LAYOUT: Record<string, LinkSpec> = {
   hdd_9:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 5.7,  y: 0.5, z: 2.8 } },
   hdd_10: { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 10.9, y: 0.5, z: 2.8 } },
   hdd_11: { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 16.1, y: 0.5, z: 2.8 } },
-  // Rear 4×2.5" U.2 NVMe (standing) — between risers and PSU at the rear.
-  nvme_0: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 6.8, y: 33, z: 0 } },
-  nvme_1: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 7.7, y: 33, z: 0 } },
-  nvme_2: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 8.6, y: 33, z: 0 } },
-  nvme_3: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 9.5, y: 33, z: 0 } },
+  // Rear 4×2.5" U.2 NVMe (standing) — rear-left drive cage, clear of risers,
+  // spaced out so the real U.2 model reads clearly.
+  nvme_0: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: -7.5, y: 30, z: 0 } },
+  nvme_1: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: -6.3, y: 30, z: 0 } },
+  nvme_2: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: -5.1, y: 30, z: 0 } },
+  nvme_3: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: -3.9, y: 30, z: 0 } },
 
   // ── ZONE 2: fan wall (y ≈ 9) ────────────────────────────────────────────
   fan_0:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 2.0,  y: 9.0, z: 0 } },
@@ -78,7 +79,10 @@ const LAYOUT: Record<string, LinkSpec> = {
   fan_3:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 12.8, y: 9.0, z: 0 } },
 
   // ── ZONE 3: compute (y ≈ 11.5 → 28) ─────────────────────────────────────
-  base_board: { sizeUnits: { w: 16, d: 17, h: 0.3 },  grid: { x: 1.5,  y: 11.5, z: 0 } },
+  // Mainboard: real 2U board fills most of the 447mm chassis width.
+  // w 20 (≈400mm) × d 17 (≈340mm), aligned under the front drive bay span,
+  // ending just before the rear PSU bay (y ≈ 28.5).
+  base_board: { sizeUnits: { w: 20, d: 17, h: 0.3 },  grid: { x: 0.5,  y: 11.5, z: 0 } },
   // 2× Kunpeng 920 (Hydra interconnect), centred on the board front-to-back so
   // the 32 DIMMs (16/CPU, banks left+right) flank them. Board centre ≈ x9.5.
   // CPU centre = grid.x + 1.935; grid.x 7.5 → centre 9.4. Board-local Z: cpu_0

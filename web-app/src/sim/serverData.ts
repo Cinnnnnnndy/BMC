@@ -438,7 +438,9 @@ export const HARDWARE_COMPONENTS: HardwareComponent[] = [
     type: 'NIC_CARD',
     label: 'RAID 控制卡  SR430C',
     labelEn: 'RAID Card',
-    grid: { x: 12.4, y: 20.0, z: 0.34 },
+    // Laid out flat in the front-left bay (off the mainboard), near the
+    // backplane it cables to — so it reads as its own card, not board clutter.
+    grid: { x: -6.5, y: 1.5, z: 0 },
     size: { w: 5.0, d: 3.2, h: 1.0 },
     status: 'normal',
     busConnections: [
