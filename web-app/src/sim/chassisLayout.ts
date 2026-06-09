@@ -91,11 +91,13 @@ const LAYOUT: Record<string, LinkSpec> = {
   cpu_0: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 13.0, y: 17.5, z: 0.3 } },
   cpu_1: { catalogId: 'cpu-kunpeng920-hi1620', grid: { x: 5.0,  y: 17.5, z: 0.3 } },
 
-  // Ext (I/O) board: landscape L-shape ("pistol"), mirrored, placed to the LEFT
-  // of the mainboard in the gap between it and the rear riser cards.
-  ext_board: { sizeUnits: { w: 11, d: 5, h: 0.35 }, grid: { x: -8.5, y: 17.0, z: 0 } },
-  // BMC mezzanine card — now small (≈HDD/PCIe-card sized), laid flat on the
-  // left flank between the ext board and the rear risers.
+  // Ext (I/O) board: PORTRAIT L-shape ("pistol") — rotated 90° CW back to a tall
+  // board (barrel/connectors at the rear, grip + red/black power block front-
+  // right). Slotted into the vertical channel just left of the mainboard,
+  // between it and the riser cards. w 5 × d 11 spans the mainboard's depth.
+  ext_board: { sizeUnits: { w: 5, d: 11, h: 0.35 }, grid: { x: -2.0, y: 13.5, z: 0 } },
+  // BMC mezzanine card — small (≈HDD/PCIe-card sized), laid flat on the left
+  // flank just behind the ext board.
   bmc_card:  { catalogId: 'bmc-huawei-hi1711-card', grid: { x: -9.0, y: 23.5, z: 0 } },
 
   // ── ZONE 4: rear (y ≈ 28 → 38) ──────────────────────────────────────────
