@@ -363,37 +363,55 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
     }
   });
 
+  // EXT_BOARD is modelled as an L-shape ("pistol"): a full-width bar at the
+  // rear (barrel) + a front-left column (grip, where the red/black power
+  // block sits), with the front-right corner cut away. All other PCBs are a
+  // single rectangular plate.
+  const plates = comp.type === 'EXT_BOARD'
+    ? [
+        { cx: 0,         cz:  d * 0.25, bw: w,        bd: d * 0.50 }, // barrel — rear, full width
+        { cx: -w * 0.29, cz: -d * 0.25, bw: w * 0.42, bd: d * 0.50 }, // grip — front-left column
+      ]
+    : [{ cx: 0, cz: 0, bw: w, bd: d }];
+  // Drop scattered chips that would float over the cut-away corner (EXT only).
+  const inCutCorner = (x: number, z: number) =>
+    comp.type === 'EXT_BOARD' && x > -w * 0.08 && z < 0;
+
   return (
     <>
-      {/* PCB body */}
-      <mesh ref={meshRef} castShadow receiveShadow>
-        <boxGeometry args={[w, dh, d]} />
-        <meshStandardMaterial
-          color={mat.color}
-          roughness={mat.roughness}
-          metalness={mat.metalness}
-          envMapIntensity={0.5}
-          emissive={new THREE.Color(em.color)}
-          emissiveIntensity={em.intensity}
-          opacity={effStatus === 'offline' ? 0.38 : 1}
-          transparent={effStatus === 'offline'}
-        />
-      </mesh>
+      {/* PCB body (one plate, or two forming an L for EXT_BOARD) */}
+      {plates.map((p, pi) => (
+        <mesh key={`body-${pi}`} ref={pi === 0 ? meshRef : undefined} position={[p.cx, 0, p.cz]} castShadow receiveShadow>
+          <boxGeometry args={[p.bw, dh, p.bd]} />
+          <meshStandardMaterial
+            color={mat.color}
+            roughness={mat.roughness}
+            metalness={mat.metalness}
+            envMapIntensity={0.5}
+            emissive={new THREE.Color(em.color)}
+            emissiveIntensity={em.intensity}
+            opacity={effStatus === 'offline' ? 0.38 : 1}
+            transparent={effStatus === 'offline'}
+          />
+        </mesh>
+      ))}
 
-      {/* Top face: PCB texture overlay */}
-      <mesh position={[0, dh / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[w - 0.04, d - 0.04]} />
-        <meshStandardMaterial
-          map={pcbTex}
-          roughness={0.78}
-          metalness={0.06}
-          transparent
-          opacity={effStatus === 'offline' ? 0.25 : 0.94}
-        />
-      </mesh>
+      {/* Top face: PCB texture overlay (per plate) */}
+      {plates.map((p, pi) => (
+        <mesh key={`tex-${pi}`} position={[p.cx, dh / 2 + 0.002, p.cz]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[p.bw - 0.04, p.bd - 0.04]} />
+          <meshStandardMaterial
+            map={pcbTex}
+            roughness={0.78}
+            metalness={0.06}
+            transparent
+            opacity={effStatus === 'offline' ? 0.25 : 0.94}
+          />
+        </mesh>
+      ))}
 
       {/* SMD chip packages scattered on PCB surface */}
-      {chipPackages.map((chip, i) => (
+      {chipPackages.filter((chip) => !inCutCorner(chip.x, chip.z)).map((chip, i) => (
         <mesh key={`chip-${i}`} position={[chip.x, dh / 2 + 0.04, chip.z]}>
           <boxGeometry args={[chip.cw, 0.07, chip.cd]} />
           <meshStandardMaterial color="#111118" roughness={0.55} metalness={0.22} />
@@ -607,8 +625,8 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
             </mesh>
           ))}
 
-          {/* Connector rows along right edge (items 7–35 in image 5) */}
-          {extBoardFeatures.connRows.map((row, ri) => (
+          {/* Connector rows along right edge (skip any over the cut-away corner) */}
+          {extBoardFeatures.connRows.filter((row) => !inCutCorner(row.xBase, row.z)).map((row, ri) => (
             <group key={`erow-${ri}`} position={[row.xBase, dh / 2 + 0.09, row.z]}>
               {/* 5 connector pins per row */}
               {Array.from({ length: 5 }, (_, pi) => (
