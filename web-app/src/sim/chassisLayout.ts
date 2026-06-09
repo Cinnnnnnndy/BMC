@@ -50,15 +50,26 @@ const FAN: Orient = { x: 'width', y: 'depth', z: 'height' };   // 60 wide, 60 ta
 const NVME_STAND: Orient = { x: 'height', y: 'width', z: 'depth' }; // 15 thick, 70 tall, 100 deep
 
 const LAYOUT: Record<string, LinkSpec> = {
-  // ── ZONE 1: front drive bays (y ≈ 0.5) ──────────────────────────────────
-  hdd_0:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 0.5,  y: 0.5, z: 0 } },
-  hdd_1:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 6.2,  y: 0.5, z: 0 } },
-  nvme_0: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 12.4, y: 0.5, z: 0 } },
-  nvme_1: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 13.3, y: 0.5, z: 0 } },
-  nvme_2: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 14.2, y: 0.5, z: 0 } },
-  nvme_3: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 15.1, y: 0.5, z: 0 } },
-  nvme_4: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 16.0, y: 0.5, z: 0 } },
-  nvme_5: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 16.9, y: 0.5, z: 0 } },
+  // ── ZONE 1: front 12×3.5" HDD bay (4 cols × 3 rows, y ≈ 0.5) ─────────────
+  // HDD lies flat: w 5.08 (101.6mm) × d 7.35 (147mm) × h 1.3 (26mm). Column
+  // pitch 5.2u, row pitch (height) 1.4u. 4×3 = 12 drives fill the front face.
+  hdd_0:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 0.5,  y: 0.5, z: 0   } },
+  hdd_1:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 5.7,  y: 0.5, z: 0   } },
+  hdd_2:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 10.9, y: 0.5, z: 0   } },
+  hdd_3:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 16.1, y: 0.5, z: 0   } },
+  hdd_4:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 0.5,  y: 0.5, z: 1.4 } },
+  hdd_5:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 5.7,  y: 0.5, z: 1.4 } },
+  hdd_6:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 10.9, y: 0.5, z: 1.4 } },
+  hdd_7:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 16.1, y: 0.5, z: 1.4 } },
+  hdd_8:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 0.5,  y: 0.5, z: 2.8 } },
+  hdd_9:  { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 5.7,  y: 0.5, z: 2.8 } },
+  hdd_10: { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 10.9, y: 0.5, z: 2.8 } },
+  hdd_11: { catalogId: 'hdd-seagate-exos-x16-4tb-sata', grid: { x: 16.1, y: 0.5, z: 2.8 } },
+  // Rear 4×2.5" U.2 NVMe (standing) — between risers and PSU at the rear.
+  nvme_0: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 6.8, y: 33, z: 0 } },
+  nvme_1: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 7.7, y: 33, z: 0 } },
+  nvme_2: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 8.6, y: 33, z: 0 } },
+  nvme_3: { catalogId: 'nvme-samsung-pm9a3-1920gb-u2', orient: NVME_STAND, grid: { x: 9.5, y: 33, z: 0 } },
 
   // ── ZONE 2: fan wall (y ≈ 9) ────────────────────────────────────────────
   fan_0:  { catalogId: 'fan-60mm-1u-high-perf', orient: FAN, grid: { x: 2.0,  y: 9.0, z: 0 } },

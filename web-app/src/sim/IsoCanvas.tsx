@@ -2119,16 +2119,21 @@ function BusGlowLights() {
 }
 
 // ─── Server chassis wireframe outline ────────────────────────────────────
-// Surrounds the main board area (board spans world X: -10→10, Z: -7→7, Y: 0→3.2).
-// The HDD bay extends to Z≈-9 so the chassis box shifts -1 in Z.
+// Wraps the full component envelope at real 2U proportions:
+// TaiShan 2280 = 86.1mm (H, 2U) × 447mm (W) × 748mm (D).
+// Width/depth come from the live scene bounds (_sceneW/_sceneD, already
+// centered at origin); height is the true 2U = 86.1/20 ≈ 4.3 scene units.
+const CHASSIS_H = 86.1 / 20;
 function ServerChassis() {
   const geo = useMemo(
-    () => new THREE.EdgesGeometry(new THREE.BoxGeometry(22.6, 3.3, 17.8)),
+    () => new THREE.EdgesGeometry(
+      new THREE.BoxGeometry(_sceneW + 1.2, CHASSIS_H, _sceneD + 1.2),
+    ),
     [],
   );
   useEffect(() => () => geo.dispose(), [geo]);
   return (
-    <group position={[0, 1.65, -1]}>
+    <group position={[0, CHASSIS_H / 2 - 0.2, 0]}>
       <lineSegments geometry={geo}>
         <lineBasicMaterial color="#7a9abe" opacity={0.40} transparent />
       </lineSegments>
