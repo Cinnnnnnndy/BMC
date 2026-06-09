@@ -570,8 +570,9 @@ export const BMC_PARTS: CatalogPart[] = [
     standards: ['custom'],
     vendor: 'HiSilicon / Huawei',
     partNumber: 'Hi1711',
-    // Estimated from TaiShan 200 2280 exploded view: ~105 × 7 × 240 mm
-    dimensionsMM: { width: 105, height: 7, depth: 240 },
+    // BMC mezzanine 扣卡 — roughly the size of a half-height PCIe card / HDD,
+    // not a long full-length board: ~168 × 14 × 68 mm.
+    dimensionsMM: { width: 168, height: 14, depth: 68 },
     mountingPoints: [
       { id: 'card-edge', type: 'guide-pin', posMM: { x: 105, y: 3.5, z: 120 }, face: 'X+' },
     ],

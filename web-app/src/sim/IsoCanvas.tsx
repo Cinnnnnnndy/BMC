@@ -344,14 +344,15 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
   // ── EXT_BOARD: BMC/CPLD cluster + connector rows (image 5 layout) ─────────
   const extBoardFeatures = useMemo(() => {
     if (comp.type !== 'EXT_BOARD') return null;
+    // Mirrored in X: chips on the RIGHT (grip side), connector rows on the LEFT.
     return {
-      bmcChip:  { x: -w * 0.28, z: -d * 0.38 },
-      cpldChip: { x: -w * 0.28, z: -d * 0.20 },
-      phyChip:  { x: -w * 0.28, z: -d * 0.04 },
-      heatFin:  { x: -w * 0.28, z: -d * 0.38 },
+      bmcChip:  { x: w * 0.28, z: -d * 0.38 },
+      cpldChip: { x: w * 0.28, z: -d * 0.20 },
+      phyChip:  { x: w * 0.28, z: -d * 0.04 },
+      heatFin:  { x: w * 0.28, z: -d * 0.38 },
       connRows: Array.from({ length: 9 }, (_, i) => ({
         z: -d * 0.44 + i * (d * 0.86 / 8),
-        xBase: w * 0.28,
+        xBase: -w * 0.28,
       })),
     };
   }, [comp.type, w, d]);
@@ -369,13 +370,14 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
   // single rectangular plate.
   const plates = comp.type === 'EXT_BOARD'
     ? [
-        { cx: 0,         cz:  d * 0.25, bw: w,        bd: d * 0.50 }, // barrel — rear, full width
-        { cx: -w * 0.29, cz: -d * 0.25, bw: w * 0.42, bd: d * 0.50 }, // grip — front-left column
+        { cx: 0,        cz:  d * 0.25, bw: w,        bd: d * 0.50 }, // barrel — rear, full width
+        { cx: w * 0.29, cz: -d * 0.25, bw: w * 0.42, bd: d * 0.50 }, // grip — front-RIGHT column (mirrored)
       ]
     : [{ cx: 0, cz: 0, bw: w, bd: d }];
-  // Drop scattered chips that would float over the cut-away corner (EXT only).
+  // Drop scattered chips that would float over the cut-away corner (EXT only;
+  // mirrored → the cut is now front-LEFT).
   const inCutCorner = (x: number, z: number) =>
-    comp.type === 'EXT_BOARD' && x > -w * 0.08 && z < 0;
+    comp.type === 'EXT_BOARD' && x < w * 0.08 && z < 0;
 
   return (
     <>
@@ -584,8 +586,8 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
             ))}
           </group>
 
-          {/* ── Red/black hot-swap power connector block (BC835MMBC reference) ── */}
-          <group position={[-w * 0.30, dh / 2, -d * 0.30]}>
+          {/* ── Red/black hot-swap power connector block (mirrored to grip, right) ── */}
+          <group position={[w * 0.30, dh / 2, -d * 0.30]}>
             {/* Black housing */}
             <mesh position={[0, 0.26, 0]} castShadow>
               <boxGeometry args={[1.25, 0.52, 0.66]} />
@@ -619,7 +621,7 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
 
           {/* Small power connector pair near front (items 1-2 in image 5) */}
           {([-0.22, 0.22] as number[]).map((xOff, pi) => (
-            <mesh key={pi} position={[-w * 0.40 + xOff, dh / 2 + 0.10, -d * 0.44]}>
+            <mesh key={pi} position={[w * 0.40 + xOff, dh / 2 + 0.10, -d * 0.44]}>
               <boxGeometry args={[0.30, 0.20, 0.18]} />
               <meshStandardMaterial color="#c8a040" metalness={0.88} roughness={0.14} />
             </mesh>
