@@ -35,10 +35,33 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
   return { name: clean, badge: null };
 }
 
+// ── Hash-based routing ──────────────────────────────────────────────────────
+// Each view gets its own URL: /BMC/#topology, /BMC/#simulator, etc.
+// Works natively on GitHub Pages (no server config needed).
+type TabId = 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo';
+const VALID_TABS: TabId[] = ['topology', 'boardTopology', 'association', 'event', 'sensor', 'simulator', 'vueTopo'];
+const DEFAULT_TAB: TabId = 'topology';
+function getHashTab(): TabId {
+  const h = window.location.hash.replace(/^#/, '');
+  return (VALID_TABS as string[]).includes(h) ? (h as TabId) : DEFAULT_TAB;
+}
+function useHashTab(): [TabId, (tab: TabId) => void] {
+  const [activeTab, _setTab] = useState<TabId>(getHashTab);
+  useEffect(() => {
+    const onHash = () => _setTab(getHashTab());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const setActiveTab = useCallback((tab: TabId) => {
+    window.location.hash = tab;   // updates URL → triggers hashchange → state updates
+  }, []);
+  return [activeTab, setActiveTab];
+}
+
 export default function App() {
   const vscode = getVscode();
   const [csr, setCsr] = useState<CSRDocument | null>(null);
-  const [activeTab, setActiveTab] = useState<'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo'>('topology');
+  const [activeTab, setActiveTab] = useHashTab();
   const [eventDef, setEventDef] = useState<Record<string, unknown> | null>(null);
   const [dirty, setDirty] = useState(false);
   const [fileName, setFileName] = useState<string>('');
