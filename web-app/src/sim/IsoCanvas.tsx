@@ -250,8 +250,9 @@ function outlineColor(isSelected: boolean, status: string) {
 function StatusOutline({
   w, dh, d, isSelected, effStatus,
 }: { w: number; dh: number; d: number; isSelected: boolean; effStatus: string }) {
-  // Blueprint style: always show edge outlines — bright when selected/error,
-  // subtle blue (#1e3a70 @ 0.30) when idle so every component glows faintly.
+  // Only show an outline for meaningful states (selected / error / warning).
+  // No idle box outline — the resting scene is clean.
+  const show = isSelected || effStatus === 'error' || effStatus === 'warning';
   const outRef = useRef<THREE.LineSegments>(null);
   const geo = useMemo(
     () => new THREE.EdgesGeometry(new THREE.BoxGeometry(w + 0.07, dh + 0.07, d + 0.07)),
@@ -266,13 +267,10 @@ function StatusOutline({
       mat.opacity = 0.4 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2));
     }
   });
-  const idleOpacity = isSelected ? 0.85 : (effStatus === 'error' || effStatus === 'warning') ? 0.85 : 0.22;
-  const idleColor   = isSelected || effStatus === 'error' || effStatus === 'warning'
-    ? outlineColor(isSelected, effStatus)
-    : '#6888a4';
+  if (!show) return null;
   return (
     <lineSegments ref={outRef} geometry={geo}>
-      <lineBasicMaterial color={idleColor} transparent opacity={idleOpacity} />
+      <lineBasicMaterial color={outlineColor(isSelected, effStatus)} transparent opacity={0.85} />
     </lineSegments>
   );
 }
@@ -1960,7 +1958,10 @@ function BusRouteLine({
   const cs    = isTrunk ? 0.13 : 0.09; // connector cube side length
 
   return (
-    <group onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onClickBus(); }}>
+    <group
+      userData={{ keepMaterial: true }}
+      onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onClickBus(); }}
+    >
       {/* Dashed tube body */}
       <mesh geometry={tubeGeo} material={mat} />
 
@@ -2169,12 +2170,40 @@ function ServerChassis() {
   );
 }
 
+// ─── Unified material ─────────────────────────────────────────────────────
+// Every component mesh (procedural OR open-source GLB) renders in this single
+// neutral material — matching the clean monochrome look of the 3D仿真 boards
+// viewer — so the imported models no longer clash with each other.
+const UNIFIED_MAT = new THREE.MeshStandardMaterial({
+  color: new THREE.Color('#c0c5cc'),
+  metalness: 0.28,
+  roughness: 0.52,
+  emissive: new THREE.Color('#000000'),
+  envMapIntensity: 0.55,
+});
+
 // ─── Main scene ───────────────────────────────────────────────────────────
 function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void }) {
   const snapshotTimer = useRef(0);
   const tAcc          = useRef(0);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    // Unify every component mesh to one neutral material. Skips: lines (grid,
+    // outlines — not meshes), the shadow-catcher plane, the bus dashed tubes
+    // (ShaderMaterial) and anything under a group flagged keepMaterial (the
+    // I2C/PCIe/SATA bus routes + their connector cubes keep their colored,
+    // flowing style).
+    state.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const mat = m.material as (THREE.Material & { isShadowMaterial?: boolean; isShaderMaterial?: boolean }) | undefined;
+      if (!mat || mat.isShadowMaterial || mat.isShaderMaterial) return;
+      for (let p: THREE.Object3D | null = o; p; p = p.parent) {
+        if (p.userData && p.userData.keepMaterial) return;
+      }
+      if (m.material !== UNIFIED_MAT) m.material = UNIFIED_MAT;
+    });
+
     const store = useSimStore.getState();
     store.advanceTick(delta);
     snapshotTimer.current += delta;
@@ -2215,8 +2244,7 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       {/* ── Environment map: city HDR — sharper metal/glass reflections ── */}
       <Environment preset="city" />
 
-      {/* ── Server chassis outline ─────────────────────────────── */}
-      <ServerChassis />
+      {/* Chassis wireframe removed — clean monochrome look, no outer box. */}
 
       {/* ── Ground — subtle grid matching reference dark style ── */}
       {/* Light-style floor grid — extends to horizon, fills entire canvas */}
