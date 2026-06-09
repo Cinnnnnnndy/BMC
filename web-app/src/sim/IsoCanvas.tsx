@@ -250,9 +250,10 @@ function outlineColor(isSelected: boolean, status: string) {
 function StatusOutline({
   w, dh, d, isSelected, effStatus,
 }: { w: number; dh: number; d: number; isSelected: boolean; effStatus: string }) {
-  // Only show an outline for meaningful states (selected / error / warning).
-  // No idle box outline — the resting scene is clean.
-  const show = isSelected || effStatus === 'error' || effStatus === 'warning';
+  // Per-model box outline removed entirely (user request) — no wireframe box
+  // around any component in any state. Selection/status still drive the side
+  // panel + status counters.
+  const show = false;
   const outRef = useRef<THREE.LineSegments>(null);
   const geo = useMemo(
     () => new THREE.EdgesGeometry(new THREE.BoxGeometry(w + 0.07, dh + 0.07, d + 0.07)),
@@ -1698,11 +1699,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </>
       )}
 
-      {/* Always-on thin dark silhouette outline — gives the "product photo" edge */}
-      <lineSegments renderOrder={-1}>
-        <edgesGeometry args={[new THREE.BoxGeometry(w + 0.025, dh + 0.025, d + 0.025)]} />
-        <lineBasicMaterial color="#000000" opacity={0.55} transparent />
-      </lineSegments>
+      {/* Per-component box outline removed (user request) — clean silhouette. */}
 
       {/* Label pill badge — matches reference image style */}
       <Html
