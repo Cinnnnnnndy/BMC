@@ -15,13 +15,31 @@ import {
   type HardwareComponent,
   type BusDef,
 } from './serverData';
+import { computeSceneBounds } from './chassisLayout';
+import { getPartById, hasPartModel } from './hardware-library';
+import { CatalogPartModel } from './CatalogPartModel';
 
 // ─── Grid → world coordinate transform ───────────────────────────────────
-// Scene spans x: -12.2→25.2, y: 0→17.3  →  center ≈ (6.5, 8.7)
-// Uniform 1.0-unit gaps between BMC Card / Ext.Board / Main Board / Fans / PSU.
-// CX/CZ shift the whole scene so that center lands at world origin (0,0,0).
-const CX = -6.5; // center offset X — uniform-gap compact layout
-const CZ = -9;   // center offset Z
+// CX/CZ shift the whole scene so its bounding-box center lands at world origin.
+// Computed from the (catalog-driven) layout so it always stays framed.
+const _sceneBounds = computeSceneBounds(HARDWARE_COMPONENTS);
+const CX = -_sceneBounds.centerX; // center offset X
+const CZ = -_sceneBounds.centerZ; // center offset Z
+
+// ─── Auto-frame camera to the (catalog-driven) scene size ──────────────────
+// The realistic 2U layout is long/deep; derive camera distance so it always fits.
+const _sceneW = _sceneBounds.maxX - _sceneBounds.minX;
+const _sceneD = _sceneBounds.maxZ - _sceneBounds.minZ;
+const _sceneRadius = 0.5 * Math.hypot(_sceneW, _sceneD);
+const _camDist = Math.max(30, (_sceneRadius / Math.tan((45 / 2) * Math.PI / 180)) * 1.12);
+const _camU = 1 / Math.hypot(1, 0.75, 1);
+const CAM_POS: [number, number, number] = [
+  _camDist * _camU, _camDist * 0.75 * _camU, _camDist * _camU,
+];
+const CAM_TARGET: [number, number, number] = [0, 1, 0];
+const FOG_NEAR = _camDist * 0.85;
+const FOG_FAR = _camDist * 2.0;
+const SHADOW_EXTENT = _sceneRadius * 1.1;
 const g2wx = (gx: number) => gx + CX;
 const g2wy = (gz: number) => gz;
 const g2wz = (gy: number) => gy + CZ;
@@ -287,21 +305,20 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
     }));
   }, [comp.id, w, d]);
 
-  // ── DIMM layout (ROTATED 90°): 4 groups × 4 sticks flanking stacked CPUs ─
-  // Board rotation: CPUs are now stacked along Y (board-local Z): CPU0 at z≈-4, CPU1 at z≈+4.
-  // DIMM groups: z-frac in [-0.86, -0.28, +0.28, +0.86] of (d/2), each with 4 sticks along Z (pitch 0.18).
-  // Each DIMM stick is oriented horizontally (long along X).
+  // ── DIMM layout: TaiShan 2280 has 32 DDR4 DIMMs = 16 per CPU, in banks that
+  //    flank each CPU on its left and right. 4 banks × 8 sticks = 32.
+  //    Board-local Z of the two CPUs (must match chassisLayout cpu_0/cpu_1).
   const dimmSlots = useMemo(() => {
     if (comp.type !== 'BASE_BOARD') return [];
-    const groupZfrac = [-0.86, -0.28, +0.28, +0.86];
-    const pitch = 0.18;
-    const dimmX = 0;   // DIMMs centered on board X; sticks extend along X
-    return groupZfrac.flatMap(gz =>
-      Array.from({ length: 4 }, (_, i) => ({
-        x: dimmX,
-        z: gz * (d / 2) + (i - 1.5) * pitch,
-      }))
-    );
+    const cpuLocalZ = [-4.5, 2.5];  // front CPU, rear CPU (board centre = 0)
+    const bankX = [-3.6, 3.6];      // left / right of each CPU
+    const pitch = 0.16;
+    const out: { x: number; z: number }[] = [];
+    for (const cz of cpuLocalZ)
+      for (const bx of bankX)
+        for (let i = 0; i < 8; i++)
+          out.push({ x: bx, z: cz + (i - 3.5) * pitch });
+    return out;
   }, [comp.type, w, d]);
 
   // ── PCIe / expansion connectors along rear edge (image 3, items 1–12) ────
@@ -493,6 +510,28 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
         </group>
       ))}
 
+      {/* ── BASE_BOARD: front-edge electrolytic capacitors + CMOS battery ─── */}
+      {comp.type === 'BASE_BOARD' && (
+        <>
+          {/* Row of cylindrical electrolytic capacitors along the front edge */}
+          {Array.from({ length: 11 }, (_, i) => {
+            const cx = -w * 0.38 + i * (w * 0.76 / 10);
+            const ch = 0.28 + (i % 3) * 0.06;
+            return (
+              <mesh key={`ecap-${i}`} position={[cx, dh / 2 + ch / 2, -d * 0.41]} castShadow>
+                <cylinderGeometry args={[0.10, 0.10, ch, 16]} />
+                <meshStandardMaterial color="#1c1e24" metalness={0.45} roughness={0.5} />
+              </mesh>
+            );
+          })}
+          {/* CMOS coin battery */}
+          <mesh position={[w * 0.20, dh / 2 + 0.035, d * 0.30]} castShadow>
+            <cylinderGeometry args={[0.25, 0.25, 0.06, 24]} />
+            <meshStandardMaterial color="#c6cad0" metalness={0.85} roughness={0.26} />
+          </mesh>
+        </>
+      )}
+
       {/* ── EXT_BOARD: BMC/CPLD cluster + connector rows (image 5 layout) ─── */}
       {comp.type === 'EXT_BOARD' && extBoardFeatures && (
         <>
@@ -512,6 +551,27 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
               <mesh key={fi} position={[-0.25 + fi * 0.17, 0.34, 0]}>
                 <boxGeometry args={[0.03, 0.08, 0.62]} />
                 <meshStandardMaterial color="#3a3a42" metalness={0.75} roughness={0.32} />
+              </mesh>
+            ))}
+          </group>
+
+          {/* ── Red/black hot-swap power connector block (BC835MMBC reference) ── */}
+          <group position={[-w * 0.30, dh / 2, -d * 0.30]}>
+            {/* Black housing */}
+            <mesh position={[0, 0.26, 0]} castShadow>
+              <boxGeometry args={[1.25, 0.52, 0.66]} />
+              <meshStandardMaterial color="#111216" metalness={0.32} roughness={0.6} />
+            </mesh>
+            {/* Red latch/insert */}
+            <mesh position={[0.10, 0.34, 0]} castShadow>
+              <boxGeometry args={[0.52, 0.40, 0.52]} />
+              <meshStandardMaterial color="#b41f24" metalness={0.25} roughness={0.45} />
+            </mesh>
+            {/* Two silver fixation screws on top */}
+            {([-0.42, 0.46] as number[]).map((sx, si) => (
+              <mesh key={si} position={[sx, 0.54, 0]} rotation={[0, 0, 0]}>
+                <cylinderGeometry args={[0.11, 0.11, 0.08, 16]} />
+                <meshStandardMaterial color="#b9bdc6" metalness={0.9} roughness={0.25} />
               </mesh>
             ))}
           </group>
@@ -567,7 +627,6 @@ function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
   const { w, d, h } = comp.size;
   const dh = Math.max(h, 0.1);
   const em = statusEmissive(effStatus);
-  const mat = PCB_MAT.BMC_CARD;
 
   const pcbTex = useMemo(() => createPCBTexture(hashStr(comp.id)), [comp.id]);
   useEffect(() => () => pcbTex.dispose(), [pcbTex]);
@@ -587,14 +646,14 @@ function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
   // Chip/feature layout: board spans w:5.2, d:12.0 → center at (0,0)
   return (
     <>
-      {/* PCB body */}
+      {/* PCB body — dark solder mask (BMC SoM reference is near-black) */}
       <mesh castShadow receiveShadow>
         <boxGeometry args={[w, dh, d]} />
         <meshStandardMaterial
-          color={mat.color}
-          roughness={mat.roughness}
-          metalness={mat.metalness}
-          envMapIntensity={0.5}
+          color="#0c1410"
+          roughness={0.82}
+          metalness={0.16}
+          envMapIntensity={0.4}
           emissive={new THREE.Color(em.color)}
           emissiveIntensity={em.intensity}
           opacity={effStatus === 'offline' ? 0.38 : 1}
@@ -602,15 +661,15 @@ function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
         />
       </mesh>
 
-      {/* Top-face PCB texture overlay */}
+      {/* Top-face PCB texture overlay (subtle, keeps board dark) */}
       <mesh position={[0, dh / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w - 0.06, d - 0.06]} />
         <meshStandardMaterial
           map={pcbTex}
-          roughness={0.78}
-          metalness={0.10}
+          roughness={0.8}
+          metalness={0.12}
           transparent
-          opacity={effStatus === 'offline' ? 0.25 : 0.92}
+          opacity={effStatus === 'offline' ? 0.18 : 0.42}
         />
       </mesh>
 
@@ -626,41 +685,37 @@ function BmcCardMesh({ comp, isSelected, effStatus }: SpecProps) {
           <boxGeometry args={[1.05, 0.12, 1.05]} />
           <meshStandardMaterial color="#1a1a22" roughness={0.45} metalness={0.35} />
         </mesh>
-        {/* Aluminium heat spreader (rounded) */}
-        <RoundedBox position={[0, 0.24, 0]} args={[1.25, 0.14, 1.25]} radius={0.04} smoothness={3} castShadow>
-          <meshStandardMaterial color="#8a8d94" metalness={0.82} roughness={0.28} />
+        {/* Polished metal IHS lid — bright silver, central (matches reference) */}
+        <RoundedBox position={[0, 0.26, 0]} args={[1.30, 0.18, 1.30]} radius={0.05} smoothness={4} castShadow>
+          <meshStandardMaterial color="#c4c8d0" metalness={0.9} roughness={0.22} envMapIntensity={1.2} />
         </RoundedBox>
-        {/* Low-profile finnage */}
-        {Array.from({ length: 7 }, (_, fi) => (
-          <mesh key={fi} position={[-0.52 + fi * 0.18, 0.36, 0]}>
-            <boxGeometry args={[0.04, 0.10, 1.02]} />
-            <meshStandardMaterial color="#6d7078" metalness={0.80} roughness={0.30} />
-          </mesh>
-        ))}
-        {/* SoC silk-screen text */}
-        <Text
-          position={[0, 0.44, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={0.14}
-          color="#e4e6ea"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.004}
-          outlineColor="#101216"
-        >
-          BMC SoC
-        </Text>
+        {/* Recessed top face (the dished IHS look) */}
+        <mesh position={[0, 0.355, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.92, 0.92]} />
+          <meshStandardMaterial color="#aeb2bb" metalness={0.92} roughness={0.18} />
+        </mesh>
       </group>
 
-      {/* ─ DDR4 SDRAM for BMC (single chip) ─ */}
-      <mesh position={[-w * 0.30, dh / 2 + 0.055, 0.0]}>
-        <boxGeometry args={[0.55, 0.10, 0.95]} />
-        <meshStandardMaterial color="#14151a" roughness={0.65} metalness={0.18} />
-      </mesh>
-      <mesh position={[w * 0.30, dh / 2 + 0.055, 0.0]}>
-        <boxGeometry args={[0.55, 0.10, 0.95]} />
-        <meshStandardMaterial color="#14151a" roughness={0.65} metalness={0.18} />
-      </mesh>
+      {/* ─ DDR / memory packages — large black BGA packages flanking the SoC ─ */}
+      {/* Left: two stacked; Right: one tall (matches BMC SoM reference layout). */}
+      {([
+        [-w * 0.34,  d * 0.16, 0.62, 0.78],
+        [-w * 0.34, -d * 0.16, 0.62, 0.78],
+        [ w * 0.34,  d * 0.0,  0.66, 1.30],
+      ] as [number, number, number, number][]).map(([px, pz, pw, pd], i) => (
+        <mesh key={`ddr-${i}`} position={[px, dh / 2 + 0.06, pz]} castShadow>
+          <boxGeometry args={[pw, 0.12, pd]} />
+          <meshStandardMaterial color="#0e0f13" roughness={0.5} metalness={0.3} />
+        </mesh>
+      ))}
+
+      {/* ─ Gold/copper crystals (oscillators) — top corner, reference detail ─ */}
+      {([[-w * 0.04, -d * 0.40], [w * 0.10, -d * 0.40]] as [number, number][]).map(([px, pz], i) => (
+        <mesh key={`xtal-${i}`} position={[px, dh / 2 + 0.05, pz]} castShadow>
+          <boxGeometry args={[0.30, 0.10, 0.22]} />
+          <meshStandardMaterial color="#caa14a" metalness={0.85} roughness={0.3} />
+        </mesh>
+      ))}
 
       {/* ─ SPI Flash ROM (BMC firmware) ─ */}
       <mesh position={[0, dh / 2 + 0.045, d * 0.02]}>
@@ -855,48 +910,30 @@ function CPUMesh({ comp, isSelected, effStatus }: SpecProps) {
         />
       </RoundedBox>
 
+      {/* ── Bare silver IHS top (product photos show no heatsink on the board) ─ */}
       {/* Beveled edge accent (slight darker inner rim) */}
       <mesh position={[0, ihsY + ihsH / 2 + 0.0005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[Math.min(ihsW, ihsD) * 0.38, Math.min(ihsW, ihsD) * 0.47, 64]} />
-        <meshBasicMaterial color="#8a8d93" transparent opacity={0.35} />
+        <meshBasicMaterial color="#8a8d93" transparent opacity={0.30} />
       </mesh>
-
-      {/* ── Laser-etched CPU identification on IHS top face ── */}
+      {/* Laser-etched CPU identification on the IHS top face */}
       <Text
-        position={[0, ihsY + ihsH / 2 + 0.002, -d * 0.14]}
+        position={[0, ihsY + ihsH / 2 + 0.002, -d * 0.12]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.32}
-        color="#2a2e34"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="bold"
+        fontSize={0.30} color="#2a2e34" anchorX="center" anchorY="middle" fontWeight="bold"
       >
         Kunpeng 920
       </Text>
       <Text
-        position={[0, ihsY + ihsH / 2 + 0.002, d * 0.04]}
+        position={[0, ihsY + ihsH / 2 + 0.002, d * 0.10]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.18}
-        color="#3a3e44"
-        anchorX="center"
-        anchorY="middle"
+        fontSize={0.12} color="#454a52" anchorX="center" anchorY="middle"
       >
-        HiSilicon · 64-Core · ARMv8.2
+        {comp.id === 'cpu_0' ? 'SOCKET 0 · 2.6 GHz' : 'SOCKET 1 · 2.6 GHz'}
       </Text>
-      <Text
-        position={[0, ihsY + ihsH / 2 + 0.002, d * 0.22]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.12}
-        color="#454a52"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {comp.id === 'cpu_0' ? 'SOCKET 0  ·  2.6 GHz' : 'SOCKET 1  ·  2.6 GHz'}
-      </Text>
-
       {/* Triangle orientation marker on IHS corner */}
-      <mesh position={[-ihsW / 2 + 0.18, ihsY + ihsH / 2 + 0.003, -ihsD / 2 + 0.18]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.07, 3]} />
+      <mesh position={[-ihsW / 2 + 0.16, ihsY + ihsH / 2 + 0.003, -ihsD / 2 + 0.16]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.06, 3]} />
         <meshBasicMaterial color="#2a2e34" />
       </mesh>
 
@@ -1591,6 +1628,14 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
 
   const specProps: SpecProps = { comp, isSelected, effStatus };
 
+  // Catalog-linked real model: render the installed GLB instead of procedural
+  // mesh when one is present (model-registry auto-detects by part id).
+  const catalogPart = comp.catalogId ? getPartById(comp.catalogId) : undefined;
+  const useGLB = !!(catalogPart && hasPartModel(catalogPart.id));
+  const glbStatus =
+    effStatus === 'warning' || effStatus === 'error' || effStatus === 'offline'
+      ? effStatus : 'normal';
+
   return (
     <group
       position={[wx, wy, wz]}
@@ -1601,18 +1646,24 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
       onPointerMove={(e) => { onTooltip({ x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, comp }); }}
       onPointerOut={() => onTooltip(null)}
     >
-      {/* Specialized mesh per component type */}
-      {(comp.type === 'BASE_BOARD' || comp.type === 'EXT_BOARD' || comp.type === 'RISER')
-        && <PCBMesh    {...specProps} />}
-      {comp.type === 'BMC_CARD' && <BmcCardMesh  {...specProps} />}
-      {comp.type === 'CPU'      && <CPUMesh      {...specProps} />}
-      {comp.type === 'FAN'      && <FANMesh      {...specProps} />}
-      {comp.type === 'HDD'      && <HDDMesh      {...specProps} />}
-      {comp.type === 'NVME'     && <NVMEMesh     {...specProps} />}
-      {comp.type === 'PSU'      && <PSUMesh      {...specProps} />}
-      {comp.type === 'NIC_CARD' && <NicCardMesh  {...specProps} />}
-      {comp.type === 'IO_PANEL' && <IOPanelMesh  {...specProps} />}
-      {comp.type === 'EEPROM'   && <GenericMesh  {...specProps} />}
+      {/* Real open-source GLB model (catalog-driven), else procedural per-type mesh */}
+      {useGLB ? (
+        <CatalogPartModel part={catalogPart!} status={glbStatus} />
+      ) : (
+        <>
+          {(comp.type === 'BASE_BOARD' || comp.type === 'EXT_BOARD' || comp.type === 'RISER')
+            && <PCBMesh    {...specProps} />}
+          {comp.type === 'BMC_CARD' && <BmcCardMesh  {...specProps} />}
+          {comp.type === 'CPU'      && <CPUMesh      {...specProps} />}
+          {comp.type === 'FAN'      && <FANMesh      {...specProps} />}
+          {comp.type === 'HDD'      && <HDDMesh      {...specProps} />}
+          {comp.type === 'NVME'     && <NVMEMesh     {...specProps} />}
+          {comp.type === 'PSU'      && <PSUMesh      {...specProps} />}
+          {comp.type === 'NIC_CARD' && <NicCardMesh  {...specProps} />}
+          {comp.type === 'IO_PANEL' && <IOPanelMesh  {...specProps} />}
+          {comp.type === 'EEPROM'   && <GenericMesh  {...specProps} />}
+        </>
+      )}
 
       {/* Always-on thin dark silhouette outline — gives the "product photo" edge */}
       <lineSegments renderOrder={-1}>
@@ -1954,7 +2005,7 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
 function CameraResetHandler() {
   const { camera } = useThree();
   useEffect(() => {
-    const handle = () => { camera.position.set(18, 14, 18); };
+    const handle = () => { camera.position.set(...CAM_POS); };
     window.addEventListener('sim:resetCamera', handle);
     return () => window.removeEventListener('sim:resetCamera', handle);
   }, [camera]);
@@ -1976,11 +2027,11 @@ function SceneLights() {
         color="#f0f4ff"
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={90}
-        shadow-camera-left={-25}
-        shadow-camera-right={25}
-        shadow-camera-top={25}
-        shadow-camera-bottom={-25}
+        shadow-camera-far={FOG_FAR + 40}
+        shadow-camera-left={-SHADOW_EXTENT}
+        shadow-camera-right={SHADOW_EXTENT}
+        shadow-camera-top={SHADOW_EXTENT}
+        shadow-camera-bottom={-SHADOW_EXTENT}
         shadow-bias={-0.001}
       />
 
@@ -2159,7 +2210,7 @@ export function IsoCanvas() {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <Canvas
-        camera={{ position: [18, 14, 18], fov: 45 }}
+        camera={{ position: CAM_POS, fov: 45, far: FOG_FAR + 40 }}
         shadows
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.18 }}
         dpr={[1, 2]}
@@ -2171,17 +2222,17 @@ export function IsoCanvas() {
         onPointerMissed={() => useSimStore.getState().deselectAll()}
       >
         <color attach="background" args={['#0b0d14']} />
-        <fog attach="fog" color="#0b0d14" near={50} far={90} />
+        <fog attach="fog" color="#0b0d14" near={FOG_NEAR} far={FOG_FAR} />
 
         <OrbitControls
           makeDefault
           enableDamping
           dampingFactor={0.06}
-          minDistance={6}
-          maxDistance={65}
+          minDistance={8}
+          maxDistance={_camDist * 2.2}
           minPolarAngle={0.15}
           maxPolarAngle={Math.PI / 2.1}
-          target={[0, 0.8, 0]}
+          target={CAM_TARGET}
         />
 
         <Scene onTooltip={handleTooltip} />

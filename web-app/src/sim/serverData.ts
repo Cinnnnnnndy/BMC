@@ -30,6 +30,8 @@ export interface HardwareComponent {
   type: ComponentType;
   label: string;
   labelEn: string;
+  /** Linked catalog part id. Drives real-world size + enables GLB rendering. */
+  catalogId?: string;
   grid: { x: number; y: number; z: number };
   size: { w: number; d: number; h: number };
   status: ComponentStatus;
@@ -356,6 +358,40 @@ export const HARDWARE_COMPONENTS: HardwareComponent[] = [
     description: 'U.2 NVMe 槽位 #5，当前空闲/未安装驱动器。',
   },
 
+  // ── Drive backplane — vertical PCB the front drives plug into ────────────
+  // (2280: front bays connect through a backplane to the RAID card via SAS.)
+  {
+    id: 'drive_backplane',
+    type: 'RISER',
+    label: '硬盘背板  SAS/SATA',
+    labelEn: 'Backplane',
+    grid: { x: 0.5, y: 8.2, z: 0 },
+    size: { w: 17.5, d: 0.35, h: 2.8 },
+    status: 'normal',
+    busConnections: [
+      { busId: 'sata_main', busType: 'SATA',  role: 'slave', connectorPos: 'top' },
+      { busId: 'pwr_main',  busType: 'POWER', role: 'slave', connectorPos: 'left' },
+    ],
+    description: '硬盘背板，前置 25×2.5"（或 12×3.5"）盘位经此背板汇聚，向后通过 SAS 线缆接 RAID 控制卡。',
+  },
+  // ── RAID / SAS controller card — screw-in, PCIe to CPU1, SAS to backplane ─
+  {
+    id: 'raid_card',
+    type: 'NIC_CARD',
+    label: 'RAID 控制卡  SR430C',
+    labelEn: 'RAID Card',
+    grid: { x: 12.4, y: 20.0, z: 0.34 },
+    size: { w: 5.0, d: 3.2, h: 1.0 },
+    status: 'normal',
+    busConnections: [
+      { busId: 'pcie_main', busType: 'PCIE',  role: 'slave',  connectorPos: 'bottom' },
+      { busId: 'sata_main', busType: 'SATA',  role: 'master', connectorPos: 'left'   },
+      { busId: 'pwr_main',  busType: 'POWER', role: 'slave',  connectorPos: 'top'    },
+    ],
+    metrics: { temperature: 52, powerWatts: 18 },
+    description: 'SAS RAID 控制卡（螺钉固定），经 PCIe 接 CPU1，经 SAS 信号线接硬盘背板。',
+  },
+
   // ── PSU 0 — hot-swap, slot 0 (2280: 2×900W redundant) ────────────────────
   {
     id: 'psu_0',
@@ -526,6 +562,12 @@ export const BUS_REGISTRY: BusDef[] = [
     busStatus: 'active',
   },
 ];
+
+// ─── Apply catalog-driven sizing + 2U topology layout ─────────────────────
+// Overrides hand-authored size/grid with real-world dimensions (uniform mm
+// scale) and a typical 2U server layout. Must run before the data is consumed.
+import { applyChassisLayout } from './chassisLayout';
+applyChassisLayout(HARDWARE_COMPONENTS);
 
 // ─── Helper: get components sharing a bus ─────────────────────────────────
 export function getComponentsOnBus(busId: string): HardwareComponent[] {

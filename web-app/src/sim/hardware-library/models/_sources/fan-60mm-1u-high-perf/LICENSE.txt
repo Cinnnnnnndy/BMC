@@ -1,0 +1,4 @@
+Source: 3DContentCentral (Dassault) — User Library
+Part: 60x60x25mm axial fan
+Converted: scripts/step-to-glb.mjs (occt-import-js)
+License: check 3DContentCentral terms (design use).

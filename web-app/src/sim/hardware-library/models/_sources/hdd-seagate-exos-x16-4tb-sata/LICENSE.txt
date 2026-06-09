@@ -1,0 +1,4 @@
+Source: 3DContentCentral (Dassault) — User Library
+Part: 3.5" HDD (101.6x25.5x146mm)
+Converted: scripts/step-to-glb.mjs (occt-import-js)
+License: check 3DContentCentral terms (design use).
