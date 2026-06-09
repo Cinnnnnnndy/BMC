@@ -1,0 +1,6 @@
+
+# Archived raw CAD sources (keep GLB + LICENSE in git, not the heavy originals)
+src/sim/hardware-library/models/_sources/**/*.step
+src/sim/hardware-library/models/_sources/**/*.stp
+src/sim/hardware-library/models/_sources/**/*.igs
+src/sim/hardware-library/models/_sources/**/*.stl
