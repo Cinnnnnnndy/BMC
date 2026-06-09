@@ -379,8 +379,12 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
   const inCutCorner = (x: number, z: number) =>
     comp.type === 'EXT_BOARD' && x < w * 0.08 && z < 0;
 
+  // EXT_BOARD is flipped 180° about Y so its straight full-width edge (barrel)
+  // faces the mainboard when the board sits behind it (rear placement).
+  const boardRotY = comp.type === 'EXT_BOARD' ? Math.PI : 0;
+
   return (
-    <>
+    <group rotation={[0, boardRotY, 0]}>
       {/* PCB body (one plate, or two forming an L for EXT_BOARD) */}
       {plates.map((p, pi) => (
         <mesh key={`body-${pi}`} ref={pi === 0 ? meshRef : undefined} position={[p.cx, 0, p.cz]} castShadow receiveShadow>
@@ -648,7 +652,7 @@ function PCBMesh({ comp, isSelected, effStatus }: SpecProps) {
       )}
 
       <StatusOutline w={w} dh={dh} d={d} isSelected={isSelected} effStatus={effStatus} />
-    </>
+    </group>
   );
 }
 
