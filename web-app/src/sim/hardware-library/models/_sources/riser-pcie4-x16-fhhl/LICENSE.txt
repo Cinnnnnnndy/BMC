@@ -1,0 +1,4 @@
+Source: GrabCAD — "SI-PEX40152 Quad M.2 NVMe to PCIe 3.0 x16" by community contributor
+URL: https://grabcad.com/library/si-pex40152-quad-m-2-nvme-ports-to-pcie-3-0-x16-bifurcation-riser-controller-1
+License: GrabCAD Community License (design use permitted)
+Converted: occt-import-js STEP→GLB, auto-fit to part dimensionsMM

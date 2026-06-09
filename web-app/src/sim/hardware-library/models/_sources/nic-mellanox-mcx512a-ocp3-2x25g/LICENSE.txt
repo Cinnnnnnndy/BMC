@@ -1,0 +1,5 @@
+Source: GrabCAD — "PCIe Angled Riser Card" by community contributor
+URL: https://grabcad.com/library/pcie-angled-riser-card-1
+License: GrabCAD Community License (design use permitted)
+Converted: Three.js STLLoader→GLTFExporter, auto-fit to part dimensionsMM
+Note: shape is an angled PCIe riser; mapped to OCP NIC slot as closest form-factor
