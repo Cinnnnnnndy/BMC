@@ -250,7 +250,8 @@ function outlineColor(isSelected: boolean, status: string) {
 function StatusOutline({
   w, dh, d, isSelected, effStatus,
 }: { w: number; dh: number; d: number; isSelected: boolean; effStatus: string }) {
-  const show = isSelected || effStatus === 'error' || effStatus === 'warning';
+  // Blueprint style: always show edge outlines — bright when selected/error,
+  // subtle blue (#1e3a70 @ 0.30) when idle so every component glows faintly.
   const outRef = useRef<THREE.LineSegments>(null);
   const geo = useMemo(
     () => new THREE.EdgesGeometry(new THREE.BoxGeometry(w + 0.07, dh + 0.07, d + 0.07)),
@@ -259,13 +260,19 @@ function StatusOutline({
   useFrame(({ clock }) => {
     if (!outRef.current) return;
     const mat = outRef.current.material as THREE.LineBasicMaterial;
-    if (isSelected) mat.opacity = 0.55 + 0.45 * Math.abs(Math.sin(clock.getElapsedTime() * 2));
-    else if (effStatus === 'error') mat.opacity = 0.4 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2));
+    if (isSelected) {
+      mat.opacity = 0.55 + 0.45 * Math.abs(Math.sin(clock.getElapsedTime() * 2));
+    } else if (effStatus === 'error') {
+      mat.opacity = 0.4 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2));
+    }
   });
-  if (!show) return null;
+  const idleOpacity = isSelected ? 0.85 : (effStatus === 'error' || effStatus === 'warning') ? 0.85 : 0.30;
+  const idleColor   = isSelected || effStatus === 'error' || effStatus === 'warning'
+    ? outlineColor(isSelected, effStatus)
+    : '#2a5cbe';
   return (
     <lineSegments ref={outRef} geometry={geo}>
-      <lineBasicMaterial color={outlineColor(isSelected, effStatus)} transparent opacity={0.85} />
+      <lineBasicMaterial color={idleColor} transparent opacity={idleOpacity} />
     </lineSegments>
   );
 }
@@ -2012,19 +2019,18 @@ function CameraResetHandler() {
   return null;
 }
 
-// ─── Scene lights ─────────────────────────────────────────────────────────
-// ─── Scene lights (spec-accurate) ────────────────────────────────────────
+// ─── Scene lights (blueprint-atmosphere edition) ─────────────────────────
 function SceneLights() {
   return (
     <>
-      {/* 1. Ambient — machine room diffuse base */}
-      <ambientLight intensity={0.35} color="#a8bcd8" />
+      {/* 1. Ambient — cool blue data-centre base */}
+      <ambientLight intensity={0.45} color="#7aaae8" />
 
-      {/* 2. Main key light — strong overhead, crisp shadows on fins */}
+      {/* 2. Main key light — crisp overhead with blue-white tint */}
       <directionalLight
         position={[15, 28, 12]}
-        intensity={1.4}
-        color="#f0f4ff"
+        intensity={1.2}
+        color="#d0e4ff"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={FOG_FAR + 40}
@@ -2035,25 +2041,25 @@ function SceneLights() {
         shadow-bias={-0.001}
       />
 
-      {/* 3. Cool fill — left-back bounce, softens shadow edges */}
+      {/* 3. Deep blue fill — gives holographic depth to back faces */}
       <directionalLight
         position={[-12, 8, -10]}
-        intensity={0.38}
-        color="#3858a0"
+        intensity={0.55}
+        color="#2248a0"
       />
 
-      {/* 4. Warm rim — front-low to lift component bases off the floor */}
+      {/* 4. Front rim — picks out IO details */}
       <directionalLight
         position={[0, 2, 20]}
-        intensity={0.18}
-        color="#5070a0"
+        intensity={0.22}
+        color="#3d6ab8"
       />
 
-      {/* 5. Floor bounce */}
-      <pointLight position={[0, -2, 0]} intensity={0.15} color="#1a2840" />
+      {/* 5. Floor bounce — blue glow from beneath, blueprint feel */}
+      <pointLight position={[0, -2, 0]} intensity={0.25} color="#1a3060" />
 
-      {/* 6. Warm front accent — lifts front-panel detail (IO, HDD bays) */}
-      <directionalLight position={[6, 5, 22]} intensity={0.10} color="#c8a060" />
+      {/* 6. Accent — subtle cyan edge highlight from upper-right */}
+      <directionalLight position={[6, 5, 22]} intensity={0.12} color="#4488cc" />
     </>
   );
 }
@@ -2124,7 +2130,7 @@ function ServerChassis() {
   return (
     <group position={[0, 1.65, -1]}>
       <lineSegments geometry={geo}>
-        <lineBasicMaterial color="#1e3060" opacity={0.20} transparent />
+        <lineBasicMaterial color="#3a6fd8" opacity={0.65} transparent />
       </lineSegments>
     </group>
   );
@@ -2180,7 +2186,8 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       <ServerChassis />
 
       {/* ── Ground — subtle grid matching reference dark style ── */}
-      <gridHelper args={[80, 80, '#12151f', '#0e1018']} position={[0, -0.02, 0]} />
+      {/* Blueprint floor grid — visible cyan/blue lines like the card */}
+      <gridHelper args={[80, 60, '#1e4080', '#0d1e3c']} position={[0, -0.02, 0]} />
       {/* Shadow-receiving floor plane (invisible, only catches shadows) */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
         <planeGeometry args={[60, 60]} />
@@ -2214,15 +2221,15 @@ export function IsoCanvas() {
         shadows
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.18 }}
         dpr={[1, 2]}
-        style={{ background: '#0b0d14' }}
+        style={{ background: '#05080f' }}
         onCreated={({ gl }) => {
           // PCFSoftShadowMap produces smooth, realistic shadow edges
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
         onPointerMissed={() => useSimStore.getState().deselectAll()}
       >
-        <color attach="background" args={['#0b0d14']} />
-        <fog attach="fog" color="#0b0d14" near={FOG_NEAR} far={FOG_FAR} />
+        <color attach="background" args={['#05080f']} />
+        <fog attach="fog" color="#05080f" near={FOG_NEAR} far={FOG_FAR} />
 
         <OrbitControls
           makeDefault
