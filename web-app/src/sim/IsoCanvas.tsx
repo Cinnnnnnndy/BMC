@@ -2065,6 +2065,10 @@ function BusRouteLine({
   const effColor  = isError ? '#EF4444' : color;
   const tubeR     = isTrunk ? 0.05 : 0.038;
 
+  // Per-line hover: only THIS tube lights up (not the whole bus group).
+  const [hovered, setHovered] = useState(false);
+  const effAlpha = hovered ? 1.0 : alpha;
+
   // Manhattan path with rounded fillet corners (clean piped look).
   const { curvePath, totalLen, divisions } = useMemo(() => {
     const cp = roundedCurve3(points, isTrunk ? 0.24 : 0.18);
@@ -2113,7 +2117,7 @@ function BusRouteLine({
     if (isActive) mat.uniforms.uOffset.value -= 0.012;
     const target = isError
       ? 0.45 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2))
-      : alpha;
+      : effAlpha;
     const u = mat.uniforms.uOpacity;
     u.value += (target - u.value) * 0.18;
   });
@@ -2123,12 +2127,14 @@ function BusRouteLine({
   const padW  = isTrunk ? 0.5 : 0.4;   // endpoint pad size
   const padH  = isTrunk ? 0.34 : 0.28;
   const dotR  = isTrunk ? 0.075 : 0.055;
-  const padOpacity = Math.min(alpha * 0.7 + 0.12, 0.6);
+  const padOpacity = Math.min(effAlpha * 0.7 + 0.12, 0.6);
 
   return (
     <group
       userData={{ keepMaterial: true }}
       onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onClickBus(); }}
+      onPointerOver={(e: { stopPropagation: () => void }) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={() => setHovered(false)}
     >
       {/* Solid tube body */}
       <mesh geometry={tubeGeo} material={mat} />
@@ -2142,7 +2148,7 @@ function BusRouteLine({
           </mesh>
           <mesh position={[0, 0, 0.004]}>
             <circleGeometry args={[dotR, 18]} />
-            <meshBasicMaterial color={effColor} transparent opacity={Math.min(alpha + 0.25, 1)} depthWrite={false} />
+            <meshBasicMaterial color={effColor} transparent opacity={Math.min(effAlpha + 0.25, 1)} depthWrite={false} />
           </mesh>
         </group>
       ))}
@@ -2157,7 +2163,6 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   const highlightConnections   = useSimStore(s => s.highlightConnections);
 
   const selectedCompId = useSimStore(s => s.selectedId);
-  const [hovered, setHovered] = useState(false);
   const isSelected = selectedBusId === bus.id;
   const highlighted = highlightedConnections.length === 0 || highlightedConnections.includes(bus.id);
   // Connection highlight (spec §8): when a component is selected, only the
@@ -2170,7 +2175,8 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
     : compSelected    ? 0.05            // a component is selected, this bus is unrelated
     : highlighted     ? 0.20            // default resting transparency
     :                   0.10;
-  const alpha = hovered ? 1.0 : baseAlpha;
+  // Per-line hover (inside BusRouteLine) overrides this; group no longer hovers.
+  const alpha = baseAlpha;
   const isError  = bus.busStatus === 'error';
   const isIdle   = bus.busStatus === 'idle';
   const isActive = !isError && !isIdle;
@@ -2199,10 +2205,7 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   }, [isSelected, bus.id, selectBus, highlightConnections]);
 
   return (
-    <group
-      onPointerOver={(e: { stopPropagation: () => void }) => { e.stopPropagation(); setHovered(true); }}
-      onPointerOut={() => setHovered(false)}
-    >
+    <group>
       {routes.map((r, ri) => (
         <BusRouteLine
           key={`${bus.id}-${ri}`}
