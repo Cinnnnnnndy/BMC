@@ -1707,47 +1707,45 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </group>
       )}
 
-      {/* Label pill badge — pinned to the lower-left top-face corner, skewed to
-          lie on the isometric top plane (spec §7). Black #1A1B1F / white text. */}
-      <Html
-        position={[-w / 2, dh / 2 + 0.04, d / 2]}
-        style={{ pointerEvents: 'none', userSelect: 'none' }}
-        zIndexRange={[0, 0]}
-      >
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 3,
-          fontSize: 9,
-          color: '#ffffff',
-          background: isSelected ? '#1f3a66' : '#1A1B1F',
-          border: `1px solid ${isSelected ? 'rgba(91,156,246,0.7)' : 'rgba(255,255,255,0.10)'}`,
-          borderRadius: 3,
-          padding: '1px 5px 1px 4px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          whiteSpace: 'nowrap',
-          fontWeight: isSelected ? 600 : 400,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
-          letterSpacing: '0.03em',
-          lineHeight: 1.4,
-          // Skew onto the iso top plane (≈26.5° dimetric)
-          transform: 'rotate(26.57deg) skewX(-26.57deg) scaleY(0.9)',
-          transformOrigin: '0% 50%',
-        }}>
-          {/* Status dot */}
-          <span style={{
-            width: 4, height: 4, borderRadius: '50%', flexShrink: 0,
-            background: effStatus === 'error' ? '#ef4444'
-              : effStatus === 'warning' ? '#f59e0b'
-              : effStatus === 'offline' ? '#6b7280'
-              : '#4ade80',
-            boxShadow: effStatus === 'error' ? '0 0 4px #ef4444'
-              : effStatus === 'warning' ? '0 0 4px #f59e0b'
-              : 'none',
-          }} />
-          {comp.labelEn}
-        </div>
-      </Html>
+      {/* Label — a TRUE surface-attached 3D label (drei <Text> + plane pill):
+          lies flat on the top face, runs parallel to the part's left edge, and
+          rotates with the scene (never billboards to the camera). Pinned at the
+          lower-left top corner. Black #1A1B1F / white text (spec §3.4/§7).
+          keepMaterial → excluded from the unified-material + edge-outline pass. */}
+      {(() => {
+        const fs   = 0.46;
+        const lw   = 0.6 + comp.labelEn.length * fs * 0.6; // pill width
+        const lh   = 0.74;
+        const dotC = effStatus === 'error' ? '#ef4444'
+          : effStatus === 'warning' ? '#f59e0b'
+          : effStatus === 'offline' ? '#6b7280' : '#4ade80';
+        return (
+          <group position={[-w / 2, dh / 2 + 0.02, d / 2]} rotation={[0, Math.PI / 2, 0]}>
+            {/* flatten onto the top face; label runs along this group's +X */}
+            <group rotation={[-Math.PI / 2, 0, 0]} userData={{ keepMaterial: true }}>
+              {/* pill background (anchored from left edge at x=0) */}
+              <mesh position={[lw / 2, 0, -0.01]}>
+                <planeGeometry args={[lw, lh]} />
+                <meshBasicMaterial color={isSelected ? '#1f3a66' : '#1A1B1F'} transparent opacity={0.92} />
+              </mesh>
+              {/* status dot */}
+              <mesh position={[0.32, 0, 0.01]}>
+                <circleGeometry args={[0.11, 18]} />
+                <meshBasicMaterial color={dotC} />
+              </mesh>
+              <Text
+                position={[0.58, 0, 0.01]}
+                fontSize={fs}
+                color="#ffffff"
+                anchorX="left"
+                anchorY="middle"
+              >
+                {comp.labelEn}
+              </Text>
+            </group>
+          </group>
+        );
+      })()}
     </group>
   );
 }
