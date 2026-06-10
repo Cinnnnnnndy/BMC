@@ -1673,6 +1673,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
 
   const effStatus  = statusOverrides[comp.id] ?? comp.status;
   const isSelected = selectedId === comp.id;
+  const [hovered, setHovered] = useState(false);
   const { x: gx, y: gy, z: gz } = comp.grid;
   const { w, d, h } = comp.size;
   const dh = Math.max(h, 0.1);
@@ -1718,9 +1719,9 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
       onClick={handleClick}
       onDoubleClick={handleDblClick}
       onContextMenu={handleContextMenu as unknown as () => void}
-      onPointerOver={(e) => { e.stopPropagation(); onTooltip({ x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, comp }); }}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); onTooltip({ x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, comp }); }}
       onPointerMove={(e) => { onTooltip({ x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, comp }); }}
-      onPointerOut={() => onTooltip(null)}
+      onPointerOut={() => { setHovered(false); onTooltip(null); }}
     >
       {/* Real open-source GLB model (catalog-driven), else procedural per-type mesh */}
       {useGLB ? (
@@ -1748,6 +1749,21 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           <planeGeometry args={[Math.min(w, d) * 0.26, Math.min(w, d) * 0.26]} />
           <meshBasicMaterial map={KUNPENG_TEX} transparent depthWrite={false} />
         </mesh>
+      )}
+
+      {/* Hover highlight (spec §8): lighter blue stroke + faint fill. Only when
+          not selected (selection's stronger highlight takes over). */}
+      {hovered && !isSelected && (
+        <group userData={{ keepMaterial: true }}>
+          <mesh>
+            <boxGeometry args={[w + 0.1, dh + 0.1, d + 0.1]} />
+            <meshBasicMaterial color="#5E8BFF" transparent opacity={0.07} depthWrite={false} />
+          </mesh>
+          <lineSegments>
+            <edgesGeometry args={[new THREE.BoxGeometry(w + 0.1, dh + 0.1, d + 0.1)]} />
+            <lineBasicMaterial color="#5E8BFF" transparent opacity={0.7} />
+          </lineSegments>
+        </group>
       )}
 
       {/* Selection highlight: blue stroke + translucent blue fill (spec §8).
