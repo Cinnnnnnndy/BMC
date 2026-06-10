@@ -1745,7 +1745,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           GLB top so it isn't buried. keepMaterial → keeps its texture. */}
       {comp.type === 'CPU' && (
         <mesh userData={{ keepMaterial: true }} position={[0, 0.24, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
-          <planeGeometry args={[Math.min(w, d) * 0.52, Math.min(w, d) * 0.52]} />
+          <planeGeometry args={[Math.min(w, d) * 0.26, Math.min(w, d) * 0.26]} />
           <meshBasicMaterial map={KUNPENG_TEX} transparent depthWrite={false} />
         </mesh>
       )}
