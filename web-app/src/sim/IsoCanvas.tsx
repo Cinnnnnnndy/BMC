@@ -2098,15 +2098,17 @@ function CameraResetHandler() {
 function SceneLights() {
   return (
     <>
-      {/* Hemisphere — bright white sky, DARKER grey ground → stronger
-          top-near-white / side-grey contrast on the white parts. */}
-      <hemisphereLight args={['#ffffff', '#a6abbb', 1.35]} />
+      {/* Hemisphere — bright fill (sky white, ground light-grey) keeps the
+          whole part near-white; the small ground darkening gives sides a light
+          grey vs the white tops without going muddy. */}
+      <hemisphereLight args={['#ffffff', '#c4cad6', 0.9]} />
 
-      {/* Single soft key light from upper-left, ~45° — defines top vs side.
-          Casts a gentle contact shadow only (no hard projection look). */}
+      {/* Overhead key — near-vertical: tops (normal up) get the full hit and
+          clip to pure WHITE; sides get almost none, so they read light-grey.
+          This is what opens the (subtle, bright) top-vs-side contrast. */}
       <directionalLight
-        position={[-14, 24, 10]}
-        intensity={0.62}
+        position={[5, 32, 9]}
+        intensity={0.75}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -2118,8 +2120,12 @@ function SceneLights() {
         shadow-bias={-0.0015}
       />
 
-      {/* Tiny ambient top-up so the lightest faces read near-white. */}
-      <ambientLight intensity={0.12} color="#ffffff" />
+      {/* Soft side fill from upper-left → lit side a touch brighter than the
+          shadowed side (the 2-tone side gradient from the spec). */}
+      <directionalLight position={[-20, 11, 6]} intensity={0.16} color="#ffffff" />
+
+      {/* Tiny ambient floor so nothing reads muddy. */}
+      <ambientLight intensity={0.04} color="#ffffff" />
     </>
   );
 }
@@ -2252,6 +2258,9 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       }
       const target = (m.userData.__mat as THREE.Material) || UNIFIED_MAT;
       if (m.material !== target) m.material = target;
+      // Parts don't receive inter-part shadows (keeps top faces clean white);
+      // they still cast onto the floor plane for a soft contact shadow.
+      if (m.receiveShadow) m.receiveShadow = false;
       if (!m.userData.__outlined && m.geometry) toOutline.push(m);
     });
     // One-time per new mesh: add a crisp edge outline, and group the meshes of
