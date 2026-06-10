@@ -1879,19 +1879,42 @@ const DASH_VERT = /* glsl */`
 `;
 const DASH_FRAG = /* glsl */`
   uniform vec3  uColor;
-  uniform float uDashSize;
-  uniform float uGapSize;
   uniform float uTotalLen;
   uniform float uOffset;
   uniform float uOpacity;
+  uniform float uActive;
   varying float vArcLen;
   void main() {
-    float period = uDashSize + uGapSize;
-    float t      = fract(vArcLen * uTotalLen / period + uOffset);
-    if (t > uDashSize / period) discard;
-    gl_FragColor = vec4(uColor, uOpacity);
+    // Solid colored line (reference style) + a moving "comet" highlight when active.
+    vec3 col = uColor;
+    float pos  = fract(vArcLen * uTotalLen * 0.45 - uOffset);
+    float band = smoothstep(0.0, 0.03, pos) * (1.0 - smoothstep(0.03, 0.13, pos));
+    col = mix(col, vec3(1.0), band * uActive * 0.55);
+    gl_FragColor = vec4(col, uOpacity);
   }
 `;
+
+// Build a CurvePath that keeps straight (manhattan) segments but rounds every
+// interior corner with a quadratic fillet — the clean piped look of the ref.
+function roundedCurve3(pts: THREE.Vector3[], radius: number): THREE.CurvePath<THREE.Vector3> {
+  const cp = new THREE.CurvePath<THREE.Vector3>();
+  if (pts.length < 2) return cp;
+  if (pts.length === 2) { cp.add(new THREE.LineCurve3(pts[0].clone(), pts[1].clone())); return cp; }
+  let from = pts[0].clone();
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i];
+    const dIn  = p.clone().sub(pts[i - 1]); const lIn  = dIn.length() || 1;  dIn.normalize();
+    const dOut = pts[i + 1].clone().sub(p); const lOut = dOut.length() || 1; dOut.normalize();
+    const r = Math.min(radius, lIn * 0.5, lOut * 0.5);
+    const cStart = p.clone().addScaledVector(dIn, -r);
+    const cEnd   = p.clone().addScaledVector(dOut, r);
+    cp.add(new THREE.LineCurve3(from.clone(), cStart));
+    cp.add(new THREE.QuadraticBezierCurve3(cStart, p.clone(), cEnd));
+    from = cEnd;
+  }
+  cp.add(new THREE.LineCurve3(from.clone(), pts[pts.length - 1].clone()));
+  return cp;
+}
 
 // ─── Bus route: dashed tube + glowing endpoint cubes (matches figure 3) ───
 function BusRouteLine({
@@ -1904,36 +1927,35 @@ function BusRouteLine({
   if (points.length < 2) return null;
 
   const effColor  = isError ? '#EF4444' : color;
-  const tubeR     = isTrunk ? 0.032 : 0.022;
-  const DASH_SIZE = 0.35;
-  const GAP_SIZE  = 0.20;
+  const tubeR     = isTrunk ? 0.05 : 0.038;
 
-  // CurvePath of straight LineCurve3 segments → exact right-angle corners, no smoothing
-  const { curvePath, totalLen } = useMemo(() => {
-    const cp = new THREE.CurvePath<THREE.Vector3>();
-    for (let i = 0; i < points.length - 1; i++)
-      cp.add(new THREE.LineCurve3(points[i].clone(), points[i + 1].clone()));
-    return { curvePath: cp, totalLen: Math.max(cp.getLength(), 0.01) };
-  }, [points]);
+  // Manhattan path with rounded fillet corners (clean piped look).
+  const { curvePath, totalLen, divisions } = useMemo(() => {
+    const cp = roundedCurve3(points, isTrunk ? 0.24 : 0.18);
+    return {
+      curvePath: cp,
+      totalLen:  Math.max(cp.getLength(), 0.01),
+      divisions: Math.max(points.length * 16, 48),
+    };
+  }, [points, isTrunk]);
 
-  // TubeGeometry — 10 divisions per segment keeps UV tiling accurate
+  // TubeGeometry, radial 7 for a smooth round tube
   const tubeGeo = useMemo(
-    () => new THREE.TubeGeometry(curvePath, (points.length - 1) * 10, tubeR, 5, false),
-    [curvePath, points.length, tubeR],
+    () => new THREE.TubeGeometry(curvePath, divisions, tubeR, 7, false),
+    [curvePath, divisions, tubeR],
   );
   useEffect(() => () => tubeGeo.dispose(), [tubeGeo]);
 
-  // ShaderMaterial — created once, uniforms updated reactively below
+  // ShaderMaterial — solid line + optional moving highlight
   const mat = useMemo(() => new THREE.ShaderMaterial({
     vertexShader:   DASH_VERT,
     fragmentShader: DASH_FRAG,
     uniforms: {
       uColor:    { value: new THREE.Color(effColor) },
-      uDashSize: { value: DASH_SIZE  },
-      uGapSize:  { value: GAP_SIZE   },
-      uTotalLen: { value: totalLen   },
-      uOffset:   { value: 0          },
-      uOpacity:  { value: alpha      },
+      uTotalLen: { value: totalLen },
+      uOffset:   { value: 0 },
+      uOpacity:  { value: alpha },
+      uActive:   { value: isActive ? 1 : 0 },
     },
     transparent: true,
     depthWrite:  false,
@@ -1942,17 +1964,18 @@ function BusRouteLine({
   }), []);
   useEffect(() => () => mat.dispose(), [mat]);
 
-  // Keep color + length uniforms in sync
+  // Keep color/length/active uniforms in sync
   useEffect(() => {
     mat.uniforms.uColor.value.set(effColor);
     mat.uniforms.uTotalLen.value = totalLen;
-  }, [effColor, totalLen, mat]);
+    mat.uniforms.uActive.value = isActive ? 1 : 0;
+  }, [effColor, totalLen, isActive, mat]);
 
-  // Per-frame: scroll dashes + pulse opacity on error
+  // Per-frame: scroll the highlight + pulse opacity on error
   useFrame(({ clock }) => {
-    if (isActive) mat.uniforms.uOffset.value -= 0.018;
+    if (isActive) mat.uniforms.uOffset.value -= 0.012;
     mat.uniforms.uOpacity.value = isError
-      ? 0.25 + 0.65 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2))
+      ? 0.45 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2))
       : alpha;
   });
 
