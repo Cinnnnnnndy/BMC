@@ -1694,6 +1694,20 @@ function TooltipOverlay({ info }: { info: TooltipInfo | null }) {
         </div>
         <span style={{ color: '#6f9bff', fontSize: 12, whiteSpace: 'nowrap' }}>查看日志</span>
       </div>
+      {/* error / warning banner */}
+      {(effStatus === 'error' || effStatus === 'warning') && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 11,
+          padding: '7px 9px', borderRadius: 8,
+          background: effStatus === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(245,158,11,0.14)',
+          border: `1px solid ${effStatus === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)'}`,
+        }}>
+          <span style={{ color: sc, fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>
+            {effStatus === 'error' ? '✕' : '!'}
+          </span>
+          <span style={{ color: '#fff', fontSize: 11.5, lineHeight: 1.45 }}>{info.comp.description}</span>
+        </div>
+      )}
       {/* key/value rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map((r) => (
@@ -1825,6 +1839,30 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </group>
       )}
 
+      {/* Problem marker — error/warning parts always show a coloured outline +
+          a floating "!" badge so they're spotted without hovering. */}
+      {(effStatus === 'error' || effStatus === 'warning') && !isSelected && (() => {
+        const c = effStatus === 'error' ? '#ef4444' : '#f59e0b';
+        return (
+          <group userData={{ keepMaterial: true }}>
+            <mesh>
+              <boxGeometry args={[w + 0.12, dh + 0.12, d + 0.12]} />
+              <meshBasicMaterial color={c} transparent opacity={0.06} depthWrite={false} />
+              <Edges color={c} lineWidth={2} />
+            </mesh>
+            <Html position={[0, dh / 2 + 0.7, 0]} center style={{ pointerEvents: 'none' }} zIndexRange={[0, 0]}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', background: c, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: 15, lineHeight: 1, border: '2px solid #fff',
+                boxShadow: `0 2px 9px ${effStatus === 'error' ? 'rgba(239,68,68,0.65)' : 'rgba(245,158,11,0.6)'}`,
+                fontFamily: 'system-ui, sans-serif',
+              }}>!</div>
+            </Html>
+          </group>
+        );
+      })()}
+
       {/* Label — a TRUE surface-attached 3D label (drei <Text> + plane pill):
           lies flat on the top face, runs parallel to the part's left edge, and
           rotates with the scene (never billboards to the camera). Pinned at the
@@ -1875,6 +1913,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
 const BOARD_TOP_Y   = 0.3;   // main-board top surface
 const WIRE_BOARD_Y  = 0.35;  // default trace height — 0.05 above board
 const WIRE_LIFT_GAP = 0.15;  // clearance above any obstacle the wire must jump
+const WIRE_LAYER_Y  = 3.4;   // single flat overlay height for all bus lines
 
 /** World-space XZ footprint + topY for AABB obstacle checks */
 function getCompBBox(c: HardwareComponent) {
@@ -1942,18 +1981,13 @@ function computeRoute3(
   fromId: string, toId: string,
   idx: number,
 ): THREE.Vector3[] {
-  const zOff    = idx * 0.14;
-  const exclude = new Set([fromId, toId]);
-
-  // L-turn: travel X first, then Z (with parallel-line Z offset)
+  // Single flat overlay layer: every line rises to WIRE_LAYER_Y, does a clean
+  // manhattan turn (X then Z) at that one height, then drops to the target.
+  // No obstacle-hugging — all wires share one readable plane (spec §6).
+  const Y = WIRE_LAYER_Y;
+  const zOff = idx * 0.14;        // small per-line offset so parallels don't overlap
   const fx = from.x, fz = from.z + zOff;
   const tx = to.x,   tz = to.z   + zOff;
-
-  // Per-leg obstacle heights
-  const hA = segObstacleY(fx, fz, tx, fz, exclude);
-  const hB = segObstacleY(tx, fz, tx, tz, exclude);
-  const yA = hA > WIRE_BOARD_Y ? hA + WIRE_LIFT_GAP : WIRE_BOARD_Y;
-  const yB = hB > WIRE_BOARD_Y ? hB + WIRE_LIFT_GAP : WIRE_BOARD_Y;
 
   const pts: THREE.Vector3[] = [];
   const push = (p: THREE.Vector3) => {
@@ -1961,28 +1995,12 @@ function computeRoute3(
   };
 
   push(from.clone());
-
-  // Descend/ascend from connector to Leg-A height
-  if (Math.abs(from.y - yA) > 0.04) push(new THREE.Vector3(fx, yA, from.z));
-  // Apply parallel-line Z offset at from.x
-  if (Math.abs(from.z - fz)  > 0.02) push(new THREE.Vector3(fx, yA, fz));
-
-  // Leg A — move in X
-  if (Math.abs(fx - tx)      > 0.04) push(new THREE.Vector3(tx, yA, fz));
-
-  // Transition between leg heights at the corner
-  if (Math.abs(yA - yB)      > 0.04) push(new THREE.Vector3(tx, yB, fz));
-
-  // Leg B — move in Z
-  if (Math.abs(fz - tz)      > 0.04) push(new THREE.Vector3(tx, yB, tz));
-
-  // Remove Z offset back to exact destination Z
-  if (Math.abs(tz - to.z)    > 0.02) push(new THREE.Vector3(tx, yB, to.z));
-
-  // Ascend/descend from Leg-B height to connector
-  if (Math.abs(to.y - yB)    > 0.04) push(new THREE.Vector3(to.x, yB, to.z));
-
-  push(to.clone());
+  push(new THREE.Vector3(fx, Y, from.z));                              // rise to the layer
+  if (Math.abs(from.z - fz) > 0.02) push(new THREE.Vector3(fx, Y, fz)); // apply parallel offset
+  if (Math.abs(fx - tx)     > 0.04) push(new THREE.Vector3(tx, Y, fz)); // leg A (X)
+  if (Math.abs(fz - tz)     > 0.04) push(new THREE.Vector3(tx, Y, tz)); // leg B (Z)
+  if (Math.abs(tz - to.z)   > 0.02) push(new THREE.Vector3(tx, Y, to.z)); // remove offset
+  push(to.clone());                                                    // drop to connector
   return pts;
 }
 

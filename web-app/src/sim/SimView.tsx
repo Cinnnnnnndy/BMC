@@ -5,6 +5,7 @@ import { SimToolbar } from './SimToolbar';
 import { ContextMenu } from './ContextMenu';
 import { SimToast } from './SimToast';
 import { CatalogBrowser } from './CatalogBrowser';
+import { SystemInfoPanel } from './SystemInfoPanel';
 
 export function SimView() {
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -72,14 +73,17 @@ export function SimView() {
             <span style={{ color: 'rgba(80,110,150,0.65)' }}>openUBMC</span>
           </div>
 
-          {/* Catalog toggle button — top-left overlay */}
+          {/* Floating server system-info overlay (top-left) */}
+          <SystemInfoPanel />
+
+          {/* Catalog toggle button — top-right overlay (system panel owns top-left) */}
           <button
             onClick={() => setCatalogOpen((v) => !v)}
             title="硬件模型库"
             style={{
               position: 'absolute',
               top: 12,
-              left: 12,
+              right: 12,
               zIndex: 10,
               display: 'flex',
               alignItems: 'center',
