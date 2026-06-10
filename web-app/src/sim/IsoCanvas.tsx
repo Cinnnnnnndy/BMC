@@ -229,6 +229,40 @@ function createHoneycombTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(cv);
 }
 
+// ─── Canvas texture: Kunpeng CPU IHS marking ──────────────────────────────
+function createKunpengTexture(): THREE.CanvasTexture {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 512;
+  const ctx = cv.getContext('2d')!;
+  ctx.clearRect(0, 0, 512, 512);
+  ctx.translate(256, 256);
+  // stylized "roc" swoosh mark (鲲鹏 = the mythical roc bird)
+  ctx.strokeStyle = '#2b2e36';
+  ctx.lineWidth = 16;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-95, -120);
+  ctx.bezierCurveTo(40, -165, 120, -70, 70, -25);
+  ctx.bezierCurveTo(20, 15, -70, -10, -30, -70);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-95, -120);
+  ctx.lineTo(-120, -55);
+  ctx.stroke();
+  // wordmark
+  ctx.fillStyle = '#2b2e36';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 130px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+  ctx.fillText('鲲鹏', 0, 70);
+  ctx.font = '700 46px Arial, sans-serif';
+  ctx.fillText('KUNPENG 920', 0, 175);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 8;
+  return tex;
+}
+const KUNPENG_TEX = createKunpengTexture();
+
 // ─── Status helpers ───────────────────────────────────────────────────────
 function statusEmissive(status: string) {
   switch (status) {
@@ -1691,6 +1725,15 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           {comp.type === 'IO_PANEL' && <IOPanelMesh  {...specProps} />}
           {comp.type === 'EEPROM'   && <GenericMesh  {...specProps} />}
         </>
+      )}
+
+      {/* Kunpeng logo on the CPU IHS — sits just above the (auto-fit-taller)
+          GLB top so it isn't buried. keepMaterial → keeps its texture. */}
+      {comp.type === 'CPU' && (
+        <mesh userData={{ keepMaterial: true }} position={[0, 0.24, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
+          <planeGeometry args={[w * 0.46, d * 0.46]} />
+          <meshBasicMaterial map={KUNPENG_TEX} transparent depthWrite={false} />
+        </mesh>
       )}
 
       {/* Selection highlight: blue stroke + translucent blue fill (spec §8).
