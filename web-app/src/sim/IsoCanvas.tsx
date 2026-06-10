@@ -1984,30 +1984,31 @@ function BusRouteLine({
 
   const first = points[0];
   const last  = points[points.length - 1];
-  const cs    = isTrunk ? 0.13 : 0.09; // connector cube side length
+  const padW  = isTrunk ? 0.5 : 0.4;   // endpoint pad size
+  const padH  = isTrunk ? 0.34 : 0.28;
+  const dotR  = isTrunk ? 0.075 : 0.055;
+  const padOpacity = Math.min(alpha * 0.7 + 0.12, 0.6);
 
   return (
     <group
       userData={{ keepMaterial: true }}
       onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onClickBus(); }}
     >
-      {/* Dashed tube body */}
+      {/* Solid tube body */}
       <mesh geometry={tubeGeo} material={mat} />
 
-      {/* Endpoint connector cubes — small glowing blocks as in figure 3 */}
+      {/* Endpoint connection pads — flat rounded pads in the line's own color */}
       {[first, last].map((pt, i) => (
-        <mesh key={i} position={[pt.x, pt.y, pt.z]}>
-          <boxGeometry args={[cs, cs, cs]} />
-          <meshStandardMaterial
-            color={effColor}
-            emissive={new THREE.Color(effColor)}
-            emissiveIntensity={0.65}
-            roughness={0.3}
-            metalness={0.2}
-            transparent
-            opacity={Math.min(alpha * 1.3, 1)}
-          />
-        </mesh>
+        <group key={i} position={[pt.x, pt.y + 0.012, pt.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh>
+            <planeGeometry args={[padW, padH]} />
+            <meshBasicMaterial color={effColor} transparent opacity={padOpacity} depthWrite={false} />
+          </mesh>
+          <mesh position={[0, 0, 0.004]}>
+            <circleGeometry args={[dotR, 18]} />
+            <meshBasicMaterial color={effColor} transparent opacity={Math.min(alpha + 0.25, 1)} depthWrite={false} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
@@ -2019,12 +2020,21 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   const selectBus              = useSimStore(s => s.selectBus);
   const highlightConnections   = useSimStore(s => s.highlightConnections);
 
+  const selectedCompId = useSimStore(s => s.selectedId);
   const [hovered, setHovered] = useState(false);
   const isSelected = selectedBusId === bus.id;
   const highlighted = highlightedConnections.length === 0 || highlightedConnections.includes(bus.id);
-  // Default pipes are ~40% more transparent; hover (or select) makes them solid.
-  const baseAlpha = isSelected ? 1.0 : highlighted ? 0.43 : 0.13;
-  const alpha     = hovered ? 1.0 : baseAlpha;
+  // Connection highlight (spec §8): when a component is selected, only the
+  // buses it connects to stay lit; everything else dims hard.
+  const compSelected   = !!selectedCompId;
+  const busHasSelected = !!selectedCompId && members.some(m => m.id === selectedCompId);
+  const baseAlpha =
+      isSelected      ? 1.0
+    : busHasSelected  ? 0.95
+    : compSelected    ? 0.06            // a component is selected, this bus is unrelated
+    : highlighted     ? 0.30            // default resting transparency
+    :                   0.13;
+  const alpha = hovered ? 1.0 : baseAlpha;
   const isError  = bus.busStatus === 'error';
   const isIdle   = bus.busStatus === 'idle';
   const isActive = !isError && !isIdle;
