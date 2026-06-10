@@ -1707,10 +1707,9 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </group>
       )}
 
-      {/* Label pill badge — matches reference image style */}
+      {/* Label pill badge — pinned to a top-face corner (not floating centered) */}
       <Html
-        position={[0, dh / 2 + 0.32, 0]}
-        center
+        position={[-w / 2, dh / 2 + 0.04, -d / 2]}
         style={{ pointerEvents: 'none', userSelect: 'none' }}
         zIndexRange={[0, 0]}
       >
