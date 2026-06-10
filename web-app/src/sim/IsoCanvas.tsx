@@ -1707,9 +1707,10 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </group>
       )}
 
-      {/* Label pill badge — pinned to a top-face corner (not floating centered) */}
+      {/* Label pill badge — pinned to the lower-left top-face corner, skewed to
+          lie on the isometric top plane (spec §7). Black #1A1B1F / white text. */}
       <Html
-        position={[-w / 2, dh / 2 + 0.04, -d / 2]}
+        position={[-w / 2, dh / 2 + 0.04, d / 2]}
         style={{ pointerEvents: 'none', userSelect: 'none' }}
         zIndexRange={[0, 0]}
       >
@@ -1718,18 +1719,20 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           alignItems: 'center',
           gap: 3,
           fontSize: 9,
-          color: isSelected ? '#90c4ff' : 'rgba(185,205,240,0.88)',
-          background: isSelected ? 'rgba(30,55,100,0.82)' : 'rgba(8,10,20,0.78)',
-          border: `1px solid ${isSelected ? 'rgba(91,156,246,0.55)' : 'rgba(255,255,255,0.10)'}`,
+          color: '#ffffff',
+          background: isSelected ? '#1f3a66' : '#1A1B1F',
+          border: `1px solid ${isSelected ? 'rgba(91,156,246,0.7)' : 'rgba(255,255,255,0.10)'}`,
           borderRadius: 3,
           padding: '1px 5px 1px 4px',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           whiteSpace: 'nowrap',
           fontWeight: isSelected ? 600 : 400,
-          backdropFilter: 'blur(3px)',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.75)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
           letterSpacing: '0.03em',
           lineHeight: 1.4,
+          // Skew onto the iso top plane (≈26.5° dimetric)
+          transform: 'rotate(26.57deg) skewX(-26.57deg) scaleY(0.9)',
+          transformOrigin: '0% 50%',
         }}>
           {/* Status dot */}
           <span style={{
