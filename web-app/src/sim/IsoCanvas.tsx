@@ -1751,33 +1751,27 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </mesh>
       )}
 
-      {/* Hover highlight (spec §8): lighter blue stroke + faint fill. Only when
-          not selected (selection's stronger highlight takes over). */}
+      {/* Hover highlight (spec §8): blue #2F6BFF thick stroke + faint fill.
+          drei <Edges> = fat lines (lineWidth works, unlike lineSegments).
+          Only when not selected (selection's stronger highlight takes over). */}
       {hovered && !isSelected && (
         <group userData={{ keepMaterial: true }}>
           <mesh>
             <boxGeometry args={[w + 0.1, dh + 0.1, d + 0.1]} />
-            <meshBasicMaterial color="#5E8BFF" transparent opacity={0.07} depthWrite={false} />
+            <meshBasicMaterial color="#2F6BFF" transparent opacity={0.08} depthWrite={false} />
+            <Edges color="#2F6BFF" lineWidth={2.2} />
           </mesh>
-          <lineSegments>
-            <edgesGeometry args={[new THREE.BoxGeometry(w + 0.1, dh + 0.1, d + 0.1)]} />
-            <lineBasicMaterial color="#5E8BFF" transparent opacity={0.7} />
-          </lineSegments>
         </group>
       )}
 
-      {/* Selection highlight: blue stroke + translucent blue fill (spec §8).
-          keepMaterial so the unified-material traverse leaves it blue. */}
+      {/* Selection highlight: stronger blue stroke + translucent blue fill. */}
       {isSelected && (
         <group userData={{ keepMaterial: true }}>
           <mesh>
             <boxGeometry args={[w + 0.14, dh + 0.14, d + 0.14]} />
-            <meshBasicMaterial color="#2F6BFF" transparent opacity={0.12} depthWrite={false} />
+            <meshBasicMaterial color="#2F6BFF" transparent opacity={0.14} depthWrite={false} />
+            <Edges color="#2F6BFF" lineWidth={3.2} />
           </mesh>
-          <lineSegments>
-            <edgesGeometry args={[new THREE.BoxGeometry(w + 0.14, dh + 0.14, d + 0.14)]} />
-            <lineBasicMaterial color="#2F6BFF" transparent opacity={0.95} />
-          </lineSegments>
         </group>
       )}
 
