@@ -1606,53 +1606,103 @@ const S_COLORS: Record<string, string> = {
   normal: '#4ade80', warning: '#fbbf24', error: '#f87171', offline: '#6b7280', selected: '#5b9cf6',
 };
 
+const TYPE_META: Record<string, { name: string; icon: string }> = {
+  FAN:        { name: '风扇',   icon: '🌀' },
+  PSU:        { name: '电源',   icon: '🔌' },
+  HDD:        { name: '硬盘',   icon: '💽' },
+  NVME:       { name: 'NVMe',  icon: '⬛' },
+  CPU:        { name: '处理器', icon: '🧠' },
+  BASE_BOARD: { name: '主板',   icon: '🟩' },
+  EXT_BOARD:  { name: '拓展板', icon: '🟩' },
+  BMC_CARD:   { name: 'BMC 管理卡', icon: '🪪' },
+  RISER:      { name: 'Riser 卡', icon: '🪧' },
+  NIC_CARD:   { name: '网卡',   icon: '🌐' },
+  IO_PANEL:   { name: 'IO 面板', icon: '🔲' },
+  EEPROM:     { name: 'EEPROM', icon: '💠' },
+};
+
+type Row = { k: string; v: string; warn?: boolean };
+
+/** Per-type hover fields, derived from the component + its catalog part. */
+function tooltipFields(comp: HardwareComponent): { icon: string; title: string; rows: Row[] } {
+  const part = comp.catalogId ? getPartById(comp.catalogId) : undefined;
+  const m = comp.metrics;
+  const pn = part?.partNumber ?? comp.id.toUpperCase();
+  const model = part?.name ?? comp.label;
+  const meta = TYPE_META[comp.type] ?? { name: '部件', icon: '◾' };
+  const rows: Row[] = [{ k: '型号', v: model }];
+
+  switch (comp.type) {
+    case 'FAN': {
+      const util = m?.utilization ?? 42;
+      const rpm = Math.round(2400 + util * 95);
+      rows.push({ k: '转速(RPM)', v: `${rpm}/${rpm + 1}` });
+      rows.push({ k: '速率比(%)', v: `${util.toFixed(0)}/${Math.max(0, util - 1).toFixed(0)}` });
+      break;
+    }
+    case 'PSU':
+      if (m?.powerWatts != null) rows.push({ k: '功率(W)', v: `${Math.round(m.powerWatts)}` });
+      if (m?.voltage != null)    rows.push({ k: '输出电压(V)', v: m.voltage.toFixed(2) });
+      if (m?.temperature != null) rows.push({ k: '温度(°C)', v: `${Math.round(m.temperature)}`, warn: m.temperature > 70 });
+      break;
+    case 'CPU':
+      if (m?.temperature != null) rows.push({ k: '温度(°C)', v: `${Math.round(m.temperature)}`, warn: m.temperature > 85 });
+      if (m?.powerWatts != null)  rows.push({ k: '功耗(W)', v: `${Math.round(m.powerWatts)}` });
+      if (m?.utilization != null) rows.push({ k: '利用率(%)', v: m.utilization.toFixed(0) });
+      break;
+    case 'HDD':
+    case 'NVME':
+      if (m?.temperature != null) rows.push({ k: '温度(°C)', v: `${Math.round(m.temperature)}`, warn: m.temperature > 70 });
+      if (m?.utilization != null) rows.push({ k: '利用率(%)', v: m.utilization.toFixed(0) });
+      break;
+    default:
+      if (m?.temperature != null) rows.push({ k: '温度(°C)', v: `${Math.round(m.temperature)}` });
+      if (m?.powerWatts != null)  rows.push({ k: '功耗(W)', v: `${Math.round(m.powerWatts)}` });
+      if (m?.voltage != null)     rows.push({ k: '电压(V)', v: m.voltage.toFixed(2) });
+      if (m?.utilization != null) rows.push({ k: '利用率(%)', v: m.utilization.toFixed(0) });
+      break;
+  }
+  rows.push({ k: '部件编号', v: pn });
+  return { icon: meta.icon, title: `${meta.name}返回信息`, rows };
+}
+
 function TooltipOverlay({ info }: { info: TooltipInfo | null }) {
   const statusOverrides = useSimStore(s => s.statusOverrides);
   if (!info) return null;
   const effStatus = statusOverrides[info.comp.id] ?? info.comp.status;
   const sc = S_COLORS[effStatus] ?? '#888';
-  const m  = info.comp.metrics;
+  const { icon, title, rows } = tooltipFields(info.comp);
 
   return (
     <div style={{
-      position: 'fixed', left: info.x + 14, top: info.y - 10,
-      background: 'rgba(10,12,22,0.96)', border: '1px solid rgba(255,255,255,0.12)',
-      borderRadius: 8, padding: '9px 13px', color: 'rgba(200,215,255,0.85)',
-      fontSize: 11, lineHeight: 1.55, minWidth: 160, maxWidth: 230,
-      backdropFilter: 'blur(6px)', boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+      position: 'fixed', left: info.x + 16, top: info.y - 12,
+      background: 'rgba(20,22,30,0.97)', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 14, padding: '13px 17px 15px', color: '#e6e9f2',
+      fontSize: 12.5, minWidth: 234, maxWidth: 320,
+      backdropFilter: 'blur(10px)', boxShadow: '0 16px 44px rgba(0,0,0,0.5)',
       pointerEvents: 'none', zIndex: 200,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
-      <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{info.comp.label}</div>
-      <div style={{ color: 'rgba(200,215,255,0.38)', fontSize: 10, marginBottom: 5, fontFamily: 'monospace' }}>
-        {info.comp.id}
-      </div>
-      <div style={{ marginBottom: m ? 6 : 0 }}>
-        <span style={{ color: sc, fontSize: 10, background: `${sc}22`, border: `1px solid ${sc}44`, borderRadius: 10, padding: '1px 7px' }}>
-          {S_LABELS[effStatus] ?? effStatus}
-        </span>
-      </div>
-      {m && (
-        <div style={{ fontSize: 10, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {m.temperature !== undefined && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'rgba(200,215,255,0.45)' }}>温度</span>
-            <span style={{ color: m.temperature > 80 ? '#f87171' : 'rgba(200,215,255,0.85)', fontWeight: 600 }}>{m.temperature}°C</span>
-          </div>}
-          {m.powerWatts !== undefined && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'rgba(200,215,255,0.45)' }}>功耗</span>
-            <span style={{ fontWeight: 600 }}>{m.powerWatts}W</span>
-          </div>}
-          {m.voltage !== undefined && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'rgba(200,215,255,0.45)' }}>电压</span>
-            <span style={{ fontWeight: 600 }}>{m.voltage.toFixed(2)}V</span>
-          </div>}
-          {m.utilization !== undefined && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ color: 'rgba(200,215,255,0.45)' }}>利用率</span>
-            <span style={{ color: m.utilization > 90 ? '#f87171' : m.utilization > 70 ? '#fbbf24' : '#4ade80', fontWeight: 600 }}>
-              {m.utilization.toFixed(0)}%
-            </span>
-          </div>}
+      {/* header: status-dot icon + "<type>返回信息" + 查看日志 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ position: 'relative', fontSize: 15, lineHeight: 1 }}>
+            {icon}
+            <span style={{ position: 'absolute', right: -2, bottom: -1, width: 7, height: 7, borderRadius: '50%', background: sc, boxShadow: `0 0 5px ${sc}` }} />
+          </span>
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#ffffff', whiteSpace: 'nowrap' }}>{title}</span>
         </div>
-      )}
+        <span style={{ color: '#6f9bff', fontSize: 12, whiteSpace: 'nowrap' }}>查看日志</span>
+      </div>
+      {/* key/value rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {rows.map((r) => (
+          <div key={r.k} style={{ display: 'flex', justifyContent: 'space-between', gap: 18 }}>
+            <span style={{ color: 'rgba(230,233,242,0.5)' }}>{r.k}</span>
+            <span style={{ fontWeight: 600, color: r.warn ? '#f87171' : '#ffffff', textAlign: 'right' }}>{r.v}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
