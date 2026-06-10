@@ -1666,6 +1666,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
   return (
     <group
       position={[wx, wy, wz]}
+      userData={{ compType: comp.type }}
       onClick={handleClick}
       onDoubleClick={handleDblClick}
       onContextMenu={handleContextMenu as unknown as () => void}
@@ -2097,15 +2098,15 @@ function CameraResetHandler() {
 function SceneLights() {
   return (
     <>
-      {/* Hemisphere — bright white sky, light-grey ground; gives a natural
-          top-near-white / side-greyer gradient on the white parts. */}
-      <hemisphereLight args={['#ffffff', '#ccd0db', 1.45]} />
+      {/* Hemisphere — bright white sky, DARKER grey ground → stronger
+          top-near-white / side-grey contrast on the white parts. */}
+      <hemisphereLight args={['#ffffff', '#a6abbb', 1.35]} />
 
       {/* Single soft key light from upper-left, ~45° — defines top vs side.
           Casts a gentle contact shadow only (no hard projection look). */}
       <directionalLight
         position={[-14, 24, 10]}
-        intensity={0.5}
+        intensity={0.62}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -2118,7 +2119,7 @@ function SceneLights() {
       />
 
       {/* Tiny ambient top-up so the lightest faces read near-white. */}
-      <ambientLight intensity={0.25} color="#ffffff" />
+      <ambientLight intensity={0.12} color="#ffffff" />
     </>
   );
 }
@@ -2212,6 +2213,15 @@ const UNIFIED_MAT = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.0,
 });
 
+// Dark-grey accent (spec --socket-dark #5C5F69) for the important DETAIL parts
+// of drives / fans / PSUs (connectors, grilles, hubs) — breaks up the all-white.
+const ACCENT_MAT = new THREE.MeshStandardMaterial({
+  color: new THREE.Color('#5C5F69'),
+  metalness: 0.0,
+  roughness: 0.95,
+});
+const ACCENT_TYPES = new Set(['PSU', 'FAN', 'NVME', 'HDD']);
+
 // Thin light-grey edge outline (spec §3.2 --part-outline #C7CAD6) — added to
 // every part mesh so white parts/sub-parts keep crisp boundaries on white bg.
 const OUTLINE_MAT = new THREE.LineBasicMaterial({
@@ -2240,20 +2250,49 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       for (let p: THREE.Object3D | null = o; p; p = p.parent) {
         if (p.userData && p.userData.keepMaterial) return;
       }
-      if (m.material !== UNIFIED_MAT) m.material = UNIFIED_MAT;
+      const target = (m.userData.__mat as THREE.Material) || UNIFIED_MAT;
+      if (m.material !== target) m.material = target;
       if (!m.userData.__outlined && m.geometry) toOutline.push(m);
     });
-    // One-time: give each part mesh a crisp light-grey edge outline (down to
-    // sub-parts). Done after traversal so we don't mutate during iteration.
-    for (const m of toOutline) {
-      m.userData.__outlined = true;
-      try {
-        const eg = new THREE.EdgesGeometry(m.geometry as THREE.BufferGeometry, 35);
-        const ls = new THREE.LineSegments(eg, OUTLINE_MAT);
-        ls.userData.isOutline = true;
-        ls.renderOrder = 2;
-        m.add(ls);
-      } catch { /* geometry without index/position — skip */ }
+    // One-time per new mesh: add a crisp edge outline, and group the meshes of
+    // accent-eligible parts (PSU/FAN/NVME/HDD) by component to dark-accent their
+    // smaller DETAIL meshes (connectors/grilles/hubs) while the body stays white.
+    if (toOutline.length) {
+      const byComp = new Map<THREE.Object3D, THREE.Mesh[]>();
+      for (const m of toOutline) {
+        m.userData.__outlined = true;
+        try {
+          const eg = new THREE.EdgesGeometry(m.geometry as THREE.BufferGeometry, 35);
+          const ls = new THREE.LineSegments(eg, OUTLINE_MAT);
+          ls.userData.isOutline = true;
+          ls.renderOrder = 2;
+          m.add(ls);
+        } catch { /* geometry without index/position — skip */ }
+        // find the owning component group + its type
+        let cg: THREE.Object3D | null = m.parent;
+        while (cg && cg.userData.compType === undefined) cg = cg.parent;
+        if (cg && ACCENT_TYPES.has(cg.userData.compType as string)) {
+          (byComp.get(cg) ?? byComp.set(cg, []).get(cg)!).push(m);
+        }
+      }
+      for (const meshes of byComp.values()) {
+        let largestVol = -1;
+        for (const m of meshes) {
+          const g = m.geometry as THREE.BufferGeometry;
+          if (!g.boundingBox) g.computeBoundingBox();
+          const bb = g.boundingBox;
+          const v = bb ? (bb.max.x - bb.min.x) * (bb.max.y - bb.min.y) * (bb.max.z - bb.min.z) : 0;
+          m.userData.__vol = v;
+          if (v > largestVol) largestVol = v;
+        }
+        for (const m of meshes) {
+          // detail mesh (well under the body's size) → dark-grey accent
+          if ((m.userData.__vol as number) < largestVol * 0.35) {
+            m.userData.__mat = ACCENT_MAT;
+            m.material = ACCENT_MAT;
+          }
+        }
+      }
     }
 
     const store = useSimStore.getState();
