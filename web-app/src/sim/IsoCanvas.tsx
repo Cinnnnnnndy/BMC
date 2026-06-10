@@ -4,7 +4,7 @@
  */
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html, Environment, RoundedBox, Text, Edges } from '@react-three/drei';
+import { OrbitControls, Environment, RoundedBox, Text, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSimStore } from './simStore';
 import {
@@ -276,6 +276,32 @@ function createKunpengTexture(): THREE.CanvasTexture {
   return tex;
 }
 const KUNPENG_TEX = createKunpengTexture();
+
+/** Circular "!" alert badge as a canvas texture (cheap camera-facing sprite —
+ *  avoids drei <Html> per-frame DOM reflow that froze the heavy scene). */
+function createAlertTexture(fill: string): THREE.CanvasTexture {
+  const s = 128;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = s;
+  const ctx = cv.getContext('2d')!;
+  ctx.beginPath();
+  ctx.arc(s / 2, s / 2, s / 2 - 8, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${s * 0.62}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('!', s / 2, s / 2 + 4);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 8;
+  return tex;
+}
+const ALERT_TEX_ERROR = createAlertTexture('#ef4444');
+const ALERT_TEX_WARN  = createAlertTexture('#f59e0b');
 
 // ─── Status helpers ───────────────────────────────────────────────────────
 function statusEmissive(status: string) {
@@ -1843,6 +1869,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           a floating "!" badge so they're spotted without hovering. */}
       {(effStatus === 'error' || effStatus === 'warning') && !isSelected && (() => {
         const c = effStatus === 'error' ? '#ef4444' : '#f59e0b';
+        const tex = effStatus === 'error' ? ALERT_TEX_ERROR : ALERT_TEX_WARN;
         return (
           <group userData={{ keepMaterial: true }}>
             <mesh>
@@ -1850,15 +1877,10 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
               <meshBasicMaterial color={c} transparent opacity={0.06} depthWrite={false} />
               <Edges color={c} lineWidth={2} />
             </mesh>
-            <Html position={[0, dh / 2 + 0.7, 0]} center style={{ pointerEvents: 'none' }} zIndexRange={[0, 0]}>
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', background: c, color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, fontSize: 15, lineHeight: 1, border: '2px solid #fff',
-                boxShadow: `0 2px 9px ${effStatus === 'error' ? 'rgba(239,68,68,0.65)' : 'rgba(245,158,11,0.6)'}`,
-                fontFamily: 'system-ui, sans-serif',
-              }}>!</div>
-            </Html>
+            {/* camera-facing sprite badge — no DOM, cheap under the heavy scene */}
+            <sprite position={[0, dh / 2 + 0.7, 0]} scale={[0.92, 0.92, 0.92]} renderOrder={4}>
+              <spriteMaterial map={tex} transparent depthTest={false} depthWrite={false} />
+            </sprite>
           </group>
         );
       })()}
