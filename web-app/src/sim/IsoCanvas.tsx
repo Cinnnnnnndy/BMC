@@ -2170,6 +2170,14 @@ const UNIFIED_MAT = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.0,
 });
 
+// Thin light-grey edge outline (spec §3.2 --part-outline #C7CAD6) — added to
+// every part mesh so white parts/sub-parts keep crisp boundaries on white bg.
+const OUTLINE_MAT = new THREE.LineBasicMaterial({
+  color: new THREE.Color('#B9BDCC'),
+  transparent: true,
+  opacity: 0.9,
+});
+
 // ─── Main scene ───────────────────────────────────────────────────────────
 function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void }) {
   const snapshotTimer = useRef(0);
@@ -2181,6 +2189,7 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
     // (ShaderMaterial) and anything under a group flagged keepMaterial (the
     // I2C/PCIe/SATA bus routes + their connector cubes keep their colored,
     // flowing style).
+    const toOutline: THREE.Mesh[] = [];
     state.scene.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -2190,7 +2199,20 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
         if (p.userData && p.userData.keepMaterial) return;
       }
       if (m.material !== UNIFIED_MAT) m.material = UNIFIED_MAT;
+      if (!m.userData.__outlined && m.geometry) toOutline.push(m);
     });
+    // One-time: give each part mesh a crisp light-grey edge outline (down to
+    // sub-parts). Done after traversal so we don't mutate during iteration.
+    for (const m of toOutline) {
+      m.userData.__outlined = true;
+      try {
+        const eg = new THREE.EdgesGeometry(m.geometry as THREE.BufferGeometry, 35);
+        const ls = new THREE.LineSegments(eg, OUTLINE_MAT);
+        ls.userData.isOutline = true;
+        ls.renderOrder = 2;
+        m.add(ls);
+      } catch { /* geometry without index/position — skip */ }
+    }
 
     const store = useSimStore.getState();
     store.advanceTick(delta);
