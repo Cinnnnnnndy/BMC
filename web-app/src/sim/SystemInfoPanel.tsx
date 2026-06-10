@@ -52,9 +52,9 @@ export function SystemInfoPanel() {
 
   return (
     <div style={{
-      position: 'absolute', top: 14, left: 14, width: 312, zIndex: 9,
+      position: 'absolute', top: 62, left: 14, width: 312, zIndex: 9,
       display: 'flex', flexDirection: 'column', gap: 11,
-      maxHeight: 'calc(100% - 28px)', overflowY: 'auto',
+      maxHeight: 'calc(100% - 76px)', overflowY: 'auto',
       fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       {/* 资源对象生成 — always shown */}

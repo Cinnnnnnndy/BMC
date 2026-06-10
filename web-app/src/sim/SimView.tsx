@@ -9,6 +9,7 @@ import { SystemInfoPanel } from './SystemInfoPanel';
 
 export function SimView() {
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [sysOpen, setSysOpen] = useState(false);   // system-info panel hidden by default
 
   return (
     <div
@@ -73,8 +74,28 @@ export function SimView() {
             <span style={{ color: 'rgba(80,110,150,0.65)' }}>openUBMC</span>
           </div>
 
-          {/* Floating server system-info overlay (top-left) */}
-          <SystemInfoPanel />
+          {/* System-info toggle (top-left) — panel is hidden until opened */}
+          <button
+            onClick={() => setSysOpen((v) => !v)}
+            title="服务器系统信息"
+            style={{
+              position: 'absolute', top: 14, left: 14, zIndex: 11,
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '7px 13px', borderRadius: 10,
+              border: `1px solid ${sysOpen ? 'rgba(47,107,255,0.45)' : 'rgba(120,150,190,0.30)'}`,
+              background: sysOpen ? 'rgba(47,107,255,0.10)' : 'rgba(255,255,255,0.92)',
+              color: sysOpen ? '#2f6bff' : '#4a5260',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(60,80,120,0.12)',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            <span style={{ fontSize: 14 }}>🗔</span>
+            系统信息
+          </button>
+
+          {/* Floating server system-info overlay (top-left), below the toggle */}
+          {sysOpen && <SystemInfoPanel />}
 
           {/* Catalog toggle button — top-right overlay (system panel owns top-left) */}
           <button
