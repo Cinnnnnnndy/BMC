@@ -1971,12 +1971,15 @@ function BusRouteLine({
     mat.uniforms.uActive.value = isActive ? 1 : 0;
   }, [effColor, totalLen, isActive, mat]);
 
-  // Per-frame: scroll the highlight + pulse opacity on error
+  // Per-frame: scroll the highlight + smoothly ease opacity toward the target
+  // (so the hover→solid / unhover→transparent transition is gentle).
   useFrame(({ clock }) => {
     if (isActive) mat.uniforms.uOffset.value -= 0.012;
-    mat.uniforms.uOpacity.value = isError
+    const target = isError
       ? 0.45 + 0.5 * Math.abs(Math.sin(clock.getElapsedTime() * Math.PI * 2))
       : alpha;
+    const u = mat.uniforms.uOpacity;
+    u.value += (target - u.value) * 0.18;
   });
 
   const first = points[0];
@@ -2016,9 +2019,12 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   const selectBus              = useSimStore(s => s.selectBus);
   const highlightConnections   = useSimStore(s => s.highlightConnections);
 
+  const [hovered, setHovered] = useState(false);
   const isSelected = selectedBusId === bus.id;
   const highlighted = highlightedConnections.length === 0 || highlightedConnections.includes(bus.id);
-  const alpha    = isSelected ? 1.0 : highlighted ? 0.72 : 0.22;
+  // Default pipes are ~40% more transparent; hover (or select) makes them solid.
+  const baseAlpha = isSelected ? 1.0 : highlighted ? 0.43 : 0.13;
+  const alpha     = hovered ? 1.0 : baseAlpha;
   const isError  = bus.busStatus === 'error';
   const isIdle   = bus.busStatus === 'idle';
   const isActive = !isError && !isIdle;
@@ -2047,7 +2053,10 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   }, [isSelected, bus.id, selectBus, highlightConnections]);
 
   return (
-    <group>
+    <group
+      onPointerOver={(e: { stopPropagation: () => void }) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={() => setHovered(false)}
+    >
       {routes.map((r, ri) => (
         <BusRouteLine
           key={`${bus.id}-${ri}`}
