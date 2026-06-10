@@ -47,11 +47,12 @@ export interface HardwareComponent {
 }
 
 // ─── Bus color mapping ─────────────────────────────────────────────────────
+// Colors sampled from the reference image's wires (spec §3.3).
 export const BUS_COLORS: Record<BusType, { hex: number; css: string; width: number }> = {
-  POWER: { hex: 0xF5C842, css: '#F5C842', width: 2.5 },
-  I2C:   { hex: 0x5B9CF6, css: '#5B9CF6', width: 1.8 },
-  PCIE:  { hex: 0xC084FC, css: '#C084FC', width: 2.2 },
-  SATA:  { hex: 0xF97316, css: '#F97316', width: 2.0 },
+  POWER: { hex: 0xFFC233, css: '#FFC233', width: 2.5 }, // yellow — power / mgmt
+  I2C:   { hex: 0x5E8BFF, css: '#5E8BFF', width: 1.8 }, // blue — signal
+  PCIE:  { hex: 0xD29CFF, css: '#D29CFF', width: 2.2 }, // purple — HDD backplane
+  SATA:  { hex: 0xFF8A3D, css: '#FF8A3D', width: 2.0 }, // orange — edge connectors
   USB:   { hex: 0x34D399, css: '#34D399', width: 1.6 },
 };
 

@@ -2032,9 +2032,9 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
   const baseAlpha =
       isSelected      ? 1.0
     : busHasSelected  ? 0.95
-    : compSelected    ? 0.06            // a component is selected, this bus is unrelated
-    : highlighted     ? 0.30            // default resting transparency
-    :                   0.13;
+    : compSelected    ? 0.05            // a component is selected, this bus is unrelated
+    : highlighted     ? 0.20            // default resting transparency
+    :                   0.10;
   const alpha = hovered ? 1.0 : baseAlpha;
   const isError  = bus.busStatus === 'error';
   const isIdle   = bus.busStatus === 'idle';
