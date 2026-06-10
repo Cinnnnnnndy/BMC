@@ -229,34 +229,48 @@ function createHoneycombTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(cv);
 }
 
-// ─── Canvas texture: Kunpeng CPU IHS marking ──────────────────────────────
+// ─── Canvas texture: "Powered by Kunpeng" badge (official logo) ───────────
 function createKunpengTexture(): THREE.CanvasTexture {
+  const S = 512;
   const cv = document.createElement('canvas');
-  cv.width = 512; cv.height = 512;
+  cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d')!;
-  ctx.clearRect(0, 0, 512, 512);
-  ctx.translate(256, 256);
-  // stylized "roc" swoosh mark (鲲鹏 = the mythical roc bird)
-  ctx.strokeStyle = '#2b2e36';
-  ctx.lineWidth = 16;
-  ctx.lineCap = 'round';
+  ctx.clearRect(0, 0, S, S);
+  const red = '#d4071f';
+  const ink = '#1f1f1f';
+  // white rounded badge + red border
+  const m = 26, r = 62;
   ctx.beginPath();
-  ctx.moveTo(-95, -120);
-  ctx.bezierCurveTo(40, -165, 120, -70, 70, -25);
-  ctx.bezierCurveTo(20, 15, -70, -10, -30, -70);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-95, -120);
-  ctx.lineTo(-120, -55);
-  ctx.stroke();
+  (ctx as CanvasRenderingContext2D & { roundRect: (x: number, y: number, w: number, h: number, r: number) => void })
+    .roundRect(m, m, S - 2 * m, S - 2 * m, r);
+  ctx.fillStyle = '#ffffff'; ctx.fill();
+  ctx.lineWidth = 16; ctx.strokeStyle = red; ctx.stroke();
   // wordmark
-  ctx.fillStyle = '#2b2e36';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '600 130px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
-  ctx.fillText('鲲鹏', 0, 70);
-  ctx.font = '700 46px Arial, sans-serif';
-  ctx.fillText('KUNPENG 920', 0, 175);
+  ctx.fillStyle = ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 62px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('Powered by', 62, 140);
+  ctx.font = '800 96px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('Kunpeng', 54, 228);
+  // arrow mark — grey wing behind, red check/arrow in front, pointing up-right
+  ctx.fillStyle = '#c2c4c6';
+  ctx.beginPath();
+  ctx.moveTo(252, 474);
+  ctx.lineTo(214, 356);
+  ctx.lineTo(456, 250);
+  ctx.lineTo(300, 366);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = red;
+  ctx.beginPath();
+  ctx.moveTo(80, 320);
+  ctx.lineTo(150, 396);
+  ctx.lineTo(186, 360);
+  ctx.lineTo(456, 250);
+  ctx.lineTo(176, 344);
+  ctx.closePath();
+  ctx.fill();
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 8;
   return tex;
@@ -1731,7 +1745,7 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
           GLB top so it isn't buried. keepMaterial → keeps its texture. */}
       {comp.type === 'CPU' && (
         <mesh userData={{ keepMaterial: true }} position={[0, 0.24, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
-          <planeGeometry args={[w * 0.46, d * 0.46]} />
+          <planeGeometry args={[Math.min(w, d) * 0.52, Math.min(w, d) * 0.52]} />
           <meshBasicMaterial map={KUNPENG_TEX} transparent depthWrite={false} />
         </mesh>
       )}
