@@ -1692,7 +1692,20 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
         </>
       )}
 
-      {/* Per-component box outline removed (user request) — clean silhouette. */}
+      {/* Selection highlight: blue stroke + translucent blue fill (spec §8).
+          keepMaterial so the unified-material traverse leaves it blue. */}
+      {isSelected && (
+        <group userData={{ keepMaterial: true }}>
+          <mesh>
+            <boxGeometry args={[w + 0.14, dh + 0.14, d + 0.14]} />
+            <meshBasicMaterial color="#2F6BFF" transparent opacity={0.12} depthWrite={false} />
+          </mesh>
+          <lineSegments>
+            <edgesGeometry args={[new THREE.BoxGeometry(w + 0.14, dh + 0.14, d + 0.14)]} />
+            <lineBasicMaterial color="#2F6BFF" transparent opacity={0.95} />
+          </lineSegments>
+        </group>
+      )}
 
       {/* Label pill badge — matches reference image style */}
       <Html
@@ -2038,17 +2051,19 @@ function CameraResetHandler() {
   return null;
 }
 
-// ─── Scene lights (light-mode edition) ───────────────────────────────────
+// ─── Scene lights (flat-isometric: hemisphere + 1 soft key) ──────────────
 function SceneLights() {
   return (
     <>
-      {/* 1. Ambient — bright diffuse base for light background */}
-      <ambientLight intensity={0.72} color="#f0f4ff" />
+      {/* Hemisphere — bright white sky, light-grey ground; gives a natural
+          top-near-white / side-greyer gradient on the white parts. */}
+      <hemisphereLight args={['#ffffff', '#ccd0db', 1.45]} />
 
-      {/* 2. Main key light — warm-white overhead */}
+      {/* Single soft key light from upper-left, ~45° — defines top vs side.
+          Casts a gentle contact shadow only (no hard projection look). */}
       <directionalLight
-        position={[15, 28, 12]}
-        intensity={1.1}
+        position={[-14, 24, 10]}
+        intensity={0.5}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -2057,28 +2072,11 @@ function SceneLights() {
         shadow-camera-right={SHADOW_EXTENT}
         shadow-camera-top={SHADOW_EXTENT}
         shadow-camera-bottom={-SHADOW_EXTENT}
-        shadow-bias={-0.001}
+        shadow-bias={-0.0015}
       />
 
-      {/* 3. Cool fill — soft blue-grey from behind/left */}
-      <directionalLight
-        position={[-12, 8, -10]}
-        intensity={0.30}
-        color="#c8d8f0"
-      />
-
-      {/* 4. Front rim — slight warm fill to lift front panels */}
-      <directionalLight
-        position={[0, 2, 20]}
-        intensity={0.18}
-        color="#e8eef8"
-      />
-
-      {/* 5. Floor bounce — very soft upward fill */}
-      <pointLight position={[0, -2, 0]} intensity={0.12} color="#d0dce8" />
-
-      {/* 6. Secondary accent */}
-      <directionalLight position={[6, 5, 22]} intensity={0.08} color="#dce8f4" />
+      {/* Tiny ambient top-up so the lightest faces read near-white. */}
+      <ambientLight intensity={0.25} color="#ffffff" />
     </>
   );
 }
@@ -2165,11 +2163,11 @@ function ServerChassis() {
 // neutral material — matching the clean monochrome look of the 3D仿真 boards
 // viewer — so the imported models no longer clash with each other.
 const UNIFIED_MAT = new THREE.MeshStandardMaterial({
-  color: new THREE.Color('#c0c5cc'),
-  metalness: 0.28,
-  roughness: 0.52,
+  color: new THREE.Color('#ffffff'),   // pure white; top/side shading comes from lighting
+  metalness: 0.0,                       // flat — no metallic reflection
+  roughness: 1.0,
   emissive: new THREE.Color('#000000'),
-  envMapIntensity: 0.55,
+  envMapIntensity: 0.0,
 });
 
 // ─── Main scene ───────────────────────────────────────────────────────────
@@ -2229,20 +2227,18 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
     <>
       {/* ── Lighting ──────────────────────────────────────── */}
       <SceneLights />
-      <BusGlowLights />
+      {/* BusGlowLights removed — parts stay pure monochrome (color only on wires). */}
 
-      {/* ── Environment map: city HDR — sharper metal/glass reflections ── */}
-      <Environment preset="city" />
+      {/* No environment map — flat stylized look (no metallic reflections). */}
 
       {/* Chassis wireframe removed — clean monochrome look, no outer box. */}
 
-      {/* ── Ground — subtle grid matching reference dark style ── */}
-      {/* Light-style floor grid — extends to horizon, fills entire canvas */}
-      <gridHelper args={[600, 300, '#b0c4d6', '#c8d6e2']} position={[0, -0.02, 0]} />
-      {/* Shadow-receiving floor plane (invisible, only catches shadows) */}
+      {/* ── Flat-isometric floor grid (light spec colors) ── */}
+      <gridHelper args={[600, 300, '#D5D8E4', '#E0E2EC']} position={[0, -0.02, 0]} />
+      {/* Soft contact shadow only (no hard projection) */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
-        <planeGeometry args={[60, 60]} />
-        <shadowMaterial transparent opacity={0.22} />
+        <planeGeometry args={[120, 120]} />
+        <shadowMaterial transparent opacity={0.12} />
       </mesh>
 
       {/* ── Components ────────────────────────────────────── */}
@@ -2268,20 +2264,20 @@ export function IsoCanvas() {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <Canvas
-        camera={{ position: CAM_POS, fov: 45, far: FOG_FAR + 40 }}
+        orthographic
+        camera={{ position: CAM_POS, zoom: 12, near: -2000, far: 4000 }}
         shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.95 }}
+        gl={{ antialias: true, toneMapping: THREE.NoToneMapping }}
         dpr={[1, 2]}
-        style={{ background: '#dde8f2' }}
+        style={{ background: '#F3F4F8' }}
         onCreated={({ gl }) => {
-          // PCFSoftShadowMap produces smooth, realistic shadow edges
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
         onPointerMissed={() => useSimStore.getState().deselectAll()}
       >
-        <color attach="background" args={['#dde8f2']} />
-        {/* Push fog very far so the grid extends to the horizon */}
-        <fog attach="fog" color="#dde8f2" near={FOG_FAR * 1.5} far={FOG_FAR * 4.0} />
+        <color attach="background" args={['#F3F4F8']} />
+        {/* Subtle fade so the grid dissolves at the edges (flat-iso look) */}
+        <fog attach="fog" color="#F3F4F8" near={FOG_FAR * 2.0} far={FOG_FAR * 5.0} />
 
         <OrbitControls
           makeDefault
