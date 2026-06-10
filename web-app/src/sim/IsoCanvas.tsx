@@ -2101,14 +2101,14 @@ function SceneLights() {
       {/* Hemisphere — bright fill (sky white, ground light-grey) keeps the
           whole part near-white; the small ground darkening gives sides a light
           grey vs the white tops without going muddy. */}
-      <hemisphereLight args={['#ffffff', '#c4cad6', 0.9]} />
+      <hemisphereLight args={['#ffffff', '#cdd2dd', 2.7]} />
 
       {/* Overhead key — near-vertical: tops (normal up) get the full hit and
           clip to pure WHITE; sides get almost none, so they read light-grey.
           This is what opens the (subtle, bright) top-vs-side contrast. */}
       <directionalLight
         position={[5, 32, 9]}
-        intensity={0.75}
+        intensity={2.1}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -2122,10 +2122,10 @@ function SceneLights() {
 
       {/* Soft side fill from upper-left → lit side a touch brighter than the
           shadowed side (the 2-tone side gradient from the spec). */}
-      <directionalLight position={[-20, 11, 6]} intensity={0.16} color="#ffffff" />
+      <directionalLight position={[-20, 11, 6]} intensity={0.5} color="#ffffff" />
 
-      {/* Tiny ambient floor so nothing reads muddy. */}
-      <ambientLight intensity={0.04} color="#ffffff" />
+      {/* Ambient floor so nothing reads muddy. */}
+      <ambientLight intensity={0.35} color="#ffffff" />
     </>
   );
 }
@@ -2222,11 +2222,12 @@ const UNIFIED_MAT = new THREE.MeshStandardMaterial({
 // Dark-grey accent (spec --socket-dark #5C5F69) for the important DETAIL parts
 // of drives / fans / PSUs (connectors, grilles, hubs) — breaks up the all-white.
 const ACCENT_MAT = new THREE.MeshStandardMaterial({
-  color: new THREE.Color('#5C5F69'),
+  color: new THREE.Color('#474b55'),   // darker so it reads clearly on white parts
   metalness: 0.0,
   roughness: 0.95,
 });
-const ACCENT_TYPES = new Set(['PSU', 'FAN', 'NVME', 'HDD']);
+const ACCENT_TYPES = new Set(['PSU', 'FAN', 'NVME', 'HDD', 'BASE_BOARD', 'EXT_BOARD', 'RISER', 'NIC_CARD']);
+const ACCENT_FRAC = 0.55; // sub-meshes below this fraction of the body volume → accent
 
 // Thin light-grey edge outline (spec §3.2 --part-outline #C7CAD6) — added to
 // every part mesh so white parts/sub-parts keep crisp boundaries on white bg.
@@ -2295,8 +2296,8 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
           if (v > largestVol) largestVol = v;
         }
         for (const m of meshes) {
-          // detail mesh (well under the body's size) → dark-grey accent
-          if ((m.userData.__vol as number) < largestVol * 0.35) {
+          // detail mesh (under the body's size) → dark-grey accent
+          if ((m.userData.__vol as number) < largestVol * ACCENT_FRAC) {
             m.userData.__mat = ACCENT_MAT;
             m.material = ACCENT_MAT;
           }
