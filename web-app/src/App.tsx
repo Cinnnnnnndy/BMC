@@ -94,7 +94,7 @@ export default function App() {
   const [fileName, setFileName] = useState<string>('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [currentProject, setCurrentProject] = useState<{ manufacturer: string; model: string } | null>(null);
-  const [lightMode, setLightMode] = useState(false);
+  const [lightMode, setLightMode] = useState(true);   // default to the light theme
   const [showServerView, setShowServerView] = useState(false);
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
