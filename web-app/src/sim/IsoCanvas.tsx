@@ -2226,15 +2226,17 @@ const ACCENT_MAT = new THREE.MeshStandardMaterial({
   metalness: 0.0,
   roughness: 0.95,
 });
-const ACCENT_TYPES = new Set(['PSU', 'FAN', 'NVME', 'HDD', 'BASE_BOARD', 'EXT_BOARD', 'RISER', 'NIC_CARD']);
+// Boards stay WHITE (their DIMMs/connectors would otherwise turn the board
+// mostly dark); only drives / fans / PSU get the dark detail accents.
+const ACCENT_TYPES = new Set(['PSU', 'FAN', 'NVME', 'HDD']);
 const ACCENT_FRAC = 0.55; // sub-meshes below this fraction of the body volume → accent
 
 // Thin light-grey edge outline (spec §3.2 --part-outline #C7CAD6) — added to
 // every part mesh so white parts/sub-parts keep crisp boundaries on white bg.
 const OUTLINE_MAT = new THREE.LineBasicMaterial({
-  color: new THREE.Color('#B9BDCC'),
+  color: new THREE.Color('#9298A8'),   // darker grey → stronger, clearer edges
   transparent: true,
-  opacity: 0.9,
+  opacity: 1.0,
 });
 
 // ─── Main scene ───────────────────────────────────────────────────────────
