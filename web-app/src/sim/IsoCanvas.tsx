@@ -1935,7 +1935,12 @@ function ComponentMesh({ comp, onTooltip }: ComponentMeshProps) {
 const BOARD_TOP_Y   = 0.3;   // main-board top surface
 const WIRE_BOARD_Y  = 0.35;  // default trace height — 0.05 above board
 const WIRE_LIFT_GAP = 0.15;  // clearance above any obstacle the wire must jump
-const WIRE_LAYER_Y  = 3.4;   // single flat overlay height for all bus lines
+const WIRE_LAYER_Y  = 3.4;   // default flat overlay height for bus lines
+/** Per-bus-type overlay heights — each protocol gets its own layer so lines
+ *  of different types never cross at the same height (readability). */
+const BUS_LAYER_Y: Record<string, number> = {
+  POWER: 2.9, I2C: 3.35, PCIE: 3.8, SATA: 4.25, USB: 4.7,
+};
 
 /** World-space XZ footprint + topY for AABB obstacle checks */
 function getCompBBox(c: HardwareComponent) {
@@ -2002,11 +2007,12 @@ function computeRoute3(
   from: THREE.Vector3, to: THREE.Vector3,
   fromId: string, toId: string,
   idx: number,
+  layerY: number = WIRE_LAYER_Y,
 ): THREE.Vector3[] {
-  // Single flat overlay layer: every line rises to WIRE_LAYER_Y, does a clean
-  // manhattan turn (X then Z) at that one height, then drops to the target.
-  // No obstacle-hugging — all wires share one readable plane (spec §6).
-  const Y = WIRE_LAYER_Y;
+  // Flat overlay layer: every line rises to its bus-type layer height, does a
+  // clean manhattan turn (X then Z) at that one height, then drops to the
+  // target. No obstacle-hugging — each protocol owns one readable plane.
+  const Y = layerY;
   const zOff = idx * 0.14;        // small per-line offset so parallels don't overlap
   const fx = from.x, fz = from.z + zOff;
   const tx = to.x,   tz = to.z   + zOff;
@@ -2146,10 +2152,10 @@ function BusRouteLine({
 
   const first = points[0];
   const last  = points[points.length - 1];
-  const padW  = isTrunk ? 0.5 : 0.4;   // endpoint pad size
-  const padH  = isTrunk ? 0.34 : 0.28;
-  const dotR  = isTrunk ? 0.075 : 0.055;
-  const padOpacity = Math.min(effAlpha * 0.7 + 0.12, 0.6);
+  // Endpoint connector markers stay highly visible even when the line itself
+  // is resting at 20% — they anchor "from where / to where" at a glance.
+  const st       = isTrunk ? 1.18 : 1;          // trunk endpoints slightly bigger
+  const endAlpha = Math.max(effAlpha, 0.85);
 
   return (
     <group
@@ -2161,16 +2167,24 @@ function BusRouteLine({
       {/* Solid tube body */}
       <mesh geometry={tubeGeo} material={mat} />
 
-      {/* Endpoint connection pads — flat rounded pads in the line's own color */}
+      {/* Endpoint connectors — vertical pin + colored base ring + white core,
+          in the line's own color, always near-solid so both ends read clearly */}
       {[first, last].map((pt, i) => (
-        <group key={i} position={[pt.x, pt.y + 0.012, pt.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <mesh>
-            <planeGeometry args={[padW, padH]} />
-            <meshBasicMaterial color={effColor} transparent opacity={padOpacity} depthWrite={false} />
+        <group key={i} position={[pt.x, pt.y, pt.z]}>
+          {/* connector pin (short post the tube plugs into) */}
+          <mesh position={[0, 0.11 * st, 0]}>
+            <cylinderGeometry args={[0.062 * st, 0.082 * st, 0.22 * st, 12]} />
+            <meshBasicMaterial color={effColor} transparent opacity={endAlpha} depthWrite={false} />
           </mesh>
-          <mesh position={[0, 0, 0.004]}>
-            <circleGeometry args={[dotR, 18]} />
-            <meshBasicMaterial color={effColor} transparent opacity={Math.min(effAlpha + 0.25, 1)} depthWrite={false} />
+          {/* base ring on the component surface */}
+          <mesh position={[0, 0.014, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.115 * st, 0.175 * st, 24]} />
+            <meshBasicMaterial color={effColor} transparent opacity={endAlpha * 0.9} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+          {/* white core dot */}
+          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.05 * st, 16]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.95} depthWrite={false} />
           </mesh>
         </group>
       ))}
@@ -2215,6 +2229,7 @@ function BusLines({ bus, members }: { bus: BusDef; members: HardwareComponent[] 
         masterPt, getConnectorPt3(slave, bus.id),
         master.id, slave.id,
         idx,
+        BUS_LAYER_Y[bus.type] ?? WIRE_LAYER_Y,
       ),
       isTrunk: idx === 0,
     })),
