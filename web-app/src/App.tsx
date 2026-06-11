@@ -20,6 +20,7 @@ const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardT
 const SoftwareHardwareAssociationView = lazy(() => import('./components/SoftwareHardwareAssociationView'), 'SoftwareHardwareAssociationView');
 const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
 const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
+const AscendSupernodeView        = lazy(() => import('./components/AscendSupernodeView'),        'AscendSupernodeView');
 
 /** VSCode webview API bridge — called at most once per page */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -99,6 +100,7 @@ export default function App() {
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
   const [showVueTopo, setShowVueTopo] = useState(false);
+  const [showAscendSupernode, setShowAscendSupernode] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -246,6 +248,7 @@ export default function App() {
       if (viewId === 'serverView') { setShowServerView(true); return; }
       if (viewId === 'threeD') { setShowThreeD(true); return; }
       if (viewId === 'vueTopo') { setShowVueTopo(true); return; }
+      if (viewId === 'ascendSupernode') { setShowAscendSupernode(true); return; }
       // Project-dependent views: load first project with rootSrPath then set tab
       const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo';
       setActiveTab(tabId);
@@ -269,6 +272,22 @@ export default function App() {
 
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
   const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? '拓扑视图';
+
+  if (showAscendSupernode) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #134e4a', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowAscendSupernode(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #134e4a', borderRadius: 4, color: '#5eead4', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>昇腾超节点模型 · SuperPoD 3D</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Suspense fallback={<ViewLoader />}><AscendSupernodeView /></Suspense>
+        </div>
+      </div>
+    );
+  }
 
   if (showHwTopology) {
     return (
