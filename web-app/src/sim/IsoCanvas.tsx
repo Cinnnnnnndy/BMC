@@ -2512,6 +2512,7 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
       .filter(e => e.members.length >= 2),
     [],
   );
+  const hiddenBusTypes = useSimStore(s => s.hiddenBusTypes);
 
   return (
     <>
@@ -2536,10 +2537,12 @@ function Scene({ onTooltip }: { onTooltip: (info: TooltipInfo | null) => void })
         <ComponentMesh key={comp.id} comp={comp} onTooltip={onTooltip} />
       ))}
 
-      {/* ── Bus routes ────────────────────────────────────── */}
-      {busEntries.map(({ bus, members }) => (
-        <BusLines key={bus.id} bus={bus} members={members} />
-      ))}
+      {/* ── Bus routes (filtered by the per-type visibility switches) ── */}
+      {busEntries
+        .filter(({ bus }) => !hiddenBusTypes[bus.type])
+        .map(({ bus, members }) => (
+          <BusLines key={bus.id} bus={bus} members={members} />
+        ))}
 
       <CameraResetHandler />
     </>

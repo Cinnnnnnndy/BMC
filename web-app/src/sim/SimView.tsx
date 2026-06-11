@@ -6,6 +6,55 @@ import { ContextMenu } from './ContextMenu';
 import { SimToast } from './SimToast';
 import { CatalogBrowser } from './CatalogBrowser';
 import { SystemInfoPanel } from './SystemInfoPanel';
+import { useSimStore } from './simStore';
+import { BUS_COLORS } from './serverData';
+
+/** Floating legend: one switch per bus type — click to show/hide that protocol's lines. */
+function BusTypeSwitches() {
+  const hiddenBusTypes = useSimStore((s) => s.hiddenBusTypes);
+  const toggleBusType  = useSimStore((s) => s.toggleBusType);
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 14, left: 14, zIndex: 10,
+      display: 'flex', gap: 7, alignItems: 'center',
+      padding: '7px 11px', borderRadius: 12,
+      background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(120,150,190,0.25)',
+      boxShadow: '0 4px 14px rgba(60,80,120,0.12)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
+      <span style={{ fontSize: 11, color: '#9aa3b2', marginRight: 2 }}>连线</span>
+      {(Object.keys(BUS_COLORS) as (keyof typeof BUS_COLORS)[]).map((type) => {
+        const off = !!hiddenBusTypes[type];
+        const c = BUS_COLORS[type].css;
+        return (
+          <button
+            key={type}
+            onClick={() => toggleBusType(type)}
+            title={off ? `显示 ${type} 连线` : `隐藏 ${type} 连线`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 9, cursor: 'pointer',
+              fontSize: 11.5, fontWeight: 600,
+              border: `1px solid ${off ? '#dfe3ea' : `${c}66`}`,
+              background: off ? '#f1f3f7' : `${c}1a`,
+              color: off ? '#aab1bf' : '#3a424f',
+              textDecoration: off ? 'line-through' : 'none',
+              transition: 'all 0.12s',
+            }}
+          >
+            <span style={{
+              width: 9, height: 9, borderRadius: '50%',
+              background: off ? '#c6ccd6' : c,
+              boxShadow: off ? 'none' : `0 0 5px ${c}88`,
+            }} />
+            {type}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SimView() {
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -96,6 +145,9 @@ export function SimView() {
 
           {/* Floating server system-info overlay (top-left), below the toggle */}
           {sysOpen && <SystemInfoPanel />}
+
+          {/* Bus-type visibility switches (bottom-left) */}
+          <BusTypeSwitches />
 
           {/* Catalog toggle button — top-right overlay (system panel owns top-left) */}
           <button

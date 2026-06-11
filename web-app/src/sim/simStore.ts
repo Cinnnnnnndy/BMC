@@ -41,6 +41,9 @@ interface SimState {
   // Bus highlights
   highlightedConnections: string[];
 
+  // Bus-type visibility (POWER / I2C / PCIE / SATA / USB); absent = visible
+  hiddenBusTypes: Record<string, boolean>;
+
   // Simulation engine
   speed: SimSpeed;
   isPlaying: boolean;
@@ -66,6 +69,7 @@ interface SimState {
   setCamera: (c: Partial<{ x: number; y: number; zoom: number }>) => void;
   highlightConnections: (ids: string[]) => void;
   clearHighlights: () => void;
+  toggleBusType: (type: string) => void;
   setSpeed: (s: SimSpeed) => void;
   togglePlay: () => void;
   advanceTick: (dt: number) => void;
@@ -128,6 +132,9 @@ export const useSimStore = create<SimState>((set, get) => ({
   // Bus highlights
   highlightedConnections: [],
 
+  // Bus-type visibility — all visible by default
+  hiddenBusTypes: {},
+
   // Simulation engine
   speed: 1,
   isPlaying: true,
@@ -166,6 +173,11 @@ export const useSimStore = create<SimState>((set, get) => ({
   highlightConnections: (ids) => set({ highlightedConnections: ids }),
 
   clearHighlights: () => set({ highlightedConnections: [] }),
+
+  toggleBusType: (type) =>
+    set((state) => ({
+      hiddenBusTypes: { ...state.hiddenBusTypes, [type]: !state.hiddenBusTypes[type] },
+    })),
 
   // ── Simulation control ────────────────────────────────────────────────────
   setSpeed: (s) => set({ speed: s }),
