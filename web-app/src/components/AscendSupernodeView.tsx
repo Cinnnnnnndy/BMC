@@ -23,7 +23,7 @@ const CAMERA: Record<ViewMode, { pos: [number, number, number]; target: [number,
   overview: { pos: [7.5, 5.5, 9.5], target: [0, 1.0, 0] },
   rack:     { pos: [4.6, 4.4, 8.6], target: [0, 2.8, 0] },
   node:     { pos: [2.4, 2.6, 3.0], target: [0, 0.5, 0] },
-  topology: { pos: [9, 6.5, 11], target: [0, 2.2, 0] },
+  topology: { pos: [0, 9, 14], target: [0, 2.8, 0] },
 };
 
 const MODE_TABS: { id: ViewMode; label: string }[] = [
@@ -39,6 +39,7 @@ export function AscendSupernodeView() {
   const [nodeSlot, setNodeSlot] = useState(0);
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [nodeSubMode, setNodeSubMode] = useState<'compute' | 'ubswitch'>('compute');
 
   const onHoverInfo = useCallback((t: string | null) => setHoverInfo(t), []);
 
@@ -61,9 +62,9 @@ export function AscendSupernodeView() {
   const cam = CAMERA[mode];
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0a1018', color: '#cbd5e1' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#eef2f8', color: '#1e2a3a' }}>
       {/* ── 工具栏 ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 14px', borderBottom: '1px solid #14252e', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 14px', borderBottom: '1px solid #d0dae8', flexWrap: 'wrap', background: 'white' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {MODE_TABS.map((t) => (
             <button
@@ -71,23 +72,36 @@ export function AscendSupernodeView() {
               onClick={() => setMode(t.id)}
               style={{
                 padding: '5px 14px', fontSize: 12, borderRadius: 5, cursor: 'pointer',
-                border: `1px solid ${mode === t.id ? '#14b8a6' : '#1c2e38'}`,
-                background: mode === t.id ? 'rgba(20,184,166,0.14)' : 'transparent',
-                color: mode === t.id ? '#5eead4' : '#7c8a99',
+                border: `1px solid ${mode === t.id ? '#0284c7' : '#d0dae8'}`,
+                background: mode === t.id ? 'rgba(2,132,199,0.1)' : 'transparent',
+                color: mode === t.id ? '#0284c7' : '#64748b',
               }}
             >
               {t.label}
             </button>
           ))}
         </div>
+        {/* 节点子模式切换 */}
+        {mode === 'node' && (
+          <div style={{ display: 'flex', gap: 4, borderLeft: '1px solid #d0dae8', paddingLeft: 12 }}>
+            {[{ id: 'compute', label: '计算节点' }, { id: 'ubswitch', label: '灵衢总线设备' }].map((t) => (
+              <button key={t.id} onClick={() => setNodeSubMode(t.id as 'compute' | 'ubswitch')} style={{
+                padding: '4px 12px', fontSize: 11.5, borderRadius: 4, cursor: 'pointer',
+                border: `1px solid ${nodeSubMode === t.id ? '#0284c7' : '#d0dae8'}`,
+                background: nodeSubMode === t.id ? 'rgba(2,132,199,0.1)' : 'transparent',
+                color: nodeSubMode === t.id ? '#0284c7' : '#64748b',
+              }}>{t.label}</button>
+            ))}
+          </div>
+        )}
         {/* 面包屑 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5a6b7c' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
           {breadcrumb.map((b, i) => (
             <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {i > 0 && <span style={{ color: '#2c3e4d' }}>›</span>}
+              {i > 0 && <span style={{ color: '#94a3b8' }}>›</span>}
               <span
                 onClick={b.onClick}
-                style={b.onClick ? { cursor: 'pointer', color: '#38bdf8' } : { color: '#94a3b8' }}
+                style={b.onClick ? { cursor: 'pointer', color: '#0284c7' } : { color: '#374151' }}
               >
                 {b.label}
               </span>
@@ -95,10 +109,10 @@ export function AscendSupernodeView() {
           ))}
         </div>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: '#44566a' }}>{SUPERNODE_SPEC.name} · 384× 910C · 灵衢 UB 全互联</span>
+        <span style={{ fontSize: 11, color: '#64748b' }}>{SUPERNODE_SPEC.name} · 384× 910C · 灵衢 UB 全互联</span>
         <button
           onClick={() => setPanelOpen((v) => !v)}
-          style={{ padding: '4px 10px', fontSize: 12, borderRadius: 5, cursor: 'pointer', border: '1px solid #1c2e38', background: 'transparent', color: '#7c8a99' }}
+          style={{ padding: '4px 10px', fontSize: 12, borderRadius: 5, cursor: 'pointer', border: '1px solid #d0dae8', background: 'transparent', color: '#64748b' }}
         >
           {panelOpen ? '收起信息 ▸' : '◂ 信息面板'}
         </button>
@@ -115,18 +129,18 @@ export function AscendSupernodeView() {
             gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
             onCreated={({ gl }) => { gl.shadowMap.type = THREE.PCFSoftShadowMap; }}
           >
-            <color attach="background" args={['#0a1018']} />
-            <fog attach="fog" args={['#0a1018', 22, 46]} />
-            <ambientLight intensity={0.55} />
+            <color attach="background" args={['#eef2f8']} />
+            <fog attach="fog" args={['#eef2f8', 22, 46]} />
+            <ambientLight intensity={1.8} />
             <directionalLight
               position={[8, 12, 6]}
-              intensity={1.5}
+              intensity={1.2}
               castShadow
               shadow-mapSize={[2048, 2048]}
               shadow-camera-left={-12} shadow-camera-right={12}
               shadow-camera-top={12} shadow-camera-bottom={-12}
             />
-            <pointLight position={[-6, 5, -4]} intensity={0.5} color="#38bdf8" />
+            <pointLight position={[0, 8, 0]} intensity={1.0} color="#e8f0ff" />
 
             {mode === 'overview' && (
               <OverviewScene
@@ -141,7 +155,7 @@ export function AscendSupernodeView() {
                 onSelectNode={(slot) => { setNodeSlot(slot); setMode('node'); }}
               />
             )}
-            {mode === 'node' && <NodeScene onHoverInfo={onHoverInfo} />}
+            {mode === 'node' && <NodeScene onHoverInfo={onHoverInfo} nodeType={nodeSubMode} />}
             {mode === 'topology' && <TopologyScene onHoverInfo={onHoverInfo} />}
 
             <OrbitControls
@@ -160,8 +174,8 @@ export function AscendSupernodeView() {
             <div style={{
               position: 'absolute', left: 14, bottom: 14, maxWidth: '70%',
               padding: '7px 12px', fontSize: 12.5, lineHeight: 1.5,
-              background: 'rgba(10,18,26,0.92)', border: '1px solid #1d3a44', borderRadius: 6,
-              color: '#a5f3ea', pointerEvents: 'none',
+              background: 'rgba(255,255,255,0.95)', border: '1px solid #d0dae8', borderRadius: 6,
+              color: '#1e2a3a', pointerEvents: 'none',
             }}>
               {hoverInfo}
             </div>
@@ -171,25 +185,25 @@ export function AscendSupernodeView() {
           {mode === 'topology' && (
             <div style={{
               position: 'absolute', right: 14, bottom: 14, padding: '8px 12px', fontSize: 11.5,
-              background: 'rgba(10,18,26,0.92)', border: '1px solid #16242e', borderRadius: 6,
+              background: 'rgba(255,255,255,0.95)', border: '1px solid #d0dae8', borderRadius: 6,
               display: 'flex', flexDirection: 'column', gap: 4,
             }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', maxWidth: 230 }}>
                 {UB_PLANE_COLORS.map((c, i) => (
                   <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <span style={{ width: 10, height: 3, background: c, display: 'inline-block', borderRadius: 1 }} />
-                    <span style={{ color: '#6c7c8c' }}>P{i + 1}</span>
+                    <span style={{ color: '#64748b' }}>P{i + 1}</span>
                   </span>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ width: 10, height: 3, background: RDMA_COLOR, display: 'inline-block', borderRadius: 1 }} />
-                  <span style={{ color: '#6c7c8c' }}>RDMA</span>
+                  <span style={{ color: '#64748b' }}>RDMA</span>
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ width: 10, height: 3, background: VPC_COLOR, display: 'inline-block', borderRadius: 1 }} />
-                  <span style={{ color: '#6c7c8c' }}>VPC</span>
+                  <span style={{ color: '#64748b' }}>VPC</span>
                 </span>
               </div>
             </div>
@@ -199,18 +213,19 @@ export function AscendSupernodeView() {
         {/* ── 右侧信息面板 ── */}
         {panelOpen && (
           <div style={{
-            width: 295, borderLeft: '1px solid #14252e', padding: '14px 16px',
+            width: 295, borderLeft: '1px solid #d0dae8', padding: '14px 16px',
             overflowY: 'auto', fontSize: 12.5, lineHeight: 1.65, flexShrink: 0,
+            background: 'white', color: '#1e2a3a',
           }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#5eead4', marginBottom: 8 }}>{info.title}</div>
-            <ul style={{ margin: 0, paddingLeft: 16, color: '#9fb0c0' }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#0284c7', marginBottom: 8 }}>{info.title}</div>
+            <ul style={{ margin: 0, paddingLeft: 16, color: '#374151' }}>
               {info.lines.map((l, i) => (
                 <li key={i} style={{ marginBottom: 5 }}>{l}</li>
               ))}
             </ul>
 
-            <div style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600, color: '#7c8a99' }}>关键规格</div>
-            <table style={{ width: '100%', fontSize: 11.5, color: '#8a9bab', borderCollapse: 'collapse' }}>
+            <div style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600, color: '#374151' }}>关键规格</div>
+            <table style={{ width: '100%', fontSize: 11.5, color: '#374151', borderCollapse: 'collapse' }}>
               <tbody>
                 {[
                   ['NPU 总数', `${SUPERNODE_SPEC.totalNpus}× 昇腾 910C`],
@@ -221,19 +236,19 @@ export function AscendSupernodeView() {
                   ['单跳时延', `${SUPERNODE_SPEC.hopLatencyNs} ns`],
                   ['散热', SUPERNODE_SPEC.cooling],
                 ].map(([k, v]) => (
-                  <tr key={k} style={{ borderBottom: '1px solid #11202a' }}>
-                    <td style={{ padding: '3px 0', color: '#5a6b7c', whiteSpace: 'nowrap' }}>{k}</td>
-                    <td style={{ padding: '3px 0 3px 10px' }}>{v}</td>
+                  <tr key={k} style={{ borderBottom: '1px solid #e8eef6' }}>
+                    <td style={{ padding: '3px 0', color: '#64748b', whiteSpace: 'nowrap' }}>{k}</td>
+                    <td style={{ padding: '3px 0 3px 10px', color: '#1e2a3a' }}>{v}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            <div style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600, color: '#7c8a99' }}>数据来源</div>
-            <div style={{ fontSize: 10.5, color: '#4a5a6a', lineHeight: 1.7 }}>
+            <div style={{ margin: '14px 0 6px', fontSize: 12, fontWeight: 600, color: '#374151' }}>数据来源</div>
+            <div style={{ fontSize: 10.5, color: '#64748b', lineHeight: 1.7 }}>
               {SOURCES.map((s, i) => (<div key={i}>{s}</div>))}
             </div>
-            <div style={{ marginTop: 10, fontSize: 10.5, color: '#3c4c5c', fontStyle: 'italic' }}>
+            <div style={{ marginTop: 10, fontSize: 10.5, color: '#64748b', fontStyle: 'italic' }}>
               注：机柜外形采用官方 2250×600×1150mm；柜内/板内布局为基于公开资料的抽象示意。
             </div>
           </div>
