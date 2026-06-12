@@ -21,6 +21,9 @@ const SoftwareHardwareAssociationView = lazy(() => import('./components/Software
 const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
 const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
 const AscendSupernodeView        = lazy(() => import('./components/AscendSupernodeView'),        'AscendSupernodeView');
+const SmcCalculator              = lazy(() => import('./components/SmcCalculator'),              'SmcCalculator');
+const BatchExprCalc              = lazy(() => import('./components/BatchExprCalc'),              'BatchExprCalc');
+const EnergyView                 = lazy(() => import('./components/EnergyView'),                 'EnergyView');
 
 /** VSCode webview API bridge — called at most once per page */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -95,12 +98,15 @@ export default function App() {
   const [fileName, setFileName] = useState<string>('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [currentProject, setCurrentProject] = useState<{ manufacturer: string; model: string } | null>(null);
-  const [lightMode, setLightMode] = useState(true);   // default to the light theme
+  const [lightMode, setLightMode] = useState(false);  // default to dark theme
   const [showServerView, setShowServerView] = useState(false);
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
   const [showVueTopo, setShowVueTopo] = useState(false);
   const [showAscendSupernode, setShowAscendSupernode] = useState(false);
+  const [showSmcCalculator,   setShowSmcCalculator]   = useState(false);
+  const [showBatchExprCalc,   setShowBatchExprCalc]   = useState(false);
+  const [showEnergyView,      setShowEnergyView]      = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -249,6 +255,9 @@ export default function App() {
       if (viewId === 'threeD') { setShowThreeD(true); return; }
       if (viewId === 'vueTopo') { setShowVueTopo(true); return; }
       if (viewId === 'ascendSupernode') { setShowAscendSupernode(true); return; }
+      if (viewId === 'smcCalculator')  { setShowSmcCalculator(true);   return; }
+      if (viewId === 'batchExprCalc')  { setShowBatchExprCalc(true);   return; }
+      if (viewId === 'energyView')     { setShowEnergyView(true);      return; }
       // Project-dependent views: load first project with rootSrPath then set tab
       const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo';
       setActiveTab(tabId);
@@ -284,6 +293,54 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <Suspense fallback={<ViewLoader />}><AscendSupernodeView /></Suspense>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSmcCalculator) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowSmcCalculator(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#7dd3fc', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>SMC 传感器计算器 · IPMI SDR</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Suspense fallback={<ViewLoader />}><SmcCalculator /></Suspense>
+        </div>
+      </div>
+    );
+  }
+
+  if (showBatchExprCalc) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowBatchExprCalc(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#c4b5fd', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>批量表达式计算器</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Suspense fallback={<ViewLoader />}><BatchExprCalc /></Suspense>
+        </div>
+      </div>
+    );
+  }
+
+  if (showEnergyView) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e3d20', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setShowEnergyView(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e3d20', borderRadius: 4, color: '#86efac', cursor: 'pointer' }}>
+            ← 返回
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b' }}>能效分析 · PUE / 功耗分解</span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Suspense fallback={<ViewLoader />}><EnergyView /></Suspense>
         </div>
       </div>
     );

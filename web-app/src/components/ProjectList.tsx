@@ -330,6 +330,95 @@ function VueTopoThumb() {
   );
 }
 
+function SmcCalcThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a1018" />
+      <text x="8" y="16" fontSize="7" fill="#5eead4" fontFamily="monospace" opacity="0.9">IPMI SDR 传感器计算器</text>
+      {/* Formula display */}
+      <rect x="8" y="20" width="144" height="14" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.6" />
+      <text x="14" y="30" fontSize="6.5" fill="#7dd3fc" fontFamily="monospace">y = (M × x + B × 10^K1) × 10^K2</text>
+      {/* Input fields */}
+      {[['M', '1', 8], ['B', '0', 46], ['K1', '0', 84], ['K2', '-2', 122]].map(([l, v, x]) => (
+        <g key={l as string}>
+          <text x={x as number} y={46} fontSize="5.5" fill="#5a6b7c" fontFamily="monospace">{l as string}</text>
+          <rect x={x as number} y={49} width={28} height={9} rx="1.5" fill="#0a1018" stroke="#1e2d3d" strokeWidth="0.5" />
+          <text x={(x as number) + 5} y={56} fontSize="6" fill="#94a3b8" fontFamily="monospace">{v as string}</text>
+        </g>
+      ))}
+      {/* Results table */}
+      {[['0x00', '0.00'], ['0x40', '32.00'], ['0x80', '64.00'], ['0xFF', '127.50']].map(([raw, val], i) => (
+        <g key={raw}>
+          <rect x="8" y={65 + i * 8} width="64" height="7" rx="1" fill="#0f1622" opacity="0.8" />
+          <text x="12" y={70 + i * 8} fontSize="5.5" fill="#4a6070" fontFamily="monospace">{raw}</text>
+          <text x="34" y={70 + i * 8} fontSize="5.5" fill="#5eead4" fontFamily="monospace">→ {val}</text>
+          <rect x="76" y={65 + i * 8} width={60 + i * 4} height="7" rx="1" fill="#0e7490" opacity={0.3 + i * 0.1} />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function BatchCalcThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a1018" />
+      <text x="8" y="14" fontSize="7" fill="#a78bfa" fontFamily="monospace" opacity="0.9">批量表达式计算器</text>
+      {/* Vars pane */}
+      <rect x="8" y="18" width="66" height="56" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.5" />
+      <text x="12" y="26" fontSize="5" fill="#5a6b7c" fontFamily="monospace">// 变量</text>
+      {[['raw = 125', '#7c8a99'], ['M = 1', '#7c8a99'], ['K2 = -2', '#7c8a99'], ['Vref = 3.3', '#7c8a99']].map(([l, c], i) => (
+        <text key={l} x="12" y={34 + i * 9} fontSize="5.5" fill={c} fontFamily="monospace">{l}</text>
+      ))}
+      {/* Exprs pane */}
+      <rect x="78" y="18" width="74" height="56" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.5" />
+      <text x="82" y="26" fontSize="5" fill="#5a6b7c" fontFamily="monospace">// 表达式</text>
+      {[
+        ['raw * M * 10**K2', '#a78bfa'],
+        ['raw * Vref / 255', '#a78bfa'],
+        ['Math.round(raw/2)', '#a78bfa'],
+      ].map(([expr, c], i) => (
+        <text key={expr} x="82" y={34 + i * 9} fontSize="5.5" fill={c} fontFamily="monospace">{expr}</text>
+      ))}
+      {/* Arrow */}
+      <text x="74" y="48" fontSize="8" fill="#5a6b7c" textAnchor="middle">→</text>
+      {/* Run button */}
+      <rect x="40" y="80" width="80" height="12" rx="3" fill="#0e7490" opacity="0.8" />
+      <text x="80" y="89" textAnchor="middle" fontSize="6.5" fill="#fff" fontFamily="monospace">▶ 运行全部</text>
+    </svg>
+  );
+}
+
+function EnergyThumb() {
+  return (
+    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="160" height="100" fill="#0a1018" />
+      <text x="8" y="14" fontSize="7" fill="#4ade80" fontFamily="monospace" opacity="0.9">能效分析</text>
+      {/* PUE stat */}
+      <rect x="8" y="18" width="50" height="28" rx="3" fill="#0f1622" stroke="#1e3d20" strokeWidth="0.6" />
+      <text x="13" y="27" fontSize="5.5" fill="#5a6b7c">PUE</text>
+      <text x="13" y="40" fontSize="14" fill="#4ade80" fontFamily="monospace" fontWeight="bold">1.21</text>
+      {/* TFLOPS/W stat */}
+      <rect x="64" y="18" width="88" height="28" rx="3" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.6" />
+      <text x="70" y="27" fontSize="5.5" fill="#5a6b7c">算力密度</text>
+      <text x="70" y="40" fontSize="10" fill="#5eead4" fontFamily="monospace">0.516 TFLOPS/W</text>
+      {/* Bar chart */}
+      {[
+        { label: 'CPU', val: 350, max: 500, color: '#3b82f6', y: 52 },
+        { label: 'MEM', val: 120, max: 500, color: '#a78bfa', y: 62 },
+        { label: 'PSU', val: 80,  max: 500, color: '#fb923c', y: 72 },
+        { label: 'I/O', val: 20,  max: 500, color: '#22d3ee', y: 82 },
+      ].map(({ label, val, max, color, y }) => (
+        <g key={label}>
+          <text x="8" y={y + 6} fontSize="5.5" fill="#5a6b7c" fontFamily="monospace">{label}</text>
+          <rect x="30" y={y} width={120 * val / max} height="7" rx="3" fill={color} opacity="0.7" />
+          <text x={32 + 120 * val / max} y={y + 6} fontSize="5" fill="#5a6b7c">{val}W</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function AscendSupernodeThumb() {
   // Mini isometric supernode: a row of compute racks + switch racks, UB links
   return (
@@ -368,6 +457,30 @@ const VIEW_ENTRIES: ViewEntry[] = [
     accent: '#14b8a6',
     bg: '#0a1018',
     thumb: <AscendSupernodeThumb />,
+  },
+  {
+    id: 'smcCalculator',
+    name: 'SMC 传感器计算器',
+    desc: 'IPMI SDR 线性化公式 y=(Mx+B)×10^K 批量转换',
+    accent: '#0ea5e9',
+    bg: '#0a1018',
+    thumb: <SmcCalcThumb />,
+  },
+  {
+    id: 'batchExprCalc',
+    name: '批量表达式计算器',
+    desc: '变量绑定 + 多表达式批量求值，传感器公式验证利器',
+    accent: '#a78bfa',
+    bg: '#0a1018',
+    thumb: <BatchCalcThumb />,
+  },
+  {
+    id: 'energyView',
+    name: '能效分析',
+    desc: 'PUE 计算器 · 服务器功耗分解 · 算力功耗比',
+    accent: '#4ade80',
+    bg: '#0a1018',
+    thumb: <EnergyThumb />,
   },
   {
     id: 'threeD',
