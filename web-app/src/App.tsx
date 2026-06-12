@@ -108,10 +108,15 @@ export default function App() {
   const [showBatchExprCalc,   setShowBatchExprCalc]   = useState(false);
   const [showEnergyView,      setShowEnergyView]      = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  // Ref always holds the latest csr value so stable event listeners can read it
+  const csrRef = useRef<typeof csr>(null);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const eventDefInputRef = useRef<HTMLInputElement>(null);
 
+
+  // Keep csrRef in sync so stable event-listener closures can read the latest value
+  useEffect(() => { csrRef.current = csr; }, [csr]);
 
   useEffect(() => {
     if (lightMode) document.documentElement.setAttribute('data-theme', 'light');
@@ -250,24 +255,53 @@ export default function App() {
 
   const handleOpenView = useCallback(
     async (viewId: string) => {
-      if (viewId === 'hwTopology') { setShowHwTopology(true); return; }
-      if (viewId === 'serverView') { setShowServerView(true); return; }
-      if (viewId === 'threeD') { setShowThreeD(true); return; }
-      if (viewId === 'vueTopo') { setShowVueTopo(true); return; }
-      if (viewId === 'ascendSupernode') { setShowAscendSupernode(true); return; }
-      if (viewId === 'smcCalculator')  { setShowSmcCalculator(true);   return; }
-      if (viewId === 'batchExprCalc')  { setShowBatchExprCalc(true);   return; }
-      if (viewId === 'energyView')     { setShowEnergyView(true);      return; }
-      // Project-dependent views: load first project with rootSrPath then set tab
-      const tabId = viewId as 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator' | 'vueTopo';
+      // Standalone views: write to hash; the syncHash listener will update state.
+      // Also set state directly for instant feedback (no waiting for hashchange tick).
+      if (viewId === 'hwTopology')      { setShowHwTopology(true);      window.location.hash = viewId; return; }
+      if (viewId === 'serverView')      { setShowServerView(true);      window.location.hash = viewId; return; }
+      if (viewId === 'threeD')          { setShowThreeD(true);          window.location.hash = viewId; return; }
+      if (viewId === 'vueTopo')         { setShowVueTopo(true);         window.location.hash = viewId; return; }
+      if (viewId === 'ascendSupernode') { setShowAscendSupernode(true); window.location.hash = viewId; return; }
+      if (viewId === 'smcCalculator')   { setShowSmcCalculator(true);   window.location.hash = viewId; return; }
+      if (viewId === 'batchExprCalc')   { setShowBatchExprCalc(true);   window.location.hash = viewId; return; }
+      if (viewId === 'energyView')      { setShowEnergyView(true);      window.location.hash = viewId; return; }
+      // Project-dependent tab views: update hash (setActiveTab does this) then
+      // auto-load the first project if none is loaded yet.
+      const tabId = viewId as TabId;
       setActiveTab(tabId);
-      const firstProject = HARDWARE_PROJECTS.find((p) => p.rootSrPath);
-      if (firstProject) {
-        await handleProjectSelect(firstProject);
+      if (!csrRef.current) {
+        const firstProject = HARDWARE_PROJECTS.find((p) => p.rootSrPath);
+        if (firstProject) await handleProjectSelect(firstProject);
       }
     },
     [handleProjectSelect]
   );
+
+  // URL hash ↔ view routing: handles direct-URL navigation AND browser back/forward.
+  // Runs once on mount (applies the initial hash) and re-runs on every hashchange.
+  useEffect(() => {
+    function syncHash() {
+      const h = window.location.hash.replace(/^#/, '');
+      // Standalone views — open the matching one, close all others
+      setShowHwTopology(h === 'hwTopology');
+      setShowServerView(h === 'serverView');
+      setShowThreeD(h === 'threeD');
+      setShowVueTopo(h === 'vueTopo');
+      setShowAscendSupernode(h === 'ascendSupernode');
+      setShowSmcCalculator(h === 'smcCalculator');
+      setShowBatchExprCalc(h === 'batchExprCalc');
+      setShowEnergyView(h === 'energyView');
+      // Tab views: if no project is loaded yet, auto-load the first one with a CSR
+      if ((VALID_TABS as string[]).includes(h) && !csrRef.current) {
+        const first = HARDWARE_PROJECTS.find((p) => p.rootSrPath);
+        if (first) handleProjectSelect(first);
+      }
+    }
+    syncHash();                                          // apply on initial load
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stable: state setters are permanent, csrRef is a ref, handleProjectSelect is stable
 
   const tabs = [
     { id: 'topology' as const, label: '拓扑视图' },
@@ -286,7 +320,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #134e4a', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowAscendSupernode(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #134e4a', borderRadius: 4, color: '#5eead4', cursor: 'pointer' }}>
+          <button onClick={() => { setShowAscendSupernode(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #134e4a', borderRadius: 4, color: '#5eead4', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>昇腾超节点模型 · SuperPoD 3D</span>
@@ -302,7 +336,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowSmcCalculator(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#7dd3fc', cursor: 'pointer' }}>
+          <button onClick={() => { setShowSmcCalculator(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#7dd3fc', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>SMC 传感器计算器 · IPMI SDR</span>
@@ -318,7 +352,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowBatchExprCalc(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#c4b5fd', cursor: 'pointer' }}>
+          <button onClick={() => { setShowBatchExprCalc(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#c4b5fd', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>批量表达式计算器</span>
@@ -334,7 +368,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e3d20', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowEnergyView(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e3d20', borderRadius: 4, color: '#86efac', cursor: 'pointer' }}>
+          <button onClick={() => { setShowEnergyView(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e3d20', borderRadius: 4, color: '#86efac', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>能效分析 · PUE / 功耗分解</span>
@@ -350,7 +384,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a0f1a', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowHwTopology(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={() => { setShowHwTopology(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC 硬件拓扑视图</span>
@@ -366,7 +400,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #222', background: '#0a0a0a', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowServerView(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #444', borderRadius: 4, color: '#aaa', cursor: 'pointer' }}>
+          <button onClick={() => { setShowServerView(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #444', borderRadius: 4, color: '#aaa', cursor: 'pointer' }}>
             ← 返回
           </button>
         </div>
@@ -383,7 +417,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#080812', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowThreeD(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={() => { setShowThreeD(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · 3D仿真</span>
@@ -401,7 +435,7 @@ export default function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#09090e', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setShowVueTopo(false)} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
+          <button onClick={() => { setShowVueTopo(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
             ← 返回
           </button>
           <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · CSR 拓扑 Vue 视图</span>
