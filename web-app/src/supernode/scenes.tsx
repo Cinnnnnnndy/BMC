@@ -20,28 +20,31 @@ import {
   type RackInfo, type RackUnit, type NodePart,
 } from './data';
 
-// ─── 浅色主题常量 ────────────────────────────────────────────────────────────
+// ─── 浅色主题常量（参考 pto-design-system 浅色 token：白色表面 + 浅灰阶 + 主色蓝）──
 const LC = {
-  rackBody:    '#2a3045',
-  rackDoor:    '#1e2638',
-  rackEdge:    '#556080',
-  rackEdgeHov: '#38bdf8',
-  text:        '#1e2a3a',
-  textDim:     '#5a6e88',
-  nodeUnit:    '#384055',
-  powerUnit:   '#2e3a50',
-  mgmtUnit:    '#2c3a52',
-  switchUnit:  '#303d58',
-  cduUnit:     '#283648',
-  pcb:         '#182e22',
-  npuBody:     '#2c3650',
-  npuTop:      '#b8c8d8',
-  cpuBody:     '#283848',
-  cpuTop:      '#b8d0c8',
-  ubBody:      '#2a3448',
-  dpuBody:     '#283050',
-  opticalBody: '#202838',
-  dimmBody:    '#242d3e',
+  primary:     '#4369ef',   // --primary (ark-blue-500)
+  rackBody:    '#e8ebf1',   // 浅色钣金（surface-2 阶）
+  rackDoor:    '#dde1e9',
+  rackEdge:    '#aab4c4',   // border-strong 阶
+  rackEdgeHov: '#4369ef',
+  text:        '#1c2433',   // foreground
+  textDim:     '#6b7890',   // foreground-secondary
+  nodeUnit:    '#f2f4f8',
+  powerUnit:   '#e9edf3',
+  mgmtUnit:    '#e6eaf1',
+  switchUnit:  '#edf0f5',
+  cduUnit:     '#e2e7ee',
+  pcb:         '#bcd2c4',   // 浅色 PCB（哑光浅绿）
+  npuBody:     '#e4e8ef',
+  npuTop:      '#aeb8c6',   // 金属冷板
+  cpuBody:     '#e1e7ea',
+  cpuTop:      '#b2c6c0',
+  ubBody:      '#e8ebf1',
+  dpuBody:     '#e3e8f2',
+  opticalBody: '#dde3ec',
+  dimmBody:    '#e0e5ee',
+  metal:       '#c4cad4',   // 把手/接头等金属件
+  vent:        '#9aa4b2',   // 通风格栅/端口开孔（半深，表示开孔）
 } as const;
 
 // ─── 共享回调类型 ─────────────────────────────────────────────────────────────
@@ -97,9 +100,9 @@ function Floor({ size = 22 }: { size?: number }) {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
         <planeGeometry args={[size, size]} />
-        <meshStandardMaterial color="#dde4f0" roughness={0.95} metalness={0.05} />
+        <meshStandardMaterial color="#f0f1f4" roughness={0.95} metalness={0.05} />
       </mesh>
-      <gridHelper args={[size, size * 2, '#b8c8da', '#ccd8e8']} position={[0, 0.001, 0]} />
+      <gridHelper args={[size, size * 2, '#d0d5dd', '#e1e4ea']} position={[0, 0.001, 0]} />
     </group>
   );
 }
@@ -159,7 +162,7 @@ function RackBox({ rack, hovered, onClick, onHover }: {
           key={u.id}
           size={[RACK_DIM.w - 0.14, Math.max(0.02, u.hFrac * RACK_DIM.h * 0.28), 0.008]}
           position={[0, (u.y0 + u.hFrac / 2) * RACK_DIM.h, faceDir * (RACK_DIM.d / 2 + 0.028)]}
-          color={u.type === 'power' ? '#3a3f47' : glow}
+          color={u.type === 'power' ? LC.metal : glow}
           emissive={u.type === 'power' ? '#86efac' : glow}
           emissiveIntensity={hovered ? 0.9 : 0.4}
         />
@@ -171,7 +174,7 @@ function RackBox({ rack, hovered, onClick, onHover }: {
           fontSize={0.16}
           color={glow}
           anchorX="center" anchorY="bottom"
-          outlineWidth={0.008} outlineColor="#eef2f8"
+          outlineWidth={0.008} outlineColor="#f5f5f5"
         >
           {rack.id.startsWith('compute') ? `Compute ${rack.label.replace(/[^C0-9]/g, '')}` : `UB Switch ${rack.label.replace(/[^S0-9]/g, '')}`}
         </Text>
@@ -181,7 +184,7 @@ function RackBox({ rack, hovered, onClick, onHover }: {
 }
 
 /** 柜间光互联束：每个计算柜顶 → 同排两个总线柜顶（弧线管） */
-function OpticalLinks() {
+function OpticalLinks({ onHoverInfo }: SceneCallbacks) {
   const geo = useMemo(() => {
     const group: THREE.TubeGeometry[] = [];
     const switches = RACKS.filter((r) => r.kind === 'switch');
@@ -201,10 +204,13 @@ function OpticalLinks() {
     return group;
   }, []);
   return (
-    <group>
+    <group
+      onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('柜间灵衢光缆束 · 计算柜 ↔ 总线柜全光互联 · 每节点 7 平面上行光纤经顶部走线'); }}
+      onPointerOut={() => onHoverInfo(null)}
+    >
       {geo.map((g, i) => (
         <mesh key={i} geometry={g}>
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.32} />
+          <meshBasicMaterial color="#4369ef" transparent opacity={0.35} />
         </mesh>
       ))}
     </group>
@@ -234,12 +240,12 @@ export function OverviewScene({ onHoverInfo, onSelectRack }: SceneCallbacks & {
           }}
         />
       ))}
-      <OpticalLinks />
+      <OpticalLinks onHoverInfo={onHoverInfo} />
       {/* 冷通道标识 */}
-      <Text position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.22} color="#4a7a9b" anchorX="center">
+      <Text position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.22} color={LC.textDim} anchorX="center">
         COLD AISLE
       </Text>
-      <Text position={[0, 0.02, ROW_GAP_Z / 2 + RACK_DIM.d + 0.8]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.16} color="#3a6a8b" anchorX="center">
+      <Text position={[0, 0.02, ROW_GAP_Z / 2 + RACK_DIM.d + 0.8]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.16} color={LC.textDim} anchorX="center">
         Atlas 900 A3 SuperPoD - 16 Racks / 384 NPU
       </Text>
     </group>
@@ -257,7 +263,7 @@ function QuickConnectors({ count, width }: { count: number; width: number }) {
       {Array.from({ length: count }, (_, i) => (
         <mesh key={i} position={[(i - (count - 1) / 2) * (width / count), 0, 0.012]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.028, 0.028, 0.02, 20]} />
-          <meshStandardMaterial color="#23272e" metalness={0.7} roughness={0.35} />
+          <meshStandardMaterial color={LC.metal} metalness={0.7} roughness={0.35} />
         </mesh>
       ))}
     </group>
@@ -307,7 +313,7 @@ function RackUnitMesh({ unit, rackKind, planeIdx, hovered, clickable, onClick, o
           <group>
             {Array.from({ length: 4 }, (_, i) => (
               <group key={i} position={[(i - 1.5) * (innerW / 4.6), 0, 0.015]}>
-                <Slab size={[innerW / 5.2, h * 0.7, 0.02]} color="#32373f" metalness={0.6} roughness={0.4} edgeColor="#3d434d" />
+                <Slab size={[innerW / 5.2, h * 0.7, 0.02]} color={LC.metal} metalness={0.6} roughness={0.4} edgeColor={LC.rackEdge} />
                 <Slab size={[0.02, 0.02, 0.012]} position={[innerW / 12, h * 0.22, 0.014]} color="#22c55e" emissive="#22c55e" emissiveIntensity={1.2} />
               </group>
             ))}
@@ -315,9 +321,9 @@ function RackUnitMesh({ unit, rackKind, planeIdx, hovered, clickable, onClick, o
         )}
         {unit.type === 'mgmt' && (
           <group>
-            <Slab size={[innerW * 0.7, h * 0.5, 0.02]} position={[-innerW * 0.06, 0, 0.012]} color="#10151c" edgeColor="#2c323c" />
+            <Slab size={[innerW * 0.7, h * 0.5, 0.02]} position={[-innerW * 0.06, 0, 0.012]} color={LC.rackDoor} edgeColor={LC.rackEdge} />
             {Array.from({ length: 6 }, (_, i) => (
-              <Slab key={i} size={[0.05, 0.026, 0.014]} position={[(i - 2.5) * 0.09 - innerW * 0.06, 0, 0.026]} color="#0a0e13" edgeColor="#39414d" />
+              <Slab key={i} size={[0.05, 0.026, 0.014]} position={[(i - 2.5) * 0.09 - innerW * 0.06, 0, 0.026]} color={LC.vent} edgeColor={LC.rackEdge} />
             ))}
             <Slab size={[0.016, 0.016, 0.012]} position={[innerW * 0.36, 0, 0.018]} color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1.1} />
           </group>
@@ -326,11 +332,11 @@ function RackUnitMesh({ unit, rackKind, planeIdx, hovered, clickable, onClick, o
           <group>
             {/* 抽手柄 ×2 */}
             {[-1, 1].map((s) => (
-              <Slab key={s} size={[0.05, h * 0.62, 0.03]} position={[s * (innerW / 2 - 0.16), 0, 0.02]} color="#3a3f47" metalness={0.6} roughness={0.4} />
+              <Slab key={s} size={[0.05, h * 0.62, 0.03]} position={[s * (innerW / 2 - 0.16), 0, 0.02]} color={LC.metal} metalness={0.6} roughness={0.4} />
             ))}
             {/* 通风格栅线 */}
             {Array.from({ length: 3 }, (_, i) => (
-              <Slab key={i} size={[innerW * 0.62, 0.012, 0.012]} position={[0, (i - 1) * h * 0.26, 0.016]} color="#0c1016" />
+              <Slab key={i} size={[innerW * 0.62, 0.012, 0.012]} position={[0, (i - 1) * h * 0.26, 0.016]} color={LC.vent} />
             ))}
             {/* 液冷进出快接头 */}
             <group position={[0, -h * 0.32, 0.01]}>
@@ -365,7 +371,7 @@ function RackUnitMesh({ unit, rackKind, planeIdx, hovered, clickable, onClick, o
       <Text
         position={[-(innerW / 2) + 0.02, 0, (innerD - 0.2) / 2 + 0.04]}
         fontSize={0.072}
-        color={hovered ? '#e2e8f0' : '#6b7686'}
+        color={hovered ? LC.primary : LC.textDim}
         anchorX="left" anchorY="middle"
       >
         {unit.labelEn}
@@ -388,18 +394,23 @@ export function RackScene({ rack, onHoverInfo, onSelectNode }: SceneCallbacks & 
   return (
     <group>
       <Floor size={12} />
-      {/* 正面补光：照亮前面板细节（柜内单元朝 +Z） */}
-      <pointLight position={[0, 4.2, 6]} intensity={55} color="#cfe8ff" />
-      <pointLight position={[3.5, 1.4, 4.5]} intensity={22} color="#ffffff" />
+      {/* 正面补光：照亮前面板细节（柜内单元朝 +Z；浅色材质下用低强度） */}
+      <pointLight position={[0, 4.2, 6]} intensity={18} color="#ffffff" />
+      <pointLight position={[3.5, 1.4, 4.5]} intensity={8} color="#ffffff" />
       {/* 机柜框架（去前门的开放视图）：底座 + 双侧板 + 顶板 + 背板 */}
-      <Slab size={[innerW + 0.1, 0.08, innerD + 0.1]} position={[0, 0.04, 0]} color={LC.rackBody} metalness={0.5} roughness={0.55} edgeColor={LC.rackEdge} />
-      {[-1, 1].map((s) => (
-        <Slab key={s} size={[0.05, rackH, innerD]} position={[s * (innerW / 2 + 0.05), rackH / 2 + 0.08, 0]} color={LC.rackBody} metalness={0.55} roughness={0.45} edgeColor={LC.rackEdge} />
-      ))}
-      <Slab size={[innerW + 0.1, 0.06, innerD + 0.1]} position={[0, rackH + 0.11, 0]} color={LC.rackBody} metalness={0.55} roughness={0.45} edgeColor={LC.rackEdge} />
-      <Slab size={[innerW, rackH, 0.04]} position={[0, rackH / 2 + 0.08, -(innerD / 2 + 0.02)]} color="#0d1015" metalness={0.4} roughness={0.6} />
-      {/* 红色饰条 */}
-      <Slab size={[0.02, rackH, 0.02]} position={[innerW / 2 + 0.08, rackH / 2 + 0.08, innerD / 2 - 0.02]} color={RACK_COLORS.accent} emissive={RACK_COLORS.accent} emissiveIntensity={0.35} />
+      <group
+        onPointerOver={(e) => { e.stopPropagation(); onHoverInfo(`${rack.label} 机柜框架 · 标准 19 英寸 · 浅色钣金 + 后背板走线`); }}
+        onPointerOut={() => onHoverInfo(null)}
+      >
+        <Slab size={[innerW + 0.1, 0.08, innerD + 0.1]} position={[0, 0.04, 0]} color={LC.rackBody} metalness={0.5} roughness={0.55} edgeColor={LC.rackEdge} />
+        {[-1, 1].map((s) => (
+          <Slab key={s} size={[0.05, rackH, innerD]} position={[s * (innerW / 2 + 0.05), rackH / 2 + 0.08, 0]} color={LC.rackBody} metalness={0.55} roughness={0.45} edgeColor={LC.rackEdge} />
+        ))}
+        <Slab size={[innerW + 0.1, 0.06, innerD + 0.1]} position={[0, rackH + 0.11, 0]} color={LC.rackBody} metalness={0.55} roughness={0.45} edgeColor={LC.rackEdge} />
+        <Slab size={[innerW, rackH, 0.04]} position={[0, rackH / 2 + 0.08, -(innerD / 2 + 0.02)]} color={LC.rackDoor} metalness={0.4} roughness={0.6} />
+        {/* 红色饰条 */}
+        <Slab size={[0.02, rackH, 0.02]} position={[innerW / 2 + 0.08, rackH / 2 + 0.08, innerD / 2 - 0.02]} color={RACK_COLORS.accent} emissive={RACK_COLORS.accent} emissiveIntensity={0.35} />
+      </group>
 
       {/* 内部单元 */}
       <group position={[0, 0.08, 0]}>
@@ -416,7 +427,11 @@ export function RackScene({ rack, onHoverInfo, onSelectNode }: SceneCallbacks & 
               onClick={u.type === 'node' ? () => onSelectNode(u.nodeSlot!) : undefined}
               onHover={(h) => {
                 setHoverId(h ? u.id : null);
-                onHoverInfo(h ? `${u.label}${u.type === 'node' ? '（点击下钻查看刀片内部）' : ''}` : null);
+                onHoverInfo(h
+                  ? u.type === 'switch-unit' && planeIdx !== undefined
+                    ? `${u.label} · 对应 UB 平面 ${planeIdx + 1}/7（颜色即平面编号，7 个平面互为独立交换网络）`
+                    : `${u.label}${u.type === 'node' ? '（点击下钻查看刀片内部）' : ''}`
+                  : null);
               }}
             />
           );
@@ -461,7 +476,7 @@ function NodePartMesh({ part, hovered, onHover }: {
         size={[sx * S, sy * S, sz * S]}
         color={v.body}
         metalness={0.35} roughness={0.6}
-        edgeColor={hovered ? v.edge : '#39414d'}
+        edgeColor={hovered ? v.edge : LC.rackEdge}
       />
       {/* 顶面：NPU/CPU 冷板、UB 芯片平面色 die */}
       {v.top && (
@@ -487,7 +502,7 @@ function NodePartMesh({ part, hovered, onHover }: {
               key={i}
               size={[0.028 * S, sy * S * 0.6, 0.008 * S]}
               position={[(i - 6.5) * 0.044 * S, 0, sz * S * 0.7]}
-              color="#0a0e13"
+              color={LC.vent}
               emissive="#fbbf24" emissiveIntensity={hovered ? 0.8 : 0.3}
             />
           ))}
@@ -499,7 +514,7 @@ function NodePartMesh({ part, hovered, onHover }: {
           position={[0, sy * S * 0.92, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={part.type === 'npu' ? 0.062 : 0.045}
-          color="#3c424c"
+          color="#5a6478"
           anchorX="center" anchorY="middle"
         >
           {part.type === 'npu' ? 'ASCEND 910C' : 'KUNPENG 920'}
@@ -523,19 +538,38 @@ export function NodeScene({ onHoverInfo, nodeType = 'compute' }: SceneCallbacks 
       <Floor size={10} />
       <group position={[0, 0.5, 0]}>
         {/* 托盘：底板 + 低侧壁 */}
-        <Slab size={[w + 0.12, 0.04, d + 0.12]} position={[0, -0.02, 0]} color="#1b1f26" metalness={0.6} roughness={0.45} edgeColor={LC.rackEdge} />
-        {[-1, 1].map((s) => (
-          <Slab key={'w' + s} size={[0.03, h * 0.9, d + 0.12]} position={[s * (w / 2 + 0.045), h * 0.43, 0]} color="#22262e" metalness={0.6} roughness={0.45} />
-        ))}
+        <group
+          onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('节点托盘机箱 · 全宽液冷刀片 · 安装于计算柜节点槽位'); }}
+          onPointerOut={() => onHoverInfo(null)}
+        >
+          <Slab size={[w + 0.12, 0.04, d + 0.12]} position={[0, -0.02, 0]} color={LC.rackBody} metalness={0.6} roughness={0.45} edgeColor={LC.rackEdge} />
+          {[-1, 1].map((s) => (
+            <Slab key={'w' + s} size={[0.03, h * 0.9, d + 0.12]} position={[s * (w / 2 + 0.045), h * 0.43, 0]} color={LC.rackDoor} metalness={0.6} roughness={0.45} />
+          ))}
+        </group>
         {/* 主板 PCB */}
-        <Slab size={[w, 0.018, d]} position={[0, 0.012, 0]} color={LC.pcb} metalness={0.1} roughness={0.85} edgeColor="#1f3a2c" />
+        <mesh
+          position={[0, 0.012, 0]}
+          onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('节点主板 PCB · 板载 7 颗灵衢 L1 交换芯片（彩色 = 7 个 UB 平面）'); }}
+          onPointerOut={() => onHoverInfo(null)}
+        >
+          <boxGeometry args={[w, 0.018, d]} />
+          <meshStandardMaterial color={LC.pcb} metalness={0.1} roughness={0.85} />
+        </mesh>
         {/* 零件 */}
         {NODE_PARTS.map((p) => (
           <NodePartMesh
             key={p.id}
             part={p}
             hovered={hoverId === p.id}
-            onHover={(hv) => { setHoverId(hv ? p.id : null); onHoverInfo(hv ? p.label : null); }}
+            onHover={(hv) => {
+              setHoverId(hv ? p.id : null);
+              onHoverInfo(hv
+                ? p.type === 'ub-switch'
+                  ? `${p.label} · 颜色对应 UB 平面编号（共 7 色 = 7 个独立交换平面，每颗 NPU 同时接入 7 平面）`
+                  : p.label
+                : null);
+            }}
           />
         ))}
         {/* 板内 UB 走线示意：每颗 NPU/CPU → 7 颗 L1 芯片方向的汇聚线 */}
@@ -584,15 +618,30 @@ function UBSwitchScene({ onHoverInfo }: SceneCallbacks) {
       <Floor size={10} />
       <group position={[0, 0.5, 0]}>
         {/* Chassis tray */}
-        <Slab size={[W + 0.1, 0.04, D + 0.1]} position={[0, -0.02, 0]} color="#2a3348" edgeColor={LC.rackEdge} />
+        <mesh
+          position={[0, -0.02, 0]}
+          onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('灵衢互联设备机箱托盘 · 安装于总线柜交换槽位 · 液冷'); }}
+          onPointerOut={() => onHoverInfo(null)}
+        >
+          <boxGeometry args={[W + 0.1, 0.04, D + 0.1]} />
+          <meshStandardMaterial color={LC.rackBody} metalness={0.5} roughness={0.5} />
+          <Edges color={LC.rackEdge} threshold={20} />
+        </mesh>
         {/* PCB */}
-        <Slab size={[W, 0.022, D]} position={[0, 0.012, 0]} color={LC.pcb} metalness={0.1} roughness={0.85} />
+        <mesh
+          position={[0, 0.012, 0]}
+          onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('交换设备主板 PCB · 承载 7 颗 L2 平面交换 ASIC'); }}
+          onPointerOut={() => onHoverInfo(null)}
+        >
+          <boxGeometry args={[W, 0.022, D]} />
+          <meshStandardMaterial color={LC.pcb} metalness={0.1} roughness={0.85} />
+        </mesh>
         {/* 7 UB plane switch ASICs */}
         {UB_PLANE_COLORS.map((c, i) => {
           const id = `asic-${i}`, isH = hov === id;
           return (
             <group key={id} position={[(i - 3) * W / 8.5, 0.012, -0.04 * S]}
-              onPointerOver={(e) => { e.stopPropagation(); setHov(id); onHoverInfo(`灵衢 L1 ASIC · UB 平面 ${i + 1}/7 · 节点板载 · 上行 448 GB/s → L2`); }}
+              onPointerOver={(e) => { e.stopPropagation(); setHov(id); onHoverInfo(`灵衢交换 ASIC · UB 平面 ${i + 1}/7（颜色 = 平面编号，7 个平面互为独立无阻塞网络）· 上行 448 GB/s`); }}
               onPointerOut={() => { setHov(null); onHoverInfo(null); }}>
               <Slab size={[W / 10, 0.07, 0.22 * S]} color={c} emissive={c} emissiveIntensity={isH ? 1.0 : 0.35} metalness={0.3} roughness={0.5} edgeColor={isH ? '#fff' : c} />
               <Text position={[0, 0.06, 0.13 * S]} fontSize={0.07} color={c} anchorX="center">{`P${i + 1}`}</Text>
@@ -600,30 +649,39 @@ function UBSwitchScene({ onHoverInfo }: SceneCallbacks) {
           );
         })}
         {/* Front port panel: 128×800GE in 8 banks × 16 ports */}
-        <group position={[0, H / 2, D / 2 + 0.008]}>
+        <group
+          position={[0, H / 2, D / 2 + 0.008]}
+          onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('前面板光口 · 128× OSFP 800GE · 8 组 × 16 口 · 接入计算节点上行光纤'); }}
+          onPointerOut={() => onHoverInfo(null)}
+        >
           {Array.from({ length: 8 }, (_, bank) => (
             <group key={bank} position={[(bank - 3.5) * W / 9, 0, 0]}>
               {Array.from({ length: 16 }, (_, j) => (
                 <Slab key={j} size={[0.025 * S, 0.025 * S, 0.006]}
                   position={[(j % 4 - 1.5) * 0.032 * S, (Math.floor(j / 4) - 1.5) * 0.032 * S, 0]}
-                  color="#0a0e13" emissive="#fbbf24" emissiveIntensity={0.5} />
+                  color={LC.vent} emissive="#fbbf24" emissiveIntensity={0.5} />
               ))}
             </group>
           ))}
         </group>
         {/* Liquid cooling connectors on sides */}
         {[-1, 1].map(side => (
-          <group key={side} position={[side * (W / 2 + 0.018), H / 4, 0]}>
+          <group
+            key={side}
+            position={[side * (W / 2 + 0.018), H / 4, 0]}
+            onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('液冷快接头 ×4 · 冷板式液冷进/回水 · 盲插免工具维护'); }}
+            onPointerOut={() => onHoverInfo(null)}
+          >
             {Array.from({ length: 4 }, (_, i) => (
               <mesh key={i} position={[0, 0, (i - 1.5) * D / 5]} rotation={[0, 0, Math.PI / 2]}>
                 <cylinderGeometry args={[0.028 * S, 0.028 * S, 0.032, 16]} />
-                <meshStandardMaterial color="#1e4e78" metalness={0.7} roughness={0.3} />
+                <meshStandardMaterial color="#6b9fd4" metalness={0.7} roughness={0.3} />
               </mesh>
             ))}
           </group>
         ))}
         {/* Chassis outline */}
-        <Slab size={[W, H, D]} position={[0, H / 2, 0]} color="#2a3348" opacity={0.22} edgeColor={LC.rackEdge} />
+        <Slab size={[W, H, D]} position={[0, H / 2, 0]} color={LC.rackBody} opacity={0.18} edgeColor={LC.rackEdge} />
         {/* Plane color strip on front */}
         {UB_PLANE_COLORS.map((c, i) => (
           <Slab key={i} size={[W / 8.2, 0.018, 0.01]} position={[(i - 3) * W / 8.5, H + 0.01, D / 2 + 0.002]}
@@ -646,13 +704,13 @@ function UBSwitchScene({ onHoverInfo }: SceneCallbacks) {
 
 // ── Topology config ──────────────────────────────────────────────────────────
 const TP = {
-  N: 6,           // 6 representative rack groups shown (actual: 12)
-  xSpan: 10.0,
-  nodeW: 0.75, nodeH: 0.32, nodeD: 0.38,
+  N: 12,          // 全量：12 个计算柜（每柜 4 节点 / 32 NPU）
+  xSpan: 11.4,
+  nodeW: 0.62, nodeH: 0.32, nodeD: 0.38,
   nodeY: 0.32,
-  l1Size: 0.058,
+  l1Size: 0.052,
   l2BaseY: 2.2, l2StepY: 0.35,
-  planeLen: 12.0, planeH: 0.18, planeD: 0.4,
+  planeLen: 12.6, planeH: 0.18, planeD: 0.4,
   rdmaY: 5.3, vpcY: 5.75,
 };
 
@@ -721,32 +779,34 @@ export function TopologyScene({ onHoverInfo }: SceneCallbacks) {
       <Floor size={18} />
 
       {/* ── 层级说明标签（左侧） ── */}
-      <Text position={[-7.2, TP.nodeY + TP.nodeH / 2, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'计算节点层\n×48 Nodes'}</Text>
-      <Text position={[-7.2, TP.l2BaseY + 3 * TP.l2StepY, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'L2 灵衢交换层\n7平面×16芯片'}</Text>
-      <Text position={[-7.2, (TP.rdmaY + TP.vpcY) / 2, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'跨超节点\n互联层'}</Text>
+      <Text position={[-7.6, TP.nodeY + TP.nodeH / 2, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'计算节点层\n12柜 / 48节点'}</Text>
+      <Text position={[-7.6, TP.l2BaseY + 3 * TP.l2StepY, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'L2 灵衢交换层\n7平面×16芯片'}</Text>
+      <Text position={[-7.6, (TP.rdmaY + TP.vpcY) / 2, 0]} fontSize={0.19} color={LC.textDim} anchorX="right" anchorY="middle" maxWidth={3}>{'跨超节点\n互联层'}</Text>
 
-      {/* ── 计算节点层（6个代表性节点组，每组代表2计算柜） ── */}
+      {/* ── 计算节点层（全量 12 计算柜，每柜 4 节点 / 32 NPU） ── */}
       {Array.from({ length: TP.N }, (_, n) => {
         const x = tpX(n);
         const isH = hoverNode === n;
         return (
-          <group key={n} position={[x, TP.nodeY, 0]}>
-            <mesh
-              onPointerOver={(e) => { e.stopPropagation(); setHoverNode(n); setHoverPlane(null); setCursor(true); onHoverInfo(`计算柜组 C${n * 2 + 1}~${n * 2 + 2} · 8节点 / 64× 910C · 7 平面 UB 上行 · 392 GB/s/NPU`); }}
-              onPointerOut={() => { setHoverNode(null); setCursor(false); onHoverInfo(null); }}
-            >
+          <group
+            key={n}
+            position={[x, TP.nodeY, 0]}
+            onPointerOver={(e) => { e.stopPropagation(); setHoverNode(n); setHoverPlane(null); setCursor(true); onHoverInfo(`计算柜 C${n + 1} · 4 节点 / 32× 910C / 16× 鲲鹏 920 · 每节点 7 平面 UB 上行 · 392 GB/s/NPU`); }}
+            onPointerOut={() => { setHoverNode(null); setCursor(false); onHoverInfo(null); }}
+          >
+            <mesh>
               <boxGeometry args={[TP.nodeW, TP.nodeH, TP.nodeD]} />
-              <meshStandardMaterial color={isH ? '#3a5e80' : '#344a6a'} metalness={0.35} roughness={0.5} emissive={isH ? '#0ea5e9' : '#001030'} emissiveIntensity={isH ? 0.4 : 0.1} />
+              <meshStandardMaterial color={isH ? '#d6e2fb' : '#e8ebf1'} metalness={0.3} roughness={0.55} emissive={isH ? '#4369ef' : '#000000'} emissiveIntensity={isH ? 0.18 : 0} />
+              <Edges color={isH ? '#4369ef' : LC.rackEdge} threshold={20} />
             </mesh>
-            <Edges color={isH ? '#38bdf8' : '#5570a0'} threshold={20} />
             {/* L1 chip dots (7 planes) */}
             {Array.from({ length: 7 }, (_, p) => (
-              <mesh key={p} position={[(p - 3) * 0.09, TP.nodeH / 2 + 0.016, 0]}>
+              <mesh key={p} position={[(p - 3) * 0.075, TP.nodeH / 2 + 0.016, 0]}>
                 <boxGeometry args={[TP.l1Size, 0.026, 0.044]} />
                 <meshStandardMaterial color={UB_PLANE_COLORS[p]} emissive={UB_PLANE_COLORS[p]} emissiveIntensity={isH ? 1.0 : 0.45} />
               </mesh>
             ))}
-            <Text position={[0, -TP.nodeH / 2 - 0.13, 0]} fontSize={0.1} color={LC.textDim} anchorX="center">{`C${n * 2 + 1}~${n * 2 + 2}`}</Text>
+            <Text position={[0, -TP.nodeH / 2 - 0.13, 0]} fontSize={0.1} color={LC.textDim} anchorX="center">{`C${n + 1}`}</Text>
           </group>
         );
       })}
@@ -759,11 +819,13 @@ export function TopologyScene({ onHoverInfo }: SceneCallbacks) {
         const y = tpL2Y(p);
         const isH = hoverPlane === p;
         return (
-          <group key={p} position={[0, y, 0]}>
-            <mesh
-              onPointerOver={(e) => { e.stopPropagation(); setHoverPlane(p); setHoverNode(null); setCursor(true); onHoverInfo(`UB 平面 ${p + 1}/7 · 16 颗 L2 交换芯片 · 每颗 48×28 GB/s 端口 · 全 48 节点 1:1 无阻塞`); }}
-              onPointerOut={() => { setHoverPlane(null); setCursor(false); onHoverInfo(null); }}
-            >
+          <group
+            key={p}
+            position={[0, y, 0]}
+            onPointerOver={(e) => { e.stopPropagation(); setHoverPlane(p); setHoverNode(null); setCursor(true); onHoverInfo(`UB 平面 ${p + 1}/7（颜色 = 平面编号）· 16 颗 L2 交换芯片 · 每颗 48×28 GB/s 端口 · 全 48 节点 1:1 无阻塞`); }}
+            onPointerOut={() => { setHoverPlane(null); setCursor(false); onHoverInfo(null); }}
+          >
+            <mesh>
               <boxGeometry args={[TP.planeLen, TP.planeH, TP.planeD]} />
               <meshStandardMaterial color={c} transparent opacity={isH ? 0.7 : 0.38} emissive={c} emissiveIntensity={isH ? 0.45 : 0.18} metalness={0.1} roughness={0.65} />
             </mesh>
@@ -781,16 +843,24 @@ export function TopologyScene({ onHoverInfo }: SceneCallbacks) {
 
       {/* ── 跨节点互联层 ── */}
       {/* RDMA */}
-      <group position={[0, TP.rdmaY, 0]}>
-        <mesh onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('RDMA Scale-Out · 400 Gbps/NPU · RoCE v2 · 跨超节点 all-to-all 通信'); }} onPointerOut={() => onHoverInfo(null)}>
+      <group
+        position={[0, TP.rdmaY, 0]}
+        onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('RDMA Scale-Out 平面 · 400 Gbps/NPU · RoCE v2 · 跨超节点 all-to-all 通信'); }}
+        onPointerOut={() => onHoverInfo(null)}
+      >
+        <mesh>
           <boxGeometry args={[TP.planeLen * 0.85, 0.13, 0.58]} />
           <meshStandardMaterial color={RDMA_COLOR} transparent opacity={0.42} emissive={RDMA_COLOR} emissiveIntensity={0.22} />
         </mesh>
         <Text position={[TP.planeLen * 0.425 + 0.18, 0, 0]} fontSize={0.16} color={RDMA_COLOR} anchorX="left">RDMA · 400 Gbps/NPU</Text>
       </group>
       {/* VPC */}
-      <group position={[0, TP.vpcY, 0]}>
-        <mesh onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('VPC 平面 · 擎天卡 Qingtian DPU · 400 Gbps/节点 · 接数据中心外网'); }} onPointerOut={() => onHoverInfo(null)}>
+      <group
+        position={[0, TP.vpcY, 0]}
+        onPointerOver={(e) => { e.stopPropagation(); onHoverInfo('VPC 平面 · 擎天卡 Qingtian DPU · 400 Gbps/节点 · 接数据中心外网'); }}
+        onPointerOut={() => onHoverInfo(null)}
+      >
+        <mesh>
           <boxGeometry args={[TP.planeLen * 0.85, 0.11, 0.52]} />
           <meshStandardMaterial color={VPC_COLOR} transparent opacity={0.35} emissive={VPC_COLOR} emissiveIntensity={0.15} />
         </mesh>
@@ -799,7 +869,7 @@ export function TopologyScene({ onHoverInfo }: SceneCallbacks) {
 
       {/* ── 底部说明 ── */}
       <Text position={[0, 0.04, TP.nodeD / 2 + 1.4]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.18} color={LC.textDim} anchorX="center">
-        {'两层无阻塞 Clos · 示意 6 节点组（实际 48 节点）· 悬停高亮连接'}
+        {'两层无阻塞 Clos · 全量 12 计算柜 / 48 节点 / 84 条上行 · 7 色 = 7 个 UB 平面 · 悬停高亮'}
       </Text>
     </group>
   );
