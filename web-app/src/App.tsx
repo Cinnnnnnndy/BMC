@@ -20,7 +20,6 @@ const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardT
 const SoftwareHardwareAssociationView = lazy(() => import('./components/SoftwareHardwareAssociationView'), 'SoftwareHardwareAssociationView');
 const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
 const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
-const AscendSupernodeView        = lazy(() => import('./components/AscendSupernodeView'),        'AscendSupernodeView');
 const SmcCalculator              = lazy(() => import('./components/SmcCalculator'),              'SmcCalculator');
 const BatchExprCalc              = lazy(() => import('./components/BatchExprCalc'),              'BatchExprCalc');
 const EnergyView                 = lazy(() => import('./components/EnergyView'),                 'EnergyView');
@@ -103,7 +102,6 @@ export default function App() {
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
   const [showVueTopo, setShowVueTopo] = useState(false);
-  const [showAscendSupernode, setShowAscendSupernode] = useState(false);
   const [showSmcCalculator,   setShowSmcCalculator]   = useState(false);
   const [showBatchExprCalc,   setShowBatchExprCalc]   = useState(false);
   const [showEnergyView,      setShowEnergyView]      = useState(false);
@@ -261,7 +259,6 @@ export default function App() {
       if (viewId === 'serverView')      { setShowServerView(true);      window.location.hash = viewId; return; }
       if (viewId === 'threeD')          { setShowThreeD(true);          window.location.hash = viewId; return; }
       if (viewId === 'vueTopo')         { setShowVueTopo(true);         window.location.hash = viewId; return; }
-      if (viewId === 'ascendSupernode') { setShowAscendSupernode(true); window.location.hash = viewId; return; }
       if (viewId === 'smcCalculator')   { setShowSmcCalculator(true);   window.location.hash = viewId; return; }
       if (viewId === 'batchExprCalc')   { setShowBatchExprCalc(true);   window.location.hash = viewId; return; }
       if (viewId === 'energyView')      { setShowEnergyView(true);      window.location.hash = viewId; return; }
@@ -287,7 +284,6 @@ export default function App() {
       setShowServerView(h === 'serverView');
       setShowThreeD(h === 'threeD');
       setShowVueTopo(h === 'vueTopo');
-      setShowAscendSupernode(h === 'ascendSupernode');
       setShowSmcCalculator(h === 'smcCalculator');
       setShowBatchExprCalc(h === 'batchExprCalc');
       setShowEnergyView(h === 'energyView');
@@ -315,22 +311,6 @@ export default function App() {
 
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
   const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? '拓扑视图';
-
-  if (showAscendSupernode) {
-    return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #134e4a', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => { setShowAscendSupernode(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #134e4a', borderRadius: 4, color: '#5eead4', cursor: 'pointer' }}>
-            ← 返回
-          </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>昇腾超节点模型 · SuperPoD 3D</span>
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Suspense fallback={<ViewLoader />}><AscendSupernodeView /></Suspense>
-        </div>
-      </div>
-    );
-  }
 
   if (showSmcCalculator) {
     return (

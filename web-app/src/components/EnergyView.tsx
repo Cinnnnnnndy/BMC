@@ -55,8 +55,8 @@ interface ServerRow {
 }
 
 const DEFAULT_SERVERS: ServerRow[] = [
-  { name: '昇腾 910C节点',  cpu: 350,  mem: 120, psu: 80,  io: 20,  tflops: 752  },
-  { name: '鲲鹏 920 服务器', cpu: 280,  mem: 80,  psu: 60,  io: 15,  tflops: 8    },
+  { name: 'AI 加速节点',     cpu: 350,  mem: 120, psu: 80,  io: 20,  tflops: 752  },
+  { name: 'Arm 服务器',      cpu: 280,  mem: 80,  psu: 60,  io: 15,  tflops: 8    },
   { name: 'x86 参考服务器',  cpu: 400,  mem: 100, psu: 70,  io: 30,  tflops: 12   },
 ];
 
@@ -212,7 +212,7 @@ export function EnergyView() {
         </div>
 
         <div style={{ marginTop: 20, padding: '12px 14px', background: '#0f1a0f', border: '1px solid #1e3d20', borderRadius: 8, fontSize: 11.5, color: '#4a7050', lineHeight: 1.7 }}>
-          <strong style={{ color: '#4ade80' }}>参考目标</strong>：超节点 CM384 整机 559 kW / 384× 910C · 每节点 1.46 kW（按 16.2kW/8NPU 风冷基线）·
+          <strong style={{ color: '#4ade80' }}>参考目标</strong>：大型 AI 集群整机 559 kW / 384 卡 · 每节点 1.46 kW（按 16.2kW/8 卡风冷基线）·
           算力密度 ≈ {(752 * 384 / 559000).toFixed(3)} TFLOPS/W（FP16）。
           绿色数据中心 PUE 目标 ≤ 1.3，液冷方案可达 1.1–1.2。
         </div>

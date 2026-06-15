@@ -419,45 +419,7 @@ function EnergyThumb() {
   );
 }
 
-function AscendSupernodeThumb() {
-  // Mini isometric supernode: a row of compute racks + switch racks, UB links
-  return (
-    <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-      <rect width="160" height="100" fill="#0a1018" />
-      {/* Floor line */}
-      <line x1="8" y1="78" x2="152" y2="78" stroke="#1e3a5f" strokeWidth="0.6" strokeOpacity="0.5" />
-      {/* Racks: 5 compute (teal) + 2 switch (amber) */}
-      {[
-        { x: 10, c: '#14b8a6' }, { x: 30, c: '#14b8a6' }, { x: 50, c: '#14b8a6' },
-        { x: 70, c: '#f59e0b' }, { x: 90, c: '#f59e0b' },
-        { x: 110, c: '#14b8a6' }, { x: 130, c: '#14b8a6' },
-      ].map(({ x, c }, i) => (
-        <g key={i}>
-          <rect x={x} y="30" width="16" height="48" rx="1.5" fill={c} opacity="0.14" stroke={c} strokeWidth="0.8" strokeOpacity="0.8" />
-          {/* node slots */}
-          {[35, 42, 49, 56, 63, 70].map((y, j) => (
-            <rect key={j} x={x + 2} y={y} width="12" height="4.5" rx="0.8" fill={c} opacity="0.45" />
-          ))}
-        </g>
-      ))}
-      {/* UB interconnect arcs from compute racks to switch racks */}
-      {[18, 38, 58, 118, 138].map((x, i) => (
-        <path key={i} d={`M ${x} 30 Q ${(x + 88) / 2} ${8 + i * 2} 88 30`} stroke="#38bdf8" strokeWidth="0.7" strokeOpacity="0.55" fill="none" strokeDasharray="2 1.5" />
-      ))}
-      <text x="80" y="92" textAnchor="middle" fontSize="7" fill="#5eead4" fontFamily="monospace" opacity="0.85">Ascend SuperPoD · UB Mesh</text>
-    </svg>
-  );
-}
-
 const VIEW_ENTRIES: ViewEntry[] = [
-  {
-    id: 'ascendSupernode',
-    name: '昇腾超节点模型',
-    desc: '超节点机柜 → 计算节点 → 灵衢互联三级 3D 视图',
-    accent: '#14b8a6',
-    bg: '#0a1018',
-    thumb: <AscendSupernodeThumb />,
-  },
   {
     id: 'smcCalculator',
     name: 'SMC 传感器计算器',
