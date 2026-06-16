@@ -330,119 +330,117 @@ function VueTopoThumb() {
   );
 }
 
-function SmcCalcThumb() {
+function SmcOffsetThumb() {
   return (
     <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-      <rect width="160" height="100" fill="#0a1018" />
-      <text x="8" y="16" fontSize="7" fill="#5eead4" fontFamily="monospace" opacity="0.9">IPMI SDR 传感器计算器</text>
-      {/* Formula display */}
-      <rect x="8" y="20" width="144" height="14" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.6" />
-      <text x="14" y="30" fontSize="6.5" fill="#7dd3fc" fontFamily="monospace">y = (M × x + B × 10^K1) × 10^K2</text>
-      {/* Input fields */}
-      {[['M', '1', 8], ['B', '0', 46], ['K1', '0', 84], ['K2', '-2', 122]].map(([l, v, x]) => (
-        <g key={l as string}>
-          <text x={x as number} y={46} fontSize="5.5" fill="#5a6b7c" fontFamily="monospace">{l as string}</text>
-          <rect x={x as number} y={49} width={28} height={9} rx="1.5" fill="#0a1018" stroke="#1e2d3d" strokeWidth="0.5" />
-          <text x={(x as number) + 5} y={56} fontSize="6" fill="#94a3b8" fontFamily="monospace">{v as string}</text>
-        </g>
-      ))}
-      {/* Results table */}
-      {[['0x00', '0.00'], ['0x40', '32.00'], ['0x80', '64.00'], ['0xFF', '127.50']].map(([raw, val], i) => (
-        <g key={raw}>
-          <rect x="8" y={65 + i * 8} width="64" height="7" rx="1" fill="#0f1622" opacity="0.8" />
-          <text x="12" y={70 + i * 8} fontSize="5.5" fill="#4a6070" fontFamily="monospace">{raw}</text>
-          <text x="34" y={70 + i * 8} fontSize="5.5" fill="#5eead4" fontFamily="monospace">→ {val}</text>
-          <rect x="76" y={65 + i * 8} width={60 + i * 4} height="7" rx="1" fill="#0e7490" opacity={0.3 + i * 0.1} />
+      <rect width="160" height="100" fill="#0a0d18" />
+      <rect x="8" y="8" width="144" height="26" rx="3" fill="#0f1a3a" stroke="#4f6ef7" strokeWidth="1" strokeOpacity="0.7" />
+      <text x="80" y="18" textAnchor="middle" fontSize="6" fill="#7c8cf8" fontFamily="monospace" opacity="0.7">32-bit 偏移量</text>
+      <text x="80" y="28" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#7c8cf8" fontFamily="monospace">0x0C020101</text>
+      <text x="80" y="44" textAnchor="middle" fontSize="10" fill="#4a5080" fontFamily="monospace">⇅</text>
+      {[
+        { x: 8,  y: 48, w: 60, label: 'Function', val: '0x0C', color: '#f59e6b' },
+        { x: 76, y: 48, w: 76, label: 'Command',  val: '0x0080', color: '#4f6ef7' },
+        { x: 8,  y: 72, w: 36, label: 'MS',       val: '0x0', color: '#a78bfa' },
+        { x: 48, y: 72, w: 36, label: 'RW',       val: '0x1', color: '#34d399' },
+        { x: 88, y: 72, w: 64, label: 'Param',    val: '0x01', color: '#f5b454' },
+      ].map(({ x, y, w, label, val, color }, i) => (
+        <g key={i}>
+          <rect x={x} y={y} width={w} height="18" rx="2" fill="#0f1a3a" stroke={color} strokeWidth="0.8" strokeOpacity="0.6" />
+          <text x={x + 3} y={y + 7} fontSize="4.5" fill="#98a0b8" fontFamily="sans-serif">{label}</text>
+          <text x={x + 3} y={y + 15} fontSize="6" fill={color} fontFamily="monospace">{val}</text>
         </g>
       ))}
     </svg>
   );
 }
 
-function BatchCalcThumb() {
+function ExprCalcThumb() {
   return (
     <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-      <rect width="160" height="100" fill="#0a1018" />
-      <text x="8" y="14" fontSize="7" fill="#a78bfa" fontFamily="monospace" opacity="0.9">批量表达式计算器</text>
-      {/* Vars pane */}
-      <rect x="8" y="18" width="66" height="56" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.5" />
-      <text x="12" y="26" fontSize="5" fill="#5a6b7c" fontFamily="monospace">// 变量</text>
-      {[['raw = 125', '#7c8a99'], ['M = 1', '#7c8a99'], ['K2 = -2', '#7c8a99'], ['Vref = 3.3', '#7c8a99']].map(([l, c], i) => (
-        <text key={l} x="12" y={34 + i * 9} fontSize="5.5" fill={c} fontFamily="monospace">{l}</text>
-      ))}
-      {/* Exprs pane */}
-      <rect x="78" y="18" width="74" height="56" rx="2" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.5" />
-      <text x="82" y="26" fontSize="5" fill="#5a6b7c" fontFamily="monospace">// 表达式</text>
+      <rect width="160" height="100" fill="#0a0d18" />
+      <rect x="8" y="8" width="144" height="14" rx="2" fill="#131826" stroke="#2a3050" strokeWidth="0.7" />
+      <text x="14" y="18" fontSize="6.5" fill="#7c8cf8" fontFamily="monospace">$1 | add $2 | toHex 8</text>
       {[
-        ['raw * M * 10**K2', '#a78bfa'],
-        ['raw * Vref / 255', '#a78bfa'],
-        ['Math.round(raw/2)', '#a78bfa'],
-      ].map(([expr, c], i) => (
-        <text key={expr} x="82" y={34 + i * 9} fontSize="5.5" fill={c} fontFamily="monospace">{expr}</text>
+        { y: 28, n: '①', op: '$1  = 255', color: '#4f6ef7', val: 'int · 255' },
+        { y: 42, n: '②', op: 'add 16',   color: '#4f6ef7', val: 'int · 271' },
+        { y: 56, n: '③', op: 'toHex 8',  color: '#f5b454', val: '"0x0000010f"' },
+      ].map(({ y, n, op, color, val }, i) => (
+        <g key={i}>
+          {i > 0 && <line x1="22" y1={y - 2} x2="22" y2={y} stroke="#2a3050" strokeWidth="0.8" />}
+          <rect x="8" y={y} width="144" height="12" rx="2" fill="#131826" stroke={color} strokeWidth="0.6" strokeOpacity="0.5" />
+          <circle cx="16" cy={y + 6} r="4" fill={color} fillOpacity="0.2" stroke={color} strokeWidth="0.6" />
+          <text x="16" y={y + 8.5} textAnchor="middle" fontSize="5" fill={color} fontFamily="monospace">{n}</text>
+          <text x="26" y={y + 8} fontSize="6" fill="#c4cadc" fontFamily="monospace">{op}</text>
+          <text x="145" y={y + 8} textAnchor="end" fontSize="5.5" fill="#6b7498" fontFamily="monospace">{val}</text>
+        </g>
       ))}
-      {/* Arrow */}
-      <text x="74" y="48" fontSize="8" fill="#5a6b7c" textAnchor="middle">→</text>
-      {/* Run button */}
-      <rect x="40" y="80" width="80" height="12" rx="3" fill="#0e7490" opacity="0.8" />
-      <text x="80" y="89" textAnchor="middle" fontSize="6.5" fill="#fff" fontFamily="monospace">▶ 运行全部</text>
+      <rect x="8" y="74" width="144" height="18" rx="2" fill="rgba(79,110,247,0.12)" stroke="#4f6ef7" strokeWidth="0.8" strokeOpacity="0.5" />
+      <text x="14" y="82" fontSize="5" fill="#7c8cf8" fontFamily="monospace" opacity="0.8">最终结果</text>
+      <text x="14" y="88" fontSize="8" fontWeight="bold" fill="#c4cadc" fontFamily="monospace">&quot;0x0000010f&quot;</text>
     </svg>
   );
 }
 
-function EnergyThumb() {
+function CoolingConfigThumb() {
   return (
     <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-      <rect width="160" height="100" fill="#0a1018" />
-      <text x="8" y="14" fontSize="7" fill="#4ade80" fontFamily="monospace" opacity="0.9">能效分析</text>
-      {/* PUE stat */}
-      <rect x="8" y="18" width="50" height="28" rx="3" fill="#0f1622" stroke="#1e3d20" strokeWidth="0.6" />
-      <text x="13" y="27" fontSize="5.5" fill="#5a6b7c">PUE</text>
-      <text x="13" y="40" fontSize="14" fill="#4ade80" fontFamily="monospace" fontWeight="bold">1.21</text>
-      {/* TFLOPS/W stat */}
-      <rect x="64" y="18" width="88" height="28" rx="3" fill="#0f1622" stroke="#1e2d3d" strokeWidth="0.6" />
-      <text x="70" y="27" fontSize="5.5" fill="#5a6b7c">算力密度</text>
-      <text x="70" y="40" fontSize="10" fill="#5eead4" fontFamily="monospace">0.516 TFLOPS/W</text>
-      {/* Bar chart */}
+      <rect width="160" height="100" fill="#0a100e" />
+      <rect x="0" y="0" width="160" height="14" fill="#0d1a16" />
+      <text x="8" y="10" fontSize="6.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">能效调速配置编辑器</text>
+      <line x1="68" y1="14" x2="68" y2="100" stroke="#1a2a22" strokeWidth="0.8" />
+      <text x="4" y="22" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_config:</text>
+      <text x="4" y="29" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  smart_cooling:</text>
+      <text x="4" y="36" fontSize="5" fill="#34d399" fontFamily="monospace">    Enabled</text>
+      <text x="4" y="43" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  fan_board: 1</text>
+      <text x="4" y="50" fontSize="5" fill="#4a6a5a" fontFamily="monospace">cooling_req:</text>
+      <text x="4" y="57" fontSize="5" fill="#4a8a6a" fontFamily="monospace">  - id: 1</text>
+      <text x="4" y="64" fontSize="5" fill="#4a8a6a" fontFamily="monospace">    temp: 35</text>
+      <text x="72" y="22" fontSize="5.5" fontWeight="bold" fill="#34d399" fontFamily="sans-serif">全局配置</text>
       {[
-        { label: 'CPU', val: 350, max: 500, color: '#3b82f6', y: 52 },
-        { label: 'MEM', val: 120, max: 500, color: '#a78bfa', y: 62 },
-        { label: 'PSU', val: 80,  max: 500, color: '#fb923c', y: 72 },
-        { label: 'I/O', val: 20,  max: 500, color: '#22d3ee', y: 82 },
-      ].map(({ label, val, max, color, y }) => (
-        <g key={label}>
-          <text x="8" y={y + 6} fontSize="5.5" fill="#5a6b7c" fontFamily="monospace">{label}</text>
-          <rect x="30" y={y} width={120 * val / max} height="7" rx="3" fill={color} opacity="0.7" />
-          <text x={32 + 120 * val / max} y={y + 6} fontSize="5" fill="#5a6b7c">{val}W</text>
+        { y: 26, label: '槽位号',   val: '1' },
+        { y: 38, label: '调速模式', val: 'EnergySaving' },
+        { y: 50, label: '风扇板数', val: '1' },
+        { y: 62, label: '初始转速', val: '100%' },
+      ].map(({ y, label, val }, i) => (
+        <g key={i}>
+          <text x="72" y={y + 7} fontSize="4.5" fill="#6b8a78" fontFamily="sans-serif">{label}</text>
+          <rect x="72" y={y + 9} width="82" height="7" rx="1" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+          <text x="76" y={y + 15} fontSize="4.5" fill="#a7d9c2" fontFamily="monospace">{val}</text>
         </g>
       ))}
+      <rect x="70" y="76" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#34d399" strokeWidth="0.6" strokeOpacity="0.4" />
+      <text x="74" y="82" fontSize="4.5" fill="#34d399" fontFamily="sans-serif">① 全局 → ② 温度点 → ③ 调速风扇</text>
+      <rect x="70" y="87" width="88" height="8" rx="1.5" fill="#0d1a14" stroke="#1a3028" strokeWidth="0.5" />
+      <text x="74" y="93" fontSize="4.5" fill="#6b8a78" fontFamily="sans-serif">④ 调速策略 → ⑤ 绑定区域</text>
     </svg>
   );
 }
 
 const VIEW_ENTRIES: ViewEntry[] = [
   {
-    id: 'smcCalculator',
-    name: 'SMC 传感器计算器',
-    desc: 'IPMI SDR 线性化公式 y=(Mx+B)×10^K 批量转换',
-    accent: '#0ea5e9',
-    bg: '#0a1018',
-    thumb: <SmcCalcThumb />,
+    id: 'smcOffset',
+    name: 'SMC 偏移量计算器',
+    desc: '功能码/命令码/参数字段编解码，十进制与十六进制互转',
+    accent: '#4f6ef7',
+    bg: '#0a0d18',
+    thumb: <SmcOffsetThumb />,
   },
   {
-    id: 'batchExprCalc',
+    id: 'exprCalc',
     name: '批量表达式计算器',
-    desc: '变量绑定 + 多表达式批量求值，传感器公式验证利器',
-    accent: '#a78bfa',
-    bg: '#0a1018',
-    thumb: <BatchCalcThumb />,
+    desc: '管道表达式实时调试 + 批量用例对比验证',
+    accent: '#4f6ef7',
+    bg: '#0a0d18',
+    thumb: <ExprCalcThumb />,
   },
   {
-    id: 'energyView',
-    name: '能效分析',
-    desc: 'PUE 计算器 · 服务器功耗分解 · 算力功耗比',
-    accent: '#4ade80',
-    bg: '#0a1018',
-    thumb: <EnergyThumb />,
+    id: 'coolingConfig',
+    name: '能效调速配置模板',
+    desc: 'YAML 可视化编辑，生成 CSR Objects 片段',
+    accent: '#34d399',
+    bg: '#0a100e',
+    thumb: <CoolingConfigThumb />,
   },
   {
     id: 'threeD',

@@ -20,9 +20,6 @@ const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardT
 const SoftwareHardwareAssociationView = lazy(() => import('./components/SoftwareHardwareAssociationView'), 'SoftwareHardwareAssociationView');
 const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
 const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
-const SmcCalculator              = lazy(() => import('./components/SmcCalculator'),              'SmcCalculator');
-const BatchExprCalc              = lazy(() => import('./components/BatchExprCalc'),              'BatchExprCalc');
-const EnergyView                 = lazy(() => import('./components/EnergyView'),                 'EnergyView');
 
 /** VSCode webview API bridge — called at most once per page */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -102,9 +99,9 @@ export default function App() {
   const [showHwTopology, setShowHwTopology] = useState(false);
   const [showThreeD, setShowThreeD] = useState(false);
   const [showVueTopo, setShowVueTopo] = useState(false);
-  const [showSmcCalculator,   setShowSmcCalculator]   = useState(false);
-  const [showBatchExprCalc,   setShowBatchExprCalc]   = useState(false);
-  const [showEnergyView,      setShowEnergyView]      = useState(false);
+  const [showSmcOffset,       setShowSmcOffset]       = useState(false);
+  const [showExprCalc,        setShowExprCalc]        = useState(false);
+  const [showCoolingConfig,   setShowCoolingConfig]   = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   // Ref always holds the latest csr value so stable event listeners can read it
   const csrRef = useRef<typeof csr>(null);
@@ -259,9 +256,9 @@ export default function App() {
       if (viewId === 'serverView')      { setShowServerView(true);      window.location.hash = viewId; return; }
       if (viewId === 'threeD')          { setShowThreeD(true);          window.location.hash = viewId; return; }
       if (viewId === 'vueTopo')         { setShowVueTopo(true);         window.location.hash = viewId; return; }
-      if (viewId === 'smcCalculator')   { setShowSmcCalculator(true);   window.location.hash = viewId; return; }
-      if (viewId === 'batchExprCalc')   { setShowBatchExprCalc(true);   window.location.hash = viewId; return; }
-      if (viewId === 'energyView')      { setShowEnergyView(true);      window.location.hash = viewId; return; }
+      if (viewId === 'smcOffset')       { setShowSmcOffset(true);       window.location.hash = viewId; return; }
+      if (viewId === 'exprCalc')        { setShowExprCalc(true);        window.location.hash = viewId; return; }
+      if (viewId === 'coolingConfig')   { setShowCoolingConfig(true);   window.location.hash = viewId; return; }
       // Project-dependent tab views: update hash (setActiveTab does this) then
       // auto-load the first project if none is loaded yet.
       const tabId = viewId as TabId;
@@ -284,9 +281,9 @@ export default function App() {
       setShowServerView(h === 'serverView');
       setShowThreeD(h === 'threeD');
       setShowVueTopo(h === 'vueTopo');
-      setShowSmcCalculator(h === 'smcCalculator');
-      setShowBatchExprCalc(h === 'batchExprCalc');
-      setShowEnergyView(h === 'energyView');
+      setShowSmcOffset(h === 'smcOffset');
+      setShowExprCalc(h === 'exprCalc');
+      setShowCoolingConfig(h === 'coolingConfig');
       // Tab views: if no project is loaded yet, auto-load the first one with a CSR
       if ((VALID_TABS as string[]).includes(h) && !csrRef.current) {
         const first = HARDWARE_PROJECTS.find((p) => p.rootSrPath);
@@ -312,49 +309,34 @@ export default function App() {
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
   const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? '拓扑视图';
 
-  if (showSmcCalculator) {
+  if (showSmcOffset || showExprCalc || showCoolingConfig) {
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+    const vueSrc = base.endsWith('/') ? base + 'vue-topo/index.html' : base + '/vue-topo/index.html';
+    const tab = showSmcOffset ? 'smc' : showExprCalc ? 'expr' : 'cooling';
+    const labels: Record<string, string> = {
+      smc:     'SMC 偏移量计算器',
+      expr:    '批量表达式计算器',
+      cooling: '能效调速配置模板',
+    };
+    const bgColors: Record<string, string> = {
+      smc:     '#0a0d18',
+      expr:    '#0a0d18',
+      cooling: '#0a100e',
+    };
+    const onClose = () => {
+      setShowSmcOffset(false); setShowExprCalc(false); setShowCoolingConfig(false);
+      history.replaceState(null, '', window.location.pathname);
+    };
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => { setShowSmcCalculator(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#7dd3fc', cursor: 'pointer' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2240', background: bgColors[tab], display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={onClose} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #2a3050', borderRadius: 4, color: '#94a3b8', cursor: 'pointer' }}>
             ← 返回
           </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>SMC 传感器计算器 · IPMI SDR</span>
+          <span style={{ fontSize: 13, color: '#64748b' }}>openUBMC Studio · {labels[tab]}</span>
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Suspense fallback={<ViewLoader />}><SmcCalculator /></Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (showBatchExprCalc) {
-    return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e2d3d', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => { setShowBatchExprCalc(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e2d3d', borderRadius: 4, color: '#c4b5fd', cursor: 'pointer' }}>
-            ← 返回
-          </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>批量表达式计算器</span>
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Suspense fallback={<ViewLoader />}><BatchExprCalc /></Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (showEnergyView) {
-    return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #1e3d20', background: '#0a1018', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => { setShowEnergyView(false); history.replaceState(null, "", window.location.pathname); }} style={{ padding: '4px 10px', fontSize: 12, background: 'transparent', border: '1px solid #1e3d20', borderRadius: 4, color: '#86efac', cursor: 'pointer' }}>
-            ← 返回
-          </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>能效分析 · PUE / 功耗分解</span>
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Suspense fallback={<ViewLoader />}><EnergyView /></Suspense>
+          <iframe src={`${vueSrc}#${tab}`} style={{ width: '100%', height: '100%', border: 'none' }} title={labels[tab]} />
         </div>
       </div>
     );
