@@ -1,5 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import LinkageRail from '../components/LinkageRail.vue';
+import { useLinkage } from '../composables/useLinkage';
+
+const { state: link } = useLinkage();
+// Right linkage: the expression string is the field written back into the CSR config.
+function linkCode(): string | null {
+  return exprText.value.trim() || null;
+}
+// Left linkage (live): re-apply inbound expression on each new topology push,
+// so a docked split-screen tool stays in sync with the selection.
+function applyInbound() {
+  const ib = link.inbound.expr;
+  if (ib?.expression) { exprText.value = ib.expression; runEval(); }
+}
+onMounted(applyInbound);
+watch(() => link.inbound.expr?.ts, applyInbound);
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 type PipeValue = number | string | boolean | null;
@@ -380,6 +396,9 @@ const histOpen = ref(false);
         <button class="btn btn-secondary" @click="loadSample">载入示例</button>
       </div>
     </div>
+
+    <!-- 左/右联动栏 -->
+    <LinkageRail tool="expr" code-label="表达式 → CSR expression 字段" :get-code="linkCode" />
 
     <!-- ══ Phase 1: 管道表达式 ══════════════════════════════════════════════ -->
     <div class="phase">

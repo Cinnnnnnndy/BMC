@@ -69,3 +69,4 @@ web-app-vue/
 - ELK cross-board layout is intentionally deferred for v1 — the initial
   positions from `buildInitialNodes()` already match the reference screenshot,
   and `computeAutoLayout` only tightens per-board sizes + stacks bus/mux/chips.
+# Task-manager

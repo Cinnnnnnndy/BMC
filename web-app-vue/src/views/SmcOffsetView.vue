@@ -1,5 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
+import LinkageRail from '../components/LinkageRail.vue';
+import { useLinkage } from '../composables/useLinkage';
+
+const { state: link } = useLinkage();
+// Right linkage: the computed full offset is what gets written into a sensor 地址.
+function linkCode(): string | null {
+  if (!anySet()) return null;
+  return fmtHex(composeWord());
+}
+// Left linkage (live): re-apply inbound func whenever the topology pushes a new
+// selection while this tool is docked in split-screen.
+function applyInbound() {
+  const ib = link.inbound.smc;
+  if (ib?.func) { fieldTexts.func = ib.func; onFieldInput('func'); }
+}
+watch(() => link.inbound.smc?.ts, applyInbound);
 
 /* ─── Field definitions ─────────────────────────────────────────────────── */
 type FieldKey = 'func' | 'cmd' | 'ms' | 'rw' | 'param';
@@ -206,7 +222,12 @@ function onKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s') { e.preventDefault(); saveToHistory(); showToast('已保存当前结果'); }
 }
 function closeFmt(e: Event) { if (!(e.target as HTMLElement).closest?.('.split-btn')) fmtOpen.value=false; }
-onMounted(() => { loadHistory(); window.addEventListener('keydown',onKeydown); document.addEventListener('click',closeFmt); });
+onMounted(() => {
+  loadHistory();
+  applyInbound();   // left linkage on first mount
+  window.addEventListener('keydown',onKeydown);
+  document.addEventListener('click',closeFmt);
+});
 onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.removeEventListener('click',closeFmt); clearTimeout(toastTimer); });
 </script>
 
@@ -227,6 +248,9 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
         <button class="btn btn-secondary" @click="loadSample">示例</button>
       </div>
     </div>
+
+    <!-- 左/右联动栏 -->
+    <LinkageRail tool="smc" code-label="offset → sensor 地址字段" :get-code="linkCode" />
 
     <!-- ① Offset bar -->
     <div class="offset-bar">

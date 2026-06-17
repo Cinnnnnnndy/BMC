@@ -21,6 +21,20 @@
       "runtimeArgs": ["run", "dev"],
       "port": 5174,
       "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/csr-topology-editor/webview"
+    },
+    {
+      "name": "vue-app (CSR拓扑Vue视图)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5176"],
+      "port": 5176,
+      "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/web-app-vue"
+    },
+    {
+      "name": "连线探索-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5177"],
+      "port": 5177,
+      "cwd": "/Users/cindy/Desktop/BMC工程文件"
     }
   ]
 }

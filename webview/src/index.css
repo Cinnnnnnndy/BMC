@@ -1,29 +1,143 @@
-* {
-  box-sizing: border-box;
+/* ── PTO Design System tokens (inlined for VS Code webview) ── */
+:root {
+  /* Foundation */
+  --ark-neutral-0: #0b0b0b;
+  --ark-neutral-1: #101010;
+  --ark-neutral-2: #141414;
+  --ark-neutral-3: #1a1a1a;
+  --ark-neutral-4: #343434;
+  --ark-blue-500: #4369ef;
+  --ark-blue-600: #5a92e6;
+  --ark-domain-aux: #7c8db8;
+  --ark-green-500: #04d793;
+  --ark-orange-500: #ffaa3b;
+  --ark-red-500: #ff4b7b;
+
+  --font-sans: 'Inter', 'Source Han Sans SC', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-size-body-md: 14px;
+  --font-size-body-sm: 12px;
+  --font-size-label-xs: 11px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.28);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.34);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,0.42);
+
+  --duration-base: 200ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Semantic */
+  --background: var(--ark-neutral-1);
+  --background-elevated: var(--ark-neutral-2);
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --surface-4: #313131;
+
+  --foreground:           rgba(255,255,255,0.90);
+  --foreground-secondary: rgba(255,255,255,0.60);
+  --foreground-muted:     rgba(255,255,255,0.40);
+  --foreground-disabled:  rgba(255,255,255,0.25);
+
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.16);
+
+  --primary:            var(--ark-blue-500);
+  --primary-hover:      var(--ark-blue-600);
+  --primary-foreground: #f5f9ff;
+  --accent:   var(--ark-domain-aux);
+  --success:  var(--ark-green-500);
+  --warning:  var(--ark-orange-500);
+  --danger:   var(--ark-red-500);
+
+  --focus-ring:    rgba(67,105,239,0.42);
+  --state-hover:   rgba(255,255,255,0.06);
+  --state-press:   rgba(255,255,255,0.10);
+  --state-muted:   rgba(255,255,255,0.06);
+  --state-selected:rgba(67,105,239,0.14);
+
+  --tone-critical-bg:    color-mix(in srgb, var(--danger)  14%, transparent);
+  --tone-warning-bg:     color-mix(in srgb, var(--warning) 16%, transparent);
+  --tone-green-strong:   color-mix(in srgb, var(--success) 22%, transparent);
+
+  /* Components */
+  --comp-toolbar-height: 44px;
+  --comp-toolbar-bg: color-mix(in srgb, var(--background) 92%, black);
+  --comp-toolbar-border: var(--border-subtle);
+  --button-height-sm: 30px;
+  --button-height-md: 36px;
+  --button-radius: var(--radius-lg);
+  --button-font: 500 12px / 1 var(--font-sans);
+  --button-solid-bg:         var(--foreground);
+  --button-solid-bg-hover:   color-mix(in srgb, var(--foreground) 88%, transparent);
+  --button-solid-bg-press:   color-mix(in srgb, var(--foreground) 80%, transparent);
+  --button-solid-fg:         var(--background);
+  --button-secondary-bg:     color-mix(in srgb, var(--surface-2) 92%, white 3%);
+  --button-secondary-bg-hover: var(--surface-3);
+  --button-secondary-border: var(--border-subtle);
+  --button-secondary-fg:     var(--foreground);
+  --button-ghost-bg-hover:   var(--state-hover);
+  --button-ghost-bg-press:   var(--state-press);
+  --button-ghost-fg:         var(--foreground-secondary);
+  --button-ghost-fg-hover:   var(--foreground);
+  --button-disabled-opacity: 0.42;
+  --input-bg: var(--surface-1);
+  --input-border: var(--border-default);
+  --panel-bg:     var(--surface-2);
+  --panel-border: var(--border-subtle);
+  --panel-radius: var(--radius-lg);
+  --panel-padding: var(--space-4);
+
+  --motion-smooth: var(--duration-base) var(--easing-default);
 }
+
+* { box-sizing: border-box; }
+
 html, body, #root {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
 }
 
-.react-flow__node {
-  font-size: 12px;
-}
+.react-flow__node { font-size: 12px; }
+
 .react-flow__edge-path {
-  stroke: #4a9eff;
+  stroke: color-mix(in srgb, var(--primary) 70%, white 15%);
   stroke-width: 2;
+  transition: stroke var(--motion-smooth), stroke-width var(--motion-smooth);
 }
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--primary);
+  stroke-width: 2.4;
+}
+
 .react-flow__controls {
   button {
-    background: #333 !important;
-    color: #fff !important;
-    border-color: #555 !important;
+    background: var(--surface-2) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border-default) !important;
   }
 }
+
 .react-flow__minimap {
-  background: #252526 !important;
+  background: var(--surface-2) !important;
 }

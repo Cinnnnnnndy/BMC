@@ -1,100 +1,71 @@
 .canvas {
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 42, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--background);
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
 }
 
-.reactFlow {
-  background: transparent;
-}
+.reactFlow { background: transparent; }
 
 .reactFlow :global(.react-flow__background) {
   background-color: transparent;
 }
 
 .reactFlow :global(.react-flow__controls) {
-  background: rgba(30, 30, 46, 0.8);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .reactFlow :global(.react-flow__controls-button) {
-  background: rgba(42, 42, 58, 0.6);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
-  transition: all 0.2s ease;
-  border-radius: 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  color: var(--foreground-secondary);
+  transition: background var(--motion-smooth), color var(--motion-smooth);
+  border-radius: var(--radius-sm);
 }
 
 .reactFlow :global(.react-flow__controls-button:hover) {
-  background: rgba(58, 58, 90, 0.8);
-  color: #d1d5db;
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  background: var(--state-hover);
+  color: var(--foreground);
+  border-color: var(--border-default);
 }
 
 .controls {
-  background: rgba(30, 30, 46, 0.8);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .minimap {
-  background: rgba(30, 30, 46, 0.8);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .reactFlow :global(.react-flow__minimap-mask) {
-  fill: rgba(26, 26, 42, 0.6);
+  fill: var(--surface-4);
 }
 
-.reactFlow :global(.react-flow__edge-path) {
-  stroke-width: 1.5;
-}
+.reactFlow :global(.react-flow__edge-path) { stroke-width: 1.5; }
 
 .reactFlow :global(.react-flow__edge.selected .react-flow__edge-path) {
-  stroke: #4f6ef7;
+  stroke: var(--primary);
   stroke-width: 2;
 }
 
 .reactFlow :global(.react-flow__handle) {
   width: 8px;
   height: 8px;
-  border: 2px solid #1a1a2a;
-  background: rgba(79, 110, 247, 0.8);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  border: 2px solid var(--surface-2);
+  background: var(--primary);
 }
 
-.reactFlow :global(.react-flow__handle.react-flow__handle-top) {
-  top: -4px;
-}
-
-.reactFlow :global(.react-flow__handle.react-flow__handle-bottom) {
-  bottom: -4px;
-}
-
-.reactFlow :global(.react-flow__handle.react-flow__handle-left) {
-  left: -4px;
-}
-
-.reactFlow :global(.react-flow__handle.react-flow__handle-right) {
-  right: -4px;
-}
+.reactFlow :global(.react-flow__handle.react-flow__handle-top)    { top: -4px; }
+.reactFlow :global(.react-flow__handle.react-flow__handle-bottom) { bottom: -4px; }
+.reactFlow :global(.react-flow__handle.react-flow__handle-left)   { left: -4px; }
+.reactFlow :global(.react-flow__handle.react-flow__handle-right)  { right: -4px; }

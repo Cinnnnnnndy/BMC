@@ -7,6 +7,8 @@ import {
   isOnCanvas,
   type BoardGroup,
 } from './boards';
+import { getTopology } from './boardTopologies';
+import { BUS_COLOR } from './palette';
 
 // ── Column X positions ────────────────────────────────────────────────
 // Wider gaps so smoothstep edge curves have room to fan out.
@@ -102,13 +104,43 @@ export function buildMindmap(
   });
 
   // ── EXU column ────────────────────────────────────────────────────
-  // One source-handle per child group, evenly distributed along right edge.
-  // Each handle is coloured by the target group's type so the fan-out is
-  // visually traceable even before the edge is followed.
-  const sourceHandles = childGroups.map((g, i) => ({
-    id:    `r-${g.id}`,
-    pct:   (i + 0.5) / childGroups.length,   // 0.07, 0.21, 0.36 … evenly spaced
-    color: TYPE_EDGE_COLOR[g.type] ?? '#9ca3af',
+  // Build per-group bus lists for round-robin slot assignment.
+  // Groups with no buses get a single dummy slot so they still show an edge.
+  const SP = 4; // px between parallel lines at target card (flow coords)
+
+  const groupBuses = childGroups.map((g) => {
+    const topology = getTopology(g.type, g.name);
+    const real = topology.buses
+      .filter((b) => !b.dashed)
+      .map(({ id, label, busType, color }) => ({ id, label, busType, color }));
+    return real.length > 0
+      ? real
+      : [{ id: 'fallback', label: '', busType: 'default', color: BUS_COLOR.default }];
+  });
+
+  // Round-robin: slot 0 = group0/bus0, slot 1 = group1/bus0, slot 2 = group2/bus0,
+  // slot N = group0/bus1, etc. — mirrors EXU physical port distribution.
+  interface Slot {
+    groupIdx: number;
+    busIdxInGroup: number;
+    bus: { id: string; label: string; busType: string; color: string };
+  }
+  const allSlots: Slot[] = [];
+  const maxBuses = Math.max(0, ...groupBuses.map((bs) => bs.length));
+  for (let round = 0; round < maxBuses; round++) {
+    for (let gi = 0; gi < childGroups.length; gi++) {
+      if (round < groupBuses[gi].length) {
+        allSlots.push({ groupIdx: gi, busIdxInGroup: round, bus: groupBuses[gi][round] });
+      }
+    }
+  }
+  const totalSlots = allSlots.length;
+
+  // One EXU source handle per bus slot (round-robin order), coloured by bus type.
+  const sourceHandles = allSlots.map((slot, srcIdx) => ({
+    id:    `r-${childGroups[slot.groupIdx].id}-${slot.bus.id}`,
+    pct:   (srcIdx + 0.5) / totalSlots,
+    color: BUS_COLOR[slot.bus.busType] ?? slot.bus.color ?? BUS_COLOR.default,
   }));
 
   const exuColHeight =
@@ -141,7 +173,8 @@ export function buildMindmap(
       target:       nid,
       targetHandle: 'l',
       type:         'smoothstep',
-      style:        { stroke: '#818cf8', strokeWidth: 1.8, opacity: 0.9 },
+      class:        'edge-trunk',
+      style:        { stroke: '#818cf8', strokeWidth: 2, opacity: 0.9 },
     });
     exuY += nodeH(g) + NODE_V_GAP;
   }
@@ -150,10 +183,20 @@ export function buildMindmap(
   let childY = childColMidY - childColHeight / 2;
   const parentExuId = exuNodeIds[0]; // currently always one EXU group
 
+  // Lane offsets for orthogonal routing: top group gets the farthest (rightmost)
+  // vertical lane; bottom group gets the nearest lane. This mirrors the demo layout
+  // and avoids max crossing overlap.
+  const N = childGroups.length;
+  const LANE_NEAR = 40;
+  const LANE_FAR  = 200;
+  const laneStep  = N > 1 ? (LANE_FAR - LANE_NEAR) / (N - 1) : 0;
+
   for (let i = 0; i < childGroups.length; i++) {
     const g          = childGroups[i];
     const nid        = g.id;
-    const edgeColor  = TYPE_EDGE_COLOR[g.type] ?? '#9ca3af';
+    const laneOffset = (N - 1 - i) * laneStep + LANE_NEAR;
+    const buses      = groupBuses[i];
+    const nBuses     = buses.length;
 
     nodes.push({
       id:       nid,
@@ -161,57 +204,46 @@ export function buildMindmap(
       position: { x: COL_X[2], y: childY },
       data: {
         group:      g,
-        // boards may be empty for type-placeholder / missing — guard it
         selectedId: selected[g.id] ?? g.boards[0]?.id ?? '',
         onSelect,
-        // children have no outgoing edges, so no sourceHandles
       },
       draggable:  true,
       selectable: true,
     });
 
     if (parentExuId) {
-      // ── Edge style per resolution state ────────────────────────────
-      // resolved          → solid, full opacity
-      // multi-match       → dashed, amber, "needs user choice"
-      // type-placeholder  → dashed, yellow
-      // missing           → dashed, red, lower opacity
-      let stroke = edgeColor;
+      // Edge style per resolution state (applied to all buses in this group).
       let dash: string | undefined;
       let opacity = 0.88;
+      let stateStroke: string | undefined; // overrides bus-type colour when set
       switch (g.state) {
-        case 'multi-match':
-          stroke = '#f59e0b';
-          dash = '5 3';
-          break;
-        case 'type-placeholder':
-          stroke = '#eab308';
-          dash = '5 3';
-          break;
-        case 'missing':
-          stroke = '#ef4444';
-          dash = '3 3';
-          opacity = 0.75;
-          break;
-        case 'resolved':
-        default:
-          break;
+        case 'multi-match':     stateStroke = '#f59e0b'; dash = '5 3'; break;
+        case 'type-placeholder': stateStroke = '#eab308'; dash = '5 3'; break;
+        case 'missing':         stateStroke = '#ef4444'; dash = '3 3'; opacity = 0.75; break;
       }
 
-      edges.push({
-        id:           `e-${parentExuId}-${nid}`,
-        source:       parentExuId,
-        sourceHandle: `r-${nid}`,   // specific distributed handle on EXU
-        target:       nid,
-        targetHandle: 'l',
-        type:         'smoothstep',
-        style: {
-          stroke,
-          strokeWidth:     1.5,
-          strokeDasharray: dash,
-          opacity,
-        },
-      });
+      // One edge per bus. yOffAtTarget spreads arrival lines around the l handle.
+      for (let j = 0; j < nBuses; j++) {
+        const bus          = buses[j];
+        const yOffAtTarget = (j - (nBuses - 1) / 2) * SP;
+        const stroke       = stateStroke ?? BUS_COLOR[bus.busType] ?? bus.color ?? BUS_COLOR.default;
+
+        edges.push({
+          id:           `e-${parentExuId}-${nid}-${bus.id}`,
+          source:       parentExuId,
+          sourceHandle: `r-${nid}-${bus.id}`,
+          target:       nid,
+          targetHandle: 'l',
+          type:         'manhattan',
+          data:         { laneOffset, yOffAtTarget },
+          style: {
+            stroke,
+            strokeWidth:     1.5,
+            strokeDasharray: dash,
+            opacity,
+          },
+        });
+      }
     }
 
     childY += nodeH(g) + NODE_V_GAP;

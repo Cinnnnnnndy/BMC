@@ -1,111 +1,98 @@
 /* ══════════════════════════════════════════════════════════════════════
-   Miro-style infinite canvas shell
-   • .app-main fills the ENTIRE viewport (canvas goes edge-to-edge)
-   • .app-header floats above the canvas as a glass pill
+   App shell: Miro-style infinite canvas layout
    ══════════════════════════════════════════════════════════════════════ */
 
 .app-shell {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: var(--bg-0);
+  background: var(--background);
 }
 
-/* Canvas fills 100% of the viewport — underlaps the floating header */
 .app-main {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 
-/* ── Floating glass top bar ─────────────────────────────────────────── */
+/* ── Floating top bar — PTO toolbar style ── */
 .app-header {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 200;
-  height: 44px;
+  z-index: var(--z-overlay);
+  height: var(--comp-toolbar-height);
   width: auto;
   max-width: calc(100vw - 48px);
-  border-radius: 14px;
-  padding: 0 14px;
+  border-radius: var(--radius-xl);
+  padding: 0 var(--space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   white-space: nowrap;
   flex-shrink: 0;
-  /* Glass morphism */
-  background: var(--panel-bg);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border: 1px solid var(--panel-border);
-  box-shadow: var(--glass-shadow-soft), inset 0 1px 0 var(--glass-highlight);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
 }
 
-/* ── 返回按钮 ── */
 .header-back {
   padding: 0 6px !important;
-  color: var(--text-sub) !important;
+  color: var(--foreground-secondary) !important;
 }
 
-/* ── 品牌 Logo ── */
 .brand-logo {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7c55d4 0%, #4a6cf7 100%);
-  color: #fff;
+  background: var(--primary);
+  color: var(--background);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.4);
   user-select: none;
 }
 
-/* ── 服务器名称 ── */
 .header-server-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--foreground);
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
 
-/* ── 型号徽章 ── */
 .header-model-badge {
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: #3b4fd8;
-  border: none;
+  font-weight: 600;
+  color: var(--background);
+  background: var(--primary);
   white-space: nowrap;
   user-select: none;
 }
 
-/* ── 分隔线 ── */
 .header-divider {
   width: 1px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-subtle);
   margin: 0 2px;
   flex-shrink: 0;
 }
 
 .pipe-sep {
-  color: rgba(255, 255, 255, 0.15);
+  color: var(--border-default);
   font-size: 14px;
   line-height: 1;
   user-select: none;
   padding: 0 2px;
 }
 
-/* ── 管理视图下拉菜单 ── */
+/* ── View menu dropdown ── */
 .view-menu-wrap {
   position: relative;
   margin-left: 2px;
@@ -116,11 +103,11 @@
   align-items: center;
   gap: 5px;
   height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.55);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--state-muted);
+  color: var(--foreground-secondary);
   font-size: 12px;
   cursor: pointer;
   transition: border-color var(--motion-smooth), color var(--motion-smooth), background var(--motion-smooth);
@@ -129,9 +116,9 @@
 
 .view-menu-trigger:hover,
 .view-menu-trigger.open {
-  color: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--foreground);
+  border-color: var(--border-default);
+  background: var(--state-hover);
 }
 
 .view-menu-arrow {
@@ -149,13 +136,12 @@
   left: 50%;
   transform: translateX(-50%);
   min-width: 140px;
-  padding: 4px;
-  border-radius: 10px;
-  background: rgba(16, 16, 26, 0.95);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+  padding: var(--space-1);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
   animation: menu-in 0.12s ease-out;
 }
 
@@ -167,11 +153,11 @@
 .view-menu-item {
   display: block;
   width: 100%;
-  padding: 7px 12px;
-  border-radius: 7px;
+  padding: 7px var(--space-3);
+  border-radius: var(--radius-md);
   border: none;
   background: transparent;
-  color: var(--text-sub);
+  color: var(--foreground-secondary);
   font-size: 12px;
   text-align: left;
   cursor: pointer;
@@ -180,165 +166,100 @@
 }
 
 .view-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-main);
+  background: var(--state-hover);
+  color: var(--foreground);
 }
 
 .view-menu-item.active {
-  color: #fff;
-  background: linear-gradient(90deg, rgba(127, 85, 212, 0.7), rgba(79, 87, 200, 0.7));
+  color: var(--foreground);
+  background: var(--state-selected);
 }
 
-/* ── 通用按钮 ── */
+/* ── Buttons — PTO system ── */
 .btn-ghost,
 .btn-primary {
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
-  font-size: 12px;
+  font: var(--button-font);
   cursor: pointer;
-  transition: transform var(--motion-smooth), border-color var(--motion-smooth),
-              box-shadow var(--motion-smooth), background var(--motion-smooth), color var(--motion-smooth);
+  transition: background var(--motion-smooth), color var(--motion-smooth);
 }
 
 .btn-ghost {
-  padding: 0 10px;
-  color: rgba(255, 255, 255, 0.50);
+  padding: 0 var(--space-3);
+  color: var(--button-ghost-fg);
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btn-ghost:hover {
-  color: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-1px);
+  color: var(--button-ghost-fg-hover);
+  background: var(--button-ghost-bg-hover);
 }
 
 .btn-text {
   height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--foreground-muted);
   font-size: 12px;
   cursor: pointer;
-  transition: color var(--motion-smooth);
+  transition: color var(--motion-smooth), background var(--motion-smooth);
   white-space: nowrap;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .btn-text:hover {
-  color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--foreground);
+  background: var(--state-hover);
 }
 
 .btn-primary {
-  padding: 0 14px;
-  color: #fff;
-  background: #4f6ef7;
-  border-color: transparent;
-  box-shadow: none;
+  padding: 0 var(--space-4);
+  color: var(--button-solid-fg);
+  background: var(--button-solid-bg);
 }
 
-.btn-primary:hover {
-  background: #6680f8;
-  transform: translateY(-1px);
-}
+.btn-primary:hover  { background: var(--button-solid-bg-hover); }
+.btn-primary:active { background: var(--button-solid-bg-press); }
+.btn-ghost:active   { background: var(--button-ghost-bg-press); }
 
 .btn-primary:disabled {
-  opacity: 0.35;
+  opacity: var(--button-disabled-opacity);
   cursor: default;
-  transform: none;
-}
-
-.btn-primary:active,
-.btn-ghost:active {
-  transform: translateY(0) scale(0.98);
 }
 
 .btn-ghost.toggle-on {
-  color: #fff;
-  border-color: var(--motion-toggle-border);
+  color: var(--foreground);
+  border-color: var(--primary);
   background: var(--motion-toggle-bg);
 }
 
 .btn-text.toggle-on {
-  color: rgba(167, 139, 250, 0.9);
+  color: var(--primary);
 }
 
 .muted-label {
-  color: var(--text-dim);
+  color: var(--foreground-muted);
   font-size: 12px;
 }
 
-/* ── Light theme overrides ─────────────────────────────────────────── */
-[data-theme='light'] .btn-text {
-  color: rgba(28, 28, 40, 0.55);
-}
-
-[data-theme='light'] .btn-text:hover {
-  color: rgba(28, 28, 40, 0.90);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .btn-text.toggle-on {
-  color: #7c55d4;
-}
-
-[data-theme='light'] .btn-ghost {
-  color: rgba(28, 28, 40, 0.55);
-  border-color: rgba(0, 0, 0, 0.14);
-}
-
-[data-theme='light'] .btn-ghost:hover {
-  color: rgba(28, 28, 40, 0.88);
-  border-color: rgba(0, 0, 0, 0.22);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .view-menu-trigger {
-  color: rgba(28, 28, 40, 0.60);
-  border-color: rgba(0, 0, 0, 0.12);
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme='light'] .view-menu-trigger:hover,
-[data-theme='light'] .view-menu-trigger.open {
-  color: rgba(28, 28, 40, 0.88);
-  border-color: rgba(0, 0, 0, 0.20);
-  background: rgba(0, 0, 0, 0.07);
-}
-
-[data-theme='light'] .pipe-sep {
-  color: rgba(0, 0, 0, 0.20);
-}
-
-[data-theme='light'] .header-divider {
-  background: rgba(0, 0, 0, 0.10);
-}
-
-[data-theme='light'] .view-menu-dropdown {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: rgba(0, 0, 0, 0.10);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
-/* ── 旧版 tab-btn 保留 ── */
+/* ── Tab control → PTO tab-control-item semantics ── */
 .tab-btn {
   height: 30px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--panel-border);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
   font-size: 12px;
   cursor: pointer;
-  color: var(--text-sub);
-  background: rgba(255, 255, 255, 0.03);
-  transition: transform var(--motion-smooth), background var(--motion-smooth);
+  color: var(--foreground-secondary);
+  background: transparent;
+  transition: background var(--motion-smooth), color var(--motion-smooth);
 }
 
 .tab-btn.active {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.42);
-  background: linear-gradient(90deg, rgba(127, 85, 212, 0.8), rgba(79, 87, 200, 0.8));
+  color: var(--foreground);
+  border-color: var(--border-default);
+  background: var(--surface-3);
 }

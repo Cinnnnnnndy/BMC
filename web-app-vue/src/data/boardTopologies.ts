@@ -46,7 +46,7 @@ function SMBUS(label: string, chips: ChipItem[], opts: Partial<BusRow> = {}): Bu
   return { id: label, label, busType: 'smbus', color: C.green, chips, ...opts };
 }
 function JTAG(label: string, chips: ChipItem[], opts: Partial<BusRow> = {}): BusRow {
-  return { id: label, label, busType: 'jtag', color: C.green, chips, ...opts };
+  return { id: label, label, busType: 'jtag', color: C.amber, chips, ...opts };
 }
 function HSP(label: string, opts: Partial<BusRow> = {}): BusRow {
   return { id: label, label, busType: 'hisport', color: C.cyan, chips: [], ...opts };

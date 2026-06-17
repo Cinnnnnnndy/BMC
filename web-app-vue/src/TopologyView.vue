@@ -2,7 +2,7 @@
 // Unified topology view.
 // Layout: BMC → EXU → board groups (left → right, mind-map style).
 // Each card shows inline: header + SN/PN dropdown + I2C bus / mux / chip tree.
-import { computed, markRaw, onMounted, ref } from 'vue';
+import { computed, markRaw, onMounted, ref, watch } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -10,8 +10,10 @@ import { MiniMap } from '@vue-flow/minimap';
 
 import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
+import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 
 import { buildMindmap } from './data/mindmap';
+import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
 import {
   STATE_LABEL,
   STATE_COLOR,
@@ -19,6 +21,10 @@ import {
   type BoardRecord,
   type ResolutionState,
 } from './data/boards';
+import { BUS_LEGEND } from './data/palette';
+import { useLinkage } from './composables/useLinkage';
+
+const { state: link, invoke } = useLinkage();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNode = any;
@@ -29,6 +35,10 @@ type AnyEdge = any;
 const nodeTypes = {
   bmc:        markRaw(BmcNode),
   boardgroup: markRaw(BoardGroupNode),
+};
+
+const edgeTypes = {
+  manhattan: markRaw(ManhattanEdge),
 };
 
 const { fitView } = useVueFlow();
@@ -160,6 +170,44 @@ const activeBoard = computed<BoardRecord | null>(() => {
   const id = selectedByGroup.value[g.id] ?? g.boards[0].id;
   return g.boards.find((b) => b.id === id) ?? g.boards[0];
 });
+
+// Keep the code anchor in sync with the topology selection (two-way highlight).
+watch(activeBoard, (b) => { link.selectedBoardId = b?.id ?? null; });
+
+function ctxSource(): { source: string; detail?: string } {
+  const g = activeGroup.value;
+  const b = activeBoard.value;
+  return {
+    source: `${g?.name ?? '未知'} · ${g?.type ?? ''}`.trim(),
+    detail: b ? `SN ${b.sn}` : undefined,
+  };
+}
+
+// 偏移量寻址的对象是板上的 Smc 芯片 → 按板型推断功能码 + 定位目标 Smc
+function wakeSmc() {
+  const g = activeGroup.value;
+  if (!g) return;
+  const f = inferFunc(g.type, g.name);
+  const tgt = smcTarget(g.type, g.name);
+  const detail = [ctxSource().detail, tgt ? `Smc: ${tgt}` : null, f.label]
+    .filter(Boolean).join(' · ');
+  invoke('smc', { source: ctxSource().source, detail, func: f.func });
+}
+// sensor 的 expression 字段调试 → 按 sensor 芯片类型带入变换模板
+function wakeExpr() {
+  const g = activeGroup.value;
+  if (!g) return;
+  invoke('expr', { ...ctxSource(), expression: exprTemplate(g.type, g.name) });
+}
+// 风扇板 / 温度芯片 → 调速模板：沿拓扑取真实风扇与温区实体
+function wakeCooling() {
+  const g = activeGroup.value;
+  const b = activeBoard.value;
+  if (!g) return;
+  const ent = b ? coolingEntities(b)
+                : { fans: g.type === 'CLU' ? [`${g.name} 风扇组`] : [], tempZones: [] };
+  invoke('cooling', { ...ctxSource(), fans: ent.fans, tempZones: ent.tempZones });
+}
 
 // ── MiniMap colours ────────────────────────────────────────────────────
 const TYPE_COLOR: Record<string, string> = {
@@ -296,6 +344,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         v-model:nodes="nodes"
         v-model:edges="edges"
         :node-types="nodeTypes"
+        :edge-types="edgeTypes"
         :fit-view-on-init="true"
         :default-viewport="{ x: 0, y: 0, zoom: 1 }"
         :min-zoom="0.1"
@@ -315,6 +364,15 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
           :style="{ background:'#141420', border:'1px solid #2e2e4e', borderRadius:'8px' }"
         />
       </VueFlow>
+
+      <!-- ── Bus-type colour legend ──────────────────────────────── -->
+      <div class="bus-legend">
+        <span class="bus-legend-title">连线类型</span>
+        <span v-for="b in BUS_LEGEND" :key="b.type" class="bus-legend-item">
+          <span class="bus-legend-swatch" :style="{ background: b.color }" />
+          {{ b.label }}
+        </span>
+      </div>
     </div>
 
     <!-- ── Property panel ────────────────────────────────────────── -->
@@ -323,6 +381,24 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         <span>板卡详情</span>
         <button class="pp-close" @click="activeNode = null">✕</button>
       </div>
+
+      <!-- ── 唤醒联动工具（左联动入口）── -->
+      <div class="pp-wake">
+        <div class="pp-wake-title">联动工具</div>
+        <button class="wake-btn wake-smc" @click="wakeSmc">
+          <span class="wake-ic" aria-hidden="true">🧮</span>
+          在 SMC 偏移量计算器中解析
+        </button>
+        <button class="wake-btn wake-expr" @click="wakeExpr">
+          <span class="wake-ic" aria-hidden="true">⚙</span>
+          在表达式计算器中调试 sensor
+        </button>
+        <button class="wake-btn wake-cool" @click="wakeCooling">
+          <span class="wake-ic" aria-hidden="true">❄</span>
+          在能效调速配置模板中配置
+        </button>
+      </div>
+
       <div class="pp-body">
         <div class="pp-field">
           <div class="pp-field-label">类型</div>
@@ -412,6 +488,76 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
 .grp-s-count { opacity: 0.6; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .pp-files { display: flex; flex-direction: column; gap: 2px; word-break: break-all; }
+
+/* ── Bus-type colour legend (floating on canvas) ── */
+.bus-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(20, 20, 32, 0.88);
+  border: 1px solid #2e2e4e;
+  backdrop-filter: blur(4px);
+  font-size: 11px;
+  color: var(--text-secondary, #c3c9de);
+}
+.bus-legend-title { font-weight: 700; color: var(--text-primary, #e6e8ef); }
+.bus-legend-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.bus-legend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
+:deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {
+  stroke: #818cf8 !important;
+  stroke-width: 2px !important;
+  opacity: 0.9;
+}
+
+/* ── Wake-tool buttons (left linkage entry) ── */
+.pp-wake {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pp-wake-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary, #98a0b8);
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+.wake-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.wake-ic { font-size: 13px; }
+.wake-smc  { background: rgba(79, 110, 247, 0.14);  color: #c7d2fe; border-color: rgba(79, 110, 247, 0.32); }
+.wake-smc:hover  { background: rgba(79, 110, 247, 0.26); }
+.wake-expr { background: rgba(167, 139, 250, 0.14); color: #ddd6fe; border-color: rgba(167, 139, 250, 0.32); }
+.wake-expr:hover { background: rgba(167, 139, 250, 0.26); }
+.wake-cool { background: rgba(52, 211, 153, 0.14);  color: #a7f3d0; border-color: rgba(52, 211, 153, 0.32); }
+.wake-cool:hover { background: rgba(52, 211, 153, 0.26); }
 
 /* ── Check summary (mini 检查 panel) ── */
 .check-summary {

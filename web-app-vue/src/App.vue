@@ -1,59 +1,112 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import TopologyView    from './TopologyView.vue';
-import SmcOffsetView   from './views/SmcOffsetView.vue';
-import ExprCalcView    from './views/ExprCalcView.vue';
+import { ref, watch, nextTick } from 'vue';
+import TopologyView      from './TopologyView.vue';
+import CodeView          from './CodeView.vue';
+import SmcOffsetView     from './views/SmcOffsetView.vue';
+import ExprCalcView      from './views/ExprCalcView.vue';
 import CoolingConfigView from './views/CoolingConfigView.vue';
+import { useLinkage, type ToolId } from './composables/useLinkage';
 
-type TabId = 'topology' | 'smc' | 'expr' | 'cooling';
+const { state: link, setAnchor, toggleDock, closeDock } = useLinkage();
 
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: string;
-}
+const toolMeta: Record<ToolId, { label: string; icon: string }> = {
+  smc:     { label: 'SMC 偏移量计算器', icon: '🧮' },
+  expr:    { label: '批量表达式计算器', icon: '⚙' },
+  cooling: { label: '能效调速配置模板', icon: '❄' },
+};
+const toolOrder: ToolId[] = ['smc', 'expr', 'cooling'];
 
-const tabs: Tab[] = [
-  { id: 'topology', label: 'CSR 拓扑',         icon: '🗺' },
-  { id: 'smc',      label: 'SMC 偏移量计算器',  icon: '🧮' },
-  { id: 'expr',     label: '批量表达式计算器',   icon: '⚙' },
-  { id: 'cooling',  label: '能效调速配置模板',   icon: '❄' },
-];
-
-// Hash-based initial tab: allow ?tab=smc / #smc from the main app
-function initialTab(): TabId {
-  const valid: TabId[] = ['topology', 'smc', 'expr', 'cooling'];
-  const hash = location.hash.replace('#', '');
+// Hash / query entry (#smc, ?tab=expr …): dock that tool beside topology.
+(function initFromHash() {
+  const hash  = location.hash.replace('#', '');
   const param = new URLSearchParams(location.search).get('tab');
-  const candidate = (hash || param || '') as TabId;
-  return valid.includes(candidate) ? candidate : 'topology';
+  const c = (hash || param || '') as string;
+  if (c === 'smc' || c === 'expr' || c === 'cooling') link.dockTool = c as ToolId;
+})();
+
+// ── Split-pane resizer ───────────────────────────────────────────────────
+const dockWidth = ref(46); // dock pane width, % of viewport
+let dragging = false;
+function startDrag(e: MouseEvent) {
+  dragging = true;
+  e.preventDefault();
+  window.addEventListener('mousemove', onDrag);
+  window.addEventListener('mouseup', stopDrag);
+}
+function onDrag(e: MouseEvent) {
+  if (!dragging) return;
+  const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+  dockWidth.value = Math.min(70, Math.max(26, pct));
+}
+function stopDrag() {
+  dragging = false;
+  window.removeEventListener('mousemove', onDrag);
+  window.removeEventListener('mouseup', stopDrag);
 }
 
-const activeTab = ref<TabId>(initialTab());
+// Nudge the topology canvas (VueFlow) to re-measure when the split changes.
+watch(() => [link.dockTool, dockWidth.value], () => {
+  nextTick(() => window.dispatchEvent(new Event('resize')));
+});
 </script>
 
 <template>
   <div class="app-root">
-    <!-- Tab bar -->
+    <!-- Toolbar: topology anchor on the left, tool dock-toggles on the right -->
     <nav class="tab-bar">
       <button
-        v-for="tab in tabs"
-        :key="tab.id"
         class="tab-btn"
-        :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
+        :class="{ active: link.anchor === 'topology' }"
+        @click="setAnchor('topology')"
       >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        <span class="tab-label">{{ tab.label }}</span>
+        <span class="tab-icon">🗺</span>
+        <span class="tab-label">CSR 拓扑</span>
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: link.anchor === 'code' }"
+        @click="setAnchor('code')"
+      >
+        <span class="tab-icon">{ }</span>
+        <span class="tab-label">代码</span>
+      </button>
+
+      <span class="tab-flex" />
+      <span class="tab-group-label">联动工具 · 分屏</span>
+      <button
+        v-for="t in toolOrder"
+        :key="t"
+        class="tab-btn tool-toggle"
+        :class="{ active: link.dockTool === t }"
+        @click="toggleDock(t)"
+      >
+        <span class="tab-icon">{{ toolMeta[t].icon }}</span>
+        <span class="tab-label">{{ toolMeta[t].label }}</span>
       </button>
     </nav>
 
-    <!-- View area -->
-    <div class="view-area">
-      <TopologyView    v-show="activeTab === 'topology'" />
-      <SmcOffsetView   v-if="activeTab === 'smc'"     />
-      <ExprCalcView    v-if="activeTab === 'expr'"    />
-      <CoolingConfigView v-if="activeTab === 'cooling'" />
+    <!-- View area: anchor (left) + optional docked tool (right) -->
+    <div class="view-area" :class="{ split: link.dockTool }">
+      <div class="pane pane-main">
+        <TopologyView v-show="link.anchor === 'topology'" />
+        <CodeView v-if="link.anchor === 'code'" />
+      </div>
+
+      <template v-if="link.dockTool">
+        <div class="splitter" @mousedown="startDrag" title="拖动调整分屏宽度" />
+        <div class="pane pane-dock" :style="{ width: dockWidth + '%' }">
+          <div class="dock-head">
+            <span class="dock-title">{{ toolMeta[link.dockTool].icon }} {{ toolMeta[link.dockTool].label }}</span>
+            <span class="dock-hint">分屏联动 · 与拓扑实时同步</span>
+            <button class="dock-close" aria-label="关闭分屏" @click="closeDock">✕</button>
+          </div>
+          <div class="dock-body">
+            <SmcOffsetView     v-if="link.dockTool === 'smc'" />
+            <ExprCalcView      v-else-if="link.dockTool === 'expr'" />
+            <CoolingConfigView v-else-if="link.dockTool === 'cooling'" />
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -64,30 +117,40 @@ const activeTab = ref<TabId>(initialTab());
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--canvas-bg, #0b0d12);
-  color: var(--text-primary, #e6e8ef);
+  background: var(--background);
+  color: var(--foreground);
   overflow: hidden;
 }
 
-/* ── Tab bar ── */
+/* ── Toolbar ── */
 .tab-bar {
   display: flex;
   align-items: stretch;
-  height: 44px;
-  background: #0e1017;
-  border-bottom: 1px solid #1e2240;
+  height: var(--comp-toolbar-height, 44px);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   gap: 2px;
-  padding: 0 6px;
+  padding: 0 var(--space-2);
+}
+.tab-flex { flex: 1; }
+.tab-group-label {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 0 4px;
+  font-size: 11px;
+  color: var(--foreground-secondary, #6b7498);
+  opacity: 0.8;
+  white-space: nowrap;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0 16px;
+  padding: 0 var(--space-4, 14px);
   background: transparent;
-  color: #6b7498;
+  color: var(--foreground-secondary, #6b7498);
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
@@ -95,38 +158,91 @@ const activeTab = ref<TabId>(initialTab());
   font-weight: 500;
   letter-spacing: 0.2px;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  border-radius: 4px 4px 0 0;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  border-radius: var(--radius-sm, 5px) var(--radius-sm, 5px) 0 0;
 }
-
 .tab-btn:hover:not(.active) {
-  color: #c4c9e0;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--foreground, #e6e8ef);
+  background: var(--state-hover, rgba(255,255,255,0.05));
 }
-
 .tab-btn.active {
-  color: #e6e8ef;
-  border-bottom-color: #4f6ef7;
-  background: rgba(79, 110, 247, 0.09);
+  color: var(--foreground, #e6e8ef);
+  border-bottom-color: var(--primary, #4f6ef7);
+  background: var(--state-selected, rgba(79,110,247,0.14));
 }
+/* Tool toggles read as pills so they're distinct from the anchor tab */
+.tool-toggle {
+  font-size: 12px;
+  padding: 0 11px;
+  margin: 6px 0;
+  border-radius: 6px;
+  border-bottom: none;
+  border: 1px solid transparent;
+}
+.tool-toggle.active {
+  border-bottom: none;
+  border-color: rgba(79,110,247,0.5);
+  background: rgba(79,110,247,0.16);
+}
+.tab-icon { font-size: 14px; line-height: 1; }
 
-.tab-icon { font-size: 15px; line-height: 1; }
-
-/* ── View area ── */
+/* ── Split view ── */
 .view-area {
   flex: 1;
+  min-height: 0;
+  display: flex;
   overflow: hidden;
-  position: relative;
+}
+.pane { height: 100%; min-width: 0; position: relative; }
+.pane-main { flex: 1; }
+.pane-dock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-subtle, #1e2240);
+  background: var(--background, #0a0d18);
 }
 
-/* Topology fills 100% via its own root; scroll views need overflow-y auto */
-.view-area > * {
-  width: 100%;
-  height: 100%;
+.splitter {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border-subtle, #1e2240);
+  transition: background 0.15s;
 }
-</style>
+.splitter:hover { background: var(--primary, #4f6ef7); }
 
-<style>
-/* Non-topology tool views need vertical scroll within view-area */
-.view-area > div { overflow-y: auto; height: 100%; }
+.dock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  background: var(--surface-1, #0e1017);
+  border-bottom: 1px solid var(--border-subtle, #1e2240);
+}
+.dock-title { font-size: 13px; font-weight: 600; color: var(--foreground, #e6e8ef); white-space: nowrap; }
+.dock-hint  { font-size: 11px; color: #34d399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dock-close {
+  all: unset;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  color: var(--foreground-secondary, #98a0b8);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dock-close:hover { background: rgba(255,255,255,0.08); color: var(--foreground, #e6e8ef); }
+
+.dock-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+@media (max-width: 760px) {
+  .tab-group-label { display: none; }
+  .tool-toggle .tab-label { display: none; }
+}
 </style>

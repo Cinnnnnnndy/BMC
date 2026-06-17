@@ -10,6 +10,7 @@ import type {
   BoardGroup,
   BoardRecord,
   ResolutionState,
+  TopoVariant,
 } from '../data/boards';
 import { STATE_LABEL, STATE_COLOR } from '../data/boards';
 import { getTopology } from '../data/boardTopologies';
@@ -39,6 +40,8 @@ const topo    = computed(() => getTopology(group.value.type, group.value.name));
 // missing           → boards of the same Type (so the user can retarget)
 // unclassified      → never shown on canvas
 const variants = computed<BoardRecord[]>(() => {
+  // When a specific topology variant is picked, restrict the SN list to that variant
+  if (activeVariant.value) return activeVariant.value.boards;
   switch (state.value) {
     case 'type-placeholder':
       return group.value.typeCandidates ?? [];
@@ -90,6 +93,36 @@ const needsAction = computed(() =>
   state.value === 'multi-match' ||
   state.value === 'type-placeholder' ||
   state.value === 'missing',
+);
+
+// ── Topology variant selection ────────────────────────────────────────
+// When the group has multiple topology variants (boards of the same type but
+// with different downstream connector structures), the user must choose one
+// before the topology is rendered. Auto-select when there's only one variant.
+const pickedVariantKey = ref<string | null>(
+  (group.value.topoVariants?.length ?? 0) <= 1
+    ? (group.value.topoVariants?.[0]?.key ?? null)
+    : null,
+);
+
+// Reset variant selection if the group identity changes (e.g. canvas refresh)
+watch(() => group.value.id, () => {
+  pickedVariantKey.value =
+    (group.value.topoVariants?.length ?? 0) <= 1
+      ? (group.value.topoVariants?.[0]?.key ?? null)
+      : null;
+});
+
+const activeVariant = computed<TopoVariant | null>(() => {
+  if (pickedVariantKey.value == null) return null;
+  return group.value.topoVariants?.find((v) => v.key === pickedVariantKey.value) ?? null;
+});
+
+/** True when the user must pick a topology variant before seeing the board topology. */
+const needsVariantPick = computed(() =>
+  state.value === 'resolved' &&
+  (group.value.topoVariants?.length ?? 0) > 1 &&
+  activeVariant.value === null,
 );
 
 // ── Inline topology collapse toggle ──────────────────────────────────
@@ -190,8 +223,53 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     >{{ stateHint }}</div>
 
     <!-- ── Variant selector ──────────────────────────────────────── -->
+    <!-- ── Variant breadcrumb (shown after a variant is picked) ─────── -->
+    <div
+      v-if="activeVariant && (group.topoVariants?.length ?? 0) > 1"
+      class="variant-crumb nodrag nopan"
+    >
+      <span class="crumb-letter" :style="{ background: accent + '22', color: accent, borderColor: accent + '55' }">
+        变体 {{ activeVariant.letter }}
+      </span>
+      <span class="crumb-label">{{ activeVariant.label }}</span>
+      <span class="crumb-count">{{ activeVariant.boards.length }} 个实例</span>
+      <button class="crumb-change" @pointerdown.stop @click.stop="pickedVariantKey = null">
+        换
+      </button>
+    </div>
+
+    <!-- ── Variant picker (shown when multiple topologies, none selected) ── -->
+    <div v-if="needsVariantPick" class="variant-picker nodrag nopan">
+      <div class="variant-picker-hint">
+        <span class="variant-hint-icon" :style="{ color: accent }">◈</span>
+        <span>该板卡有 <strong>{{ group.topoVariants.length }} 种拓扑结构</strong>，请选择适用于本机型的变体</span>
+      </div>
+      <div class="variant-list">
+        <div
+          v-for="v in group.topoVariants"
+          :key="v.key"
+          class="variant-card"
+          @pointerdown.stop
+          @click.stop="pickedVariantKey = v.key"
+        >
+          <span
+            class="variant-letter-badge"
+            :style="{ background: accent + '22', color: accent, borderColor: accent + '44' }"
+          >{{ v.letter }}</span>
+          <div class="variant-card-body">
+            <div class="variant-card-label">{{ v.label || '标准结构' }}</div>
+            <div class="variant-card-count">{{ v.boards.length }} 个实例</div>
+          </div>
+          <button
+            class="variant-select-btn"
+            :style="{ borderColor: accent + '55', color: accent }"
+          >选择</button>
+        </div>
+      </div>
+    </div>
+
     <!-- nodrag: VueFlow's built-in mechanism — pointer events on this subtree don't start node-drag -->
-    <div class="combo-wrap nodrag nopan">
+    <div v-if="!needsVariantPick" class="combo-wrap nodrag nopan">
       <button
         class="group-combo-btn"
         :class="{ 'needs-action': needsAction }"
@@ -265,9 +343,9 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     </div>
     </div><!-- /combo-wrap -->
 
-    <!-- ── I2C topology (only for resolved / multi-match boards) ──── -->
+    <!-- ── I2C topology (only for resolved / multi-match boards with variant chosen) ──── -->
     <!-- nodrag so chip drags inside don't fire VueFlow node-drag -->
-    <div v-if="state === 'resolved' || state === 'multi-match'" class="topo-section nodrag nopan">
+    <div v-if="!needsVariantPick && (state === 'resolved' || state === 'multi-match')" class="topo-section nodrag nopan">
       <div class="topo-header" @click.stop="topoCollapsed = !topoCollapsed">
         <span class="topo-header-label" :style="{ color: accent }">I2C 拓扑</span>
         <span class="topo-toggle">{{ topoCollapsed ? '▶' : '▼' }}</span>
@@ -279,7 +357,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     </div>
 
     <!-- ── Placeholder graphic for type-placeholder / missing ─────── -->
-    <div v-else class="placeholder-illustration" :class="`ph-${state}`">
+    <div v-else-if="!needsVariantPick" class="placeholder-illustration" :class="`ph-${state}`">
       <div class="ph-frame">
         <div class="ph-chip" />
         <div class="ph-chip" />
@@ -578,6 +656,142 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   opacity: 0.75;
   word-break: break-all;
 }
+
+/* ── Variant breadcrumb (after variant is selected) ── */
+.variant-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  font-size: 10px;
+}
+.crumb-letter {
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.crumb-label {
+  flex: 1;
+  color: rgba(255,255,255,0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+}
+.crumb-count {
+  font-size: 9px;
+  color: rgba(255,255,255,0.30);
+  flex-shrink: 0;
+}
+.crumb-change {
+  all: unset;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.18);
+  font-size: 9px;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.crumb-change:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.75); }
+
+/* ── Variant picker ── */
+.variant-picker {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 10px;
+}
+.variant-picker-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 9px;
+  line-height: 1.45;
+}
+.variant-hint-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.variant-picker-hint strong {
+  color: rgba(255,255,255,0.70);
+  font-weight: 700;
+}
+.variant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.variant-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.variant-card:hover {
+  background: rgba(255,255,255,0.055);
+  border-color: rgba(255,255,255,0.18);
+}
+.variant-letter-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+.variant-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.variant-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.80);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.variant-card-count {
+  font-size: 9px;
+  color: rgba(255,255,255,0.30);
+  margin-top: 1px;
+}
+.variant-select-btn {
+  all: unset;
+  padding: 3px 9px;
+  border-radius: 5px;
+  border: 1px solid;
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.variant-select-btn:hover { background: rgba(255,255,255,0.10); }
 
 /* ── Missing-state actions in dropdown ── */
 .combo-actions {

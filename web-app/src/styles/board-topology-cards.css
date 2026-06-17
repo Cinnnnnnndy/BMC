@@ -106,7 +106,7 @@
 
 .board-card-name {
   font-size: 14px;
-  color: #fff;
+  color: var(--foreground);
   font-weight: 600;
 }
 

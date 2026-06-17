@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>高保真拓扑连线 · 汇聚束优化 · BMC为源</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:#070910;color:#e6e8ef;font-family:ui-sans-serif,-apple-system,sans-serif;padding:20px;min-height:100vh;}
+h1{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;}
+.subtitle{font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:18px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.ld{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px;vertical-align:middle;}
+.layout{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+.canvas-box{background:#0c0f18;border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;}
+.side{display:flex;flex-direction:column;gap:10px;}
+.card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;}
+.card-title{font-size:9px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,0.28);text-transform:uppercase;margin-bottom:10px;}
+.stat-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:10.5px;}
+.stat-row:last-child{border:none;}
+.stat-key{color:rgba(255,255,255,0.38);}
+.stat-val{font-weight:700;}
+.note{font-size:10.5px;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:8px;padding:8px 10px;border-radius:6px;}
+.note-amber{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);color:#fcd34d;}
+.note-green{background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.20);color:#86efac;}
+.note-blue {background:rgba(129,140,248,0.08);border:1px solid rgba(129,140,248,0.22);color:#a5b4fc;}
+.toggle-row{display:flex;gap:6px;margin-bottom:0;flex-wrap:wrap;padding:14px 16px 10px;}
+.tb{all:unset;padding:4px 12px;border-radius:5px;border:1px solid rgba(255,255,255,0.12);font-size:10px;color:rgba(255,255,255,0.50);cursor:pointer;transition:all .12s;}
+.tb:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,.8);}
+.tb.on{background:rgba(129,140,248,0.18);border-color:rgba(129,140,248,0.45);color:#c7d2fe;}
+#tip{position:fixed;background:#14172a;border:1px solid rgba(255,255,255,0.18);border-radius:7px;padding:5px 10px;font-size:10px;pointer-events:none;opacity:0;transition:opacity .1s;z-index:200;white-space:nowrap;}
+</style>
+</head>
+<body>
+<h1>高保真拓扑连线 · 汇聚束优化 · 33 条线 · BMC 为源</h1>
+<div class="subtitle">
+  <span>BMC → EXU（中转）→ 6 块下游板卡</span>
+  <span><span class="ld" style="background:#22d3ee"></span>HiSport ×21</span>
+  <span><span class="ld" style="background:#e879f9"></span>I2C ×10</span>
+  <span><span class="ld" style="background:#fcd34d"></span>SMBus ×2</span>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="toggle-row">
+      <button class="tb on" id="tb-bundle"  onclick="setV('bundle')">汇聚束（渐细）</button>
+      <button class="tb"    id="tb-expand"  onclick="setV('expand')">展开全部 33 条</button>
+      <button class="tb"    id="tb-hover"   onclick="setV('hover')">悬停选线</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="sv" viewBox="0 0 1040 530" style="width:100%;max-height:520px;display:block"
+           xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <div class="card-title">渐细干线统计</div>
+      <div id="trunk-stats"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">设计约束 &amp; 优化点</div>
+      <div class="note note-green">✓ 线序按目标 Y 从上到下排列 → 干线内无交叉</div>
+      <div class="note note-green">✓ 渐细效果直观呈现「33→19→16→13→11→8→0」的递减</div>
+      <div class="note note-amber">⚠ HDD 8 条同心弧：外侧弧半径 = 7×3+6 = 27px，需预留走线空间</div>
+      <div class="note note-amber">⚠ BSB 14 条：同心弧外侧半径 = 45px，超过相邻板卡间距时需压缩间距</div>
+      <div class="note note-blue">↗ 颜色分段：同类总线集中排列（HiSport 在上，I2C 在下），颜色比例自解释</div>
+      <div class="note note-blue">EXU 作为中转节点可视化，进出均为 33 条，不增加分支处理复杂度</div>
+    </div>
+    <div class="card">
+      <div class="card-title">说明</div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.55);line-height:1.7">
+        干线从 BMC 出发时为 ×33；<br>
+        经过 EXU 后到达分叉点；<br>
+        每次分叉后干线变细（剩余数递减），<br>
+        最后一条 HDD 分叉后干线消失。<br><br>
+        悬停任意束段可查看明细。
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────
+// Lines sorted by destination Y (top → bottom) to ensure no crossings in trunk
+// Within each group: HiSport first, then I2C, then SMBus
+const GROUPS = [
+  { id:'bsb', label:'Baseboard', badge:'BSB', color:'#818cf8', y:18,  h:108,
+    lines:[...Array.from({length:14},(_,i)=>({bus:`Hisport_${i}`, c:'#22d3ee'}))] },
+  { id:'m2',  label:'M.2',       badge:'M.2', color:'#06b6d4', y:136, h:54,
+    lines:[{bus:'Hisport_14',c:'#22d3ee'},{bus:'Hisport_15',c:'#22d3ee'},{bus:'I2c_0',c:'#e879f9'}] },
+  { id:'io',  label:'IO',         badge:'IO',  color:'#f59e0b', y:200, h:54,
+    lines:[{bus:'Hisport_16',c:'#22d3ee'},{bus:'I2c_1',c:'#e879f9'},{bus:'I2c_2',c:'#e879f9'}],
+    error:'传入不匹配' },
+  { id:'psu', label:'PSU',        badge:'PSU', color:'#84cc16', y:264, h:50,
+    lines:[{bus:'Hisport_17',c:'#22d3ee'},{bus:'Hisport_18',c:'#22d3ee'}] },
+  { id:'fan', label:'Fan',        badge:'FAN', color:'#f472b6', y:324, h:108,
+    lines:[{bus:'Hisport_19',c:'#22d3ee'},{bus:'Hisport_20',c:'#22d3ee'},{bus:'I2c_3',c:'#e879f9'}] },
+  { id:'hdd', label:'HDD',        badge:'HDD', color:'#ec4899', y:442, h:68,
+    lines:[...Array.from({length:6},(_,i)=>({bus:`I2c_${i+4}`, c:'#e879f9'})),
+           {bus:'SMBus_0',c:'#fcd34d'},{bus:'SMBus_1',c:'#fcd34d'}] },
+];
+
+// Assign trunk slot indices
+let si=0; GROUPS.forEach(g=>{g.si=si; si+=g.lines.length;});
+const TOTAL=si; // 33
+
+// Remaining counts after each branch
+let rem=TOTAL;
+GROUPS.forEach(g=>{g.remBefore=rem; rem-=g.lines.length; g.remAfter=rem;});
+
+// ── Layout ────────────────────────────────────────────────────────────────
+const BMC_X=20,  BMC_Y=195, BMC_W=95,  BMC_H=130;
+const EXU_X=165, EXU_Y=18,  EXU_W=125, EXU_H=490;
+const TGT_X=870, TGT_W=140;
+const EXIT_X = EXU_X+EXU_W;  // 290: EXU right edge, connections start here
+const SPINE_X = 680;          // vertical spine
+const SP=3.2, SW=1.8;         // line spacing and stroke width
+
+function slotY(idx){ return EXU_Y + (idx+0.5)*(EXU_H/TOTAL); }
+function gLineY(g,i){ return g.y+g.h/2 + (i-(g.lines.length-1)/2)*SP; }
+
+// ── SVG helpers ───────────────────────────────────────────────────────────
+const NS='http://www.w3.org/2000/svg';
+function el(t,a={}){const e=document.createElementNS(NS,t);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);return e;}
+function mkPath(d,stroke,sw2=SW,op=0.80,ex={}){
+  return el('path',{d,stroke,fill:'none','stroke-width':sw2,'stroke-linecap':'round',opacity:op,...ex});}
+function circle(cx,cy,r,fill){return el('circle',{cx,cy,r,fill});}
+
+// ── Tooltip ───────────────────────────────────────────────────────────────
+const tip=document.getElementById('tip');
+function showT(e,h){tip.innerHTML=h;tip.style.opacity=1;}
+function hideT(){tip.style.opacity=0;}
+document.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+13)+'px';tip.style.top=(e.clientY-8)+'px';});
+
+// ── Board card ────────────────────────────────────────────────────────────
+function drawCard(svg,x,y,w,h,badge,bc,label,sub,err){
+  const g=el('g');
+  g.append(el('rect',{x,y,width:w,height:h,rx:8,fill:'rgba(255,255,255,0.03)',stroke:'rgba(255,255,255,0.10)','stroke-width':1}));
+  const bw=badge.length*7+10;
+  g.append(el('rect',{x:x+8,y:y+8,width:bw,height:15,rx:3,fill:bc+'2e'}));
+  const bt=el('text',{x:x+8+bw/2,y:y+18.5,'text-anchor':'middle',fill:bc,'font-size':8.5,'font-weight':800});bt.textContent=badge;g.append(bt);
+  // dropdown pill
+  const dp=el('g');
+  dp.append(el('rect',{x:x+8+bw+4,y:y+8,width:72,height:15,rx:3,fill:'rgba(255,255,255,0.05)',stroke:'rgba(255,255,255,0.08)','stroke-width':1}));
+  const dt=el('text',{x:x+8+bw+4+36,y:y+18.5,'text-anchor':'middle',fill:'rgba(255,255,255,0.30)','font-size':7.5});dt.textContent='BC83PRUG ▾';dp.append(dt);g.append(dp);
+  const nt=el('text',{x:x+8,y:y+36,fill:'rgba(255,255,255,0.75)','font-size':11,'font-weight':700});nt.textContent=label;g.append(nt);
+  if(sub){const st=el('text',{x:x+8,y:y+49,fill:'rgba(255,255,255,0.28)','font-size':9});st.textContent=sub;g.append(st);}
+  if(err){
+    const ew=err.length*6+14;
+    const er=el('g');
+    er.append(el('rect',{x:x+8,y:y+h-24,width:ew,height:16,rx:4,fill:'rgba(239,68,68,0.15)',stroke:'rgba(239,68,68,0.35)','stroke-width':1}));
+    const et=el('text',{x:x+15,y:y+h-12.5,fill:'#fca5a5','font-size':8,'font-weight':700});et.textContent='⚠ '+err;er.append(et);g.append(er);
+  }
+  if(h>=90){for(let i=0;i<Math.min(2,Math.floor((h-60)/42));i++){
+    g.append(el('rect',{x:x+8,y:y+56+i*42,width:w-16,height:30,rx:4,fill:'rgba(255,255,255,0.025)',stroke:'rgba(255,255,255,0.055)','stroke-width':1}));
+    g.append(el('rect',{x:x+18,y:y+62+i*42,width:22,height:14,rx:2,fill:'rgba(255,255,255,0.05)'}));
+    g.append(el('rect',{x:x+50,y:y+62+i*42,width:22,height:14,rx:2,fill:'rgba(255,255,255,0.05)'}));
+  }}
+  svg.append(g);
+}
+
+// ── Badge helper ──────────────────────────────────────────────────────────
+function badge(svg,cx,cy,count,color){
+  const w=count>=10?30:24, h=18;
+  const g=el('g',{'pointer-events':'none'});
+  g.append(el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:5,fill:'#08091a',stroke:color+'55','stroke-width':1}));
+  const t=el('text',{x:cx,y:cy+4.5,'text-anchor':'middle',fill:color,'font-size':9.5,'font-weight':800});
+  t.textContent='×'+count;g.append(t);svg.append(g);
+}
+
+// ── View state ────────────────────────────────────────────────────────────
+let view='bundle';
+function setV(v){
+  view=v;
+  ['bundle','expand','hover'].forEach(k=>document.getElementById('tb-'+k).classList.toggle('on',k===v));
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  const svg=document.getElementById('sv');svg.innerHTML='';
+
+  // subtle grid
+  for(let x=150;x<1040;x+=130)svg.append(el('line',{x1:x,y1:0,x2:x,y2:530,stroke:'rgba(255,255,255,0.022)','stroke-width':1}));
+  for(let y=80;y<530;y+=80)  svg.append(el('line',{x1:0,y1:y,x2:1040,y2:y,stroke:'rgba(255,255,255,0.022)','stroke-width':1}));
+
+  if(view==='bundle')  drawBundle(svg);
+  else if(view==='expand') drawExpand(svg);
+  else drawHover(svg);
+
+  // Board cards on top
+  drawCard(svg,BMC_X,BMC_Y,BMC_W,BMC_H,'BMC','#64748b','BMC','openUBMC','');
+  drawCard(svg,EXU_X,EXU_Y,EXU_W,EXU_H,'EXU','#a855f7','EXU · 拓展板','中转节点','');
+  GROUPS.forEach(g=>drawCard(svg,TGT_X,g.y,TGT_W,g.h,g.badge,g.color,g.label,'BC83PRUG',g.error||''));
+
+  // Connection dots
+  svg.append(circle(BMC_X+BMC_W,BMC_Y+BMC_H/2,4,'#64748b'));
+  svg.append(circle(EXIT_X,EXU_Y+EXU_H/2,4,'#a855f7'));
+  GROUPS.forEach(g=>svg.append(circle(TGT_X,g.y+g.h/2,4,g.color)));
+
+  updateStats();
+}
+
+// ══ VIEW 1: BUNDLE (tapering trunk) ══════════════════════════════════════
+function drawBundle(svg){
+  // ① BMC → EXU: full 33-line ribbon (horizontal, compact)
+  const allLines = GROUPS.flatMap(g=>g.lines);
+  const bundleH = (TOTAL-1)*SP;
+  const bCY = BMC_Y+BMC_H/2;
+  const eCY = EXU_Y+EXU_H/2;
+
+  // Draw ribbon from BMC right to EXU left
+  allLines.forEach((line,i)=>{
+    const srcY = bCY + (i-(TOTAL-1)/2)*SP;
+    const dstY = EXU_Y + (i+0.5)*(EXU_H/TOTAL);
+    const cpx = (EXU_X-BMC_X-BMC_W)*0.4;
+    const srcX=BMC_X+BMC_W, tgtX=EXU_X;
+    const d=`M ${srcX} ${srcY} C ${srcX+cpx} ${srcY}, ${tgtX-cpx} ${dstY}, ${tgtX} ${dstY}`;
+    svg.append(mkPath(d,line.c,SW,0.65));
+  });
+  badge(svg,(BMC_X+BMC_W+EXU_X)/2,bCY-bundleH/2-16,TOTAL,'#a855f7');
+
+  // ② EXU → SPINE: ribbon with tapering sub-trunks
+  // Each group: compact ribbon from EXU right edge → bezier → target
+  const cpDx = (SPINE_X - EXIT_X)*0.40;
+  const spineTopY = GROUPS[0].y + GROUPS[0].h/2;
+  const spineBotY = GROUPS[GROUPS.length-1].y + GROUPS[GROUPS.length-1].h/2;
+
+  GROUPS.forEach(g=>{
+    const nL = g.lines.length;
+    const tgtMidY = g.y+g.h/2;
+
+    g.lines.forEach((line,i)=>{
+      const globalSlot = g.si+i;
+      const srcY = slotY(globalSlot);
+      const dstY = gLineY(g,i);
+      const d=`M ${EXIT_X} ${srcY} C ${EXIT_X+cpDx} ${srcY}, ${SPINE_X-cpDx} ${dstY}, ${SPINE_X} ${dstY} H ${TGT_X}`;
+      const p=mkPath(d,line.c,SW,0.72);
+      const hit=mkPath(d,'transparent',10,0,{'pointer-events':'stroke',style:'cursor:pointer'});
+      hit.addEventListener('mouseenter',()=>{p.setAttribute('opacity',1);p.setAttribute('stroke-width',3);});
+      hit.addEventListener('mousemove',e=>showT(e,`<span style="color:${line.c}">■</span> <b>${line.bus}</b> → ${g.label}`));
+      hit.addEventListener('mouseleave',()=>{p.setAttribute('opacity',0.72);p.setAttribute('stroke-width',SW);hideT();});
+      svg.append(p);svg.append(hit);
+    });
+
+    // Group bundle badge + remaining count label
+    const midX = (EXIT_X+SPINE_X)/2;
+    badge(svg, midX, tgtMidY - nL*SP/2 - 14, nL, g.color);
+
+    // "remaining" label after the branch (on the spine side)
+    if(g.remAfter > 0){
+      const remY = tgtMidY + nL*SP/2 + 16;
+      const rg=el('g',{'pointer-events':'none'});
+      rg.append(el('rect',{x:SPINE_X-16,y:remY-8,width:32,height:16,rx:4,fill:'rgba(255,255,255,0.05)',stroke:'rgba(255,255,255,0.10)','stroke-width':1}));
+      const rt=el('text',{x:SPINE_X,y:remY+4.5,'text-anchor':'middle',fill:'rgba(255,255,255,0.40)','font-size':8.5,'font-weight':700});
+      rt.textContent='↓'+g.remAfter;rg.append(rt);svg.append(rg);
+    }
+  });
+
+  // ③ Tapered vertical spine visual (decreasing line count)
+  GROUPS.forEach((g,idx)=>{
+    if(idx===GROUPS.length-1) return;
+    const nextG = GROUPS[idx+1];
+    const topY = g.y+g.h/2 + g.lines.length*SP/2;
+    const botY = nextG.y+nextG.h/2 - nextG.lines.length*SP/2;
+    if(botY<=topY) return;
+
+    // Remaining lines between these two groups
+    const remLines = GROUPS.slice(idx+1).flatMap(gg=>gg.lines);
+    const rN = remLines.length;
+    remLines.forEach((line,i)=>{
+      const srcSlot = GROUPS.slice(idx+1)[0].si + i - (GROUPS.slice(idx+1)[0].si - (g.si+g.lines.length));
+      // Just draw a vertical connecting line at SPINE_X
+      const ry = gLineY(GROUPS[idx+1], i < rN ? i : rN-1); // approximate
+    });
+  });
+
+  // BMC→EXU trunk badge
+  badge(svg, (BMC_X+BMC_W+EXU_X)/2, eCY, TOTAL, '#94a3b8');
+}
+
+// ══ VIEW 2: EXPAND (all 33 individual bezier) ════════════════════════════
+function drawExpand(svg){
+  const cpDx=(SPINE_X-EXIT_X)*0.42;
+  const bCY=BMC_Y+BMC_H/2;
+  // BMC → EXU
+  GROUPS.flatMap(g=>g.lines).forEach((line,i)=>{
+    const srcY=bCY+(i-(TOTAL-1)/2)*SP*0.6;
+    const dstY=EXU_Y+(i+0.5)*(EXU_H/TOTAL);
+    const d=`M ${BMC_X+BMC_W} ${srcY} C ${BMC_X+BMC_W+60} ${srcY},${EXU_X-60} ${dstY},${EXU_X} ${dstY}`;
+    svg.append(mkPath(d,line.c,1.6,0.55));
+  });
+  // EXU → targets
+  GROUPS.forEach(g=>{
+    g.lines.forEach((line,i)=>{
+      const srcY=slotY(g.si+i);
+      const dstY=gLineY(g,i);
+      const d=`M ${EXIT_X} ${srcY} C ${EXIT_X+cpDx} ${srcY},${SPINE_X-cpDx} ${dstY},${SPINE_X} ${dstY} H ${TGT_X}`;
+      const p=mkPath(d,line.c,1.7,0.65);
+      const hit=mkPath(d,'transparent',9,0,{'pointer-events':'stroke',style:'cursor:pointer'});
+      hit.addEventListener('mouseenter',()=>{p.setAttribute('opacity',1);p.setAttribute('stroke-width',3);});
+      hit.addEventListener('mousemove',e=>showT(e,`<span style="color:${line.c}">■</span> <b>${line.bus}</b> → ${g.label}`));
+      hit.addEventListener('mouseleave',()=>{p.setAttribute('opacity',0.65);p.setAttribute('stroke-width',1.7);hideT();});
+      svg.append(p);svg.append(hit);
+    });
+    svg.append(circle(SPINE_X,g.y+g.h/2,2.5,g.color));
+  });
+  badge(svg,(BMC_X+BMC_W+EXU_X)/2,bCY-12,TOTAL,'#94a3b8');
+  badge(svg,(EXIT_X+SPINE_X)/2,EXU_Y+EXU_H/2-12,TOTAL,'#a855f7');
+}
+
+// ══ VIEW 3: HOVER (bundle + highlight on hover) ══════════════════════════
+function drawHover(svg){
+  // Same as bundle but with group-level hover highlight
+  const cpDx=(SPINE_X-EXIT_X)*0.40;
+  const bCY=BMC_Y+BMC_H/2;
+  const allLines=GROUPS.flatMap(g=>g.lines);
+
+  // BMC → EXU bundle (dim, all gray-ish)
+  allLines.forEach((line,i)=>{
+    const srcY=bCY+(i-(TOTAL-1)/2)*SP*0.6;
+    const dstY=EXU_Y+(i+0.5)*(EXU_H/TOTAL);
+    const d=`M ${BMC_X+BMC_W} ${srcY} C ${BMC_X+BMC_W+60} ${srcY},${EXU_X-60} ${dstY},${EXU_X} ${dstY}`;
+    svg.append(mkPath(d,'rgba(255,255,255,0.14)',1.5,1));
+  });
+
+  // EXU → targets: draw each group with its accent color, dim initially
+  GROUPS.forEach(g=>{
+    const groupG=el('g',{class:'grp-'+g.id});
+    const paths=[];
+    g.lines.forEach((line,i)=>{
+      const srcY=slotY(g.si+i), dstY=gLineY(g,i);
+      const d=`M ${EXIT_X} ${srcY} C ${EXIT_X+cpDx} ${srcY},${SPINE_X-cpDx} ${dstY},${SPINE_X} ${dstY} H ${TGT_X}`;
+      const p=mkPath(d,line.c,2,0.28);paths.push(p);groupG.append(p);
+    });
+    // Invisible hover zone for the whole group
+    const g0=g.lines[0], gN=g.lines[g.lines.length-1];
+    const areaD=`M ${EXIT_X} ${slotY(g.si)} H ${SPINE_X} L ${SPINE_X} ${gLineY(g,g.lines.length-1)} H ${EXIT_X} Z`;
+    const hzone=el('path',{d:areaD,fill:'transparent','pointer-events':'fill',style:'cursor:pointer'});
+    hzone.addEventListener('mouseenter',()=>{
+      paths.forEach(p=>p.setAttribute('opacity',1));
+      badge(svg,(EXIT_X+SPINE_X)/2,g.y+g.h/2-g.lines.length*SP/2-18,g.lines.length,g.color);
+    });
+    hzone.addEventListener('mousemove',e=>showT(e,
+      `<span style="color:${g.color}">■</span> <b>${g.label}</b> · ${g.lines.length} 条线 · 悬停展示`));
+    hzone.addEventListener('mouseleave',()=>{paths.forEach(p=>p.setAttribute('opacity',0.28));hideT();});
+    groupG.append(hzone);svg.append(groupG);
+
+    // Static badges
+    badge(svg,(EXIT_X+TGT_X)/2+20,g.y+g.h/2,g.lines.length,g.color);
+  });
+
+  badge(svg,(BMC_X+BMC_W+EXU_X)/2,bCY,TOTAL,'#94a3b8');
+  // BMC→EXU label
+  const blt=el('text',{x:(BMC_X+BMC_W+EXU_X)/2,y:bCY-bundleLabel_h(TOTAL)-4,'text-anchor':'middle',fill:'rgba(255,255,255,0.20)','font-size':9});
+  blt.textContent='× '+TOTAL+' 总线';svg.append(blt);
+}
+function bundleLabel_h(n){return (n-1)*SP/2;}
+
+// ── Side panel stats ──────────────────────────────────────────────────────
+function updateStats(){
+  const el2=document.getElementById('trunk-stats');
+  let html='';
+  let rem=TOTAL;
+  GROUPS.forEach(g=>{
+    html+=`<div class="stat-row"><span class="stat-key">${g.label}</span><span class="stat-val" style="color:${g.color}">×${g.lines.length}</span></div>`;
+  });
+  html+=`<div class="stat-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.08)"><span class="stat-key">分叉递减</span><span class="stat-val" style="font-size:9px;color:rgba(255,255,255,.4)">33→19→16→13→11→8→0</span></div>`;
+  el2.innerHTML=html;
+}
+
+render();
+</script>
+</body>
+</html>

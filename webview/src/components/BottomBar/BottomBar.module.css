@@ -3,94 +3,80 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(30, 30, 46, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
   padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  gap: var(--space-4);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
 }
 
 .toolGroup {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .toolButton {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--foreground-secondary);
   cursor: pointer;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: background var(--motion-smooth), color var(--motion-smooth), border-color var(--motion-smooth);
 }
 
 .toolButton:hover {
-  color: #d1d5db;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  color: var(--foreground);
+  background: var(--state-hover);
+  border-color: var(--border-default);
 }
 
 .toolButton.active {
-  color: #4f6ef7;
-  background: rgba(79, 110, 247, 0.2);
-  border-color: rgba(79, 110, 247, 0.4);
-  box-shadow: 0 4px 16px rgba(79, 110, 247, 0.3);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
 .zoomControls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(10, 10, 10, 0.6);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: var(--space-2);
+  background: var(--surface-3);
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
 }
 
 .zoomButton {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--foreground-secondary);
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: bold;
-  transition: all 0.3s ease;
+  transition: background var(--motion-smooth), color var(--motion-smooth);
 }
 
 .zoomButton:hover {
-  color: #d1d5db;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  color: var(--foreground);
+  background: var(--state-hover);
+  border-color: var(--border-strong);
 }
 
 .zoomLevel {
-  color: white;
+  color: var(--foreground);
   font-size: 12px;
   font-weight: 500;
   min-width: 40px;
   text-align: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
