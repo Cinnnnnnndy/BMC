@@ -32,8 +32,12 @@ const FUNC_LOOKUP: Record<number, string> = {
   0x01:'系统管理 System', 0x02:'电源管理 Power', 0x03:'风扇控制 Fan',
   0x0C:'温度管理 Thermal', 0x10:'存储 Storage', 0x20:'网络 Network',
 };
-const MS_LABEL: Record<number, string> = { 0:'Multi-read', 1:'Single-read' };
-const RW_LABEL: Record<number, string> = { 0:'Write', 1:'Read' };
+const MS_LABEL: Record<number, string> = { 0:'多读 Multi-read', 1:'单读 Single-read' };
+const RW_LABEL: Record<number, string> = { 0:'写 Write', 1:'读 Read' };
+
+// Known SMC Function codes → subsystem (used for the Function dropdown suggestions).
+const FUNC_OPTIONS: { hex: string; label: string }[] = Object.entries(FUNC_LOOKUP)
+  .map(([code, label]) => ({ hex: '0x' + Number(code).toString(16).toUpperCase().padStart(2, '0'), label }));
 
 const HUE_COLOR: Record<FieldKey, string> = {
   func: '#f59e6b', cmd: '#4f6ef7', ms: '#a78bfa', rw: '#34d399', param: '#f5b454'
@@ -126,6 +130,8 @@ function onFieldBlur(k: FieldKey) {
   const v = fieldVals[k];
   if (v !== null) fieldTexts[k] = '0x' + pad(v.toString(16).toUpperCase(), FIELDS[k].hexDigits);
 }
+// Dropdown setter for single-bit fields (MS / RW) — keeps the offset in sync.
+function setBit(k: FieldKey, raw: string) { fieldTexts[k] = raw; onFieldInput(k); }
 
 /* ─── Computed ──────────────────────────────────────────────────────────── */
 const bitCells = computed(() => {
@@ -313,11 +319,11 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
         </div>
       </div>
       <div class="legend">
-        <span class="lchip"><span class="sw sw-func"></span>Function · [31:26] · 6b</span>
-        <span class="lchip"><span class="sw sw-cmd"></span>Command · [25:10] · 16b</span>
-        <span class="lchip"><span class="sw sw-ms"></span>MS · [9] · 1b</span>
-        <span class="lchip"><span class="sw sw-rw"></span>RW · [8] · 1b</span>
-        <span class="lchip"><span class="sw sw-param"></span>Param · [7:0] · 8b</span>
+        <span class="lchip"><span class="sw sw-func"></span>功能码 Function · [31:26] · 6b</span>
+        <span class="lchip"><span class="sw sw-cmd"></span>命令码 Command · [25:10] · 16b</span>
+        <span class="lchip"><span class="sw sw-ms"></span>读取方式 MS · [9] · 1b</span>
+        <span class="lchip"><span class="sw sw-rw"></span>读写方向 RW · [8] · 1b</span>
+        <span class="lchip"><span class="sw sw-param"></span>参数 Param · [7:0] · 8b</span>
       </div>
     </div>
 
@@ -331,12 +337,15 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
       <div class="fields-row r1">
         <div class="field-card" :style="{ borderTopColor: HUE_COLOR.func }">
           <div class="field-head">
-            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.func }"></span>Function · 功能码</span>
+            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.func }"></span>功能码 · <i class="code-anno">Function</i></span>
             <span class="field-meta">[31:26] · 6b</span>
           </div>
-          <div class="field-input-wrap">
+          <div class="field-input-wrap" title="功能码：标识子系统（电源 / 风扇 / 温度…），可下拉选择已知代号或自由输入">
             <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
-              :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" autocomplete="off" spellcheck="false" />
+              :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" list="smc-func-list" autocomplete="off" spellcheck="false" />
+            <datalist id="smc-func-list">
+              <option v-for="o in FUNC_OPTIONS" :key="o.hex" :value="o.hex">{{ o.label }}</option>
+            </datalist>
             <button class="field-copy" :class="{ copied: copiedFld==='func' }" :disabled="fieldVals.func===null" @click="copyFldBtn('func')">⧉</button>
           </div>
           <div class="field-foot">
@@ -349,10 +358,10 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
         </div>
         <div class="field-card" :style="{ borderTopColor: HUE_COLOR.cmd }">
           <div class="field-head">
-            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.cmd }"></span>Command · 命令码</span>
+            <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR.cmd }"></span>命令码 · <i class="code-anno">Command</i></span>
             <span class="field-meta">[25:10] · 16b · 0–0xFFFF</span>
           </div>
-          <div class="field-input-wrap">
+          <div class="field-input-wrap" title="命令码：在功能码下的具体操作编号">
             <input class="field-input" v-model="fieldTexts.cmd" @input="onFieldInput('cmd')" @blur="onFieldBlur('cmd')"
               :class="{ invalid: fieldErrs.cmd }" placeholder="0x0000 / 0–65535" autocomplete="off" spellcheck="false" />
             <button class="field-copy" :class="{ copied: copiedFld==='cmd' }" :disabled="fieldVals.cmd===null" @click="copyFldBtn('cmd')">⧉</button>
@@ -372,14 +381,30 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
           class="field-card" :style="{ borderTopColor: HUE_COLOR[k] }">
           <div class="field-head">
             <span class="field-label"><span class="swatch" :style="{ background: HUE_COLOR[k] }"></span>
-              {{ k==='ms' ? 'MS · 读取方式' : k==='rw' ? 'RW · 读写方向' : 'Param · 参数' }}
+              {{ k==='ms' ? '读取方式 · ' : k==='rw' ? '读写方向 · ' : '参数 · ' }}<i class="code-anno">{{ k==='ms' ? 'MS' : k==='rw' ? 'RW' : 'Param' }}</i>
             </span>
             <span class="field-meta">{{ k==='ms' ? '[9] · 1b' : k==='rw' ? '[8] · 1b' : '[7:0] · 8b · 0–0xFF' }}</span>
           </div>
-          <div class="field-input-wrap">
-            <input class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
+          <div class="field-input-wrap"
+            :title="k==='ms' ? '读取方式：多读=连续读取多个值，单读=单次读取' : k==='rw' ? '读写方向：0=写入，1=读取' : '参数：命令附带的 8 位参数'">
+            <!-- MS / RW are single-bit enums → dropdowns; Param stays free input -->
+            <select v-if="k==='ms' || k==='rw'" class="field-input field-select"
               :class="{ invalid: fieldErrs[k] }"
-              :placeholder="k==='ms' || k==='rw' ? '0 / 1' : '0x00 / 0–255'" autocomplete="off" spellcheck="false" />
+              :value="fieldVals[k]===null ? '' : String(fieldVals[k])"
+              @change="setBit(k, ($event.target as HTMLSelectElement).value)">
+              <option value="" disabled>—</option>
+              <template v-if="k==='ms'">
+                <option value="0">0 · 多读 (Multi-read)</option>
+                <option value="1">1 · 单读 (Single-read)</option>
+              </template>
+              <template v-else>
+                <option value="0">0 · 写 (Write)</option>
+                <option value="1">1 · 读 (Read)</option>
+              </template>
+            </select>
+            <input v-else class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
+              :class="{ invalid: fieldErrs[k] }"
+              placeholder="0x00 / 0–255" autocomplete="off" spellcheck="false" />
             <button class="field-copy" :class="{ copied: copiedFld===k }" :disabled="fieldVals[k]===null" @click="copyFldBtn(k)">⧉</button>
           </div>
           <div class="field-foot">
@@ -607,6 +632,7 @@ export default { name: 'SmcOffsetView' };
 .field-card:focus-within { background: var(--bg-elev-3); }
 .field-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:8px; }
 .field-label { font-size:12.5px; font-weight:600; color:var(--text); display:inline-flex; align-items:center; gap:6px; }
+.code-anno { font-style:normal; font-weight:400; font-size:11px; color:var(--text-dim); font-family:var(--font-mono); opacity:.8; }
 .swatch { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
 .field-meta { font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); white-space:nowrap; }
 
@@ -619,6 +645,9 @@ export default { name: 'SmcOffsetView' };
 .field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .field-input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
 .field-input::placeholder { color: var(--placeholder); }
+.field-select { cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:24px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--text-dim) 50%),linear-gradient(135deg,var(--text-dim) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 16px,calc(100% - 8px) 16px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
 .field-copy {
   width:30px; height:32px; padding:0; border-radius:var(--radius);
   background:transparent; border:1px solid var(--border); color:var(--text-dim);

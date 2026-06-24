@@ -16,6 +16,25 @@ const COND_VALS        = ['EnergySaving','Balanced','HighPerformance'];
 const ABNORMAL_TYPES   = ['Stuck','NoFeedback','Overspeed','Underspeed'];
 const ROTOR_OPTIONS    = [1, 2, 4];
 
+/* 代号 → 中文标注（下拉显示「中文 (代号)」，写入 YAML 仍用代号本身） */
+const TEMP_TYPE_LABEL  = {
+  CpuInlet: 'CPU 进风口', Cpu: 'CPU', CpuCore: 'CPU 核心', Memory: '内存',
+  Disk: '硬盘', PSU: '电源', Ambient: '环境温度', NetworkAdapter: '网卡',
+};
+const COND_LABEL       = { EnergySaving: '节能', Balanced: '均衡', HighPerformance: '高性能' };
+const ABNORMAL_LABEL   = { Stuck: '卡死', NoFeedback: '无反馈', Overspeed: '超速', Underspeed: '欠速' };
+/** Render a <select> option set as 「中文 (代号)」 with value = 代号. */
+function codeOptions(values, labelMap, current) {
+  return values.map(v => {
+    const cn = labelMap[v];
+    const text = cn ? `${cn} (${v})` : v;
+    return `<option value="${v}" ${v === current ? 'selected' : ''}>${text}</option>`;
+  }).join('');
+}
+
+/* 常见风扇安装位置（下拉建议，可自由输入） */
+const FAN_POSITIONS    = ['Front-Left','Front-Mid','Front-Right','Rear-Left','Rear-Mid','Rear-Right','Top','Bottom'];
+
 /* ── Initial state ── */
 const state = {
   global: {
@@ -193,27 +212,27 @@ function renderTemps() {
   host.innerHTML = state.temps.map((t, idx) => `
     <div class="row-compact" id="temp-${t.id}" data-i="${idx}" data-kind="temp">
       <span class="row-id">#${t.id}</span>
-      <div class="cell" style="flex:1.4;min-width:140px;">
-        <span class="cell-lbl">name</span>
+      <div class="cell" style="flex:1.4;min-width:140px;" title="温度点名称，供调速区域引用（name）">
+        <span class="cell-lbl">名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(t.name)}" />
       </div>
-      <div class="cell" style="width:130px;">
-        <span class="cell-lbl">type</span>
+      <div class="cell" style="width:170px;" title="温度采集点类型（temperature_type）">
+        <span class="cell-lbl">类型 <i class="code">temperature_type</i></span>
         <select data-k="temperature_type">
-          ${TEMP_TYPES.map(v => `<option ${v===t.temperature_type?'selected':''}>${v}</option>`).join('')}
+          ${codeOptions(TEMP_TYPES, TEMP_TYPE_LABEL, t.temperature_type)}
         </select>
       </div>
-      <div class="cell" style="width:76px;">
-        <span class="cell-lbl">target °C</span>
+      <div class="cell" style="width:84px;" title="目标温度：低于此值时风扇按最低转速（target_celsius）">
+        <span class="cell-lbl">目标温度 <i class="code">℃</i></span>
         <input data-k="target_celsius" type="number" value="${t.target_celsius}" />
       </div>
-      <div class="cell" style="width:76px;">
-        <span class="cell-lbl">max °C</span>
+      <div class="cell" style="width:84px;" title="上限温度：达到此值时风扇拉满转速（max_celsius）">
+        <span class="cell-lbl">上限温度 <i class="code">℃</i></span>
         <input data-k="max_celsius" type="number" value="${t.max_celsius}" />
       </div>
-      <div class="cell" style="flex:1.4;min-width:160px;">
-        <span class="cell-lbl">sensor path</span>
-        <input data-k="sensor_path" value="${esc(t.sensor_path)}" />
+      <div class="cell" style="flex:1.4;min-width:160px;" title="传感器对象路径，对应 CSR 中的温度对象（sensor_path）">
+        <span class="cell-lbl">传感器路径 <i class="code">sensor_path</i></span>
+        <input data-k="sensor_path" value="${esc(t.sensor_path)}" placeholder="/xyz/.../Temp_Cpu0" />
       </div>
       <button class="row-del" data-del title="删除">✕</button>
     </div>
@@ -231,24 +250,24 @@ function renderFans() {
   host.innerHTML = state.fans.map((f, idx) => `
     <div class="row-compact" id="fan-${f.id}" data-i="${idx}" data-kind="fan">
       <span class="row-id">#${f.id}</span>
-      <div class="cell" style="width:110px;">
-        <span class="cell-lbl">name</span>
+      <div class="cell" style="width:120px;" title="风扇名称（name）">
+        <span class="cell-lbl">名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(f.name)}" />
       </div>
-      <div class="cell" style="flex:1;min-width:140px;">
-        <span class="cell-lbl">position</span>
-        <input data-k="position" value="${esc(f.position)}" placeholder="Front-Left / Rear-Mid…" />
+      <div class="cell" style="flex:1;min-width:150px;" title="风扇安装位置，可下拉选择或自由输入（position）">
+        <span class="cell-lbl">安装位置 <i class="code">position</i></span>
+        <input data-k="position" value="${esc(f.position)}" list="fanpos-datalist" placeholder="前-左 / 后-中…" />
       </div>
-      <div class="cell" style="flex:1.2;min-width:150px;">
-        <span class="cell-lbl">fan type</span>
+      <div class="cell" style="flex:1.2;min-width:150px;" title="引用「⑥ 风扇类型」中定义的型号（fan_type）">
+        <span class="cell-lbl">风扇型号 <i class="code">fan_type</i></span>
         <input data-k="fan_type" value="${esc(f.fan_type)}" list="fantype-datalist" />
       </div>
-      <div class="cell" style="width:70px;">
-        <span class="cell-lbl">min %</span>
+      <div class="cell" style="width:78px;" title="占空比下限 %（min_duty）">
+        <span class="cell-lbl">最低占空 <i class="code">%</i></span>
         <input data-k="min_duty" type="number" value="${f.min_duty}" />
       </div>
-      <div class="cell" style="width:70px;">
-        <span class="cell-lbl">max %</span>
+      <div class="cell" style="width:78px;" title="占空比上限 %（max_duty）">
+        <span class="cell-lbl">最高占空 <i class="code">%</i></span>
         <input data-k="max_duty" type="number" value="${f.max_duty}" />
       </div>
       <button class="row-del" data-del title="删除">✕</button>
@@ -269,6 +288,15 @@ function updateFanTypeDatalist() {
     document.body.appendChild(dl);
   }
   dl.innerHTML = state.fanTypes.map(ft => `<option value="${esc(ft.name)}">`).join('');
+
+  // Position suggestions (common slots) — selectable yet free-form.
+  let pl = document.getElementById('fanpos-datalist');
+  if (!pl) {
+    pl = document.createElement('datalist');
+    pl.id = 'fanpos-datalist';
+    pl.innerHTML = FAN_POSITIONS.map(p => `<option value="${p}">`).join('');
+    document.body.appendChild(pl);
+  }
 }
 
 /* ==================================================================
@@ -282,31 +310,31 @@ function renderPolicies() {
     <div class="row-compact row-policy" id="policy-${p.id}" data-i="${idx}" data-kind="policy">
       <div class="top">
         <span class="row-id">#${p.id}</span>
-        <div class="cell" style="flex:1.2;min-width:140px;">
-          <span class="cell-lbl">name</span>
+        <div class="cell" style="flex:1.2;min-width:140px;" title="策略名称（name）">
+          <span class="cell-lbl">名称 <i class="code">name</i></span>
           <input data-k="name" value="${esc(p.name)}" />
         </div>
-        <div class="cell" style="width:160px;">
-          <span class="cell-lbl">trigger cond</span>
+        <div class="cell" style="width:190px;" title="触发工况：该策略在哪种能效模式下生效（exp_cond_val）">
+          <span class="cell-lbl">触发工况 <i class="code">exp_cond_val</i></span>
           <select data-k="exp_cond_val">
-            ${COND_VALS.map(v => `<option ${v===p.exp_cond_val?'selected':''}>${v}</option>`).join('')}
+            ${codeOptions(COND_VALS, COND_LABEL, p.exp_cond_val)}
           </select>
         </div>
-        <div class="cell">
-          <span class="cell-lbl">预览 · ${p.temperature_range_low.length} 段</span>
+        <div class="cell" title="温度→转速曲线预览">
+          <span class="cell-lbl">曲线预览 · ${p.temperature_range_low.length} 段</span>
           <div class="curve-mini" id="cv-${p.id}"></div>
         </div>
         <button class="btn-curve-toggle ${expanded?'active':''}" data-toggle-curve="${p.id}">${expanded?'曲线 ▲':'曲线 ▼'}</button>
         <button class="row-del" data-del title="删除">✕</button>
       </div>
       <div class="arrays">
-        <div class="cell"><span class="cell-lbl">T_low (°C)</span>
+        <div class="cell" title="每段温度区间下界，逗号分隔（temperature_range_low）"><span class="cell-lbl">温度下界 <i class="code">℃ · temperature_range_low</i></span>
           <input data-k="temperature_range_low" value="${p.temperature_range_low.join(', ')}" /></div>
-        <div class="cell"><span class="cell-lbl">T_high (°C)</span>
+        <div class="cell" title="每段温度区间上界，逗号分隔（temperature_range_high）"><span class="cell-lbl">温度上界 <i class="code">℃ · temperature_range_high</i></span>
           <input data-k="temperature_range_high" value="${p.temperature_range_high.join(', ')}" /></div>
-        <div class="cell"><span class="cell-lbl">S_low (%)</span>
+        <div class="cell" title="对应温度下界的转速%（speed_range_low）"><span class="cell-lbl">转速下界 <i class="code">% · speed_range_low</i></span>
           <input data-k="speed_range_low" value="${p.speed_range_low.join(', ')}" /></div>
-        <div class="cell"><span class="cell-lbl">S_high (%)</span>
+        <div class="cell" title="对应温度上界的转速%（speed_range_high）"><span class="cell-lbl">转速上界 <i class="code">% · speed_range_high</i></span>
           <input data-k="speed_range_high" value="${p.speed_range_high.join(', ')}" /></div>
       </div>
       <div class="curve-expanded" id="curve-exp-${p.id}" ${expanded?'':'style="display:none;"'}>
@@ -450,22 +478,22 @@ function renderAreas() {
     return `
       <div class="row-compact row-area ${focused?'active':''}" id="area-${a.id}" data-i="${idx}" data-kind="area">
         <span class="row-id">#${a.id}</span>
-        <div class="cell" style="flex:1.2;min-width:130px;">
-          <span class="cell-lbl">name</span>
+        <div class="cell" style="flex:1.2;min-width:130px;" title="调速区域名称（name）">
+          <span class="cell-lbl">名称 <i class="code">name</i></span>
           <input data-k="name" value="${esc(a.name)}" />
         </div>
-        <div class="cell" style="width:200px;">
-          <span class="cell-lbl">temp point</span>
+        <div class="cell" style="width:200px;" title="本区域监控的温度点（requirement_idx）">
+          <span class="cell-lbl">温度点 <i class="code">requirement_idx</i></span>
           <select data-k="requirement_idx">
             ${state.temps.map(t => `<option value="${t.id}" ${t.id===a.requirement_idx?'selected':''}>#${t.id} ${esc(t.name)}</option>`).join('')}
           </select>
         </div>
-        <div class="cell" style="flex:1;min-width:180px;">
-          <span class="cell-lbl">policies</span>
+        <div class="cell" style="flex:1;min-width:180px;" title="本区域应用的调速策略（policy_idx_group）">
+          <span class="cell-lbl">调速策略 <i class="code">policy_idx_group</i></span>
           ${renderChipMulti('policy', idx, a.policy_idx_group, state.policies)}
         </div>
-        <div class="cell" style="flex:1.2;min-width:200px;">
-          <span class="cell-lbl">fans</span>
+        <div class="cell" style="flex:1.2;min-width:200px;" title="本区域控制的风扇（fan_idx_group）">
+          <span class="cell-lbl">绑定风扇 <i class="code">fan_idx_group</i></span>
           ${renderChipMulti('fan', idx, a.fan_idx_group, state.fans)}
         </div>
         <button class="row-del" data-del title="删除">✕</button>
@@ -627,26 +655,26 @@ function renderFanTypes() {
   host.innerHTML = state.fanTypes.map((ft, idx) => `
     <div class="row-compact" id="fantype-${ft.id}" data-i="${idx}" data-kind="fantype">
       <span class="row-id">#${ft.id}</span>
-      <div class="cell" style="flex:1.5;min-width:160px;">
-        <span class="cell-lbl">type name</span>
+      <div class="cell" style="flex:1.5;min-width:160px;" title="风扇型号名称，供「③ 风扇」引用（name）">
+        <span class="cell-lbl">型号名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(ft.name)}" />
       </div>
-      <div class="cell" style="width:120px;">
-        <span class="cell-lbl">vendor</span>
+      <div class="cell" style="width:120px;" title="厂商（vendor）">
+        <span class="cell-lbl">厂商 <i class="code">vendor</i></span>
         <input data-k="vendor" value="${esc(ft.vendor)}" />
       </div>
-      <div class="cell" style="width:90px;">
-        <span class="cell-lbl">min RPM</span>
+      <div class="cell" style="width:96px;" title="最小转速（min_speed_rpm）">
+        <span class="cell-lbl">最低转速 <i class="code">RPM</i></span>
         <input data-k="min_speed_rpm" type="number" value="${ft.min_speed_rpm}" />
       </div>
-      <div class="cell" style="width:90px;">
-        <span class="cell-lbl">max RPM</span>
+      <div class="cell" style="width:96px;" title="最大转速（max_speed_rpm）">
+        <span class="cell-lbl">最高转速 <i class="code">RPM</i></span>
         <input data-k="max_speed_rpm" type="number" value="${ft.max_speed_rpm}" />
       </div>
-      <div class="cell" style="width:80px;">
-        <span class="cell-lbl">rotors</span>
+      <div class="cell" style="width:90px;" title="转子数量：单转子/双转子（rotor_count）">
+        <span class="cell-lbl">转子数 <i class="code">rotor_count</i></span>
         <select data-k="rotor_count">
-          ${ROTOR_OPTIONS.map(v => `<option ${v===ft.rotor_count?'selected':''}>${v}</option>`).join('')}
+          ${ROTOR_OPTIONS.map(v => `<option value="${v}" ${v===ft.rotor_count?'selected':''}>${v} 转子</option>`).join('')}
         </select>
       </div>
       <button class="row-del" data-del title="删除">✕</button>
@@ -665,24 +693,24 @@ function renderAbnormalFans() {
   host.innerHTML = state.abnormalFans.map((af, idx) => `
     <div class="row-compact" id="abnormal-${af.id}" data-i="${idx}" data-kind="abnormal">
       <span class="row-id">#${af.id}</span>
-      <div class="cell" style="flex:1.2;min-width:140px;">
-        <span class="cell-lbl">rule name</span>
+      <div class="cell" style="flex:1.2;min-width:140px;" title="异常监控规则名称（name）">
+        <span class="cell-lbl">规则名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(af.name)}" />
       </div>
-      <div class="cell" style="width:180px;">
-        <span class="cell-lbl">fan ref</span>
+      <div class="cell" style="width:180px;" title="该规则监控的风扇（fan_ref）">
+        <span class="cell-lbl">关联风扇 <i class="code">fan_ref</i></span>
         <select data-k="fan_ref">
-          ${state.fans.map(f => `<option value="${f.id}" ${f.id===af.fan_ref?'selected':''}>Fan #${f.id} ${esc(f.name)}</option>`).join('')}
+          ${state.fans.map(f => `<option value="${f.id}" ${f.id===af.fan_ref?'selected':''}>风扇 #${f.id} ${esc(f.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="cell" style="width:150px;">
-        <span class="cell-lbl">condition</span>
+      <div class="cell" style="width:170px;" title="异常类型（abnormal_condition）">
+        <span class="cell-lbl">异常条件 <i class="code">abnormal_condition</i></span>
         <select data-k="abnormal_condition">
-          ${ABNORMAL_TYPES.map(v => `<option ${v===af.abnormal_condition?'selected':''}>${v}</option>`).join('')}
+          ${codeOptions(ABNORMAL_TYPES, ABNORMAL_LABEL, af.abnormal_condition)}
         </select>
       </div>
-      <div class="cell" style="width:110px;">
-        <span class="cell-lbl">threshold RPM</span>
+      <div class="cell" style="width:120px;" title="判定阈值转速（speed_threshold_rpm）">
+        <span class="cell-lbl">阈值转速 <i class="code">RPM</i></span>
         <input data-k="speed_threshold_rpm" type="number" value="${af.speed_threshold_rpm}" />
       </div>
       <button class="row-del" data-del title="删除">✕</button>
@@ -701,20 +729,20 @@ function renderFanGroups() {
   host.innerHTML = state.fanGroups.map((fg, idx) => `
     <div class="row-compact" id="fangroup-${fg.id}" data-i="${idx}" data-kind="fangroup">
       <span class="row-id">#${fg.id}</span>
-      <div class="cell" style="flex:1.2;min-width:140px;">
-        <span class="cell-lbl">name</span>
+      <div class="cell" style="flex:1.2;min-width:140px;" title="风扇组名称（name）">
+        <span class="cell-lbl">名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(fg.name)}" />
       </div>
-      <div class="cell" style="flex:1;min-width:200px;">
-        <span class="cell-lbl">fans</span>
+      <div class="cell" style="flex:1;min-width:200px;" title="组内成员风扇（fan_ids）">
+        <span class="cell-lbl">成员风扇 <i class="code">fan_ids</i></span>
         ${renderFanGroupChips(idx, fg.fan_ids)}
       </div>
-      <div class="cell" style="width:70px;">
-        <span class="cell-lbl">min %</span>
+      <div class="cell" style="width:78px;" title="整组占空比下限 %（min_duty）">
+        <span class="cell-lbl">最低占空 <i class="code">%</i></span>
         <input data-k="min_duty" type="number" value="${fg.min_duty}" />
       </div>
-      <div class="cell" style="width:70px;">
-        <span class="cell-lbl">max %</span>
+      <div class="cell" style="width:78px;" title="整组占空比上限 %（max_duty）">
+        <span class="cell-lbl">最高占空 <i class="code">%</i></span>
         <input data-k="max_duty" type="number" value="${fg.max_duty}" />
       </div>
       <button class="row-del" data-del title="删除">✕</button>

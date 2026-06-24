@@ -91,33 +91,33 @@
               <span class="h">全局配置 <span class="subt">slot_id · cooling_config</span></span>
             </div>
             <div class="global-grid">
-              <div class="field-mini">
-                <span class="lab">slot_id</span>
+              <div class="field-mini" title="设备槽位编号（slot_id）">
+                <span class="lab">槽位 ID <i class="code">slot_id</i></span>
                 <input id="f-slot-id" value="1" />
               </div>
-              <div class="field-mini">
-                <span class="lab">smart cooling</span>
+              <div class="field-mini" title="是否启用智能调速（smart cooling）">
+                <span class="lab">智能调速 <i class="code">smart_cooling</i></span>
                 <select id="f-smart-state">
-                  <option value="Enabled" selected>Enabled</option>
-                  <option value="Disabled">Disabled</option>
+                  <option value="Enabled" selected>启用 (Enabled)</option>
+                  <option value="Disabled">禁用 (Disabled)</option>
                 </select>
               </div>
-              <div class="field-mini">
-                <span class="lab">default duty (%)</span>
+              <div class="field-mini" title="无策略匹配时的默认占空比（default duty）">
+                <span class="lab">默认占空比 <i class="code">%</i></span>
                 <input id="f-default-duty" type="number" min="0" max="100" value="40" />
               </div>
-              <div class="field-mini">
-                <span class="lab">fan zones</span>
+              <div class="field-mini" title="风扇分区数量（fan zones）">
+                <span class="lab">风扇分区数 <i class="code">fan_zones</i></span>
                 <input id="f-fan-zones" type="number" min="1" max="8" value="2" />
               </div>
-              <div class="field-mini">
-                <span class="lab">psu calibration</span>
+              <div class="field-mini" title="电源风扇转速校准方式（psu calibration）">
+                <span class="lab">电源校准 <i class="code">psu_calibration</i></span>
                 <select id="f-psu-cal">
-                  <option>Enabled</option><option selected>Auto</option><option>Disabled</option>
+                  <option value="Enabled">启用 (Enabled)</option><option value="Auto" selected>自动 (Auto)</option><option value="Disabled">禁用 (Disabled)</option>
                 </select>
               </div>
-              <div class="field-mini">
-                <span class="lab">sample period (ms)</span>
+              <div class="field-mini" title="温度采样周期（sample period）">
+                <span class="lab">采样周期 <i class="code">ms</i></span>
                 <input id="f-sample-period" type="number" min="100" step="100" value="1000" />
               </div>
             </div>

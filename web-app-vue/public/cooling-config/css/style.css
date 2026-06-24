@@ -513,11 +513,11 @@ a { color: inherit; text-decoration: none; }
   min-width: 0;
 }
 .field-mini .lab {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  color: var(--text);
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 .field-mini input, .field-mini select {
@@ -579,12 +579,24 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 1;
 }
 .cell-lbl {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  color: var(--text);
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
   white-space: nowrap;
+}
+/* Codename annotation (YAML key / unit) shown beside the translated label */
+.cell-lbl .code, .field-mini .lab .code {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.75;
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
 }
 .cell input, .cell select {
   background: var(--bg);
