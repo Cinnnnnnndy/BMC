@@ -39,6 +39,15 @@ const RW_LABEL: Record<number, string> = { 0:'写 Write', 1:'读 Read' };
 const FUNC_OPTIONS: { hex: string; label: string }[] = Object.entries(FUNC_LOOKUP)
   .map(([code, label]) => ({ hex: '0x' + Number(code).toString(16).toUpperCase().padStart(2, '0'), label }));
 
+// Per-field hover tip (the old legend, now shown on bitmap hover).
+const FIELD_TIP: Record<FieldKey, string> = {
+  func:  '功能码 Function · [31:26] · 6 bit',
+  cmd:   '命令码 Command · [25:10] · 16 bit',
+  ms:    '读取方式 MS · [9] · 1 bit',
+  rw:    '读写方向 RW · [8] · 1 bit',
+  param: '参数 Param · [7:0] · 8 bit',
+};
+
 const HUE_COLOR: Record<FieldKey, string> = {
   func: '#f59e6b', cmd: '#4f6ef7', ms: '#a78bfa', rw: '#34d399', param: '#f5b454'
 };
@@ -53,6 +62,7 @@ const hexErr = ref('');
 const decErr = ref('');
 const copyFmt    = ref<'hex'|'dec'|'both'|'c'|'json'>('hex');
 const fmtOpen    = ref(false);
+const funcMenuOpen = ref(false);
 const copiedFld  = ref<FieldKey | null>(null);
 const copiedAll  = ref(false);
 const toastMsg   = ref('');
@@ -227,7 +237,13 @@ function showToast(msg: string) { toastMsg.value=msg; clearTimeout(toastTimer); 
 function onKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s') { e.preventDefault(); saveToHistory(); showToast('已保存当前结果'); }
 }
-function closeFmt(e: Event) { if (!(e.target as HTMLElement).closest?.('.split-btn')) fmtOpen.value=false; }
+function closeFmt(e: Event) {
+  const t = e.target as HTMLElement;
+  if (!t.closest?.('.split-btn'))  fmtOpen.value = false;
+  if (!t.closest?.('.func-picker')) funcMenuOpen.value = false;
+}
+// Pick a known Function code from the dropdown.
+function pickFunc(hex: string) { fieldTexts.func = hex; onFieldInput('func'); funcMenuOpen.value = false; }
 onMounted(() => {
   loadHistory();
   applyInbound();   // left linkage on first mount
@@ -247,7 +263,7 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
           <h1 class="page-title">SMC 偏移量计算器</h1>
           <span class="page-badge">32-bit · 双向</span>
         </div>
-        <div class="page-sub">功能码 · 命令码 · MS · RW · 参数，任意字段编辑后整体即时联动</div>
+        <div class="page-sub">一句话:把 SMC 寄存器访问的 32 位偏移量,在「整字 ⇄ 功能码 / 命令码 / MS / RW / 参数」之间双向实时编解码,十进制与十六进制随时互转。</div>
       </div>
       <div class="head-actions">
         <button class="btn btn-ghost" @click="reset">重置</button>
@@ -296,20 +312,21 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
     <div class="bitmap-card">
       <div class="section-h">
         <span class="sec-title">32-bit 位图</span>
-        <span class="sec-hint">MSB → LSB · 每格 1 bit · 颜色与下方字段对应</span>
+        <span class="sec-hint">MSB → LSB · 每格 1 bit · 悬停色块或某一位查看字段含义</span>
       </div>
       <div class="bit-grid-scroll">
         <div class="bit-grid">
-          <!-- Row 1: field bands -->
-          <div class="field-band hue-func"  style="grid-column: 1/7">Function<span class="seg-info">[31:26]</span></div>
-          <div class="field-band hue-cmd"   style="grid-column: 7/23">Command<span class="seg-info">[25:10]</span></div>
-          <div class="field-band hue-ms"    style="grid-column: 23/24">MS</div>
-          <div class="field-band hue-rw"    style="grid-column: 24/25">RW</div>
-          <div class="field-band hue-param" style="grid-column: 25/33">Param<span class="seg-info">[7:0]</span></div>
-          <!-- Row 2: bit cells -->
+          <!-- Row 1: field bands (hover = legend tip) -->
+          <div class="field-band hue-func"  style="grid-column: 1/7"  :title="FIELD_TIP.func">Function<span class="seg-info">[31:26]</span></div>
+          <div class="field-band hue-cmd"   style="grid-column: 7/23" :title="FIELD_TIP.cmd">Command<span class="seg-info">[25:10]</span></div>
+          <div class="field-band hue-ms"    style="grid-column: 23/24" :title="FIELD_TIP.ms">MS</div>
+          <div class="field-band hue-rw"    style="grid-column: 24/25" :title="FIELD_TIP.rw">RW</div>
+          <div class="field-band hue-param" style="grid-column: 25/33" :title="FIELD_TIP.param">Param<span class="seg-info">[7:0]</span></div>
+          <!-- Row 2: bit cells (hover = field + bit index) -->
           <div v-for="c in bitCells" :key="c.bitIdx"
             class="bit-cell"
-            :class="[`hue-${c.hue}`, { on: c.on, boundary: c.isBoundary }]">
+            :class="[`hue-${c.hue}`, { on: c.on, boundary: c.isBoundary }]"
+            :title="`${FIELD_TIP[c.hue]} · 第 ${c.bitIdx} 位`">
             {{ c.set ? (c.on ? '1' : '0') : '0' }}
           </div>
           <!-- Row 3: position labels -->
@@ -317,13 +334,6 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
             {{ c.isPosBound ? c.bitIdx : '' }}
           </div>
         </div>
-      </div>
-      <div class="legend">
-        <span class="lchip"><span class="sw sw-func"></span>功能码 Function · [31:26] · 6b</span>
-        <span class="lchip"><span class="sw sw-cmd"></span>命令码 Command · [25:10] · 16b</span>
-        <span class="lchip"><span class="sw sw-ms"></span>读取方式 MS · [9] · 1b</span>
-        <span class="lchip"><span class="sw sw-rw"></span>读写方向 RW · [8] · 1b</span>
-        <span class="lchip"><span class="sw sw-param"></span>参数 Param · [7:0] · 8b</span>
       </div>
     </div>
 
@@ -341,11 +351,20 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
             <span class="field-meta">[31:26] · 6b</span>
           </div>
           <div class="field-input-wrap" title="功能码：标识子系统（电源 / 风扇 / 温度…），可下拉选择已知代号或自由输入">
-            <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
-              :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" list="smc-func-list" autocomplete="off" spellcheck="false" />
-            <datalist id="smc-func-list">
-              <option v-for="o in FUNC_OPTIONS" :key="o.hex" :value="o.hex">{{ o.label }}</option>
-            </datalist>
+            <div class="func-picker">
+              <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
+                :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" autocomplete="off" spellcheck="false" />
+              <button type="button" class="func-caret" :class="{ open: funcMenuOpen }" title="已知功能码" @click.stop="funcMenuOpen = !funcMenuOpen">▾</button>
+              <div class="func-menu" :class="{ open: funcMenuOpen }">
+                <div class="func-menu-h">已知功能码</div>
+                <div class="func-opt" v-for="o in FUNC_OPTIONS" :key="o.hex"
+                  :class="{ active: fieldTexts.func.toLowerCase()===o.hex.toLowerCase() }" @click="pickFunc(o.hex)">
+                  <span class="fo-hex">{{ o.hex }}</span>
+                  <span class="fo-label">{{ o.label }}</span>
+                </div>
+                <div class="func-menu-note">其他值直接在左侧输入(0x00 – 0x3F)</div>
+              </div>
+            </div>
             <button class="field-copy" :class="{ copied: copiedFld==='func' }" :disabled="fieldVals.func===null" @click="copyFldBtn('func')">⧉</button>
           </div>
           <div class="field-foot">
@@ -387,21 +406,15 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
           </div>
           <div class="field-input-wrap"
             :title="k==='ms' ? '读取方式：多读=连续读取多个值，单读=单次读取' : k==='rw' ? '读写方向：0=写入，1=读取' : '参数：命令附带的 8 位参数'">
-            <!-- MS / RW are single-bit enums → dropdowns; Param stays free input -->
-            <select v-if="k==='ms' || k==='rw'" class="field-input field-select"
-              :class="{ invalid: fieldErrs[k] }"
-              :value="fieldVals[k]===null ? '' : String(fieldVals[k])"
-              @change="setBit(k, ($event.target as HTMLSelectElement).value)">
-              <option value="" disabled>—</option>
-              <template v-if="k==='ms'">
-                <option value="0">0 · 多读 (Multi-read)</option>
-                <option value="1">1 · 单读 (Single-read)</option>
-              </template>
-              <template v-else>
-                <option value="0">0 · 写 (Write)</option>
-                <option value="1">1 · 读 (Read)</option>
-              </template>
-            </select>
+            <!-- MS / RW are single-bit enums → segmented pills; Param stays free input -->
+            <div v-if="k==='ms' || k==='rw'" class="smc-pillset">
+              <button type="button" class="smc-pill p-write" :class="{ on: fieldVals[k]===0 }" @click="setBit(k,'0')">
+                <b>0</b> {{ k==='ms' ? '多读' : '写' }}
+              </button>
+              <button type="button" class="smc-pill p-read" :class="{ on: fieldVals[k]===1 }" @click="setBit(k,'1')">
+                <b>1</b> {{ k==='ms' ? '单读' : '读' }}
+              </button>
+            </div>
             <input v-else class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
               :class="{ invalid: fieldErrs[k] }"
               placeholder="0x00 / 0–255" autocomplete="off" spellcheck="false" />
@@ -645,9 +658,45 @@ export default { name: 'SmcOffsetView' };
 .field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .field-input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
 .field-input::placeholder { color: var(--placeholder); }
-.field-select { cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:24px;
-  background-image:linear-gradient(45deg,transparent 50%,var(--text-dim) 50%),linear-gradient(135deg,var(--text-dim) 50%,transparent 50%);
-  background-position:calc(100% - 13px) 16px,calc(100% - 8px) 16px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+/* Function code dropdown picker (known codes + meanings) */
+.func-picker { position:relative; flex:1; display:flex; min-width:0; }
+.func-picker .field-input { flex:1; padding-right:26px; }
+.func-caret {
+  position:absolute; right:1px; top:1px; bottom:1px; width:24px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; border:none; cursor:pointer; color:var(--text-dim);
+  font-size:11px; border-radius:0 var(--radius) var(--radius) 0;
+}
+.func-caret:hover, .func-caret.open { color:var(--accent); background:var(--accent-soft); }
+.func-menu {
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:30;
+  background:var(--bg); border:1px solid var(--border-s); border-radius:var(--radius);
+  box-shadow:0 8px 24px rgba(0,0,0,.4); padding:4px; display:none;
+}
+.func-menu.open { display:block; }
+.func-menu-h { font-size:10px; color:var(--text-dim); padding:4px 8px 2px; letter-spacing:.04em; }
+.func-opt {
+  display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer;
+}
+.func-opt:hover { background:var(--accent-soft); }
+.func-opt.active { background:var(--accent-soft); }
+.fo-hex { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--accent); min-width:42px; }
+.fo-label { font-size:12px; color:var(--text); }
+.func-menu-note { font-size:10px; color:var(--text-dim); padding:4px 8px 2px; border-top:1px solid var(--border); margin-top:2px; }
+
+/* Segmented pill selector for single-bit fields (MS / RW) */
+.smc-pillset { flex:1; display:flex; gap:6px; min-width:0; }
+.smc-pill {
+  flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  padding:7px 6px; border-radius:var(--radius); cursor:pointer;
+  background:var(--bg); border:1px solid var(--border-s); color:var(--text-dim);
+  font-family:inherit; font-size:12.5px; font-weight:500; transition:all .12s; white-space:nowrap;
+}
+.smc-pill b { font-family:var(--font-mono); font-weight:700; opacity:.85; }
+.smc-pill:hover { color:var(--text); border-color:var(--accent); }
+.smc-pill.on { color:#fff; border-color:transparent; }
+.smc-pill.p-write.on { background:#34d399; color:#06281d; }
+.smc-pill.p-read.on  { background:#4f6ef7; }
 .field-copy {
   width:30px; height:32px; padding:0; border-radius:var(--radius);
   background:transparent; border:1px solid var(--border); color:var(--text-dim);

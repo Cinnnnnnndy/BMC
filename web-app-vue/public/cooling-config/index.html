@@ -45,6 +45,8 @@
       </div>
     </div>
 
+    <div class="intro-bar">一句话:可视化编辑整机风扇<b>调速策略</b>(温度 → 转速曲线),把全局参数、温度点、风扇、策略、区域绑定等组装成完整闭环,并实时生成 <code>platform-thermal.yaml</code> 与 CSR 对象片段。</div>
+
     <div class="editor-layout" id="editor-layout">
 
       <!-- ══ YAML pane ══ -->
@@ -90,6 +92,7 @@
               <span class="order">①</span>
               <span class="h">全局配置 <span class="subt">slot_id · cooling_config</span></span>
             </div>
+            <div class="section-desc">整机调速的<b>总开关与兜底参数</b>：是否启用智能调速、无策略匹配时的默认转速、风扇分区数与温度采样周期。</div>
             <div class="global-grid">
               <div class="field-mini" title="设备槽位编号（slot_id）">
                 <span class="lab">槽位 ID <i class="code">slot_id</i></span>
@@ -132,6 +135,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="temp">+ 新增温度点</button>
             </div>
+            <div class="section-desc">声明要<b>监控的温度来源</b>（CPU / 内存 / 硬盘 / 进风口…），每个点绑定一个传感器路径，供下方「调速区域」引用。</div>
             <div class="row-list" id="list-temp"></div>
           </section>
 
@@ -144,6 +148,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="fan">+ 新增风扇</button>
             </div>
+            <div class="section-desc">登记机箱里每个<b>可调速风扇</b>及其位置、型号、占空比上下限——它们是调速的「执行器」，被「调速区域」控制。</div>
             <div class="row-list" id="list-fan"></div>
           </section>
 
@@ -156,6 +161,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="policy">+ 新增策略</button>
             </div>
+            <div class="section-desc">定义<b>「温度 → 转速」曲线</b>：在各温度区间给出对应转速 %，是调速的算法核心。可展开查看曲线图。</div>
             <div class="row-list" id="list-policy"></div>
           </section>
 
@@ -168,6 +174,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="area">+ 新增区域</button>
             </div>
+            <div class="section-desc">把【<b>温度点 + 策略 + 风扇</b>】绑在一起：某区域温度由谁监控、用哪条曲线、控制哪些风扇——前面几步在这里组装成完整闭环。</div>
 
             <!-- Server diagram -->
             <div class="server-diagram">
@@ -194,6 +201,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="fanType">+ 新增类型</button>
             </div>
+            <div class="section-desc"><b>风扇型号库</b>：转速范围、转子数等规格定义，供「③ 风扇」按名称引用，避免重复填写。</div>
             <div class="row-list" id="list-fantype"></div>
           </section>
 
@@ -206,6 +214,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="abnormalFan">+ 新增规则</button>
             </div>
+            <div class="section-desc"><b>风扇异常监控规则</b>：当某风扇出现卡死 / 无反馈 / 超速 / 欠速等情况时触发告警，保障散热可靠性。</div>
             <div class="row-list" id="list-abnormal"></div>
           </section>
 
@@ -218,6 +227,7 @@
               <span class="spacer"></span>
               <button class="add-btn" data-add="fanGroup">+ 新增风扇组</button>
             </div>
+            <div class="section-desc">把多个风扇<b>编成一组统一限制占空比</b>，便于按区域 / 模块整体管控转速。</div>
             <div class="row-list" id="list-fangroup"></div>
           </section>
 

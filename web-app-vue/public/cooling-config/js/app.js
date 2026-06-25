@@ -35,6 +35,28 @@ function codeOptions(values, labelMap, current) {
 /* 常见风扇安装位置（下拉建议，可自由输入） */
 const FAN_POSITIONS    = ['Front-Left','Front-Mid','Front-Right','Rear-Left','Rear-Mid','Rear-Right','Top','Bottom'];
 
+/* ── 分段彩色标签选择器（替代小枚举下拉，更直观）── */
+const COND_PILLS = [
+  { val: 'EnergySaving',    label: '节能',   cls: 'p-green' },
+  { val: 'Balanced',        label: '均衡',   cls: 'p-blue'  },
+  { val: 'HighPerformance', label: '高性能', cls: 'p-amber' },
+];
+const ABNORMAL_PILLS = [
+  { val: 'Stuck',      label: '卡死',   cls: 'p-red'    },
+  { val: 'NoFeedback', label: '无反馈', cls: 'p-orange' },
+  { val: 'Overspeed',  label: '超速',   cls: 'p-purple' },
+  { val: 'Underspeed', label: '欠速',   cls: 'p-cyan'   },
+];
+const ROTOR_PILLS = [
+  { val: 1, label: '单转子' }, { val: 2, label: '双转子' }, { val: 4, label: '四转子' },
+];
+/** Render a segmented pill selector. value = opt.val; active pill gets .on. */
+function pillGroup(k, current, opts) {
+  return `<div class="pillset" data-pk="${k}">` + opts.map(o =>
+    `<button type="button" class="pill ${o.cls || ''} ${String(o.val) === String(current) ? 'on' : ''}" data-pv="${o.val}">${o.label}</button>`
+  ).join('') + `</div>`;
+}
+
 /* ── Initial state ── */
 const state = {
   global: {
@@ -314,11 +336,9 @@ function renderPolicies() {
           <span class="cell-lbl">名称 <i class="code">name</i></span>
           <input data-k="name" value="${esc(p.name)}" />
         </div>
-        <div class="cell" style="width:190px;" title="触发工况：该策略在哪种能效模式下生效（exp_cond_val）">
+        <div class="cell" style="width:210px;" title="触发工况：该策略在哪种能效模式下生效（exp_cond_val）">
           <span class="cell-lbl">触发工况 <i class="code">exp_cond_val</i></span>
-          <select data-k="exp_cond_val">
-            ${codeOptions(COND_VALS, COND_LABEL, p.exp_cond_val)}
-          </select>
+          ${pillGroup('exp_cond_val', p.exp_cond_val, COND_PILLS)}
         </div>
         <div class="cell" title="温度→转速曲线预览">
           <span class="cell-lbl">曲线预览 · ${p.temperature_range_low.length} 段</span>
@@ -671,11 +691,9 @@ function renderFanTypes() {
         <span class="cell-lbl">最高转速 <i class="code">RPM</i></span>
         <input data-k="max_speed_rpm" type="number" value="${ft.max_speed_rpm}" />
       </div>
-      <div class="cell" style="width:90px;" title="转子数量：单转子/双转子（rotor_count）">
+      <div class="cell" style="width:170px;" title="转子数量：单转子/双转子（rotor_count）">
         <span class="cell-lbl">转子数 <i class="code">rotor_count</i></span>
-        <select data-k="rotor_count">
-          ${ROTOR_OPTIONS.map(v => `<option value="${v}" ${v===ft.rotor_count?'selected':''}>${v} 转子</option>`).join('')}
-        </select>
+        ${pillGroup('rotor_count', ft.rotor_count, ROTOR_PILLS)}
       </div>
       <button class="row-del" data-del title="删除">✕</button>
     </div>
@@ -703,11 +721,9 @@ function renderAbnormalFans() {
           ${state.fans.map(f => `<option value="${f.id}" ${f.id===af.fan_ref?'selected':''}>风扇 #${f.id} ${esc(f.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="cell" style="width:170px;" title="异常类型（abnormal_condition）">
+      <div class="cell" style="width:230px;" title="异常类型（abnormal_condition）">
         <span class="cell-lbl">异常条件 <i class="code">abnormal_condition</i></span>
-        <select data-k="abnormal_condition">
-          ${codeOptions(ABNORMAL_TYPES, ABNORMAL_LABEL, af.abnormal_condition)}
-        </select>
+        ${pillGroup('abnormal_condition', af.abnormal_condition, ABNORMAL_PILLS)}
       </div>
       <div class="cell" style="width:120px;" title="判定阈值转速（speed_threshold_rpm）">
         <span class="cell-lbl">阈值转速 <i class="code">RPM</i></span>
@@ -826,6 +842,19 @@ function bindRowEvents(host, arr, keys, opts) {
           }
         }
         if (row.dataset.kind === 'fan') updateFanTypeDatalist();
+      });
+    });
+    // Segmented pill selectors (data-pk) — set value + toggle active, no full re-render.
+    row.querySelectorAll('.pillset[data-pk]').forEach(ps => {
+      const k = ps.dataset.pk;
+      ps.querySelectorAll('[data-pv]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let v = btn.dataset.pv;
+          if (opts?.numKeys?.includes(k)) v = parseInt(v, 10) || 0;
+          arr[idx][k] = v;
+          ps.querySelectorAll('[data-pv]').forEach(b => b.classList.toggle('on', b === btn));
+          sideEffects();
+        });
       });
     });
   });
