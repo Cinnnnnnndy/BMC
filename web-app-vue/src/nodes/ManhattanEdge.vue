@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject, ref } from 'vue';
+import type { Ref } from 'vue';
 import type { EdgeProps } from '@vue-flow/core';
 
 const props = defineProps<EdgeProps>();
@@ -26,15 +27,25 @@ function manhattanPath(
   );
 }
 
-const sw       = computed(() => (props.style?.strokeWidth as number) ?? 1.5);
-const opacity  = computed(() => (props.style?.opacity as number) ?? 0.88);
-const dasharray = computed(() => props.style?.strokeDasharray as string | undefined);
-const color    = computed(() => (props.style?.stroke as string) ?? '#818cf8');
+// Receive active-group from TopologyView via provide/inject.
+// When another group's edge is clicked, this edge dims to 0.12.
+const activeGroupId = inject<Ref<string | null>>('activeGroupId', ref(null));
+const isHighlighted = computed(() =>
+  !activeGroupId.value || props.data?.groupId === activeGroupId.value,
+);
 
-// yOffAtTarget spreads parallel buses arriving at the same board card.
-// Slight laneX offset (×0.5) prevents total overlap on the vertical section.
+const sw        = computed(() => (props.style?.strokeWidth as number) ?? 1.5);
+const baseOpacity = computed(() => (props.style?.opacity as number) ?? 0.88);
+const dasharray = computed(() => props.style?.strokeDasharray as string | undefined);
+const color     = computed(() => (props.style?.stroke as string) ?? '#818cf8');
+
+// Dim non-highlighted edges; transition for smooth feel.
+const displayOpacity = computed(() => isHighlighted.value ? baseOpacity.value : 0.1);
+
+// yOffAtTarget spreads parallel buses at the board card.
+// Same offset applied to laneX so vertical sections also separate cleanly.
 const yOff  = computed(() => (props.data?.yOffAtTarget as number) ?? 0);
-const laneX = computed(() => props.sourceX + (props.data?.laneOffset as number ?? 80) + yOff.value * 0.5);
+const laneX = computed(() => props.sourceX + (props.data?.laneOffset as number ?? 80) + yOff.value);
 const ty    = computed(() => props.targetY + yOff.value);
 
 const path = computed(() =>
@@ -43,8 +54,8 @@ const path = computed(() =>
 </script>
 
 <template>
-  <!-- Mask path first: background-coloured, slightly wider — punches through
-       earlier edges at crossings. Later edges in SVG order naturally appear on top. -->
+  <!-- Mask path: background-coloured, slightly wider — punches through earlier
+       edges at crossings so each line reads cleanly without hover. -->
   <path
     :d="path"
     :stroke="BG"
@@ -52,7 +63,8 @@ const path = computed(() =>
     fill="none"
     stroke-linecap="round"
     stroke-linejoin="round"
-    style="pointer-events:none"
+    style="pointer-events:none;transition:opacity 0.18s"
+    :style="{ opacity: displayOpacity }"
   />
   <path
     :d="path"
@@ -61,6 +73,11 @@ const path = computed(() =>
     stroke-linejoin="round"
     :stroke-dasharray="dasharray"
     class="vue-flow__edge-path"
-    :style="{ stroke: color, strokeWidth: sw + 'px', opacity }"
+    style="transition:opacity 0.18s,stroke-width 0.18s"
+    :style="{
+      stroke: color,
+      strokeWidth: (isHighlighted ? sw + 0.5 : sw) + 'px',
+      opacity: displayOpacity,
+    }"
   />
 </template>

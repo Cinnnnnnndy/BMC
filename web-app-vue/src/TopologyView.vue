@@ -2,7 +2,7 @@
 // Unified topology view.
 // Layout: BMC → EXU → board groups (left → right, mind-map style).
 // Each card shows inline: header + SN/PN dropdown + I2C bus / mux / chip tree.
-import { computed, markRaw, onMounted, ref, watch } from 'vue';
+import { computed, markRaw, onMounted, provide, readonly, ref, watch } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -46,6 +46,11 @@ const { fitView } = useVueFlow();
 // ── State ──────────────────────────────────────────────────────────────
 const selectedByGroup = ref<Record<string, string>>({});
 const activeNode      = ref<AnyNode | null>(null);
+
+// Tracks which board-group's edges are highlighted (click to select, click canvas to clear).
+// Provided to ManhattanEdge via inject so non-matching edges dim reactively.
+const activeGroupId = ref<string | null>(null);
+provide('activeGroupId', readonly(activeGroupId));
 /** Groups plucked into the sidebar list only (state='unclassified'). */
 const unclassifiedGroups = ref<BoardGroup[]>([]);
 /** Id of the unclassified group currently being assigned (shows a popover). */
@@ -131,9 +136,17 @@ function assignTo(unclassifiedId: string, slotId: string) {
 // ── Interactions ───────────────────────────────────────────────────────
 function onNodeClick(ev: { node: AnyNode }) {
   activeNode.value = ev.node;
+  activeGroupId.value = null; // clicking a node clears edge highlight
+}
+function onEdgeClick(ev: { edge: AnyEdge; event: MouseEvent }) {
+  const gid = ev.edge.data?.groupId as string | undefined;
+  if (!gid) return;
+  // Toggle: clicking the same group again deselects.
+  activeGroupId.value = activeGroupId.value === gid ? null : gid;
 }
 function onPaneClick() {
   activeNode.value = null;
+  activeGroupId.value = null;
 }
 function handleResetLayout() {
   const next = buildMindmap(handleSelect, selectedByGroup.value);
@@ -354,6 +367,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         :elements-selectable="true"
         :pan-on-drag="true"
         @node-click="onNodeClick"
+        @edge-click="onEdgeClick"
         @pane-click="onPaneClick"
       >
         <Background pattern-color="#151528" :gap="24" :size="0.9" />

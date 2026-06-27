@@ -106,7 +106,7 @@ export function buildMindmap(
   // ── EXU column ────────────────────────────────────────────────────
   // Build per-group bus lists for round-robin slot assignment.
   // Groups with no buses get a single dummy slot so they still show an edge.
-  const SP = 4; // px between parallel lines at target card (flow coords)
+  const SP = 8; // px between parallel lines at target card (flow coords)
 
   const groupBuses = childGroups.map((g) => {
     const topology = getTopology(g.type, g.name);
@@ -188,7 +188,7 @@ export function buildMindmap(
   // and avoids max crossing overlap.
   const N = childGroups.length;
   const LANE_NEAR = 40;
-  const LANE_FAR  = 200;
+  const LANE_FAR  = 270;
   const laneStep  = N > 1 ? (LANE_FAR - LANE_NEAR) / (N - 1) : 0;
 
   for (let i = 0; i < childGroups.length; i++) {
@@ -235,7 +235,7 @@ export function buildMindmap(
           target:       nid,
           targetHandle: 'l',
           type:         'manhattan',
-          data:         { laneOffset, yOffAtTarget },
+          data:         { laneOffset, yOffAtTarget, groupId: nid },
           style: {
             stroke,
             strokeWidth:     1.5,
