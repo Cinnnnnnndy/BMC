@@ -107,7 +107,7 @@ export function buildMindmap(
   // ── EXU column ────────────────────────────────────────────────────
   // Build per-group bus lists for round-robin slot assignment.
   // Groups with no buses get a single dummy slot so they still show an edge.
-  const SP = 8; // px between parallel lines at target card (flow coords)
+  const SP = 5; // px between parallel lines — mask-width (sw+3.5=5) so masks just touch
 
   const groupBuses = childGroups.map((g) => {
     const topology = getTopology(g.type, g.name);
