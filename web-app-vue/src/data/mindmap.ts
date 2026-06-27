@@ -11,8 +11,9 @@ import { getTopology } from './boardTopologies';
 import { BUS_COLOR } from './palette';
 
 // ── Column X positions ────────────────────────────────────────────────
-// Wider gaps so smoothstep edge curves have room to fan out.
-const COL_X = [40, 510, 960];
+// EXU card is ~565 flow-units wide, so its right edge lands at ~1075.
+// Children must start after EXU right edge + LANE_FAR (270) + margin.
+const COL_X = [40, 510, 1450];
 
 // ── Node height estimates ─────────────────────────────────────────────
 // Each card = node-padding(22) + header(24) + combo-btn(24) +
