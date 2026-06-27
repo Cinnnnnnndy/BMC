@@ -47,10 +47,10 @@ const { fitView } = useVueFlow();
 const selectedByGroup = ref<Record<string, string>>({});
 const activeNode      = ref<AnyNode | null>(null);
 
-// Tracks which board-group's edges are highlighted (click to select, click canvas to clear).
-// Provided to ManhattanEdge via inject so non-matching edges dim reactively.
-const activeGroupId = ref<string | null>(null);
-provide('activeGroupId', readonly(activeGroupId));
+// Tracks the single selected edge id. Provided to ManhattanEdge via inject so all
+// other edges dim. Trunk (smoothstep) is unaffected — it stays visible as "upstream".
+const activeEdgeId = ref<string | null>(null);
+provide('activeEdgeId', readonly(activeEdgeId));
 /** Groups plucked into the sidebar list only (state='unclassified'). */
 const unclassifiedGroups = ref<BoardGroup[]>([]);
 /** Id of the unclassified group currently being assigned (shows a popover). */
@@ -136,17 +136,15 @@ function assignTo(unclassifiedId: string, slotId: string) {
 // ── Interactions ───────────────────────────────────────────────────────
 function onNodeClick(ev: { node: AnyNode }) {
   activeNode.value = ev.node;
-  activeGroupId.value = null; // clicking a node clears edge highlight
+  activeEdgeId.value = null;
 }
 function onEdgeClick(ev: { edge: AnyEdge; event: MouseEvent }) {
-  const gid = ev.edge.data?.groupId as string | undefined;
-  if (!gid) return;
-  // Toggle: clicking the same group again deselects.
-  activeGroupId.value = activeGroupId.value === gid ? null : gid;
+  const eid = ev.edge.id as string;
+  activeEdgeId.value = activeEdgeId.value === eid ? null : eid;
 }
 function onPaneClick() {
   activeNode.value = null;
-  activeGroupId.value = null;
+  activeEdgeId.value = null;
 }
 function handleResetLayout() {
   const next = buildMindmap(handleSelect, selectedByGroup.value);

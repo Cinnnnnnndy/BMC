@@ -27,11 +27,11 @@ function manhattanPath(
   );
 }
 
-// Receive active-group from TopologyView via provide/inject.
-// When another group's edge is clicked, this edge dims to 0.12.
-const activeGroupId = inject<Ref<string | null>>('activeGroupId', ref(null));
+// Receive the single active edge id from TopologyView.
+// When another edge is selected, this one dims. Trunk (smoothstep) is unaffected.
+const activeEdgeId = inject<Ref<string | null>>('activeEdgeId', ref(null));
 const isHighlighted = computed(() =>
-  !activeGroupId.value || props.data?.groupId === activeGroupId.value,
+  !activeEdgeId.value || props.id === activeEdgeId.value,
 );
 
 const sw        = computed(() => (props.style?.strokeWidth as number) ?? 1.5);
