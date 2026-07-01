@@ -13,7 +13,10 @@ function linkCode(): string | null {
 // selection while this tool is docked in split-screen.
 function applyInbound() {
   const ib = link.inbound.smc;
-  if (ib?.func) { fieldTexts.func = ib.func; onFieldInput('func'); }
+  if (ib?.func) {
+    fieldTexts.func = ib.func.replace(/^0x/i, '').toUpperCase().padStart(FIELDS.func.hexDigits, '0');
+    onFieldInput('func');
+  }
 }
 watch(() => link.inbound.smc?.ts, applyInbound);
 
@@ -88,11 +91,16 @@ function anySet(): boolean { return FIELD_ORDER.some(k => fieldVals[k] !== null)
 function fmtHex(w: number): string { return '0x' + pad(w.toString(16).toUpperCase(), 8); }
 
 /* ─── Parse ─────────────────────────────────────────────────────────────── */
-function parseLoose(raw: string, maxBits: number): { ok: boolean; value: number | null; err?: string } {
+function parseLoose(raw: string, maxBits: number, hexOnly = false): { ok: boolean; value: number | null; err?: string } {
   const s = raw.trim();
   if (!s) return { ok:true, value:null };
   let n: number;
-  if (/^0x/i.test(s)) {
+  if (hexOnly) {
+    // Field inputs show a fixed "0x" prefix — always parse as hex, strip prefix if accidentally typed.
+    const digits = s.replace(/^0x/i, '');
+    if (!/^[0-9a-f]+$/i.test(digits)) return { ok:false, value:null, err:'请输入十六进制数字' };
+    n = parseInt(digits, 16);
+  } else if (/^0x/i.test(s)) {
     if (!/^0x[0-9a-f]+$/i.test(s)) return { ok:false, value:null, err:'不是合法的十六进制' };
     n = parseInt(s.slice(2), 16);
   } else if (/^[0-9a-f]+$/i.test(s) && /[a-f]/i.test(s)) {
@@ -114,7 +122,7 @@ function syncFromWord(w: number, skip: 'hex'|'dec'|'') {
   const parts = decomposeWord(w);
   FIELD_ORDER.forEach(k => {
     fieldVals[k]  = parts[k];
-    fieldTexts[k] = '0x' + pad(parts[k].toString(16).toUpperCase(), FIELDS[k].hexDigits);
+    fieldTexts[k] = pad(parts[k].toString(16).toUpperCase(), FIELDS[k].hexDigits);
     fieldErrs[k]  = '';
   });
 }
@@ -131,14 +139,14 @@ function onTopInput(src: 'hex'|'dec') {
 }
 function onFieldInput(k: FieldKey) {
   fieldErrs[k] = '';
-  const r = parseLoose(fieldTexts[k], FIELDS[k].width);
+  const r = parseLoose(fieldTexts[k], FIELDS[k].width, true);
   if (!r.ok) { fieldErrs[k]=r.err||''; return; }
   fieldVals[k] = r.value;
   if (anySet()) { const w = composeWord(); hexVal.value=fmtHex(w); decVal.value=String(w); hexErr.value=''; decErr.value=''; }
 }
 function onFieldBlur(k: FieldKey) {
   const v = fieldVals[k];
-  if (v !== null) fieldTexts[k] = '0x' + pad(v.toString(16).toUpperCase(), FIELDS[k].hexDigits);
+  if (v !== null) fieldTexts[k] = pad(v.toString(16).toUpperCase(), FIELDS[k].hexDigits);
 }
 // Dropdown setter for single-bit fields (MS / RW) — keeps the offset in sync.
 function setBit(k: FieldKey, raw: string) { fieldTexts[k] = raw; onFieldInput(k); }
@@ -223,7 +231,7 @@ function loadHistory() {
 }
 function restoreHist(i: number) {
   const it=history.value[i]; if (!it) return;
-  FIELD_ORDER.forEach(k=>{ fieldVals[k]=it.parts[k]??0; fieldTexts[k]='0x'+pad((it.parts[k]??0).toString(16).toUpperCase(),FIELDS[k].hexDigits); fieldErrs[k]=''; });
+  FIELD_ORDER.forEach(k=>{ fieldVals[k]=it.parts[k]??0; fieldTexts[k]=pad((it.parts[k]??0).toString(16).toUpperCase(),FIELDS[k].hexDigits); fieldErrs[k]=''; });
   hexVal.value=fmtHex(it.word); decVal.value=String(it.word); hexErr.value=''; decErr.value='';
   showToast('已回填 '+fmtHex(it.word));
 }
@@ -243,7 +251,11 @@ function closeFmt(e: Event) {
   if (!t.closest?.('.func-picker')) funcMenuOpen.value = false;
 }
 // Pick a known Function code from the dropdown.
-function pickFunc(hex: string) { fieldTexts.func = hex; onFieldInput('func'); funcMenuOpen.value = false; }
+function pickFunc(hex: string) {
+  fieldTexts.func = hex.replace(/^0x/i, '').toUpperCase().padStart(FIELDS.func.hexDigits, '0');
+  onFieldInput('func');
+  funcMenuOpen.value = false;
+}
 onMounted(() => {
   loadHistory();
   applyInbound();   // left linkage on first mount
@@ -282,8 +294,14 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
       </div>
       <div class="off-row">
         <div class="offset-input-wrap" :class="{ invalid: hexErr, synced: anySet() && !hexErr }">
-          <div class="oiw-tag"><span>HEX · 0x...</span><span class="sync">●</span></div>
-          <input v-model="hexVal" @input="onTopInput('hex')" placeholder="0x00000000" autocomplete="off" spellcheck="false" />
+          <div class="oiw-tag"><span>HEX</span><span class="sync">●</span></div>
+          <div class="hex-input-row">
+            <span class="oiw-pfx">0x</span>
+            <input
+              :value="hexVal.replace(/^0x/i, '')"
+              @input="(e) => { hexVal = '0x' + (e.target as HTMLInputElement).value; onTopInput('hex'); }"
+              placeholder="00000000" autocomplete="off" spellcheck="false" />
+          </div>
         </div>
         <div class="offset-input-wrap" :class="{ invalid: decErr, synced: anySet() && !decErr }">
           <div class="oiw-tag"><span>DEC · 0 – 4 294 967 295</span><span class="sync">●</span></div>
@@ -352,17 +370,20 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
           </div>
           <div class="field-input-wrap" title="功能码：标识子系统（电源 / 风扇 / 温度…），可下拉选择已知代号或自由输入">
             <div class="func-picker">
-              <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
-                :class="{ invalid: fieldErrs.func }" placeholder="0x00 / 0–63" autocomplete="off" spellcheck="false" />
-              <button type="button" class="func-caret" :class="{ open: funcMenuOpen }" title="已知功能码" @click.stop="funcMenuOpen = !funcMenuOpen">▾</button>
+              <div class="hex-pfx-wrap" :class="{ invalid: fieldErrs.func }">
+                <span class="hex-pfx">0x</span>
+                <input class="field-input" v-model="fieldTexts.func" @input="onFieldInput('func')" @blur="onFieldBlur('func')"
+                  placeholder="00" autocomplete="off" spellcheck="false" />
+                <button type="button" class="func-caret" :class="{ open: funcMenuOpen }" title="已知功能码" @click.stop="funcMenuOpen = !funcMenuOpen">▾</button>
+              </div>
               <div class="func-menu" :class="{ open: funcMenuOpen }">
                 <div class="func-menu-h">已知功能码</div>
                 <div class="func-opt" v-for="o in FUNC_OPTIONS" :key="o.hex"
-                  :class="{ active: fieldTexts.func.toLowerCase()===o.hex.toLowerCase() }" @click="pickFunc(o.hex)">
+                  :class="{ active: fieldTexts.func.toUpperCase() === o.hex.replace(/^0x/i,'').toUpperCase() }" @click="pickFunc(o.hex)">
                   <span class="fo-hex">{{ o.hex }}</span>
                   <span class="fo-label">{{ o.label }}</span>
                 </div>
-                <div class="func-menu-note">其他值直接在左侧输入(0x00 – 0x3F)</div>
+                <div class="func-menu-note">其他值直接在左侧输入(00 – 3F)</div>
               </div>
             </div>
             <button class="field-copy" :class="{ copied: copiedFld==='func' }" :disabled="fieldVals.func===null" @click="copyFldBtn('func')">⧉</button>
@@ -381,8 +402,11 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
             <span class="field-meta">[25:10] · 16b · 0–0xFFFF</span>
           </div>
           <div class="field-input-wrap" title="命令码：在功能码下的具体操作编号">
-            <input class="field-input" v-model="fieldTexts.cmd" @input="onFieldInput('cmd')" @blur="onFieldBlur('cmd')"
-              :class="{ invalid: fieldErrs.cmd }" placeholder="0x0000 / 0–65535" autocomplete="off" spellcheck="false" />
+            <div class="hex-pfx-wrap" :class="{ invalid: fieldErrs.cmd }">
+              <span class="hex-pfx">0x</span>
+              <input class="field-input" v-model="fieldTexts.cmd" @input="onFieldInput('cmd')" @blur="onFieldBlur('cmd')"
+                placeholder="0000" autocomplete="off" spellcheck="false" />
+            </div>
             <button class="field-copy" :class="{ copied: copiedFld==='cmd' }" :disabled="fieldVals.cmd===null" @click="copyFldBtn('cmd')">⧉</button>
           </div>
           <div class="field-foot">
@@ -415,9 +439,11 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
                 <b>1</b> {{ k==='ms' ? '单读' : '读' }}
               </button>
             </div>
-            <input v-else class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
-              :class="{ invalid: fieldErrs[k] }"
-              placeholder="0x00 / 0–255" autocomplete="off" spellcheck="false" />
+            <div v-else class="hex-pfx-wrap" :class="{ invalid: fieldErrs[k] }">
+              <span class="hex-pfx">0x</span>
+              <input class="field-input" v-model="fieldTexts[k]" @input="onFieldInput(k)" @blur="onFieldBlur(k)"
+                placeholder="00" autocomplete="off" spellcheck="false" />
+            </div>
             <button class="field-copy" :class="{ copied: copiedFld===k }" :disabled="fieldVals[k]===null" @click="copyFldBtn(k)">⧉</button>
           </div>
           <div class="field-foot">
@@ -567,6 +593,9 @@ export default { name: 'SmcOffsetView' };
 .offset-input-wrap.synced .sync { color: var(--accent); }
 .offset-input-wrap input { background:transparent; border:0; color:var(--text); font-family:var(--font-mono); font-size:19px; font-weight:600; padding:0; outline:none; width:100%; letter-spacing:.02em; }
 .offset-input-wrap input::placeholder { color: var(--placeholder); font-weight: 500; }
+.hex-input-row { display:flex; align-items:center; gap:0; }
+.oiw-pfx { font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-dim); user-select:none; pointer-events:none; flex-shrink:0; }
+.hex-input-row input { flex:1; min-width:0; }
 
 .offset-actions { display: flex; align-items: stretch; }
 .split-btn { position: relative; display: flex; }
@@ -658,9 +687,26 @@ export default { name: 'SmcOffsetView' };
 .field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .field-input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
 .field-input::placeholder { color: var(--placeholder); }
+/* Hex prefix wrapper — field inputs with fixed "0x" prefix */
+.hex-pfx-wrap {
+  display:flex; align-items:center; background:var(--bg);
+  border:1px solid var(--border-s); border-radius:var(--radius);
+  overflow:hidden; flex:1; position:relative;
+  transition:border-color .12s, box-shadow .12s;
+}
+.hex-pfx-wrap:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.hex-pfx-wrap.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
+.hex-pfx {
+  padding:7px 2px 7px 10px; font-family:var(--font-mono); font-size:14px; font-weight:600;
+  color:var(--text-dim); user-select:none; pointer-events:none; flex-shrink:0;
+}
+.hex-pfx-wrap .field-input { border:none !important; box-shadow:none !important; background:transparent; padding-left:2px; }
+.hex-pfx-wrap .field-input:focus { border:none !important; box-shadow:none !important; }
+
 /* Function code dropdown picker (known codes + meanings) */
-.func-picker { position:relative; flex:1; display:flex; min-width:0; }
-.func-picker .field-input { flex:1; padding-right:26px; }
+.func-picker { position:relative; flex:1; display:flex; flex-direction:column; min-width:0; }
+.func-picker .hex-pfx-wrap { flex-direction:row; }
+.func-picker .field-input { padding-right:26px; }
 .func-caret {
   position:absolute; right:1px; top:1px; bottom:1px; width:24px;
   display:inline-flex; align-items:center; justify-content:center;
