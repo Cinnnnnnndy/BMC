@@ -855,6 +855,11 @@
   height: 30px;
   min-height: 30px;
   border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
   font: var(--ide-frame-title-font);
   color: var(--button-ghost-fg);
   transition:
