@@ -2,6 +2,7 @@
 @import './pto-foundation.css';
 @import './pto-semantic.css';
 @import './pto-components.css';
+@import './ide-frame.css';
 
 /* ── Bridge: legacy project variable names → PTO tokens ─────────────── */
 :root {

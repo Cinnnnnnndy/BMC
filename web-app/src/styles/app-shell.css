@@ -1,40 +1,27 @@
 /* ══════════════════════════════════════════════════════════════════════
-   App shell: Miro-style infinite canvas layout
+   App shell: brand / header identifiers (layout handled by ide-frame)
    ══════════════════════════════════════════════════════════════════════ */
 
-.app-shell {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: var(--background);
+/* ── Activity rail ── */
+.ide-activity-rail {
+  border-right: 1px solid var(--border-subtle);
+  gap: 0;
 }
 
-.app-main {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-/* ── Floating top bar — PTO toolbar style ── */
-.app-header {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-overlay);
-  height: var(--comp-toolbar-height);
-  width: auto;
-  max-width: calc(100vw - 48px);
-  border-radius: var(--radius-xl);
-  padding: 0 var(--space-3);
+.ide-rail-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  white-space: nowrap;
-  flex-shrink: 0;
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
+  gap: 6px;
+  padding: 10px 0;
+}
+
+/* ProjectList uses position:fixed to fill the viewport; override to absolute
+   so it's contained within the pane-body (which is position:relative). */
+.pto-ide-frame__pane-body .project-list-page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
 }
 
 .header-back {
@@ -243,6 +230,32 @@
 .muted-label {
   color: var(--foreground-muted);
   font-size: 12px;
+}
+
+/* ── Secondary (filled) button — consumes existing --button-secondary-* tokens ── */
+.btn-secondary {
+  height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--button-secondary-border);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-fg);
+  font: var(--button-font);
+  cursor: pointer;
+  transition: background var(--motion-smooth), color var(--motion-smooth), border-color var(--motion-smooth);
+}
+
+.btn-secondary:hover  { background: var(--button-secondary-bg-hover); }
+.btn-secondary:active { background: var(--button-secondary-bg-press); }
+
+/* Centered full-screen loading / empty state (VSCode context) */
+.view-loading {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground-muted);
+  font-size: 14px;
 }
 
 /* ── Tab control → PTO tab-control-item semantics ── */
