@@ -142,10 +142,10 @@ async function doWriteback() {
 
 .rail-right {
   flex-shrink: 0;
-  border-color: rgba(55, 138, 221, 0.4);
-  background: rgba(55, 138, 221, 0.10);
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
-.rail-code-label { color: #93c5fd; font-size: 11px; white-space: nowrap; }
+.rail-code-label { color: var(--foreground-secondary, #9aa0b8); font-size: 11px; white-space: nowrap; }
 .rail-writeback {
   all: unset;
   display: inline-flex;
@@ -153,13 +153,13 @@ async function doWriteback() {
   gap: 5px;
   padding: 4px 11px;
   border-radius: 6px;
-  background: rgba(55, 138, 221, 0.22);
-  border: 1px solid rgba(55, 138, 221, 0.5);
-  color: #bfdbfe;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--foreground-secondary, #9aa0b8);
   font-weight: 600;
   cursor: pointer;
 }
-.rail-writeback:hover { background: rgba(55, 138, 221, 0.34); }
+.rail-writeback:hover { background: rgba(255, 255, 255, 0.10); }
 
 .rail-toast {
   position: absolute;

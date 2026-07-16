@@ -673,28 +673,26 @@ export default { name: 'ExprCalcView' };
 </script>
 
 <style scoped>
-/* ── CSS Variables ─────────────────────────────────────────────────────── */
+/* ── Bridge: private vars → PTO design tokens ──────────────────────────── */
 .root {
-  --bg:          #0b0d12;
-  --bg-elev-1:   #0f1218;
-  --bg-elev-2:   #131826;
-  --bg-elev-3:   #171c2d;
-  --border:      #1e2240;
-  --border-s:    #2a3050;
-  --text:        #e6e8ef;
-  --text-mute:   #98a0b8;
-  --text-dim:    #5a6280;
-  --placeholder: #3a4470;
-  --accent:      #4f6ef7;
-  --accent-hi:   #6b87ff;
-  --accent-soft: rgba(79,110,247,0.12);
-  --ok:          #34d399;
-  --warn:        #f5b454;
-  --err:         #f06570;
-  --radius:      6px;
-  --radius-lg:   10px;
-  --font-mono:   ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-  --font-sans:   ui-sans-serif, -apple-system, 'Helvetica Neue', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --bg:          var(--background);
+  --bg-elev-1:   var(--background-elevated);
+  --bg-elev-2:   var(--surface-1);
+  --bg-elev-3:   var(--surface-2);
+  --border:      var(--border-subtle);
+  --border-s:    var(--border-default);
+  --text:        var(--foreground);
+  --text-mute:   var(--foreground-secondary);
+  --text-dim:    var(--foreground-muted);
+  --placeholder: var(--foreground-disabled);
+  --accent:      var(--primary);
+  --accent-hi:   var(--primary-hover);
+  --accent-soft: var(--state-selected);
+  --ok:          var(--success);
+  --warn:        var(--warning);
+  --err:         var(--danger);
+  --radius:      var(--radius-sm);
+  /* --radius-lg, --font-mono, --font-sans resolve from global PTO tokens */
 
   min-height: 100%;
   padding: 20px 28px 48px;
@@ -723,8 +721,8 @@ export default { name: 'ExprCalcView' };
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn-primary { background:var(--accent); color:#fff; }
 .btn-primary:hover:not(:disabled) { background:var(--accent-hi); }
-.btn-secondary { background:#1e2540; color:var(--text-mute); border-color:var(--border); }
-.btn-secondary:hover { color:var(--text); background:#232a4a; }
+.btn-secondary { background:var(--surface-2); color:var(--text-mute); border-color:var(--border); }
+.btn-secondary:hover { color:var(--text); background:var(--surface-3); }
 .btn-ghost { background:transparent; color:var(--text-mute); border-color:var(--border); border-radius:var(--radius); padding:5px 10px; cursor:pointer; font-size:12px; font-family:inherit; }
 .btn-ghost:hover { color:var(--text); border-color:var(--border-s); }
 .btn-ghost-sm { background:transparent; color:var(--text-dim); border:1px solid var(--border); border-radius:var(--radius); padding:0 10px; cursor:pointer; font-size:12px; font-family:inherit; height:38px; white-space:nowrap; }
@@ -827,7 +825,7 @@ export default { name: 'ExprCalcView' };
 .chip-pop {
   position:absolute; bottom:calc(100% + 6px); left:50%;
   transform:translateX(-50%) translateY(4px);
-  background:#0a0c12; border:1px solid var(--border-s); border-radius:6px;
+  background:var(--background); border:1px solid var(--border-s); border-radius:6px;
   padding:8px 10px; width:240px; z-index:30;
   box-shadow:0 10px 30px rgba(0,0,0,.6);
   opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; text-align:left;
@@ -894,7 +892,7 @@ export default { name: 'ExprCalcView' };
 }
 .final-lab { font-size:10.5px; color:var(--text-dim); margin-bottom:3px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; }
 .final-val { font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text); word-break:break-all; }
-.btn-copy-final { background:#1e2540; color:var(--text-mute); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px; cursor:pointer; font-size:12px; font-family:inherit; white-space:nowrap; transition:all .12s; }
+.btn-copy-final { background:var(--surface-2); color:var(--text-mute); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px; cursor:pointer; font-size:12px; font-family:inherit; white-space:nowrap; transition:all .12s; }
 .btn-copy-final:hover { color:var(--text); border-color:var(--border-s); }
 
 /* ── Phase 4 test cases ────────────────────────────────────────────────── */
@@ -953,7 +951,7 @@ export default { name: 'ExprCalcView' };
 
 /* ── History ───────────────────────────────────────────────────────────── */
 .hist-wrap { position:relative; }
-.hist-drop { position:absolute; right:0; top:calc(100% + 6px); z-index:200; background:#1a2240; border:1px solid var(--border); border-radius:8px; min-width:340px; max-height:280px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+.hist-drop { position:absolute; right:0; top:calc(100% + 6px); z-index:200; background:var(--surface-1); border:1px solid var(--border); border-radius:8px; min-width:340px; max-height:280px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.5); }
 .hist-hdr { padding:10px 14px 7px; font-size:12px; font-weight:600; color:var(--accent); border-bottom:1px solid var(--border); }
 .hist-empty { padding:12px 14px; font-size:12px; color:var(--text-dim); }
 .hist-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid rgba(42,48,80,.5); background:none; border-left:none; border-right:none; border-top:none; width:100%; text-align:left; font-family:inherit; color:inherit; }

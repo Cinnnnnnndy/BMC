@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI 助手</title>
+<style>
+:root {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.40);
+  --border-default: rgba(255,255,255,.10);
+  --border-subtle: rgba(255,255,255,.06);
+  --primary: #4369ef;
+  --success: #04d793;
+  --state-selected: rgba(67,105,239,.14);
+  --state-hover: rgba(255,255,255,.06);
+  --accent-purple: #a78bfa;
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+
+  --bg-base: var(--background);
+  --bg-panel2: var(--surface-1);
+  --bg-hover: var(--surface-2);
+  --bg-active: var(--surface-3);
+  --bg-selected: var(--state-selected);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--foreground-secondary);
+  --text-muted: var(--foreground-muted);
+  --border: var(--border-default);
+  --accent-blue: var(--primary);
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--bg-panel2);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 42px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ph-icon { font-size: 14px; line-height: 1; }
+.ph-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1 1 auto; }
+.badge-beta {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-purple) 18%, transparent);
+  color: var(--accent-purple);
+  letter-spacing: .04em;
+}
+.ph-act-btn {
+  padding: 2px 10px; background: transparent; border: none;
+  border-radius: 4px; color: var(--text-secondary);
+  font-size: 11px; font-family: inherit; cursor: pointer; transition: .15s;
+}
+.ph-act-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.panel-body {
+  flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1 1 0; min-height: 0;
+  overflow-y: auto; padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-messages::-webkit-scrollbar { width: 5px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+
+.chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+.chat-msg.user { flex-direction: row-reverse; }
+
+.cm-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg-active);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--accent-blue); flex-shrink: 0;
+}
+.chat-msg.user .cm-avatar { color: var(--success); }
+
+.cm-bubble {
+  max-width: 85%; padding: 9px 12px;
+  border-radius: 0 10px 10px 10px;
+  font-size: 13px; line-height: 1.65;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.chat-msg.user .cm-bubble {
+  background: var(--accent-blue);
+  border-color: transparent;
+  color: #fff;
+  border-radius: 10px 10px 0 10px;
+}
+.cm-bubble code {
+  background: var(--bg-base); padding: 1px 4px; border-radius: 3px;
+  font-size: 11px; color: var(--accent-blue); font-family: var(--font-mono);
+}
+
+.suggestions {
+  padding: 4px 12px 10px;
+  display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
+}
+.sug-btn {
+  font-size: 11px; height: 24px; padding: 0 10px; border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-hover); color: var(--text-secondary);
+  cursor: pointer; font-family: inherit; white-space: nowrap; transition: .15s;
+}
+.sug-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+
+.chat-input-area {
+  display: flex; gap: 8px;
+  padding: 8px 12px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.chat-input {
+  flex: 1 1 0; background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: 10px; padding: 8px 12px;
+  color: var(--text-primary); font-size: 13px; font-family: inherit;
+  resize: none; height: 52px; line-height: 1.5; outline: none; transition: border-color .15s;
+}
+.chat-input:focus { border-color: var(--accent-blue); }
+.chat-send {
+  width: 36px; height: 52px;
+  background: var(--accent-blue); border: none; border-radius: 10px;
+  color: #fff; font-size: 16px; cursor: pointer; transition: background .15s; flex-shrink: 0;
+}
+.chat-send:hover { background: #5a92e6; }
+.chat-send:disabled { background: var(--bg-active); color: var(--text-muted); cursor: default; }
+
+.typing-dots { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+.typing-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes typing-bounce {
+  0%,60%,100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="panel-header">
+    <span class="ph-icon" style="color:#a78bfa">✦</span>
+    <span class="ph-title">AI 助手</span>
+    <span class="badge-beta">BETA</span>
+    <button class="ph-act-btn" onclick="clearChat()">清空</button>
+  </div>
+
+  <div class="panel-body">
+    <div class="chat-messages" id="chat-log">
+      <div class="chat-msg ai">
+        <div class="cm-avatar">AI</div>
+        <div class="cm-bubble">你好！我是 openUBMC Studio 助手。<br>请描述你的问题，例如：如何添加 BMC 连接、查看传感器配置…</div>
+      </div>
+    </div>
+
+    <div class="suggestions">
+      <button class="sug-btn" onclick="fillInput('如何添加 BMC 连接')">如何添加 BMC 连接</button>
+      <button class="sug-btn" onclick="fillInput('SSH 终端怎么用')">SSH 终端怎么用</button>
+      <button class="sug-btn" onclick="fillInput('快捷命令使用说明')">快捷命令使用说明</button>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chat-input"
+        placeholder="描述你的问题，Enter 发送，Shift+Enter 换行…"
+        onkeydown="handleKey(event)"></textarea>
+      <button class="chat-send" id="send-btn" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INIT = '你好！我是 openUBMC Studio 助手。\n请描述你的问题，例如：如何添加 BMC 连接、查看传感器配置…';
+let thinking = false;
+
+const RULES = [
+  [['bmc','连接','添加'], '在「BMC 环境」视图中点击「+ 分组」创建分组，再点击分组右侧的「+」新建连接。填写主机 IP、用户名后保存即可。'],
+  [['健康','ping','可达'], '选中连接后，点击详情页中的「健康检查」按钮，系统会对 SSH 端口（22）进行探测并更新状态指示灯。'],
+  [['ssh'], '在连接详情页点击「SSH 终端」按钮，会生成 `ssh://user@host:port` 链接。在 VS Code 扩展环境中，该链接会直接开启集成终端并登录 BMC。'],
+  [['快捷命令','macro','command'], '切换到「快捷命令」标签，点击「+ 新建」填写命令名称和 shell 命令。在列表中点击复制按钮可将命令快速复制到剪贴板。'],
+  [['csr','拓扑'], '在「拓扑视图」可以查看和编辑 CSR 管理拓扑，支持 .sr/.json 格式。请先从「项目列表」加载项目或上传自定义 CSR 文件。'],
+  [['传感器','sensor'], '传感器配置在「传感器配置」视图中，需先加载 CSR 文件。支持 SDR 传感器类型定义和阈值配置。'],
+  [['事件','event','ipmi'], '事件配置在「事件配置」视图中，用于 IPMI/Redfish 事件和告警定义。支持导入 event_def.json 进行批量配置。'],
+  [['3d','三维','仿真'], '「3D仿真」视图支持服务器整机的三维可视化交互，可以查看物理结构和部件布局。'],
+  [['smc','偏移','寄存器'], '「SMC计算」工具支持功能码/命令码/参数字段解析，以及十进制与十六进制互转，方便 SMC 寄存器调试。'],
+  [['你好','hello','hi'], '你好！我是 openUBMC Studio 助手，可以帮你了解 BMC 环境管理、CSR 拓扑、传感器配置等功能。请问有什么需要帮助的？'],
+  [['功能','能做什么','帮助'], 'openUBMC Studio 主要功能：\n• BMC 环境管理（SSH/Telnet/WebUI 连接）\n• 快捷命令（批量命令复制/执行）\n• CSR 拓扑可视化与编辑\n• 传感器 / 事件 / 仿真配置\n• SMC 寄存器计算与 3D 仿真视图'],
+];
+
+function respond(q) {
+  const s = q.toLowerCase();
+  for (const [keys, reply] of RULES) {
+    if (keys.some(k => s.includes(k))) return reply;
+  }
+  return '抱歉，我暂时无法理解这个问题。可以问我关于 BMC 连接管理、快捷命令、CSR 拓扑、传感器配置等话题。';
+}
+
+function fillInput(text) {
+  const el = document.getElementById('chat-input');
+  el.value = text; el.focus();
+}
+
+function clearChat() {
+  document.getElementById('chat-log').innerHTML = '';
+  appendMsg('ai', INIT);
+}
+
+function appendMsg(role, text) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  const av = document.createElement('div');
+  av.className = 'cm-avatar';
+  av.textContent = role === 'ai' ? 'AI' : 'ME';
+  const bub = document.createElement('div');
+  bub.className = 'cm-bubble';
+  bub.innerHTML = text.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
+  div.appendChild(av); div.appendChild(bub);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showTyping() {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ai'; div.id = 'typing';
+  div.innerHTML = '<div class="cm-avatar">AI</div><div class="cm-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+function sendMsg() {
+  if (thinking) return;
+  const el = document.getElementById('chat-input');
+  const text = el.value.trim();
+  if (!text) return;
+  el.value = '';
+  appendMsg('user', text);
+  thinking = true;
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    appendMsg('ai', respond(text));
+    thinking = false;
+    document.getElementById('send-btn').disabled = false;
+  }, 600 + Math.random() * 500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+</script>
+</body>
+</html>

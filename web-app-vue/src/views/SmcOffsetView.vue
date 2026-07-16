@@ -487,32 +487,32 @@ export default { name: 'SmcOffsetView' };
 </script>
 
 <style scoped>
-/* ── CSS Variables ─────────────────────────────────────────────────────── */
+/* ── Bridge: private vars → PTO design tokens ──────────────────────────── */
 .root {
-  --bg:          #0b0d12;
-  --bg-elev-1:   #0f1218;
-  --bg-elev-2:   #131826;
-  --bg-elev-3:   #171c2d;
-  --border:      #1e2240;
-  --border-s:    #2a3050;
-  --text:        #e6e8ef;
-  --text-mute:   #98a0b8;
-  --text-dim:    #5a6280;
-  --placeholder: #3a4470;
-  --accent:      #4f6ef7;
-  --accent-hi:   #6b87ff;
-  --accent-soft: rgba(79,110,247,0.12);
-  --ok:          #34d399;
-  --err:         #f06570;
+  --bg:          var(--background);
+  --bg-elev-1:   var(--background-elevated);
+  --bg-elev-2:   var(--surface-1);
+  --bg-elev-3:   var(--surface-2);
+  --border:      var(--border-subtle);
+  --border-s:    var(--border-default);
+  --text:        var(--foreground);
+  --text-mute:   var(--foreground-secondary);
+  --text-dim:    var(--foreground-muted);
+  --placeholder: var(--foreground-disabled);
+  --accent:      var(--primary);
+  --accent-hi:   var(--primary-hover);
+  --accent-soft: var(--state-selected);
+  --ok:          var(--success);
+  --err:         var(--danger);
+  --radius:      var(--radius-sm);
+  /* --radius-lg, --font-mono, --font-sans resolve from global PTO tokens */
+
+  /* ── Data-viz-exempt: SMC field segment colors ─────────────────────────── */
   --hue-func:    #f59e6b;
   --hue-cmd:     #4f6ef7;
   --hue-ms:      #a78bfa;
   --hue-rw:      #34d399;
   --hue-param:   #f5b454;
-  --radius:      6px;
-  --radius-lg:   10px;
-  --font-mono:   ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-  --font-sans:   ui-sans-serif, -apple-system, 'Helvetica Neue', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
   min-height: 100%;
   padding: 20px 28px 48px;
@@ -561,8 +561,8 @@ export default { name: 'SmcOffsetView' };
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hi); }
 .btn-primary:disabled { background: #2a3050; color: var(--text-dim); cursor: not-allowed; }
-.btn-secondary { background: #1e2540; color: var(--text-mute); border-color: var(--border); }
-.btn-secondary:hover { color: var(--text); background: #232a4a; }
+.btn-secondary { background: var(--surface-2); color: var(--text-mute); border-color: var(--border); }
+.btn-secondary:hover { color: var(--text); background: var(--surface-3); }
 .btn-ghost { background: transparent; color: var(--text-mute); border-color: var(--border); }
 .btn-ghost:hover { color: var(--text); border-color: var(--border-s); }
 .btn-xs { height: 22px; padding: 0 8px; font-size: 11px; }
@@ -780,7 +780,7 @@ export default { name: 'SmcOffsetView' };
 /* ── Toast ─────────────────────────────────────────────────────────────── */
 .toast {
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-  background:#0a0c12; border:1px solid var(--border-s); color:var(--text);
+  background:var(--background); border:1px solid var(--border-s); color:var(--text);
   padding:8px 14px; border-radius:6px; font-size:12px;
   opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30;
   box-shadow:0 10px 30px rgba(0,0,0,.55);

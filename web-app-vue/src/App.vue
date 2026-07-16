@@ -7,14 +7,13 @@ import ExprCalcView      from './views/ExprCalcView.vue';
 import CoolingConfigView from './views/CoolingConfigView.vue';
 import { useLinkage, type ToolId } from './composables/useLinkage';
 
-const { state: link, setAnchor, toggleDock, closeDock } = useLinkage();
+const { state: link, setAnchor, closeDock } = useLinkage();
 
 const toolMeta: Record<ToolId, { label: string; icon: string }> = {
   smc:     { label: 'SMC 偏移量计算器', icon: '🧮' },
   expr:    { label: '批量表达式计算器', icon: '⚙' },
   cooling: { label: '能效调速配置模板', icon: '❄' },
 };
-const toolOrder: ToolId[] = ['smc', 'expr', 'cooling'];
 
 // Hash / query entry (#smc, ?tab=expr …): dock that tool beside topology.
 (function initFromHash() {
@@ -23,6 +22,10 @@ const toolOrder: ToolId[] = ['smc', 'expr', 'cooling'];
   const c = (hash || param || '') as string;
   if (c === 'smc' || c === 'expr' || c === 'cooling') link.dockTool = c as ToolId;
 })();
+
+// Solo mode: show only the tool panel, no topology canvas, no toolbar.
+// Activated via ?solo=true (used when embedded in the IDE rail as standalone views).
+const soloMode = new URLSearchParams(location.search).get('solo') === 'true';
 
 // ── Split-pane resizer ───────────────────────────────────────────────────
 const dockWidth = ref(46); // dock pane width, % of viewport
@@ -52,8 +55,8 @@ watch(() => [link.dockTool, dockWidth.value], () => {
 
 <template>
   <div class="app-root">
-    <!-- Toolbar: topology anchor on the left, tool dock-toggles on the right -->
-    <nav class="tab-bar">
+    <!-- Toolbar: only shown in normal (non-solo) mode -->
+    <nav v-if="!soloMode" class="tab-bar">
       <button
         class="tab-btn"
         :class="{ active: link.anchor === 'topology' }"
@@ -70,32 +73,24 @@ watch(() => [link.dockTool, dockWidth.value], () => {
         <span class="tab-icon">{ }</span>
         <span class="tab-label">代码</span>
       </button>
-
-      <span class="tab-flex" />
-      <span class="tab-group-label">联动工具 · 分屏</span>
-      <button
-        v-for="t in toolOrder"
-        :key="t"
-        class="tab-btn tool-toggle"
-        :class="{ active: link.dockTool === t }"
-        @click="toggleDock(t)"
-      >
-        <span class="tab-icon">{{ toolMeta[t].icon }}</span>
-        <span class="tab-label">{{ toolMeta[t].label }}</span>
-      </button>
     </nav>
 
     <!-- View area: anchor (left) + optional docked tool (right) -->
-    <div class="view-area" :class="{ split: link.dockTool }">
-      <div class="pane pane-main">
+    <div class="view-area" :class="{ split: link.dockTool && !soloMode }">
+      <!-- Topology / code pane — hidden in solo mode -->
+      <div v-if="!soloMode" class="pane pane-main">
         <TopologyView v-show="link.anchor === 'topology'" />
         <CodeView v-if="link.anchor === 'code'" />
       </div>
 
       <template v-if="link.dockTool">
-        <div class="splitter" @mousedown="startDrag" title="拖动调整分屏宽度" />
-        <div class="pane pane-dock" :style="{ width: dockWidth + '%' }">
-          <div class="dock-head">
+        <div v-if="!soloMode" class="splitter" @mousedown="startDrag" title="拖动调整分屏宽度" />
+        <div
+          class="pane pane-dock"
+          :class="{ 'pane-solo': soloMode }"
+          :style="soloMode ? {} : { width: dockWidth + '%' }"
+        >
+          <div v-if="!soloMode" class="dock-head">
             <span class="dock-title">{{ toolMeta[link.dockTool].icon }} {{ toolMeta[link.dockTool].label }}</span>
             <span class="dock-hint">分屏联动 · 与拓扑实时同步</span>
             <button class="dock-close" aria-label="关闭分屏" @click="closeDock">✕</button>
@@ -195,6 +190,7 @@ watch(() => [link.dockTool, dockWidth.value], () => {
 }
 .pane { height: 100%; min-width: 0; position: relative; }
 .pane-main { flex: 1; }
+.pane-solo { flex: 1; width: 100% !important; }
 .pane-dock {
   flex-shrink: 0;
   display: flex;

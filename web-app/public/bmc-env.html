@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>BMC 环境管理 · UI 预览 v3 · PTO</title>
+<style>
+/* ── PTO Foundation Tokens ── */
+:root {
+  --ark-neutral-0:#0b0b0b;--ark-neutral-1:#101010;--ark-neutral-2:#141414;--ark-neutral-3:#1a1a1a;--ark-neutral-4:#343434;
+  --ark-blue-500:#4369efff;--ark-blue-600:#5a92e6;--ark-domain-aux:#7c8db8;
+  --ark-green-500:#04d793ff;--ark-orange-500:#ffaa3bff;--ark-red-500:#ff4b7bff;
+  --font-sans:'Inter','Source Han Sans SC','PingFang SC','Noto Sans SC',sans-serif;
+  --font-mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;
+  --radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;--radius-pill:999px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.28);--shadow-md:0 6px 18px rgba(0,0,0,.34);--shadow-lg:0 12px 30px rgba(0,0,0,.42);
+  --duration-fast:100ms;--duration-base:200ms;--easing-default:cubic-bezier(.4,0,.2,1);
+}
+/* ── PTO Semantic Tokens ── */
+:root,[data-theme="dark"] {
+  --background:#101010;--background-elevated:#141414;
+  --surface-1:#161616;--surface-2:#1c1c1c;--surface-3:#262626;--surface-4:#313131;
+  --foreground:rgba(255,255,255,.90);--foreground-secondary:rgba(255,255,255,.60);
+  --foreground-muted:rgba(255,255,255,.40);--foreground-disabled:rgba(255,255,255,.25);
+  --border-subtle:rgba(255,255,255,.06);--border-default:rgba(255,255,255,.10);--border-strong:rgba(255,255,255,.16);
+  --primary:#4369ef;--primary-hover:#5a92e6;--primary-foreground:#f5f9ff;
+  --accent:#7c8db8;--success:#04d793;--warning:#ffaa3b;--danger:#ff4b7b;
+  --tone-critical-bg:color-mix(in srgb,#ff4b7b 14%,transparent);
+  --tone-warning-bg:color-mix(in srgb,#ffaa3b 16%,transparent);
+  --tone-info-bg:color-mix(in srgb,#4369ef 16%,transparent);
+  --tone-green-strong:color-mix(in srgb,#04d793 22%,transparent);
+  --focus-ring:rgba(67,105,239,.42);
+  --state-hover:rgba(255,255,255,.06);--state-press:rgba(255,255,255,.10);
+  --state-selected:rgba(67,105,239,.14);
+  --text-display:700 28px/1.25 var(--font-sans);
+  --text-title-1:600 20px/1.30 var(--font-sans);
+  --text-title-2:600 16px/1.30 var(--font-sans);
+  --text-body:400 14px/1.50 var(--font-sans);
+  --text-body-sm:400 12px/1.50 var(--font-sans);
+  --text-label:500 11px/1.20 var(--font-sans);
+  --text-mono:500 12px/1.40 var(--font-mono);
+  --tag-height:20px;
+  --button-radius:var(--radius-lg);
+  --input-bg:var(--surface-1);--input-border:var(--border-default);--input-radius:var(--radius-md);
+}
+/* ── Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--background);color:var(--foreground);font:var(--text-body);font-family:var(--font-sans);overflow:hidden}
+svg{display:inline-block;vertical-align:middle}
+
+/* ── Shell ── */
+.shell{display:flex;height:100vh;flex-direction:column}
+.mid{display:flex;flex:1;overflow:hidden}
+
+/* ── Activity Bar ── */
+.ab{width:48px;background:color-mix(in srgb,var(--background) 92%,black);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;align-items:center;padding-top:var(--space-2);flex-shrink:0;gap:2px}
+.ab-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--foreground-muted);border-radius:var(--radius-md);transition:color var(--duration-fast),background var(--duration-fast)}
+.ab-icon.active{color:var(--foreground);background:var(--state-selected)}
+.ab-icon:hover:not(.active){color:var(--foreground-secondary);background:var(--state-hover)}
+
+/* ── Side Panel ── */
+.side{width:280px;background:var(--surface-2);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-3) 0 var(--space-4);height:44px;font:var(--text-label);text-transform:uppercase;letter-spacing:.06em;color:var(--foreground-secondary);user-select:none;flex-shrink:0;border-bottom:1px solid var(--border-subtle)}
+.ph-actions{display:flex;gap:2px}
+.ib{background:none;border:none;color:var(--foreground-muted);cursor:pointer;padding:5px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;transition:color var(--duration-fast),background var(--duration-fast)}
+.ib:hover{color:var(--foreground-secondary);background:var(--state-hover)}
+.tree-sec{display:flex;flex-direction:column;overflow:hidden}
+.tree-sec:first-child{flex:1 1 60%}
+.tree-sec:last-child{flex:1 1 40%;border-top:1px solid var(--border-subtle)}
+.sec-hd{display:flex;align-items:center;padding:0 var(--space-2) 0 var(--space-3);height:32px;font:var(--text-label);text-transform:uppercase;letter-spacing:.06em;color:var(--foreground-muted);cursor:pointer;user-select:none;flex-shrink:0;gap:var(--space-1)}
+.sec-hd:hover{color:var(--foreground-secondary)}
+.sec-hd .sec-acts{margin-left:auto;display:flex;gap:2px}
+.tree{overflow-y:auto;flex:1}
+.tree::-webkit-scrollbar{width:5px}
+.tree::-webkit-scrollbar-thumb{background:var(--border-subtle);border-radius:var(--radius-pill)}
+
+/* Tree rows */
+.g-row{display:flex;align-items:center;padding:0 var(--space-2) 0 var(--space-3);height:28px;cursor:pointer;user-select:none;gap:var(--space-2)}
+.g-row:hover{background:var(--state-hover)}
+.g-name{font:var(--text-body-sm);color:var(--foreground-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g-badge{font:var(--text-label);padding:2px var(--space-2);border-radius:var(--radius-pill);height:var(--tag-height);display:flex;align-items:center;background:var(--tone-green-strong);color:var(--success)}
+.g-badge.warn{background:var(--tone-critical-bg);color:var(--danger)}
+.c-row{display:flex;align-items:center;padding:0 var(--space-3) 0 28px;height:28px;cursor:pointer;user-select:none;gap:var(--space-2)}
+.c-row:hover{background:var(--state-hover)}
+.c-row.active{background:var(--state-selected)}
+.c-row.active .c-name{color:var(--foreground)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;cursor:help}
+.dot.connected{background:var(--success);box-shadow:0 0 6px color-mix(in srgb,var(--success) 55%,transparent)}
+.dot.reachable{border:1.5px solid var(--success)}
+.dot.unreachable{border:1.5px solid var(--danger)}
+.dot.checking{border:1.5px solid var(--warning);border-top-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.c-name{font:var(--text-body-sm);color:var(--foreground-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-host{font:var(--text-label);font-family:var(--font-mono);color:var(--foreground-muted);flex-shrink:0}
+.c-marks{display:flex;gap:3px;flex-shrink:0;color:var(--foreground-muted)}
+.m-row{display:flex;align-items:center;padding:0 var(--space-3);height:30px;cursor:pointer;user-select:none;gap:var(--space-2)}
+.m-row:hover{background:var(--state-hover)}
+.m-name{font:var(--text-body-sm);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-meta{font:var(--text-label);color:var(--foreground-muted);white-space:nowrap}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--background)}
+.tab-bar{height:36px;background:var(--surface-1);border-bottom:1px solid var(--border-subtle);display:flex;align-items:stretch;flex-shrink:0}
+.tab{padding:0 var(--space-4);display:flex;align-items:center;font:var(--text-body-sm);cursor:pointer;color:var(--foreground-muted);border-right:1px solid var(--border-subtle);position:relative;user-select:none;transition:color var(--duration-fast)}
+.tab.active{color:var(--foreground)}
+.tab.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--primary)}
+.content-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.content{flex:1;overflow-y:auto;padding:var(--space-5) var(--space-6);display:flex;gap:var(--space-4)}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--border-subtle);border-radius:var(--radius-pill)}
+
+/* ── Stat Cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-4)}
+.stat-card{background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-4) var(--space-3);transition:border-color var(--duration-fast)}
+.stat-card:hover{border-color:var(--border-strong)}
+.stat-card .s-val{font:700 26px/1 var(--font-sans);margin-bottom:6px}
+.stat-card .s-lbl{font:var(--text-label);color:var(--foreground-muted)}
+.recent-box{background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-4)}
+.recent-box .rb-title{font:var(--text-body-sm);font-weight:600;color:var(--foreground-secondary);margin-bottom:var(--space-3)}
+.recent-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--surface-2);border-radius:var(--radius-md);margin-bottom:var(--space-2)}
+.recent-row:last-child{margin-bottom:0}
+.rr-name{font:var(--text-body-sm);flex:1}
+.rr-scope{font:var(--text-label);color:var(--foreground-muted);white-space:nowrap}
+.rr-ok{font:var(--text-label);color:var(--success);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.rr-err{font:var(--text-label);color:var(--danger);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.info-note{background:var(--tone-info-bg);border:1px solid color-mix(in srgb,var(--primary) 28%,transparent);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.7}
+.info-note strong{color:var(--primary)}
+.info-note code{font-family:var(--font-mono);font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+
+/* ── Conn Detail ── */
+.conn-detail{background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5);flex:0 0 360px;overflow-y:auto}
+.cd-hd{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-2)}
+.cd-name{font:var(--text-title-2)}
+.cd-status-label{font:var(--text-body-sm);margin-bottom:var(--space-4);padding-left:calc(10px + var(--space-3))}
+.cd-section{font:var(--text-label);text-transform:uppercase;letter-spacing:.06em;color:var(--foreground-muted);margin:var(--space-3) 0 var(--space-2);display:flex;align-items:center;gap:var(--space-2);user-select:none}
+.cd-section.collapsible{cursor:pointer}
+.cd-section.collapsible:hover{color:var(--foreground-secondary)}
+.cd-section.collapsible .cd-chev{flex-shrink:0;transition:transform var(--duration-fast)}
+.cd-section.collapsible.collapsed .cd-chev{transform:rotate(-90deg)}
+.cd-collapsible{overflow:hidden;transition:height var(--duration-normal)}
+.cd-collapsible.collapsed{display:none}
+.cd-kv{display:flex;flex-direction:column;gap:var(--space-2)}
+.cd-row{display:flex;align-items:baseline;gap:var(--space-2);font:var(--text-body-sm)}
+.cd-key{color:var(--foreground-muted);min-width:100px;flex-shrink:0}
+.cd-val{color:var(--foreground);font-family:var(--font-mono);font-size:11px}
+.probe-note{margin-top:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--tone-warning-bg);border-left:2px solid var(--warning);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.7}
+.probe-note strong{color:var(--warning)}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-4)}
+
+/* ── Terminal ── */
+.term-panel{flex:1;background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.term-hd{display:flex;align-items:center;justify-content:space-between}
+.term-title{font:var(--text-body-sm);font-weight:600}
+.term-meta{font:var(--text-label);font-family:var(--font-mono);color:var(--foreground-muted)}
+.term-body{background:#0b0b0b;border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-family:var(--font-mono);font-size:12px;line-height:1.8;flex:1}
+.term-prompt{color:var(--success)}
+.term-out{color:rgba(255,255,255,.5)}
+.term-actions{display:flex;gap:var(--space-2)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 var(--space-3);border:none;border-radius:var(--button-radius);font:var(--text-label);font-family:var(--font-sans);cursor:pointer;transition:background var(--duration-fast),color var(--duration-fast);white-space:nowrap;flex-shrink:0}
+.btn-primary{background:var(--primary);color:var(--primary-foreground)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--surface-3);color:var(--foreground);border:1px solid var(--border-subtle)}
+.btn-secondary:hover{background:var(--surface-4)}
+.btn-ghost{background:transparent;color:var(--foreground-secondary)}
+.btn-ghost:hover{background:var(--state-hover);color:var(--foreground)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:color-mix(in srgb,var(--danger) 88%,white)}
+.btn-sm{height:26px;padding:0 var(--space-2);font-size:11px}
+
+/* ── Form ── */
+.form-pane{flex:0 0 360px;background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5)}
+.form-pane h2{font:var(--text-title-2);margin-bottom:var(--space-4)}
+.fg{margin-bottom:var(--space-3)}
+.fg label{display:block;margin-bottom:var(--space-1);font:var(--text-label);color:var(--foreground-secondary)}
+.fg label .req{color:var(--danger)}
+.fc{width:100%;height:34px;padding:0 var(--space-3);background:var(--input-bg);border:1px solid var(--input-border);border-radius:var(--input-radius);color:var(--foreground);font:var(--text-body);font-family:var(--font-sans);outline:none;transition:border-color var(--duration-fast)}
+.fc:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--focus-ring)}
+select.fc{cursor:pointer}
+.hint{font:var(--text-label);color:var(--foreground-muted);margin-top:var(--space-1)}
+.err-banner{background:var(--tone-critical-bg);border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font:var(--text-body-sm);color:var(--danger);margin-bottom:var(--space-3);display:none;align-items:center;gap:var(--space-2)}
+.err-banner.show{display:flex}
+.form-row{display:flex;gap:var(--space-2)}
+.form-row .fg{flex:1}
+.btn-grp{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--border-subtle)}
+.toggle{width:36px;height:20px;background:var(--primary);border-radius:var(--radius-pill);position:relative;cursor:pointer;flex-shrink:0}
+.toggle .knob{position:absolute;top:2px;right:2px;width:16px;height:16px;background:#fff;border-radius:50%}
+
+/* ── Macro ── */
+.macro-pane{flex:1;background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5);overflow-y:auto}
+.macro-pane h2{font:var(--text-title-2);margin-bottom:var(--space-4)}
+.cmd-block{border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-2);background:var(--surface-2)}
+.cmd-block textarea{width:100%;background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--foreground);font:var(--text-mono);font-family:var(--font-mono);padding:var(--space-2) var(--space-3);resize:none;outline:none;line-height:1.6;transition:border-color var(--duration-fast)}
+.cmd-block textarea:focus{border-color:var(--primary)}
+.cmd-preview{margin-top:var(--space-2);padding:var(--space-1) var(--space-2);background:color-mix(in srgb,var(--success) 8%,transparent);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;color:var(--success);border-left:2px solid color-mix(in srgb,var(--success) 40%,transparent);line-height:1.6}
+.cmd-preview.hidden{display:none}
+.cmd-meta{display:flex;gap:var(--space-2);margin-top:var(--space-2);align-items:center}
+.cmd-meta input,.cmd-meta select{height:28px;padding:0 var(--space-2);background:var(--surface-1);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--foreground-secondary);font:var(--text-label);font-family:var(--font-sans);outline:none}
+.cmd-meta .d{flex:1}.cmd-meta .to{width:80px}.cmd-meta .po{width:120px}
+.cmd-acts{display:flex;gap:var(--space-1);margin-top:var(--space-2)}
+.cmd-acts button{height:22px;padding:0 var(--space-2);font:var(--text-label);background:var(--surface-3);border:1px solid var(--border-subtle);color:var(--foreground-muted);border-radius:var(--radius-sm);cursor:pointer}
+.cmd-acts button:hover{color:var(--foreground-secondary);background:var(--surface-4)}
+.add-cmd-btn{width:100%;height:32px;font:var(--text-label);background:none;border:1px dashed var(--border-default);color:var(--accent);border-radius:var(--radius-md);cursor:pointer;margin-bottom:var(--space-4);transition:border-color var(--duration-fast)}
+.add-cmd-btn:hover{border-color:var(--primary);color:var(--primary)}
+.subhd{font:var(--text-body-sm);font-weight:600;color:var(--foreground-secondary);margin:var(--space-4) 0 var(--space-2)}
+.var-row{display:flex;gap:var(--space-2);margin-bottom:var(--space-2)}
+.var-row input{flex:1;height:28px;padding:0 var(--space-2);background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--foreground);font-family:var(--font-mono);font-size:12px;outline:none}
+.var-row button{height:28px;padding:0 var(--space-2);font:var(--text-label);background:var(--surface-3);border:1px solid var(--border-subtle);color:var(--foreground-muted);border-radius:var(--radius-sm);cursor:pointer}
+.builtin-note{font:var(--text-body-sm);color:var(--foreground-secondary);padding:var(--space-3);background:var(--surface-2);border-radius:var(--radius-md);margin-bottom:var(--space-4);line-height:1.7}
+.builtin-note code{font-family:var(--font-mono);font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+.macro-settings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-3)}
+.divider{height:1px;background:var(--border-subtle);margin:var(--space-3) 0}
+
+/* ── Results Panel ── */
+.results-panel{background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);margin:0 var(--space-3) var(--space-3);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;transition:height var(--duration-base) var(--easing-default)}
+.results-panel.collapsed{height:38px}
+.results-panel.expanded{height:220px}
+.rp-resize-handle{height:6px;flex-shrink:0;cursor:ns-resize;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.rp-resize-handle::before{content:'';width:32px;height:3px;border-radius:var(--radius-pill);background:color-mix(in srgb,var(--foreground-muted) 28%,transparent);transition:background var(--duration-fast)}
+.rp-resize-handle:hover::before,.rp-is-resizing .rp-resize-handle::before{background:color-mix(in srgb,var(--foreground-secondary) 60%,transparent)}
+body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select:none!important}
+.rp-hd{height:32px;display:flex;align-items:center;padding:0 var(--space-3);gap:var(--space-3);flex-shrink:0}
+.rp-title{font:var(--text-label);color:var(--foreground-muted);cursor:pointer;flex:1;display:flex;align-items:center;gap:var(--space-2);transition:color var(--duration-fast)}
+.rp-title:hover{color:var(--foreground-secondary)}
+.rp-sum{font:var(--text-label);color:var(--success)}
+.rp-actions{display:flex;gap:4px;align-items:center}
+.rp-btn{height:22px;padding:0 var(--space-2);font:var(--text-label);background:none;border:none;color:var(--foreground-muted);cursor:pointer;border-radius:var(--radius-sm);transition:color var(--duration-fast),background var(--duration-fast)}
+.rp-btn:hover{color:var(--foreground-secondary);background:var(--state-hover)}
+.rp-body{flex:1;overflow-y:auto;padding:var(--space-2) var(--space-3)}
+.rp-body::-webkit-scrollbar{width:4px}
+.rp-body::-webkit-scrollbar-thumb{background:var(--border-subtle)}
+.rb{border:1px solid var(--border-subtle);border-radius:var(--radius-md);margin-bottom:var(--space-2);overflow:hidden}
+.rb-hd{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--surface-3);cursor:pointer;font:var(--text-body-sm);transition:background var(--duration-fast)}
+.rb-hd:hover{background:color-mix(in srgb,var(--surface-3) 80%,var(--surface-4))}
+.rb-status{font:var(--text-label);padding:2px var(--space-2);border-radius:var(--radius-pill)}
+.rs-ok{background:var(--tone-green-strong);color:var(--success)}
+.rs-partial{background:var(--tone-warning-bg);color:var(--warning)}
+.rb-host{font-family:var(--font-mono);font-size:11px;color:var(--foreground-muted)}
+.rb-time{margin-left:auto;font:var(--text-label);color:var(--foreground-muted)}
+.rb-body{padding:var(--space-2) var(--space-3);display:none}
+.rb-body.open{display:block}
+.cmd-result{margin-bottom:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--surface-3);border-radius:var(--radius-sm);font-size:11px;font-family:var(--font-mono)}
+.cr-hd{display:flex;align-items:center;gap:var(--space-2)}
+.cr-idx{color:var(--foreground-muted)}
+.cr-cmd{color:var(--foreground-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-exit{margin-left:auto}
+.cr-exit.ok{color:var(--success)}.cr-exit.err{color:var(--danger)}
+.cr-out{margin-top:var(--space-1);color:var(--foreground-muted);white-space:pre-wrap;max-height:56px;overflow-y:auto;line-height:1.6}
+.cr-trunc{margin-top:var(--space-1);font:var(--text-label);color:var(--foreground-disabled);font-style:italic}
+
+/* ── Context Menu ── */
+.ctx{position:fixed;background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-1) 0;font:var(--text-body-sm);min-width:220px;box-shadow:var(--shadow-md);z-index:300}
+.ctx.hidden{display:none}
+.ci{padding:var(--space-2) var(--space-4);cursor:pointer;color:var(--foreground-secondary);display:flex;align-items:center;gap:var(--space-3);transition:background var(--duration-fast),color var(--duration-fast)}
+.ci:hover{background:var(--state-hover);color:var(--foreground)}
+.ci svg{color:var(--foreground-muted);flex-shrink:0}
+.csep{height:1px;background:var(--border-subtle);margin:var(--space-1) 0}
+.ci.danger{color:var(--danger)}.ci.danger svg{color:var(--danger)}
+.ci.danger:hover{background:var(--tone-critical-bg)}
+.ci-sub{margin-left:auto;font:var(--text-label);color:var(--foreground-muted)}
+
+/* ── Tooltip ── */
+.tip{position:fixed;background:var(--surface-3);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font:var(--text-body-sm);color:var(--foreground);max-width:260px;pointer-events:none;z-index:400;box-shadow:var(--shadow-md);white-space:pre-line;line-height:1.65}
+.tip.hidden{display:none}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal-bg.hidden{display:none}
+.modal{background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:var(--space-6);width:480px;box-shadow:var(--shadow-lg)}
+.modal h3{font:var(--text-title-2);margin-bottom:var(--space-2)}
+.m-desc{font:var(--text-body-sm);color:var(--foreground-secondary);margin-bottom:var(--space-4);line-height:1.65}
+.m-desc strong{color:var(--foreground)}
+.m-targets{background:var(--surface-3);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-4);max-height:130px;overflow-y:auto}
+.mt-row{font:var(--text-body-sm);color:var(--foreground-secondary);padding:3px 0;display:flex;gap:var(--space-4)}
+.mt-row span:first-child{font-family:var(--font-mono);color:var(--foreground)}
+.mt-ok{color:var(--success)}
+.m-warn{font:var(--text-body-sm);color:var(--foreground-secondary);background:var(--tone-warning-bg);border-left:2px solid var(--warning);padding:var(--space-2) var(--space-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:var(--space-5);line-height:1.65}
+.m-btns{display:flex;justify-content:flex-end;gap:var(--space-2)}
+
+/* ── QuickPick ── */
+.qp{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface-2);border:1px solid var(--border-default);border-radius:var(--radius-lg);width:400px;box-shadow:var(--shadow-lg);z-index:501}
+.qp.hidden{display:none}
+.qp-input{padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-2)}
+.qp-input input{flex:1;background:none;border:none;color:var(--foreground);font:var(--text-body);font-family:var(--font-sans);outline:none}
+.qp-item{padding:var(--space-2) var(--space-4);cursor:pointer;font:var(--text-body-sm);display:flex;align-items:center;gap:var(--space-3);transition:background var(--duration-fast);color:var(--foreground-secondary)}
+.qp-item:hover{background:var(--state-hover);color:var(--foreground)}
+.qi-sub{font:var(--text-label);color:var(--foreground-muted);margin-left:auto}
+
+/* ── Toast ── */
+.notif{position:fixed;bottom:32px;right:var(--space-4);background:var(--surface-3);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);font:var(--text-body-sm);max-width:300px;box-shadow:var(--shadow-md);animation:slideup var(--duration-base) var(--easing-default);z-index:600}
+.notif.hidden{display:none}
+@keyframes slideup{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.notif-hd{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);font-weight:600;color:var(--danger)}
+.notif-body{font:var(--text-label);color:var(--foreground-muted);line-height:1.6}
+
+/* ── Status Bar ── */
+.statusbar{height:22px;background:var(--primary);display:flex;align-items:center;padding:0 var(--space-3);font:var(--text-label);color:var(--primary-foreground);gap:var(--space-4);flex-shrink:0}
+.statusbar span{display:flex;align-items:center;gap:4px}
+
+/* ── Info Panel ── */
+.info-panel{flex:1;display:flex;flex-direction:column;gap:var(--space-3)}
+.info-card{background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-4)}
+.ic-title{font:var(--text-body-sm);font-weight:600;color:var(--foreground-secondary);margin-bottom:var(--space-3)}
+.ic-row{margin-bottom:var(--space-2);font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.8}
+.ic-row strong{color:var(--foreground)}
+@keyframes blink{50%{opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- Inline SVG sprite -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5c.5.83.5 1.5 0 2L19 18a2 2 0 0 1-2.83 0l-1.5-1.5A2 2 0 0 0 12 17c-.74 0-1.39.4-1.74 1l-1 1.74a2 2 0 0 1-3.46 0L4.5 18a2 2 0 0 1 0-3.46L6.5 13.5A2 2 0 0 0 7 12c0-.74-.4-1.39-1-1.74L4.26 9.26a2 2 0 0 1 0-3.46L6 4.5a2 2 0 0 1 2.83 0l1.5 1.5A2 2 0 0 0 12 7c.74 0 1.39-.4 1.74-1l1-1.74a2 2 0 0 1 3.46 0L19.5 6a2 2 0 0 1 0 3.46L17.5 10.5A2 2 0 0 0 17 12c0 .74.4 1.39 1 1.74l1.5.76Z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></symbol>
+  <symbol id="i-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+  <symbol id="i-unplug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 5 3-3m-17 19 3-3M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4zM17.7 3.7a2.4 2.4 0 0 0-3.4 0L12 6l6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4zm-7.2 9.8-2 2M13.5 10.5l-2 2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol>
+</svg>
+
+<!-- helper: inline svg -->
+<script>function ic(id,size){size=size||14;return`<svg width="${size}" height="${size}" viewBox="0 0 24 24"><use href="#i-${id}"/></svg>`}</script>
+
+<div class="shell">
+<div class="mid">
+
+<!-- Activity Bar -->
+<div class="ab">
+  <div class="ab-icon" title="Explorer"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-grid"/></svg></div>
+  <div class="ab-icon" title="Search"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-search"/></svg></div>
+  <div class="ab-icon active" title="BMC 环境管理"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-zap"/></svg></div>
+  <div class="ab-icon" title="Source Control"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-git"/></svg></div>
+  <div class="ab-icon" title="Extensions"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#i-puzzle"/></svg></div>
+</div>
+
+<!-- Side Panel -->
+<div class="side">
+  <div class="panel-hd">
+    BMC 环境管理
+    <div class="ph-actions">
+      <button class="ib" title="折叠全部"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-collapse"/></svg></button>
+    </div>
+  </div>
+
+  <!-- BMC Environments -->
+  <div class="tree-sec">
+    <div class="sec-hd">
+      <svg width="10" height="10" viewBox="0 0 24 24" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0"><use href="#i-chevr"/></svg>
+      BMC Environments
+      <div class="sec-acts">
+        <button class="ib" title="Add Connection" onclick="openView('add-conn')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
+        <button class="ib" title="Add Group"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-folder"/></svg></button>
+        <button class="ib" title="Refresh All" onclick="simulateRefresh()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></button>
+      </div>
+    </div>
+    <div class="tree" id="envTree">
+
+      <!-- Group: 实验室 A -->
+      <div class="g-row" onclick="toggleGroup(this)" oncontextmenu="showCtx(event,'group')">
+        <svg width="10" height="10" viewBox="0 0 24 24" style="transform:rotate(90deg);flex-shrink:0;color:var(--foreground-muted)"><use href="#i-chevr"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--foreground-muted);flex-shrink:0"><use href="#i-folder"/></svg>
+        <span class="g-name">实验室 A</span>
+        <span class="g-badge warn">2/3 可达</span>
+      </div>
+      <div class="group-ch">
+        <div class="c-row active" id="cr-a01" onclick="selectConn('a01')" oncontextmenu="showCtx(event,'conn')">
+          <div class="dot connected" onmouseenter="showTip(event,'● 已建立 SSH 会话\n状态：connected\n连接协议：SSH\n\n探测协议：SSH Port 22\n上次探测：2 秒前')" onmouseleave="hideTip()"></div>
+          <span class="c-name">BMC-A01</span>
+          <span class="c-host">192.168.1.100</span>
+          <span class="c-marks">
+            <svg width="10" height="10" viewBox="0 0 24 24"><use href="#i-clock"/></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24"><use href="#i-bell"/></svg>
+          </span>
+        </div>
+        <div class="c-row" id="cr-a02" onclick="selectConn('a02')" oncontextmenu="showCtx(event,'conn')">
+          <div class="dot reachable" onmouseenter="showTip(event,'○ SSH Port 22 可达（未建立会话）\n探测周期：10 秒\n上次探测：6 秒前')" onmouseleave="hideTip()"></div>
+          <span class="c-name">BMC-A02</span>
+          <span class="c-host">192.168.1.101</span>
+          <span class="c-marks"><svg width="10" height="10" viewBox="0 0 24 24"><use href="#i-clock"/></svg></span>
+        </div>
+        <div class="c-row" id="cr-a03" onclick="selectConn('a03')" oncontextmenu="showCtx(event,'conn')">
+          <div class="dot unreachable" onmouseenter="showTip(event,'✕ SSH Port 22 不可达\n上次探测：3 秒前\n注意：探测始终走 SSH 22\n与连接协议无关')" onmouseleave="hideTip()"></div>
+          <span class="c-name">BMC-A03</span>
+          <span class="c-host">192.168.1.102</span>
+        </div>
+      </div>
+
+      <!-- Group: 网络测试组 -->
+      <div class="g-row" onclick="toggleGroup(this)" oncontextmenu="showCtx(event,'group')">
+        <svg width="10" height="10" viewBox="0 0 24 24" style="transform:rotate(90deg);flex-shrink:0;color:var(--foreground-muted)"><use href="#i-chevr"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--foreground-muted);flex-shrink:0"><use href="#i-folder"/></svg>
+        <span class="g-name">网络测试组</span>
+        <span class="g-badge">2/2 可达</span>
+      </div>
+      <div class="group-ch">
+        <div class="c-row" id="cr-n01" onclick="selectConn('n01')" oncontextmenu="showCtx(event,'conn')">
+          <div class="dot reachable" onmouseenter="showTip(event,'○ SSH Port 22 可达\n上次探测：4 秒前')" onmouseleave="hideTip()"></div>
+          <span class="c-name">NET-BMC-01</span>
+          <span class="c-host">10.0.0.50</span>
+        </div>
+        <div class="c-row" id="cr-n02" onclick="selectConn('n02')" oncontextmenu="showCtx(event,'conn')">
+          <div class="dot checking" onmouseenter="showTip(event,'⟳ 正在探测 SSH Port 22...\n探测超时：5 秒')" onmouseleave="hideTip()"></div>
+          <span class="c-name">NET-BMC-02</span>
+          <span class="c-host">10.0.0.51</span>
+        </div>
+      </div>
+
+      <!-- Group: Default (empty) -->
+      <div class="g-row" onclick="toggleGroup(this)">
+        <svg width="10" height="10" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--foreground-muted)" id="dg-chev"><use href="#i-chevr"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--foreground-muted);flex-shrink:0"><use href="#i-folder"/></svg>
+        <span class="g-name">Default</span>
+        <span style="font:var(--text-label);color:var(--foreground-muted)">空</span>
+      </div>
+      <div class="group-ch" style="display:none">
+        <div style="padding:var(--space-4) var(--space-4) var(--space-3);text-align:center">
+          <div style="font:var(--text-label);color:var(--foreground-muted);margin-bottom:var(--space-2)">还没有 BMC 连接</div>
+          <button class="btn btn-ghost btn-sm" onclick="openView('add-conn')">
+            <svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-plus"/></svg>添加连接
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Macros -->
+  <div class="tree-sec">
+    <div class="sec-hd">
+      <svg width="10" height="10" viewBox="0 0 24 24" style="transform:rotate(90deg);flex-shrink:0;color:var(--foreground-muted)"><use href="#i-chevr"/></svg>
+      Command Macros
+      <div class="sec-acts">
+        <button class="ib" title="New Macro" onclick="openView('macro-form')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-plus"/></svg></button>
+        <button class="ib" title="Refresh"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></button>
+      </div>
+    </div>
+    <div class="tree">
+      <div class="m-row" oncontextmenu="showCtx(event,'macro')" onclick="openView('macro-form')" onmouseenter="showTip(event,'1. hostname\n2. cat /etc/firmware-version\n3. systemctl status bmc-service')" onmouseleave="hideTip()">
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--accent);flex-shrink:0"><use href="#i-terminal"/></svg>
+        <span class="m-name">巡检 - 基础状态</span>
+        <span class="m-meta">3 cmds</span>
+      </div>
+      <div class="m-row" oncontextmenu="showCtx(event,'macro')" onmouseenter="showTip(event,'1. scp config.json root@$HOST:/etc/\n2. systemctl restart bmc-service')" onmouseleave="hideTip()">
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--accent);flex-shrink:0"><use href="#i-terminal"/></svg>
+        <span class="m-name">推送网络配置</span>
+        <span class="m-meta">2 cmds · 遇错中断</span>
+      </div>
+      <div class="m-row" oncontextmenu="showCtx(event,'macro')">
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--accent);flex-shrink:0"><use href="#i-terminal"/></svg>
+        <span class="m-name">批量重启 bmc-service</span>
+        <span class="m-meta">1 cmd</span>
+      </div>
+      <div class="m-row" oncontextmenu="showCtx(event,'macro')">
+        <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--accent);flex-shrink:0"><use href="#i-terminal"/></svg>
+        <span class="m-name">清理 tmp 目录</span>
+        <span class="m-meta">2 cmds</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Area -->
+<div class="main">
+  <div class="tab-bar">
+    <div class="tab active" id="tab-main" onclick="switchTab('main')">BMC 环境管理</div>
+    <div class="tab" id="tab-form" onclick="switchTab('form')" style="display:none">添加连接</div>
+    <div class="tab" id="tab-macro" onclick="switchTab('macro')" style="display:none">编辑宏</div>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- Summary View -->
+    <div class="content" id="view-summary">
+      <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-3)">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="s-val" style="color:var(--foreground)">5</div><div class="s-lbl">总连接数</div></div>
+          <div class="stat-card"><div class="s-val" style="color:var(--success)">3</div><div class="s-lbl">SSH 可达</div></div>
+          <div class="stat-card"><div class="s-val" style="color:var(--danger)">1</div><div class="s-lbl">不可达</div></div>
+          <div class="stat-card"><div class="s-val" style="color:var(--accent)">1</div><div class="s-lbl">已建立会话</div></div>
+        </div>
+        <div class="recent-box">
+          <div class="rb-title">最近执行记录</div>
+          <div class="recent-row">
+            <span class="rr-name">巡检 - 基础状态</span>
+            <span class="rr-scope">实验室 A · 3 台</span>
+            <span class="rr-ok"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-check"/></svg>3/3 成功</span>
+          </div>
+          <div class="recent-row">
+            <span class="rr-name">推送网络配置</span>
+            <span class="rr-scope">网络测试组 · 2 台</span>
+            <span class="rr-err"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-x"/></svg>命令 1 失败（1 台）</span>
+          </div>
+          <div class="recent-row">
+            <span class="rr-name">批量重启 bmc-service</span>
+            <span class="rr-scope">全部 · 5 台</span>
+            <span class="rr-ok"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-check"/></svg>5/5 成功</span>
+          </div>
+        </div>
+        <div class="info-note">
+          <strong>提示</strong> — 右键连接节点可快速 SSH / Telnet / WebView 接入；右键宏节点可选择执行目标范围。<br>
+          连通性探测始终使用 <code>SSH Port 22</code>，与连接时选择的协议无关。
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Detail View -->
+    <div class="content" id="view-conn-detail" style="display:none">
+      <div class="conn-detail" id="cd-panel"><!-- filled by JS --></div>
+      <div class="term-panel">
+        <div class="term-hd">
+          <span class="term-title">Terminal · SSH</span>
+          <span class="term-meta">BMC-A01 / 192.168.1.100</span>
+        </div>
+        <div class="term-body">
+          <div><span class="term-prompt">root@BMC-A01:~# </span><span style="color:rgba(255,255,255,.8)">hostname</span></div>
+          <div class="term-out">BMC-A01</div>
+          <div><span class="term-prompt">root@BMC-A01:~# </span><span style="color:rgba(255,255,255,.8)">cat /etc/firmware-version</span></div>
+          <div class="term-out">OpenBMC 2.13.0-bmcstudio-20240801</div>
+          <div><span class="term-prompt">root@BMC-A01:~# </span><span style="display:inline-block;width:7px;height:13px;background:rgba(255,255,255,.8);vertical-align:middle;animation:blink .9s step-end infinite"></span></div>
+        </div>
+        <div class="term-actions">
+          <button class="btn btn-secondary" onclick="showRunModal()"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-play"/></svg>Run Macro</button>
+          <button class="btn btn-secondary"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-upload"/></svg>Upload File</button>
+          <button class="btn btn-secondary"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-unplug"/></svg>Disconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Connection Form -->
+    <div class="content" id="view-conn-form" style="display:none">
+      <div class="form-pane">
+        <h2 id="form-title">Add BMC Connection</h2>
+        <div class="err-banner" id="errBanner"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-alert"/></svg>请输入有效的 IPv4 地址（如 192.168.1.100）</div>
+        <div class="fg">
+          <label>Connection Name <span class="req">*</span></label>
+          <input class="fc" type="text" placeholder="My BMC" value="BMC-A04">
+        </div>
+        <div class="fg">
+          <label>Group <span class="req">*</span></label>
+          <select class="fc"><option>实验室 A</option><option>网络测试组</option><option>Default</option></select>
+        </div>
+        <div class="fg">
+          <label>IP Address <span class="req">*</span></label>
+          <input class="fc" type="text" placeholder="192.168.1.100" id="f-ip" value="192.168.1.1x3">
+          <div class="hint">仅接受 IPv4 地址（探测将使用此地址的 SSH Port 22）</div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Username <span class="req">*</span></label><input class="fc" type="text" placeholder="root" value="root"></div>
+          <div class="fg"><label>Password <span class="req">*</span></label><input class="fc" type="password" placeholder="••••••"></div>
+        </div>
+        <div class="hint" style="margin-top:calc(-1 * var(--space-2));margin-bottom:var(--space-3)">密码加密存储于 OS Keychain，不写入任何配置文件</div>
+        <div class="divider"></div>
+        <div class="fg"><label>Connection Protocol</label><select class="fc"><option>SSH</option><option>Telnet</option><option>WebView</option></select></div>
+        <div class="fg" style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0">Auto Check (10s 周期)</label>
+          <div class="toggle"><div class="knob"></div></div>
+        </div>
+        <div class="fg" style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0">Notify on Change</label>
+          <div class="toggle"><div class="knob"></div></div>
+        </div>
+        <div class="btn-grp">
+          <button class="btn btn-secondary" onclick="openView('summary')">Cancel</button>
+          <button class="btn btn-primary" onclick="validateAndSave()">Add Connection</button>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="info-card">
+          <div class="ic-title">连接选项说明</div>
+          <div class="ic-row"><strong>Auto Check</strong> — 每 10 秒探测 SSH Port 22，连通性状态实时更新到树节点。</div>
+          <div class="ic-row"><strong>Notify on Change</strong> — 连通性变化时（上线/下电）弹出右下角通知。</div>
+          <div class="ic-row" style="color:var(--warning)"><svg width="11" height="11" viewBox="0 0 24 24" style="margin-right:3px"><use href="#i-alert"/></svg><strong>注意</strong> — 健康探测始终使用 SSH Port 22。Telnet-only BMC 将持续显示「不可达」。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Macro Editor -->
+    <div class="content" id="view-macro-form" style="display:none">
+      <div class="macro-pane">
+        <h2>Edit Command Macro</h2>
+        <div class="form-row">
+          <div class="fg" style="flex:2"><label>Name <span class="req">*</span></label><input class="fc" type="text" value="巡检 - 基础状态"></div>
+          <div class="fg" style="flex:3"><label>Description</label><input class="fc" type="text" value="检查主机名、固件版本、服务状态"></div>
+        </div>
+        <div class="subhd">Commands <span class="req">*</span></div>
+        <div class="cmd-block" id="cmd1">
+          <textarea rows="1" oninput="updatePreview(this,'prev1')">hostname</textarea>
+          <div class="cmd-preview" id="prev1">→ root@BMC-A01:~ $ hostname</div>
+          <div class="cmd-meta"><input class="d" type="text" value="获取主机名"><input class="to" type="number" placeholder="超时ms"><select class="po"><option>默认</option><option>遇错中断</option><option>遇错继续</option></select></div>
+          <div class="cmd-acts"><button disabled>↑</button><button onclick="swapCmds('cmd1','cmd2')">↓</button><button onclick="removeCmd('cmd1')">移除</button></div>
+        </div>
+        <div class="cmd-block" id="cmd2">
+          <textarea rows="1" oninput="updatePreview(this,'prev2')">cat /etc/firmware-version</textarea>
+          <div class="cmd-preview" id="prev2">→ root@BMC-A01:~ $ cat /etc/firmware-version</div>
+          <div class="cmd-meta"><input class="d" type="text" value="固件版本"><input class="to" type="number"><select class="po"><option>默认</option></select></div>
+          <div class="cmd-acts"><button onclick="swapCmds('cmd2','cmd1')">↑</button><button onclick="swapCmds('cmd2','cmd3')">↓</button><button onclick="removeCmd('cmd2')">移除</button></div>
+        </div>
+        <div class="cmd-block" id="cmd3">
+          <textarea rows="1" oninput="updatePreview(this,'prev3')">systemctl status $SERVICE --no-pager</textarea>
+          <div class="cmd-preview" id="prev3">→ root@BMC-A01:~ $ systemctl status bmc-service --no-pager</div>
+          <div class="cmd-meta"><input class="d" type="text" value="服务状态"><input class="to" type="number" value="5000"><select class="po"><option>遇错继续</option><option>默认</option></select></div>
+          <div class="cmd-acts"><button onclick="swapCmds('cmd3','cmd2')">↑</button><button disabled>↓</button><button onclick="removeCmd('cmd3')">移除</button></div>
+        </div>
+        <button class="add-cmd-btn"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-plus"/></svg> 添加命令</button>
+        <div class="subhd">Variables</div>
+        <div id="varsList">
+          <div class="var-row">
+            <input type="text" value="SERVICE" placeholder="变量名">
+            <input type="text" value="bmc-service" placeholder="值">
+            <button onclick="this.parentElement.remove()">移除</button>
+          </div>
+        </div>
+        <button class="add-cmd-btn" style="margin-bottom:var(--space-3)"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-plus"/></svg> 添加变量</button>
+        <div class="builtin-note">
+          内置变量（自动注入，不可覆盖）：<code>$HOST</code> · <code>$USER</code> · <code>$NAME</code> · <code>$GROUP</code> · <code>$CONN_ID</code><br>
+          <strong>安全设计：</strong>未定义变量保留原样（<code>$UNDEF</code> → <code>$UNDEF</code>），不替换为空。
+        </div>
+        <div class="subhd">Macro Settings</div>
+        <div class="macro-settings">
+          <div class="fg"><label>On Error</label><select class="fc"><option>继续执行</option><option>遇错中断</option></select></div>
+          <div class="fg"><label>Concurrency</label><input class="fc" type="number" min="1" max="8" value="1"></div>
+          <div class="fg"><label>Timeout (ms)</label><input class="fc" type="number" value="30000"></div>
+        </div>
+        <div class="fg"><label>Tags</label><input class="fc" type="text" value="health"></div>
+        <div class="btn-grp">
+          <button class="btn btn-secondary" onclick="openView('summary')">Cancel</button>
+          <button class="btn btn-primary">Save Macro</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- content-wrap -->
+
+  <!-- Results Panel -->
+  <div class="results-panel expanded" id="resultsPanel">
+    <div class="rp-resize-handle" id="rpResizeHandle"></div>
+    <div class="rp-hd">
+      <div class="rp-title" onclick="toggleResults()">
+        <svg width="11" height="11" viewBox="0 0 24 24" id="rpChev" style="transform:rotate(90deg)"><use href="#i-chevr"/></svg>
+        执行结果
+        <span class="rp-sum" id="rpSummary">巡检 - 基础状态 · 3/3 成功 · 2.3s</span>
+      </div>
+      <div class="rp-actions">
+        <button class="rp-btn" onclick="expandAll()">全部展开</button>
+        <button class="rp-btn" onclick="collapseAll()">全部收起</button>
+        <button class="rp-btn" onclick="clearResults()">清空</button>
+        <button class="btn btn-secondary" style="height:22px;font-size:11px;padding:0 var(--space-2)" onclick="showRunModal()"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-play"/></svg>运行宏...</button>
+      </div>
+    </div>
+    <div class="rp-body" id="rpBody">
+      <div class="rb">
+        <div class="rb-hd" onclick="toggleRb(this)">
+          <svg width="10" height="10" viewBox="0 0 24 24" style="transform:rotate(90deg)"><use href="#i-chevr"/></svg>
+          <span style="color:var(--foreground);font-weight:500">BMC-A01</span>
+          <span class="rb-host">192.168.1.100</span>
+          <span class="rb-status rs-ok">成功</span>
+          <span class="rb-time">0.8s</span>
+        </div>
+        <div class="rb-body open">
+          <div class="cmd-result"><div class="cr-hd"><span class="cr-idx">1.</span><span class="cr-cmd">hostname</span><span class="cr-exit ok">exit 0</span></div><div class="cr-out">BMC-A01</div></div>
+          <div class="cmd-result"><div class="cr-hd"><span class="cr-idx">2.</span><span class="cr-cmd">cat /etc/firmware-version</span><span class="cr-exit ok">exit 0</span></div><div class="cr-out">OpenBMC 2.13.0-bmcstudio-20240801</div></div>
+          <div class="cmd-result"><div class="cr-hd"><span class="cr-idx">3.</span><span class="cr-cmd">systemctl status bmc-service --no-pager</span><span class="cr-exit ok">exit 0</span></div><div class="cr-out">● bmc-service.service
+   Active: active (running) since 2024-08-01 09:00:00 UTC</div></div>
+        </div>
+      </div>
+      <div class="rb">
+        <div class="rb-hd" onclick="toggleRb(this)">
+          <svg width="10" height="10" viewBox="0 0 24 24"><use href="#i-chevr"/></svg>
+          <span style="color:var(--foreground);font-weight:500">BMC-A02</span>
+          <span class="rb-host">192.168.1.101</span>
+          <span class="rb-status rs-ok">成功</span>
+          <span class="rb-time">1.1s</span>
+        </div>
+        <div class="rb-body"></div>
+      </div>
+      <div class="rb">
+        <div class="rb-hd" onclick="toggleRb(this)">
+          <svg width="10" height="10" viewBox="0 0 24 24"><use href="#i-chevr"/></svg>
+          <span style="color:var(--foreground);font-weight:500">NET-BMC-01</span>
+          <span class="rb-host">10.0.0.50</span>
+          <span class="rb-status rs-partial">部分成功</span>
+          <span class="rb-time">2.3s</span>
+        </div>
+        <div class="rb-body">
+          <div class="cmd-result"><div class="cr-hd"><span class="cr-idx">1.</span><span class="cr-cmd">hostname</span><span class="cr-exit ok">exit 0</span></div><div class="cr-out">NET-BMC-01</div></div>
+          <div class="cmd-result" style="border-left:2px solid color-mix(in srgb,var(--danger) 40%,transparent)"><div class="cr-hd"><span class="cr-idx">2.</span><span class="cr-cmd">cat /etc/firmware-version</span><span class="cr-exit err">exit 1</span></div><div class="cr-out" style="color:var(--danger)">cat: /etc/firmware-version: No such file or directory</div></div>
+          <div class="cr-trunc">以上输出已超过 4096 字节，仅显示截断内容。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- main -->
+</div><!-- mid -->
+
+<!-- Status Bar -->
+<div class="statusbar">
+  <span><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-zap"/></svg>BMC 环境管理</span>
+  <span><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-server"/></svg>5 连接</span>
+  <span style="color:rgba(255,255,255,.8)"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-check"/></svg>3 可达</span>
+  <span style="color:rgba(255,255,255,.8)"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-x"/></svg>1 不可达</span>
+  <span style="margin-left:auto"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-clock"/></svg>周期检测：开启 (3)</span>
+</div>
+</div><!-- shell -->
+
+<!-- Context Menu -->
+<div class="ctx hidden" id="ctxMenu">
+  <div id="ctxConn" style="display:none">
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-terminal"/></svg>Connect via SSH</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-terminal"/></svg>Connect via Telnet</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-globe"/></svg>Open in WebView<span class="ci-sub">系统浏览器</span></div>
+    <div class="csep"></div>
+    <div class="ci" onclick="hideCtx();showRunModal()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-play"/></svg>Run Macro on SSH Terminal</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-upload"/></svg>Upload File / Directory...</div>
+    <div class="csep"></div>
+    <div class="ci" onclick="hideCtx();openView('add-conn')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-edit"/></svg>Edit Configuration</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-key"/></svg>Change Password</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-clock"/></svg>Enable Auto Check</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-bell"/></svg>Enable Notify on Change</div>
+    <div class="csep"></div>
+    <div class="ci danger" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-trash"/></svg>Delete</div>
+  </div>
+  <div id="ctxGroup" style="display:none">
+    <div class="ci" onclick="hideCtx();openView('add-conn')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-plus"/></svg>Add Connection to Group</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-edit"/></svg>Rename Group</div>
+    <div class="csep"></div>
+    <div class="ci danger" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-trash"/></svg>Delete Group</div>
+  </div>
+  <div id="ctxMacro" style="display:none">
+    <div class="ci" onclick="hideCtx();showScopePicker()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-play"/></svg>Run...</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-list"/></svg>Run on Group...</div>
+    <div class="ci" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-zap"/></svg>Run All Reachable</div>
+    <div class="csep"></div>
+    <div class="ci" onclick="hideCtx();openView('macro-form')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-edit"/></svg>Edit</div>
+    <div class="ci danger" onclick="hideCtx()"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-trash"/></svg>Delete</div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tip hidden" id="tip"></div>
+
+<!-- Scope Picker -->
+<div class="modal-bg hidden" id="scopeBg" onclick="hideScopePicker()">
+  <div class="qp" onclick="event.stopPropagation()">
+    <div class="qp-input">
+      <svg width="13" height="13" viewBox="0 0 24 24" style="color:var(--foreground-muted)"><use href="#i-search"/></svg>
+      <input type="text" placeholder="选择执行范围..." autofocus>
+    </div>
+    <div class="qp-item" onclick="hideScopePicker();showRunModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-zap"/></svg>
+      所有可达且有凭据的环境<span class="qi-sub">3 台</span>
+    </div>
+    <div class="qp-item" onclick="hideScopePicker();showRunModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-folder"/></svg>
+      按分组：实验室 A<span class="qi-sub">2/3 可达</span>
+    </div>
+    <div class="qp-item" onclick="hideScopePicker();showRunModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-list"/></svg>
+      手动多选...
+    </div>
+  </div>
+</div>
+
+<!-- Run Confirm Modal -->
+<div class="modal-bg hidden" id="runModal">
+  <div class="modal">
+    <h3>执行命令宏</h3>
+    <div class="m-desc">将在以下 <strong>3 台</strong> BMC 上执行宏 <strong>「巡检 - 基础状态」</strong>（3 条命令，并发 1）：</div>
+    <div class="m-targets">
+      <div class="mt-row"><span>BMC-A01</span><span>192.168.1.100</span><span class="mt-ok">已连接</span></div>
+      <div class="mt-row"><span>BMC-A02</span><span>192.168.1.101</span><span class="mt-ok">可达</span></div>
+      <div class="mt-row"><span>NET-BMC-01</span><span>10.0.0.50</span><span class="mt-ok">可达</span></div>
+    </div>
+    <div class="m-warn">命令可能对 BMC 造成不可逆影响，请确认目标列表无误后再继续。<br>探测结果可能与实时状态有最大 5 秒延迟。</div>
+    <div class="m-btns">
+      <button class="btn btn-secondary" onclick="hideRunModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="simulateRun()"><svg width="12" height="12" viewBox="0 0 24 24"><use href="#i-play"/></svg>Run Macro (3 台)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notif hidden" id="notif">
+  <div class="notif-hd"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-alert"/></svg>BMC-A03 已下电</div>
+  <div class="notif-body">实验室 A · 192.168.1.102<br>SSH Port 22 不可达</div>
+</div>
+
+<script>
+const CONNS={
+  a01:{name:'BMC-A01',host:'192.168.1.100',user:'root',group:'实验室 A',status:'connected',proto:'SSH',autoCheck:true,notify:true},
+  a02:{name:'BMC-A02',host:'192.168.1.101',user:'root',group:'实验室 A',status:'reachable',proto:'SSH',autoCheck:true,notify:false},
+  a03:{name:'BMC-A03',host:'192.168.1.102',user:'root',group:'实验室 A',status:'unreachable',proto:'SSH',autoCheck:false,notify:false},
+  n01:{name:'NET-BMC-01',host:'10.0.0.50',user:'admin',group:'网络测试组',status:'reachable',proto:'Telnet',autoCheck:false,notify:false},
+  n02:{name:'NET-BMC-02',host:'10.0.0.51',user:'admin',group:'网络测试组',status:'checking',proto:'SSH',autoCheck:false,notify:false},
+};
+const SC={connected:'var(--success)',reachable:'var(--success)',unreachable:'var(--danger)',checking:'var(--warning)'};
+const SL={connected:'已建立 SSH 会话',reachable:'SSH Port 22 可达（未建立会话）',unreachable:'SSH Port 22 不可达',checking:'正在探测 SSH Port 22...'};
+
+let currentView='summary';
+function allViews(){return['summary','conn-detail','conn-form','macro-form']}
+function openView(v){
+  allViews().forEach(id=>{const el=document.getElementById('view-'+id);if(el)el.style.display='none'});
+  ['tab-form','tab-macro'].forEach(id=>document.getElementById(id).style.display='none');
+  if(v==='add-conn'){document.getElementById('view-conn-form').style.display='';document.getElementById('tab-form').style.display='';currentView='conn-form';}
+  else if(v==='macro-form'){document.getElementById('view-macro-form').style.display='';document.getElementById('tab-macro').style.display='';currentView='macro-form';}
+  else if(v==='conn-detail'){document.getElementById('view-conn-detail').style.display='';currentView='conn-detail';}
+  else{document.getElementById('view-summary').style.display='';currentView='summary';}
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const m={summary:'tab-main','conn-detail':'tab-main','conn-form':'tab-form','macro-form':'tab-macro'};
+  const tgt=m[currentView]||'tab-main';
+  document.getElementById(tgt)?.classList.add('active');
+}
+function switchTab(t){if(t==='main')openView('summary');if(t==='form')openView('add-conn');if(t==='macro')openView('macro-form')}
+
+function dotStyle(s){
+  if(s==='connected')return'background:var(--success);box-shadow:0 0 6px color-mix(in srgb,var(--success) 55%,transparent)';
+  if(s==='reachable')return'border:1.5px solid var(--success)';
+  if(s==='unreachable')return'border:1.5px solid var(--danger)';
+  return'border:1.5px solid var(--warning);border-top-color:transparent;animation:spin .7s linear infinite';
+}
+
+function selectConn(id){
+  document.querySelectorAll('.c-row').forEach(r=>r.classList.remove('active'));
+  document.getElementById('cr-'+id)?.classList.add('active');
+  const c=CONNS[id];if(!c)return;
+  const ds=dotStyle(c.status);
+  document.getElementById('cd-panel').innerHTML=`
+    <div class="cd-hd">
+      <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;${ds}"></div>
+      <div class="cd-name">${c.name}</div>
+    </div>
+    <div class="cd-status-label" style="color:${SC[c.status]}">${SL[c.status]}</div>
+    <div class="cd-section collapsible" onclick="toggleCdSection(this)" id="cd-info-hd">
+      <svg class="cd-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      连接信息
+    </div>
+    <div class="cd-collapsible" id="cd-info-body">
+      <div class="cd-kv">
+        <div class="cd-row"><span class="cd-key">IP 地址</span><span class="cd-val">${c.host}</span></div>
+        <div class="cd-row"><span class="cd-key">用户名</span><span class="cd-val">${c.user}</span></div>
+        <div class="cd-row"><span class="cd-key">所在分组</span><span class="cd-val">${c.group}</span></div>
+        <div class="cd-row"><span class="cd-key">连接协议</span><span class="cd-val">${c.proto}</span></div>
+        <div class="cd-row"><span class="cd-key">Auto Check</span><span class="cd-val" style="color:${c.autoCheck?'var(--success)':'var(--foreground-muted)'}">${c.autoCheck?'开启':'关闭'}</span></div>
+        <div class="cd-row"><span class="cd-key">Notify</span><span class="cd-val" style="color:${c.notify?'var(--success)':'var(--foreground-muted)'}">${c.notify?'开启':'关闭'}</span></div>
+      </div>
+      <div class="probe-note" style="margin-top:var(--space-3)"><strong>探测协议：SSH Port 22</strong><br>连通性检测始终使用 SSH Port 22，与接入协议（${c.proto}）无关。${c.proto==='Telnet'?'<br><strong style="color:var(--danger)">注意：</strong>Telnet-only 设备若未开放 SSH 22，将持续显示「不可达」。':''}</div>
+    </div>
+    <div class="cd-section">操作</div>
+    <div class="action-grid">
+      <button class="btn btn-primary" style="height:30px;font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-terminal"/></svg>SSH</button>
+      <button class="btn btn-secondary" style="height:30px;font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-terminal"/></svg>Telnet</button>
+      <button class="btn btn-secondary" style="height:30px;font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-globe"/></svg>WebView ↗</button>
+      <button class="btn btn-secondary" style="height:30px;font-size:11px" onclick="openView('add-conn')"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-edit"/></svg>Edit Config</button>
+    </div>`;
+  openView('conn-detail');
+}
+
+function toggleCdSection(hd){
+  const body=hd.nextElementSibling;
+  if(!body)return;
+  const collapsed=body.classList.toggle('collapsed');
+  hd.classList.toggle('collapsed',collapsed);
+}
+
+function toggleGroup(row){
+  const ch=row.nextElementSibling;
+  if(!ch?.classList.contains('group-ch'))return;
+  const collapsed=ch.style.display==='none';
+  ch.style.display=collapsed?'':'none';
+  const chev=row.querySelector('svg:first-child');
+  if(chev)chev.style.transform=collapsed?'rotate(90deg)':'';
+}
+
+function showCtx(e,type){
+  e.preventDefault();hideTip();
+  const menu=document.getElementById('ctxMenu');
+  ['ctxConn','ctxGroup','ctxMacro'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById(type==='conn'?'ctxConn':type==='group'?'ctxGroup':'ctxMacro').style.display='';
+  menu.classList.remove('hidden');
+  let x=e.clientX,y=e.clientY;
+  if(x+230>window.innerWidth)x=window.innerWidth-240;
+  if(y+230>window.innerHeight)y=window.innerHeight-240;
+  menu.style.left=x+'px';menu.style.top=y+'px';
+}
+function hideCtx(){document.getElementById('ctxMenu').classList.add('hidden')}
+document.addEventListener('click',()=>{hideCtx();hideTip()});
+
+function showTip(e,text){
+  const t=document.getElementById('tip');
+  t.textContent=text;t.classList.remove('hidden');
+  let x=e.clientX+16,y=e.clientY-8;
+  if(x+275>window.innerWidth)x=e.clientX-280;
+  if(y+140>window.innerHeight)y=e.clientY-140;
+  t.style.left=x+'px';t.style.top=y+'px';
+}
+function hideTip(){document.getElementById('tip').classList.add('hidden')}
+
+function showScopePicker(){document.getElementById('scopeBg').classList.remove('hidden')}
+function hideScopePicker(){document.getElementById('scopeBg').classList.add('hidden')}
+function showRunModal(){document.getElementById('runModal').classList.remove('hidden')}
+function hideRunModal(){document.getElementById('runModal').classList.add('hidden')}
+
+function simulateRun(){
+  hideRunModal();
+  document.getElementById('resultsPanel').className='results-panel expanded';
+  document.getElementById('rpChev').style.transform='rotate(90deg)';
+  const sum=document.getElementById('rpSummary');
+  sum.style.color='var(--accent)';sum.textContent='巡检 - 基础状态 · 执行中...';
+  setTimeout(()=>{sum.style.color='var(--success)';sum.textContent='巡检 - 基础状态 · 3/3 成功 · 2.1s';},2500);
+}
+
+function validateAndSave(){
+  const ip=document.getElementById('f-ip').value.trim();
+  const valid=/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)&&ip.split('.').every(n=>+n>=0&&+n<=255);
+  const b=document.getElementById('errBanner');
+  if(!valid){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
+  else{b.classList.remove('show');openView('summary');}
+}
+
+function toggleResults(){
+  const p=document.getElementById('resultsPanel');
+  const c=document.getElementById('rpChev');
+  if(p.classList.contains('expanded')||parseInt(p.style.height||0)>38){
+    rpSavedH=parseInt(p.style.height)||p.getBoundingClientRect().height;
+    p.style.transition='';p.style.height='38px';
+    p.className='results-panel collapsed';c.style.transform='';
+  }else{
+    p.style.height=(rpSavedH||220)+'px';
+    p.className='results-panel expanded';c.style.transform='rotate(90deg)';
+  }
+}
+function toggleRb(hd){
+  const body=hd.nextElementSibling;
+  const arr=hd.querySelector('svg:first-child');
+  const open=body.classList.toggle('open');
+  if(arr)arr.style.transform=open?'rotate(90deg)':'';
+}
+function expandAll(){document.querySelectorAll('.rb-body').forEach(b=>{b.classList.add('open');const a=b.previousElementSibling?.querySelector('svg:first-child');if(a)a.style.transform='rotate(90deg)';})}
+function collapseAll(){document.querySelectorAll('.rb-body').forEach(b=>{b.classList.remove('open');const a=b.previousElementSibling?.querySelector('svg:first-child');if(a)a.style.transform='';})}
+function clearResults(){document.getElementById('rpBody').innerHTML='<div style="padding:var(--space-5);text-align:center;font:var(--text-label);color:var(--foreground-muted)">暂无执行记录</div>';document.getElementById('rpSummary').textContent='';}
+
+function simulateRefresh(){
+  const dots=document.querySelectorAll('.dot');
+  const orig=Array.from(dots).map(d=>d.className);
+  dots.forEach(d=>{d.className='dot checking'});
+  setTimeout(()=>{
+    dots.forEach((d,i)=>d.className=orig[i]);
+    const n=document.getElementById('notif');n.classList.remove('hidden');
+    setTimeout(()=>n.classList.add('hidden'),4000);
+  },2000);
+}
+
+function updatePreview(ta,prevId){
+  const prev=document.getElementById(prevId);if(!prev)return;
+  let cmd=ta.value.replace(/\$SERVICE/g,'bmc-service').replace(/\$HOST/g,'192.168.1.100').replace(/\$USER/g,'root').replace(/\$NAME/g,'BMC-A01').replace(/\$GROUP/g,'实验室 A');
+  prev.textContent='→ root@BMC-A01:~ $ '+cmd;
+  prev.classList.toggle('hidden',!cmd.trim());
+}
+function swapCmds(a,b){
+  const ea=document.getElementById(a),eb=document.getElementById(b);if(!ea||!eb)return;
+  const taA=ea.querySelector('textarea'),taB=eb.querySelector('textarea');
+  const tmp=taA.value;taA.value=taB.value;taB.value=tmp;
+  [ea,eb].forEach(e=>{const ta=e.querySelector('textarea');const p=e.querySelector('.cmd-preview');if(p&&ta)updatePreview(ta,p.id);});
+}
+function removeCmd(id){document.getElementById(id)?.remove()}
+
+openView('summary');
+setTimeout(()=>{document.getElementById('notif').classList.remove('hidden');setTimeout(()=>document.getElementById('notif').classList.add('hidden'),4000);},1200);
+
+// ── Results panel resize ──
+let rpSavedH=220,rpDragging=false,rpDragStartY=0,rpDragStartH=0;
+(function(){
+  const handle=document.getElementById('rpResizeHandle');
+  const panel=document.getElementById('resultsPanel');
+  if(!handle||!panel)return;
+  handle.addEventListener('mousedown',e=>{
+    rpDragging=true;
+    rpDragStartY=e.clientY;
+    rpDragStartH=panel.getBoundingClientRect().height;
+    document.body.classList.add('rp-is-resizing');
+    panel.style.transition='none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!rpDragging)return;
+    const delta=rpDragStartY-e.clientY;
+    const minH=38,maxH=Math.round(window.innerHeight*0.65);
+    const newH=Math.max(minH,Math.min(maxH,rpDragStartH+delta));
+    panel.style.height=newH+'px';
+    if(newH>44){
+      panel.className='results-panel expanded';
+      document.getElementById('rpChev').style.transform='rotate(90deg)';
+    }else{
+      panel.className='results-panel collapsed';
+      document.getElementById('rpChev').style.transform='';
+    }
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!rpDragging)return;
+    rpDragging=false;
+    document.body.classList.remove('rp-is-resizing');
+    const panel=document.getElementById('resultsPanel');
+    rpSavedH=parseInt(panel.style.height)||rpSavedH;
+    panel.style.transition='';
+  });
+})();
+</script>
+</body>
+</html>

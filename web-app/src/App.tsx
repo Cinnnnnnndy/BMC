@@ -17,6 +17,9 @@ const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardT
 const SoftwareHardwareAssociationView = lazy(() => import('./components/SoftwareHardwareAssociationView'), 'SoftwareHardwareAssociationView');
 const ServerAssociationView      = lazy(() => import('./components/ServerAssociationView'),      'ServerAssociationView');
 const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopologyCanvas'),     'HardwareTopologyCanvas');
+const BmcEnvView                 = lazy(() => import('./components/BmcEnvView'),                 'BmcEnvView');
+const AiAssistView               = lazy(() => import('./components/AiAssistView'),               'AiAssistView');
+const ExplorerView               = lazy(() => import('./components/ExplorerView'),               'ExplorerView');
 
 /** VSCode webview API bridge */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -42,10 +45,11 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
-  | 'home'
+  | 'home' | 'installGuide' | 'explorer' | 'bmcEnv' | 'aiAssist'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD'
-  | 'smcOffset' | 'exprCalc' | 'coolingConfig';
+  | 'smcOffset' | 'exprCalc' | 'coolingConfig'
+  | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup';
 
 const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'sensor', 'simulator']);
 
@@ -59,8 +63,21 @@ function SI({ d }: { d: string | string[] }) {
   );
 }
 
+function WI({ d }: { d: string | string[] }) {
+  const paths = Array.isArray(d) ? d : [d];
+  return (
+    <svg className="pto-ide-frame__window-icon" viewBox="0 0 24 24">
+      {paths.map((p, i) => <path key={i} d={p} />)}
+    </svg>
+  );
+}
+
 const ICONS: Record<string, React.ReactNode> = {
-  home:         <SI d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
+  home:         <SI d={['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10']} />,
+  explorer:     <SI d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
+  installGuide: <SI d={['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z','M9 7h7M9 11h5']} />,
+  bmcEnv:       <SI d={['M4 4h16a2 2 0 0 1 2 2v4H2V6a2 2 0 0 1 2-2z','M2 10h20v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8z','M8 7v3M12 7v3M16 7v3']} />,
+  aiAssist:     <SI d={['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z','M8 10h8M8 14h5']} />,
   topology:     <SI d={['M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M8.59 13.51l6.83 3.98','M15.41 6.51l-6.82 3.98']} />,
   boardTopology:<SI d="M4 5h16M4 12h16M4 19h16M9 5v14M15 5v14" />,
   association:  <SI d={['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71','M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71']} />,
@@ -74,7 +91,337 @@ const ICONS: Record<string, React.ReactNode> = {
   smcOffset:    <SI d="M4 9h16M4 15h16M10 3v18M14 3v18" />,
   exprCalc:     <SI d={['M4 17l6-6-6-6','M12 19h8']} />,
   coolingConfig:<SI d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 10 16H2m15.73-8.27A2 2 0 1 1 19 12H2" />,
+  jsonNorth:    <SI d={['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M10 13l-2 2 2 2','M14 13l2 2-2 2']} />,
+  srLang:       <SI d={['M8 9l3 3-3 3','M13 15h3']} />,
+  srPrev:       <SI d={['M20 3H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z','M12 17v4','M8 21h8']} />,
+  pipeExpr:     <SI d={['M4 21v-7','M4 10V3','M12 21v-9','M12 8V3','M20 21v-5','M20 12V3','M1 14h6','M9 8h6','M17 16h6']} />,
+  smcExt:       <SI d={['M6 6h12v12H6z','M9 6V3','M15 6V3','M9 18v3','M15 18v3','M6 9H3','M6 15H3','M18 9h3','M18 15h3']} />,
+  mibSup:       <SI d={['M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2','M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0H9V5z','M9 12h6','M9 16h6']} />,
 };
+
+// ── Pane layout system ─────────────────────────────────────────────────────
+
+type PaneId   = string;
+type TabId    = string;
+type DropZone = 'center' | 'left' | 'right' | 'top' | 'bottom';
+
+interface TabEntry { tabId: TabId; viewId: ViewId; }
+type LeafPane = { kind: 'leaf'; paneId: PaneId; tabs: TabEntry[]; activeTabId: TabId | null; };
+type SplitPane = { kind: 'split'; paneId: PaneId; dir: 'h' | 'v'; ratio: number; a: PaneNode; b: PaneNode; };
+type PaneNode  = LeafPane | SplitPane;
+interface DragState { tabId: TabId; fromPaneId: PaneId; viewId: ViewId; }
+
+function uid(): string { return Math.random().toString(36).slice(2, 9); }
+
+function mkLeaf(paneId: PaneId = uid(), tabs: TabEntry[] = [], activeTabId: TabId | null = null): LeafPane {
+  return { kind: 'leaf', paneId, tabs, activeTabId };
+}
+
+function allLeaves(n: PaneNode): LeafPane[] {
+  return n.kind === 'leaf' ? [n] : [...allLeaves(n.a), ...allLeaves(n.b)];
+}
+
+/** Map over all leaf nodes; auto-collapses empty leaves inside splits */
+function mapLeaves(n: PaneNode, fn: (l: LeafPane) => PaneNode): PaneNode {
+  if (n.kind === 'leaf') return fn(n);
+  const a = mapLeaves(n.a, fn);
+  const b = mapLeaves(n.b, fn);
+  if (a.kind === 'leaf' && !a.tabs.length) return b;
+  if (b.kind === 'leaf' && !b.tabs.length) return a;
+  return { ...n, a, b };
+}
+
+function lAddTab(n: PaneNode, paneId: PaneId, tab: TabEntry): PaneNode {
+  return mapLeaves(n, l =>
+    l.paneId !== paneId ? l : { ...l, tabs: [...l.tabs, tab], activeTabId: tab.tabId }
+  );
+}
+
+function lActivateTab(n: PaneNode, paneId: PaneId, tabId: TabId): PaneNode {
+  return mapLeaves(n, l =>
+    l.paneId !== paneId ? l : { ...l, activeTabId: tabId }
+  );
+}
+
+function lCloseTab(n: PaneNode, paneId: PaneId, tabId: TabId): PaneNode {
+  return mapLeaves(n, l => {
+    if (l.paneId !== paneId) return l;
+    const tabs = l.tabs.filter(t => t.tabId !== tabId);
+    const activeTabId = l.activeTabId === tabId ? (tabs.at(-1)?.tabId ?? null) : l.activeTabId;
+    return { ...l, tabs, activeTabId };
+  });
+}
+
+function lRemoveTab(n: PaneNode, tabId: TabId): PaneNode {
+  return mapLeaves(n, l => {
+    if (!l.tabs.some(t => t.tabId === tabId)) return l;
+    const tabs = l.tabs.filter(t => t.tabId !== tabId);
+    const activeTabId = l.activeTabId === tabId ? (tabs.at(-1)?.tabId ?? null) : l.activeTabId;
+    return { ...l, tabs, activeTabId };
+  });
+}
+
+function lSplit(n: PaneNode, paneId: PaneId, dir: 'h' | 'v', side: 'a' | 'b', tab: TabEntry): { n: PaneNode; newId: PaneId } {
+  let newId = '';
+  function go(node: PaneNode): PaneNode {
+    if (node.kind === 'split') return { ...node, a: go(node.a), b: go(node.b) };
+    if (node.paneId !== paneId) return node;
+    const newLeaf = mkLeaf(uid(), [tab], tab.tabId);
+    newId = newLeaf.paneId;
+    return { kind: 'split', paneId: uid(), dir, ratio: 0.5,
+      a: side === 'a' ? newLeaf : node,
+      b: side === 'b' ? newLeaf : node } as SplitPane;
+  }
+  return { n: go(n), newId };
+}
+
+function lSetRatio(n: PaneNode, paneId: PaneId, r: number): PaneNode {
+  if (n.kind === 'leaf') return n;
+  if (n.paneId === paneId) return { ...n, ratio: Math.max(0.1, Math.min(0.9, r)) };
+  return { ...n, a: lSetRatio(n.a, paneId, r), b: lSetRatio(n.b, paneId, r) };
+}
+
+// ── View labels for tab bar ────────────────────────────────────────────────
+
+const VIEW_LABELS: Partial<Record<ViewId, string>> = {
+  home: '欢迎页', installGuide: '安装引导', explorer: '资源管理器', jsonNorth: 'JSON 北向接口',
+  srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
+  smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
+  mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
+  threeD: '3D 仿真', vueTopo: 'CSR 拓扑', serverView: '服务器视图',
+  topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
+  sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
+  aiAssist: 'AI 助手', smcOffset: 'SMC 偏移量',
+};
+
+// ── Pane components ────────────────────────────────────────────────────────
+
+interface PaneViewProps {
+  activePaneId: PaneId;
+  dragState: DragState | null;
+  onActivatePane: (id: PaneId) => void;
+  onActivateTab: (paneId: PaneId, tabId: TabId) => void;
+  onCloseTab: (paneId: PaneId, tabId: TabId) => void;
+  onDragStart: (ds: DragState) => void;
+  onDragEnd: () => void;
+  onDrop: (toPaneId: PaneId, zone: DropZone) => void;
+  onSetRatio: (splitPaneId: PaneId, ratio: number) => void;
+  onSplitPane: (paneId: PaneId, dir: 'h' | 'v') => void;
+  renderContent: (viewId: ViewId) => React.ReactNode;
+}
+
+function PaneView({ node, ...props }: { node: PaneNode } & PaneViewProps) {
+  return node.kind === 'leaf'
+    ? <LeafPaneView leaf={node} {...props} />
+    : <SplitView split={node} {...props} />;
+}
+
+function SplitView({ split, ...props }: { split: SplitPane } & PaneViewProps) {
+  const [resizing, setResizing] = useState(false);
+  const [liveRatio, setLiveRatio] = useState(split.ratio);
+  const liveRatioRef = useRef(split.ratio);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onSetRatioRef = useRef(props.onSetRatio);
+  onSetRatioRef.current = props.onSetRatio;
+
+  const displayRatio = resizing ? liveRatio : split.ratio;
+
+  function startResize(e: React.MouseEvent) {
+    e.preventDefault();
+    setResizing(true);
+    const paneId = split.paneId;
+    const onMove = (ev: MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const r = split.dir === 'h'
+        ? (ev.clientX - rect.left) / rect.width
+        : (ev.clientY - rect.top) / rect.height;
+      const clamped = Math.max(0.1, Math.min(0.9, r));
+      liveRatioRef.current = clamped;
+      setLiveRatio(clamped);
+    };
+    const onUp = () => {
+      setResizing(false);
+      onSetRatioRef.current(paneId, liveRatioRef.current);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = split.dir === 'h' ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  const isH = split.dir === 'h';
+  return (
+    <div ref={containerRef}
+      style={{ display: 'flex', flexDirection: isH ? 'row' : 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+      <div style={{ [isH ? 'width' : 'height']: `${displayRatio * 100}%`, overflow: 'hidden', flexShrink: 0, minWidth: 0, minHeight: 0 }}>
+        <PaneView node={split.a} {...props} />
+      </div>
+      <div
+        className={`ide-split-handle ide-split-handle--${split.dir}${resizing ? ' is-resizing' : ''}`}
+        onMouseDown={startResize}
+      />
+      <div style={{ flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
+        <PaneView node={split.b} {...props} />
+      </div>
+    </div>
+  );
+}
+
+function LeafPaneView({ leaf, ...props }: { leaf: LeafPane } & PaneViewProps) {
+  const [hoverZone, setHoverZone] = useState<DropZone | null>(null);
+  const isDragging = props.dragState !== null;
+  const isOwnDrag = isDragging && props.dragState!.fromPaneId === leaf.paneId;
+  const activeTab = leaf.tabs.find(t => t.tabId === leaf.activeTabId);
+
+  return (
+    <div
+      className={`ide-leaf-pane${leaf.paneId === props.activePaneId ? ' ide-leaf-pane--active' : ''}`}
+      onMouseDown={() => props.onActivatePane(leaf.paneId)}
+    >
+      <div className="ide-tab-row">
+        <div className="ide-tab-bar"
+          onDragOver={e => { if (!isOwnDrag) { e.preventDefault(); } }}
+          onDrop={e => { if (!isOwnDrag) { e.preventDefault(); props.onDrop(leaf.paneId, 'center'); } }}
+        >
+          {leaf.tabs.length === 0
+            ? <span className="ide-tab-bar__hint">← 从侧边栏打开功能页</span>
+            : leaf.tabs.map(tab => (
+              <div
+                key={tab.tabId}
+                className={`ide-tab${tab.tabId === leaf.activeTabId ? ' ide-tab--active' : ''}${props.dragState?.tabId === tab.tabId ? ' is-dragging' : ''}`}
+                draggable
+                onDragStart={e => {
+                  e.dataTransfer.effectAllowed = 'move';
+                  props.onDragStart({ tabId: tab.tabId, fromPaneId: leaf.paneId, viewId: tab.viewId });
+                }}
+                onDragEnd={() => props.onDragEnd()}
+                onClick={e => {
+                  e.stopPropagation();
+                  props.onActivateTab(leaf.paneId, tab.tabId);
+                  props.onActivatePane(leaf.paneId);
+                }}
+              >
+                <span className="ide-tab__icon">{ICONS[tab.viewId]}</span>
+                <span className="ide-tab__label">{VIEW_LABELS[tab.viewId] ?? tab.viewId}</span>
+                <button
+                  className="ide-tab__close"
+                  onClick={e => { e.stopPropagation(); props.onCloseTab(leaf.paneId, tab.tabId); }}
+                >×</button>
+              </div>
+            ))
+          }
+        </div>
+        {leaf.tabs.length > 0 && (
+          <div className="ide-tab-bar__actions">
+            <button
+              className="ide-split-btn"
+              title="向右分屏"
+              onClick={e => { e.stopPropagation(); props.onSplitPane(leaf.paneId, 'h'); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="9" height="18" rx="1.5"/>
+                <rect x="13" y="3" width="9" height="18" rx="1.5"/>
+              </svg>
+            </button>
+            <button
+              className="ide-split-btn"
+              title="向下分屏"
+              onClick={e => { e.stopPropagation(); props.onSplitPane(leaf.paneId, 'v'); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="2" width="18" height="9" rx="1.5"/>
+                <rect x="3" y="13" width="18" height="9" rx="1.5"/>
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="ide-leaf-content">
+        <Suspense fallback={<ViewLoader />}>
+          {activeTab
+            ? props.renderContent(activeTab.viewId)
+            : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--foreground-muted)', fontSize: 13 }}>
+                从左侧活动栏选择功能页
+              </div>
+            )
+          }
+        </Suspense>
+        {isDragging && !isOwnDrag && (
+          <DropZones
+            paneId={leaf.paneId}
+            hoverZone={hoverZone}
+            setHoverZone={setHoverZone}
+            onDrop={(paneId, zone) => { props.onDrop(paneId, zone); setHoverZone(null); }}
+          />
+        )}
+        {isDragging && isOwnDrag && leaf.tabs.length > 1 && (
+          <DropZones
+            paneId={leaf.paneId}
+            hoverZone={hoverZone}
+            setHoverZone={setHoverZone}
+            onDrop={(paneId, zone) => { props.onDrop(paneId, zone); setHoverZone(null); }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DropZones({ paneId, hoverZone, setHoverZone, onDrop }: {
+  paneId: PaneId;
+  hoverZone: DropZone | null;
+  setHoverZone: (z: DropZone | null) => void;
+  onDrop: (paneId: PaneId, zone: DropZone) => void;
+}) {
+  const zones: { key: DropZone; label: string; cls: string }[] = [
+    { key: 'center', label: '移入此区', cls: 'idz-c' },
+    { key: 'left',   label: '← 向左分屏', cls: 'idz-l' },
+    { key: 'right',  label: '向右分屏 →', cls: 'idz-r' },
+    { key: 'top',    label: '↑ 向上分屏', cls: 'idz-t' },
+    { key: 'bottom', label: '向下分屏 ↓', cls: 'idz-b' },
+  ];
+  return (
+    <div className="ide-drop-overlay">
+      {zones.map(z => (
+        <div
+          key={z.key}
+          className={`ide-drop-zone ${z.cls}${hoverZone === z.key ? ' idz-hot' : ''}`}
+          onDragOver={e => { e.preventDefault(); e.stopPropagation(); setHoverZone(z.key); }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setHoverZone(null); }}
+          onDrop={e => { e.preventDefault(); e.stopPropagation(); onDrop(paneId, z.key); setHoverZone(null); }}
+        >
+          <span>{z.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExtFeaturePlaceholder({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', height: '100%', gap: 14, padding: '0 48px',
+    }}>
+      <span style={{ fontSize: 36, lineHeight: 1 }}>{emoji}</span>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)' }}>{title}</div>
+      <div style={{ fontSize: 13, color: 'var(--foreground-secondary)', textAlign: 'center', maxWidth: 380, lineHeight: 1.7 }}>{desc}</div>
+      <div style={{
+        marginTop: 8, padding: '7px 14px', borderRadius: 6,
+        background: 'var(--surface-2)', border: '1px solid var(--border-subtle)',
+        fontSize: 11.5, color: 'var(--foreground-muted)',
+      }}>
+        由 BMC Studio CodeX 扩展提供 · 后续集成中
+      </div>
+    </div>
+  );
+}
 
 function ViewLoader() {
   return (
@@ -97,19 +444,53 @@ function ViewLoader() {
 export default function App() {
   const vscode = getVscode();
   const [csr, setCsr] = useState<CSRDocument | null>(null);
-  const [activeView, setActiveView] = useState<ViewId>(vscode ? 'topology' : 'home');
   const [eventDef, setEventDef] = useState<Record<string, unknown> | null>(null);
   const [dirty, setDirty] = useState(false);
   const [fileName, setFileName] = useState<string>('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [currentProject, setCurrentProject] = useState<{ manufacturer: string; model: string } | null>(null);
   const [lightMode, setLightMode] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiPanelWidth, setAiPanelWidth] = useState(340);
+  const [extMenuOpen, setExtMenuOpen] = useState(false);
+  const [extMenuPos, setExtMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const extBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ── Pane layout state ──────────────────────────────────────────────────
+  const initPaneId = useRef(uid());
+  const [layout, setLayout] = useState<PaneNode>(() => {
+    const homeTab: TabEntry = { tabId: uid(), viewId: 'home' };
+    if (vscode) {
+      const tab: TabEntry = { tabId: uid(), viewId: 'topology' };
+      return mkLeaf(initPaneId.current, [tab], tab.tabId);
+    }
+    return mkLeaf(initPaneId.current, [homeTab], homeTab.tabId);
+  });
+  const [activePaneId, setActivePaneId] = useState<PaneId>(initPaneId.current);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const activePaneIdRef = useRef(activePaneId);
+  activePaneIdRef.current = activePaneId;
+  const dragStateRef = useRef(dragState);
+  dragStateRef.current = dragState;
 
   const csrRef = useRef<typeof csr>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const eventDefInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { csrRef.current = csr; }, [csr]);
+
+  // Sync activePaneId when the active pane is removed (e.g. tab collapse)
+  useEffect(() => {
+    const leaves = allLeaves(layout);
+    if (leaves.length > 0 && !leaves.some(l => l.paneId === activePaneId)) {
+      const newId = leaves[0].paneId;
+      setActivePaneId(newId);
+      activePaneIdRef.current = newId;
+    }
+  }, [layout, activePaneId]);
 
   useEffect(() => {
     if (lightMode) document.documentElement.setAttribute('data-theme', 'light');
@@ -149,6 +530,29 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [vscode, loadCsr]);
 
+  // ── Core: open a view in the active pane (or focus if already open) ────
+  const openView = useCallback((viewId: ViewId) => {
+    setLayout(prev => {
+      // If already open somewhere, activate that pane + tab
+      for (const leaf of allLeaves(prev)) {
+        const tab = leaf.tabs.find(t => t.viewId === viewId);
+        if (tab) {
+          setActivePaneId(leaf.paneId);
+          activePaneIdRef.current = leaf.paneId;
+          return lActivateTab(prev, leaf.paneId, tab.tabId);
+        }
+      }
+      // Add to active pane (or first available leaf)
+      const leaves = allLeaves(prev);
+      const curPaneId = activePaneIdRef.current;
+      const targetPaneId = leaves.some(l => l.paneId === curPaneId)
+        ? curPaneId
+        : (leaves[0]?.paneId ?? curPaneId);
+      const newTab: TabEntry = { tabId: uid(), viewId };
+      return lAddTab(prev, targetPaneId, newTab);
+    });
+  }, []);
+
   const handleProjectSelect = useCallback(
     async (project: { id: string; manufacturer: string; model: string; rootSrPath?: string }) => {
       setCurrentProjectId(project.id);
@@ -161,7 +565,7 @@ export default function App() {
           const text = await res.text();
           loadCsr(text);
           setFileName(`${project.manufacturer}_${project.model}.sr`);
-          setActiveView('topology');
+          openView('topology');
         } catch (err) {
           alert('加载项目 CSR 失败：' + String(err));
         }
@@ -169,7 +573,7 @@ export default function App() {
         fileInputRef.current?.click();
       }
     },
-    [loadCsr]
+    [loadCsr, openView]
   );
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +585,7 @@ export default function App() {
       setFileName(file.name);
       setCurrentProjectId(null);
       setCurrentProject(null);
-      setActiveView('topology');
+      openView('topology');
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -223,22 +627,111 @@ export default function App() {
   }, []);
 
   const handleNavTo = useCallback((viewId: ViewId) => {
-    if (viewId === 'home') {
-      if (dirty && !window.confirm('有未保存的修改，确定要返回项目列表？')) return;
-      setCsr(null);
-      setCurrentProjectId(null);
-      setCurrentProject(null);
-      setFileName('');
-      setDirty(false);
-      setActiveView('home');
-      return;
+    if (CSR_REQUIRED.has(viewId) && !csrRef.current) return;
+    openView(viewId);
+  }, [openView]);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = aiPanelWidth;
+    const onMouseMove = (ev: MouseEvent) => {
+      const dx = startX - ev.clientX;
+      setAiPanelWidth(Math.max(260, Math.min(680, startWidth + dx)));
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [aiPanelWidth]);
+
+  // ── Tab management callbacks ───────────────────────────────────────────
+  const handleActivatePane = useCallback((id: PaneId) => {
+    setActivePaneId(id);
+    activePaneIdRef.current = id;
+  }, []);
+
+  const handleActivateTab = useCallback((paneId: PaneId, tabId: TabId) => {
+    setActivePaneId(paneId);
+    activePaneIdRef.current = paneId;
+    setLayout(prev => lActivateTab(prev, paneId, tabId));
+  }, []);
+
+  const handleCloseTab = useCallback((paneId: PaneId, tabId: TabId) => {
+    setLayout(prev => lCloseTab(prev, paneId, tabId));
+  }, []);
+
+  const handleDragStart = useCallback((ds: DragState) => {
+    setDragState(ds);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  const handleDrop = useCallback((toPaneId: PaneId, zone: DropZone) => {
+    const ds = dragStateRef.current;
+    if (!ds) return;
+    setDragState(null);
+
+    const { tabId, fromPaneId, viewId } = ds;
+
+    if (zone === 'center') {
+      if (fromPaneId === toPaneId) return;
+      setLayout(prev => {
+        const withoutTab = lRemoveTab(prev, tabId);
+        const leaves = allLeaves(withoutTab);
+        const targetExists = leaves.some(l => l.paneId === toPaneId);
+        const finalPaneId = targetExists ? toPaneId : (leaves[0]?.paneId ?? toPaneId);
+        setActivePaneId(finalPaneId);
+        activePaneIdRef.current = finalPaneId;
+        return lAddTab(withoutTab, finalPaneId, { tabId, viewId });
+      });
+    } else {
+      const dir: 'h' | 'v' = (zone === 'left' || zone === 'right') ? 'h' : 'v';
+      const side: 'a' | 'b' = (zone === 'left' || zone === 'top') ? 'a' : 'b';
+      setLayout(prev => {
+        const withoutTab = lRemoveTab(prev, tabId);
+        const result = lSplit(withoutTab, toPaneId, dir, side, { tabId, viewId });
+        if (!result.newId) {
+          // Target pane was removed; fall back to first leaf
+          const firstLeaf = allLeaves(withoutTab)[0];
+          if (!firstLeaf) return prev;
+          setActivePaneId(firstLeaf.paneId);
+          activePaneIdRef.current = firstLeaf.paneId;
+          return lAddTab(withoutTab, firstLeaf.paneId, { tabId, viewId });
+        }
+        setActivePaneId(result.newId);
+        activePaneIdRef.current = result.newId;
+        return result.n;
+      });
     }
-    if (CSR_REQUIRED.has(viewId) && !csrRef.current) {
-      setActiveView('home');
-      return;
-    }
-    setActiveView(viewId);
-  }, [dirty]);
+  }, []);
+
+  const handleSetRatio = useCallback((splitPaneId: PaneId, ratio: number) => {
+    setLayout(prev => lSetRatio(prev, splitPaneId, ratio));
+  }, []);
+
+  const handleSplitPane = useCallback((paneId: PaneId, dir: 'h' | 'v') => {
+    setLayout(prev => {
+      const leaf = allLeaves(prev).find(l => l.paneId === paneId);
+      if (!leaf) return prev;
+      const activeTab = leaf.tabs.find(t => t.tabId === leaf.activeTabId);
+      if (!activeTab) return prev;
+      const newTab: TabEntry = { tabId: uid(), viewId: activeTab.viewId };
+      const result = lSplit(prev, paneId, dir, 'b', newTab);
+      if (!result.newId) return prev;
+      setActivePaneId(result.newId);
+      activePaneIdRef.current = result.newId;
+      return result.n;
+    });
+  }, []);
 
   // VSCode: wait for extension to push content
   if (vscode && !csr) {
@@ -250,25 +743,15 @@ export default function App() {
   const threeDSrc = base.endsWith('/') ? base + '3d-viewer/index.html' : base + '/3d-viewer/index.html';
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
 
-  // ── Content area ───────────────────────────────────────────────────────
-  function renderContent() {
-    switch (activeView) {
+  // ── Content renderer (called per-tab by LeafPaneView) ─────────────────
+  function renderContent(viewId: ViewId): React.ReactNode {
+    switch (viewId) {
       case 'home':
         return (
           <>
             <input ref={fileInputRef} type="file" accept=".sr,.json,application/json" onChange={handleFileUpload} style={{ display: 'none' }} />
             <input ref={eventDefInputRef} type="file" accept=".json" onChange={handleEventDefUpload} style={{ display: 'none' }} />
-            <ProjectList
-              projects={HARDWARE_PROJECTS}
-              onSelect={handleProjectSelect}
-              onUpload={() => fileInputRef.current?.click()}
-              onOpenView={(id) => handleNavTo(id as ViewId)}
-            />
-            <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-              <button onClick={() => eventDefInputRef.current?.click()} className="btn-secondary">
-                上传 event_def.json
-              </button>
-            </div>
+            <iframe src="/welcome.html" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="欢迎页" />
           </>
         );
       case 'topology':
@@ -283,6 +766,14 @@ export default function App() {
         return csr ? <SensorConfig csr={csr} onChange={handleCsrChange} /> : null;
       case 'simulator':
         return csr ? <Simulator csr={csr} /> : null;
+      case 'explorer':
+        return <ExplorerView />;
+      case 'installGuide':
+        return <iframe src="/setup-wizard/setup.html" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
+      case 'bmcEnv':
+        return <BmcEnvView />;
+      case 'aiAssist':
+        return <AiAssistView />;
       case 'vueTopo':
         return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="CSR拓扑Vue视图" />;
       case 'hwTopology':
@@ -292,11 +783,23 @@ export default function App() {
       case 'threeD':
         return <iframe src={threeDSrc} style={{ width: '100%', height: '100%', border: 'none' }} title="3D仿真视图" />;
       case 'smcOffset':
-        return <iframe src={`${vueSrc}#smc`} style={{ width: '100%', height: '100%', border: 'none' }} title="SMC偏移量计算器" />;
+        return <iframe src={`${vueSrc}?solo=true&tab=smc`} style={{ width: '100%', height: '100%', border: 'none' }} title="SMC偏移量计算器" />;
       case 'exprCalc':
-        return <iframe src={`${vueSrc}#expr`} style={{ width: '100%', height: '100%', border: 'none' }} title="批量表达式计算器" />;
+        return <iframe src={`${vueSrc}?solo=true&tab=expr`} style={{ width: '100%', height: '100%', border: 'none' }} title="批量表达式计算器" />;
       case 'coolingConfig':
-        return <iframe src={`${vueSrc}#cooling`} style={{ width: '100%', height: '100%', border: 'none' }} title="能效调速配置模板" />;
+        return <iframe src={`${vueSrc}?solo=true&tab=cooling`} style={{ width: '100%', height: '100%', border: 'none' }} title="能效调速配置模板" />;
+      case 'jsonNorth':
+        return <ExtFeaturePlaceholder emoji="🔍" title="JSON 北向接口辅助" desc="为北向 API .json 文件提供定义跳转、悬停提示、自动补全、实时错误检测与语法高亮。在 VS Code 中打开对应 .json 文件即可使用。" />;
+      case 'srLang':
+        return <ExtFeaturePlaceholder emoji="⚡" title="SR 语言服务器" desc="基于 LSP 的 .sr 文件补全、诊断与悬停提示。读取 ~/.cache/openubmc/mdb_cache 中的 MDB 类定义，实时扫描更新。" />;
+      case 'srPrev':
+        return <ExtFeaturePlaceholder emoji="📄" title="SR 文件预览" desc="类似 Markdown 的 .sr 文件实时合并预览。点击编辑器标题栏「SR File: Show Merged Preview」按钮触发，自动检测并合并多个 .sr 源文件。" />;
+      case 'pipeExpr':
+        return <iframe src={`${vueSrc}?solo=true&tab=expr`} style={{ width: '100%', height: '100%', border: 'none' }} title="批量表达式计算器" />;
+      case 'smcExt':
+        return <iframe src={`${vueSrc}?solo=true&tab=smc`} style={{ width: '100%', height: '100%', border: 'none' }} title="SMC偏移量计算器" />;
+      case 'mibSup':
+        return <ExtFeaturePlaceholder emoji="📋" title="MIB 文件支持" desc="为 ASN.1 MIB 文件（.mib）提供语法高亮、自定义文件图标（深色/浅色主题）与对象重复配置校验。在 VS Code 中打开 .mib 文件即可使用。" />;
       default:
         return null;
     }
@@ -305,49 +808,57 @@ export default function App() {
   // ── Activity rail items ────────────────────────────────────────────────
   type RailItem = { id: ViewId; tooltip: string };
 
-  const primaryItems: RailItem[] = [
-    { id: 'home',         tooltip: '项目列表' },
-    { id: 'topology',     tooltip: '拓扑视图' },
-    ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑' }] : []),
-    { id: 'association',  tooltip: '软硬件关联' },
-    { id: 'event',        tooltip: '事件配置' },
-    { id: 'sensor',       tooltip: '传感器配置' },
-    { id: 'simulator',    tooltip: '仿真调试' },
+  const railItems: RailItem[] = [
+    { id: 'home',         tooltip: '欢迎页' },
+    { id: 'explorer',     tooltip: '资源管理器' },
+    { id: 'installGuide', tooltip: '安装部署引导' },
+    { id: 'pipeExpr',     tooltip: '管道表达式计算器' },
+    { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
+    { id: 'coolingConfig',tooltip: '能效调速配置' },
+    { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
+    { id: 'hwTopology',   tooltip: '硬件拓扑' },
+    { id: 'threeD',       tooltip: '3D仿真' },
+    { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
+    { id: 'serverView',   tooltip: '服务器视图' },
+    ...(csr ? [
+      { id: 'topology'     as ViewId, tooltip: '拓扑视图' },
+      { id: 'association'  as ViewId, tooltip: '软硬件关联' },
+      { id: 'simulator'    as ViewId, tooltip: '仿真调试' },
+      { id: 'sensor'       as ViewId, tooltip: '传感器配置' },
+      { id: 'event'        as ViewId, tooltip: '事件配置' },
+      ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑' }] : []),
+    ] : []),
   ];
 
-  const secondaryItems: RailItem[] = [
-    { id: 'hwTopology',    tooltip: '硬件拓扑' },
-    { id: 'threeD',        tooltip: '3D仿真' },
-    { id: 'vueTopo',       tooltip: 'CSR拓扑' },
-    { id: 'serverView',    tooltip: '服务器视图' },
-    { id: 'smcOffset',     tooltip: 'SMC计算' },
-    { id: 'exprCalc',      tooltip: '表达式计算' },
-    { id: 'coolingConfig', tooltip: '能效配置' },
-  ];
+  // Rail button is highlighted if the view is the active tab in any pane
+  const activeTabViewIds = new Set(
+    allLeaves(layout)
+      .map(l => l.tabs.find(t => t.tabId === l.activeTabId)?.viewId)
+      .filter((id): id is ViewId => id !== undefined)
+  );
 
   return (
     <div className="pto-ide-frame pto-ide-frame--page" data-ide-frame>
       {/* ── Topbar ── */}
       <div className="pto-ide-frame__topbar">
         <div className="pto-ide-frame__topbar-left">
-          <span className="brand-logo">T</span>
-          {modelInfo ? (
-            <>
-              <span className="header-server-name">{modelInfo.name}</span>
-              {modelInfo.badge && <span className="header-model-badge">{modelInfo.badge}</span>}
-            </>
-          ) : (
-            <span className="header-server-name" style={{ opacity: 0.5 }}>openUBMC Studio</span>
+          <div className="pto-ide-frame__workspace">
+            <svg className="pto-ide-frame__host-icon" viewBox="0 0 24 24">
+              <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+              <path d="M9 9h6v6H9z"/>
+              <path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>
+            </svg>
+            <span>openUBMC Studio</span>
+          </div>
+        </div>
+        <div className="pto-ide-frame__topbar-center">
+          {modelInfo && (
+            <span className="topbar-subtitle">
+              {modelInfo.name}{modelInfo.badge ? ` · ${modelInfo.badge}` : ''}
+            </span>
           )}
         </div>
-        <div className="pto-ide-frame__topbar-center" />
         <div className="pto-ide-frame__topbar-right">
-          <button
-            className={`btn-text ${lightMode ? 'toggle-on' : ''}`}
-            onClick={() => setLightMode((v) => !v)}
-            style={{ fontSize: 14, padding: '0 6px' }}
-            title="切换深浅色"
-          >{lightMode ? '☀' : '🌙'}</button>
           {csr && (
             <button
               onClick={handleSave}
@@ -356,30 +867,97 @@ export default function App() {
               title={dirty ? (vscode ? '保存 CSR 文件' : '下载 CSR 文件') : '暂无修改'}
             >{vscode ? '保存' : 'CSR出包'}</button>
           )}
+          <div className="pto-ide-frame__window-actions">
+            {/* Extensions dropdown */}
+            <button
+              ref={extBtnRef}
+              className={`pto-ide-frame__window-action${extMenuOpen ? ' is-selected' : ''}`}
+              title="代码辅助扩展"
+              onClick={() => {
+                const r = extBtnRef.current?.getBoundingClientRect();
+                if (r) setExtMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+                setExtMenuOpen(v => !v);
+              }}
+            >
+              <WI d={['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z']} />
+            </button>
+          {extMenuOpen && extMenuPos && (
+            <div
+              style={{
+                position: 'fixed', top: extMenuPos.top, right: extMenuPos.right,
+                background: 'var(--surface-2, #101118)',
+                border: '1px solid var(--border-subtle, #1c1d2a)',
+                borderRadius: 6, padding: '4px 0', zIndex: 9999,
+                minWidth: 190, boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              }}
+              onMouseLeave={() => setExtMenuOpen(false)}
+            >
+              <div style={{ padding: '4px 10px 6px', fontSize: 10.5, color: 'var(--foreground-muted, #5a6280)', letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-subtle, #1c1d2a)', marginBottom: 4 }}>
+                代码辅助扩展
+              </div>
+              {([
+                { id: 'jsonNorth' as ViewId, label: 'JSON 北向接口辅助' },
+                { id: 'srLang'    as ViewId, label: 'SR 语言服务器' },
+                { id: 'srPrev'    as ViewId, label: 'SR 文件预览' },
+                { id: 'mibSup'    as ViewId, label: 'MIB 文件支持' },
+              ] as { id: ViewId; label: string }[]).map(item => (
+                <button
+                  key={item.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', padding: '6px 12px',
+                    background: 'transparent', border: 'none',
+                    color: 'var(--foreground, #cccccc)', cursor: 'pointer',
+                    fontSize: 12.5, textAlign: 'left', fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  onClick={() => { handleNavTo(item.id); setExtMenuOpen(false); }}
+                >
+                  <span style={{ opacity: 0.7 }}>{ICONS[item.id]}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+            <button
+              className="pto-ide-frame__window-action"
+              title="全屏"
+              onClick={() => document.fullscreenElement ? document.exitFullscreen?.() : document.documentElement.requestFullscreen?.()}
+            >
+              <WI d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
+            </button>
+            <span className="pto-ide-frame__window-separator" />
+            <button
+              className="pto-ide-frame__window-action"
+              onClick={() => setLightMode((v) => !v)}
+              title="切换深浅色"
+            >
+              {lightMode
+                ? <WI d={['M12 5a7 7 0 1 0 0 14A7 7 0 0 0 12 5z','M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42']} />
+                : <WI d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              }
+            </button>
+            <span className="pto-ide-frame__window-separator" />
+            <button
+              className={`pto-ide-frame__window-action${aiPanelOpen ? ' is-selected' : ''}`}
+              onClick={() => setAiPanelOpen((v) => !v)}
+              title="AI 助手"
+            >
+              <WI d={['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z','M8 10h8M8 14h5']} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Body: activity rail + content ── */}
+      {/* ── Body: activity rail + pane layout + AI panel ── */}
       <div className="pto-ide-frame__body">
         <nav className="pto-ide-frame__activity-rail ide-activity-rail">
           <div className="ide-rail-section">
-            {primaryItems.map((item) => (
+            {railItems.map((item) => (
               <button
                 key={item.id}
-                className={`pto-ide-frame__rail-button ${activeView === item.id ? 'is-selected' : ''}`}
-                onClick={() => handleNavTo(item.id)}
-                title={item.tooltip}
-              >
-                {ICONS[item.id]}
-              </button>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <div className="ide-rail-section" style={{ paddingBottom: 10 }}>
-            {secondaryItems.map((item) => (
-              <button
-                key={item.id}
-                className={`pto-ide-frame__rail-button ${activeView === item.id ? 'is-selected' : ''}`}
+                className={`pto-ide-frame__rail-button ${activeTabViewIds.has(item.id) ? 'is-selected' : ''}`}
                 onClick={() => handleNavTo(item.id)}
                 title={item.tooltip}
               >
@@ -390,14 +968,43 @@ export default function App() {
         </nav>
 
         <div className="pto-ide-frame__workarea">
-          <main className="pto-ide-frame__pane pto-ide-frame__pane--stack" style={{ flex: 1 }}>
-            <div className="pto-ide-frame__pane-body" style={{ overflow: 'hidden', position: 'relative' }}>
+          <PaneView
+            node={layout}
+            activePaneId={activePaneId}
+            dragState={dragState}
+            onActivatePane={handleActivatePane}
+            onActivateTab={handleActivateTab}
+            onCloseTab={handleCloseTab}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDrop}
+            onSetRatio={handleSetRatio}
+            onSplitPane={handleSplitPane}
+            renderContent={renderContent}
+          />
+        </div>
+
+        {aiPanelOpen && (
+          <aside className="ai-assist-panel" style={{ width: aiPanelWidth }}>
+            <div className="ai-assist-panel__resize-handle" onMouseDown={handleResizeMouseDown} />
+            <div className="ai-assist-panel__header">
+              <span className="ai-assist-panel__title">AI 助手</span>
+              <button
+                className="pto-ide-frame__rail-button"
+                onClick={() => setAiPanelOpen(false)}
+                title="关闭"
+                style={{ width: 24, height: 24, minWidth: 24, minHeight: 24 }}
+              >
+                <SI d="M18 6L6 18M6 6l12 12" />
+              </button>
+            </div>
+            <div className="ai-assist-panel__body">
               <Suspense fallback={<ViewLoader />}>
-                {renderContent()}
+                <AiAssistView />
               </Suspense>
             </div>
-          </main>
-        </div>
+          </aside>
+        )}
       </div>
     </div>
   );
