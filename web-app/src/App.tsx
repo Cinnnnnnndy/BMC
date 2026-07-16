@@ -553,6 +553,69 @@ export default function App() {
     });
   }, []);
 
+  // Open a view in a new split pane to the right of the active pane
+  // (focus the existing tab instead if the view is already open somewhere)
+  const openViewInSplit = useCallback((viewId: ViewId) => {
+    setLayout(prev => {
+      for (const leaf of allLeaves(prev)) {
+        const tab = leaf.tabs.find(t => t.viewId === viewId);
+        if (tab) {
+          setActivePaneId(leaf.paneId);
+          activePaneIdRef.current = leaf.paneId;
+          return lActivateTab(prev, leaf.paneId, tab.tabId);
+        }
+      }
+      const leaves = allLeaves(prev);
+      const curPaneId = activePaneIdRef.current;
+      const targetPaneId = leaves.some(l => l.paneId === curPaneId)
+        ? curPaneId
+        : leaves[0]?.paneId;
+      const newTab: TabEntry = { tabId: uid(), viewId };
+      if (!targetPaneId) return prev;
+      const result = lSplit(prev, targetPaneId, 'h', 'b', newTab);
+      if (!result.newId) return lAddTab(prev, targetPaneId, newTab);
+      setActivePaneId(result.newId);
+      activePaneIdRef.current = result.newId;
+      return result.n;
+    });
+  }, []);
+
+  // CSR-required views need a document loaded; fall back to the default sample project
+  const ensureCsrLoaded = useCallback(async (): Promise<boolean> => {
+    if (csrRef.current) return true;
+    const project = HARDWARE_PROJECTS.find(p => p.rootSrPath);
+    if (!project?.rootSrPath) return false;
+    try {
+      const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+      const path = base.endsWith('/') ? base + project.rootSrPath : base + '/' + project.rootSrPath;
+      const res = await fetch(path);
+      const text = await res.text();
+      loadCsr(text);
+      setFileName(`${project.manufacturer}_${project.model}.sr`);
+      setCurrentProjectId(project.id);
+      setCurrentProject({ manufacturer: project.manufacturer, model: project.model });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [loadCsr]);
+
+  // AI 助手 iframe → 打开历史会话关联的功能视图（分屏）
+  useEffect(() => {
+    function onScenarioMsg(event: MessageEvent) {
+      const msg = event.data as { type?: string; viewId?: string };
+      if (msg?.type !== 'ai-open-scenario' || !msg.viewId) return;
+      const viewId = msg.viewId as ViewId;
+      if (CSR_REQUIRED.has(viewId)) {
+        void ensureCsrLoaded().then(ok => { if (ok) openViewInSplit(viewId); });
+      } else {
+        openViewInSplit(viewId);
+      }
+    }
+    window.addEventListener('message', onScenarioMsg);
+    return () => window.removeEventListener('message', onScenarioMsg);
+  }, [ensureCsrLoaded, openViewInSplit]);
+
   const handleProjectSelect = useCallback(
     async (project: { id: string; manufacturer: string; model: string; rootSrPath?: string }) => {
       setCurrentProjectId(project.id);
@@ -985,8 +1048,9 @@ export default function App() {
         </div>
 
         {aiPanelOpen && (
+          <>
+          <div className="ai-assist-panel__resize-handle" onMouseDown={handleResizeMouseDown} />
           <aside className="ai-assist-panel" style={{ width: aiPanelWidth }}>
-            <div className="ai-assist-panel__resize-handle" onMouseDown={handleResizeMouseDown} />
             <div className="ai-assist-panel__header">
               <span className="ai-assist-panel__title">AI 助手</span>
               <button
@@ -1004,6 +1068,7 @@ export default function App() {
               </Suspense>
             </div>
           </aside>
+          </>
         )}
       </div>
     </div>

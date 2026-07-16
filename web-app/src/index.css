@@ -1,5 +1,12 @@
 * { box-sizing: border-box; }
 
+/* ── Global dark scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong, rgba(255,255,255,0.16)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--foreground-muted, rgba(255,255,255,0.28)); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong, rgba(255,255,255,0.16)) transparent; }
+
 html, body, #root {
   margin: 0;
   padding: 0;

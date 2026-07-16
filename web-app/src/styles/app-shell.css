@@ -31,7 +31,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  margin: 6px 8px 8px 8px;
+  margin: var(--ide-frame-pane-inset-top) var(--ide-frame-pane-inset-h) var(--ide-frame-pane-inset-bottom) 0;
   border-radius: var(--radius-md);
   background: var(--ide-frame-pane-fill);
   border: 1px solid var(--ide-frame-pane-border);
@@ -42,12 +42,12 @@
   position: relative;
 }
 
+/* Same capsule grab handle as .ide-split-handle — flex sibling filling the gap left of the panel */
 .ai-assist-panel__resize-handle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
+  position: relative;
+  width: var(--ide-frame-pane-inset-h);
+  flex-shrink: 0;
+  align-self: stretch;
   cursor: ew-resize;
   z-index: 10;
 }
@@ -55,19 +55,20 @@
 .ai-assist-panel__resize-handle::after {
   content: '';
   position: absolute;
-  left: 2px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 28px;
-  border-radius: 1px;
-  background: var(--foreground);
-  opacity: 0;
-  transition: opacity 0.15s;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 44px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  transition: background 0.15s, height 0.15s;
 }
 
-.ai-assist-panel__resize-handle:hover::after {
-  opacity: 0.25;
+.ai-assist-panel__resize-handle:hover::after,
+.ai-assist-panel__resize-handle.is-resizing::after {
+  background: color-mix(in srgb, var(--foreground) 45%, transparent);
+  height: 56px;
 }
 
 .ai-assist-panel__header {
@@ -144,10 +145,7 @@ textarea.form-input {
   padding-right: 28px;
 }
 
-/* Workarea: float pane from left/bottom edge; right flushes to viewport */
-.pto-ide-frame--page .pto-ide-frame__workarea {
-  padding: 0 0 8px 4px;
-}
+/* Workarea inset is defined in ide-frame.css (.pto-ide-frame--page .pto-ide-frame__workarea) */
 
 /* ProjectList uses position:fixed to fill the viewport; override to absolute
    so it's contained within the pane-body (which is position:relative). */

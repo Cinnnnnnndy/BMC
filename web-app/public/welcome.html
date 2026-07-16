@@ -6,6 +6,14 @@
   <title>欢迎使用 openUBMC Studio</title>
   <link rel="stylesheet" href="./welcome/welcome.css">
   <style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
     :root {
       --new-badge-image: url('./welcome/assets/new.png');
       --red-dot-image: url('./welcome/assets/red.svg');

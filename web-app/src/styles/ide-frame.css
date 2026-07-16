@@ -104,6 +104,10 @@
   --ide-frame-pane-backdrop-filter: blur(18px) saturate(1.18);
   --ide-frame-pane-shadow:        0 12px 30px color-mix(in srgb, var(--background) 10%, transparent);
   --ide-frame-pane-border:        var(--border-subtle);
+  /* Layout spacing — controls pane inset and split gap in page mode */
+  --ide-frame-pane-inset-top:     6px;
+  --ide-frame-pane-inset-h:       8px;
+  --ide-frame-pane-inset-bottom:  8px;
   --ide-frame-header-height:      32px;
   --ide-frame-title-font:         600 12.5px / 1.2 var(--font-sans);
   --ide-frame-meta-font:          500 11px   / 1.35 var(--font-mono);
@@ -267,12 +271,13 @@
 }
 
 .pto-ide-frame__topbar {
-  height: 38px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  border-bottom: 0;
 }
 
 .pto-ide-frame__topbar-left,
@@ -832,6 +837,11 @@
   overflow: hidden;
 }
 
+/* Page-mode inset: all pane content starts at the same offset as side panels */
+.pto-ide-frame--page .pto-ide-frame__workarea {
+  padding: var(--ide-frame-pane-inset-top) 0 var(--ide-frame-pane-inset-bottom) 4px;
+}
+
 /* ── Activity rail ── */
 
 .pto-ide-frame__activity-rail {
@@ -1089,10 +1099,51 @@
   z-index: 2;
   transition: background 0.12s;
 }
-.ide-split-handle--h { width: 3px; cursor: col-resize; }
-.ide-split-handle--v { height: 3px; cursor: row-resize; }
-.ide-split-handle:hover,
-.ide-split-handle.is-resizing { background: var(--primary); }
+/* macOS split-view style: clean gap with a centered capsule grab handle */
+.ide-split-handle--h {
+  width: var(--ide-frame-pane-inset-h);
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+}
+.ide-split-handle--v {
+  height: var(--ide-frame-pane-inset-h);
+  cursor: row-resize;
+  background: transparent;
+  position: relative;
+}
+.ide-split-handle--h::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 44px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  transition: background 0.15s, height 0.15s;
+}
+.ide-split-handle--v::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  height: 4px;
+  width: 44px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  transition: background 0.15s, width 0.15s;
+}
+.ide-split-handle--h:hover::after,
+.ide-split-handle--h.is-resizing::after {
+  background: color-mix(in srgb, var(--foreground) 45%, transparent);
+  height: 56px;
+}
+.ide-split-handle--v:hover::after,
+.ide-split-handle--v.is-resizing::after {
+  background: color-mix(in srgb, var(--foreground) 45%, transparent);
+  width: 56px;
+}
 
 .ide-drop-overlay {
   position: absolute;

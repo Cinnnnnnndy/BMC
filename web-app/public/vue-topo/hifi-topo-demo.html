@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <title>高保真拓扑连线 · 汇聚束优化 · BMC为源</title>
 <style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:#070910;color:#e6e8ef;font-family:ui-sans-serif,-apple-system,sans-serif;padding:20px;min-height:100vh;}
 h1{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;}
