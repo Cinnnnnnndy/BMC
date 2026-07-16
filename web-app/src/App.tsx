@@ -1203,9 +1203,17 @@ export default function App() {
       {/* ── Status bar ── */}
       <div className="pto-ide-frame__status-strip ide-status-bar">
         <div className="ide-status-bar__group">
-          <button className="ide-status-item" onClick={() => handleNavTo('bmcEnv')} title="BMC 环境管理 · 3 台 SSH 可达 / 共 5 台">
+          <button className="ide-status-item" onClick={() => handleNavTo('bmcEnv')} title="BMC 环境管理 · 3 台 SSH 可达 / 共 5 台 · 周期检测开启（3 台）">
             <span className="ide-status-dot ide-status-dot--ok" />
             BMC 3/5 可达
+          </button>
+          <button className="ide-status-item" onClick={() => handleNavTo('bmcEnv')} title="SSH 会话 · 1 个活跃（BMC-A01）">
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><path d="M4 17l6-6-6-6" /><path d="M12 19h8" /></svg>
+            SSH 1
+          </button>
+          <button className="ide-status-item" onClick={() => runQuickAction('agent 巡检在线 BMC')} title="Docker 编译容器 · 2 运行 / 共 3 · 点击巡检">
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><rect x="2" y="9" width="4" height="4" /><rect x="7" y="9" width="4" height="4" /><rect x="12" y="9" width="4" height="4" /><rect x="7" y="4" width="4" height="4" /><path d="M2 15c2 3 6 5 10 5 5 0 9-2.5 10-7-1.2.4-2.6.4-3.5-.3" /></svg>
+            Docker 2/3
           </button>
           <button className="ide-status-item" onClick={() => setTermOpen(true)} title="问题统计 · 打开输出面板">
             <svg viewBox="0 0 24 24" className="ide-status-icon"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>

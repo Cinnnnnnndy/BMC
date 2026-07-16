@@ -17,6 +17,7 @@ import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/tool
 import {
   STATE_LABEL,
   STATE_COLOR,
+  TYPE_LABEL,
   type BoardGroup,
   type BoardRecord,
   type ResolutionState,
@@ -95,10 +96,48 @@ const stateCounts = computed(() => ({
   'unclassified':     groupsByState.value.unclassified.length,
 }));
 
-/** Order in which state sections are listed in the sidebar. */
-const STATE_SECTION_ORDER: ResolutionState[] = [
-  'missing', 'multi-match', 'type-placeholder', 'resolved',
-];
+// ── 硬件管理器：按板卡类别组织的文件树（资源管理器风格） ───────────
+const CAT_ORDER = ['BCU', 'CLU', 'EXU', 'IEU', 'SEU', 'NICCard', 'Unknown'];
+const expandedCats   = ref<Record<string, boolean>>(Object.fromEntries(CAT_ORDER.map((c) => [c, true])));
+const expandedGroups = ref<Record<string, boolean>>({});
+
+interface CatNode { type: string; label: string; groups: BoardGroup[]; boardCount: number }
+const categoryTree = computed<CatNode[]>(() => {
+  const all = [...canvasGroups.value, ...unclassifiedGroups.value];
+  const byType = new Map<string, BoardGroup[]>();
+  for (const g of all) {
+    const t = g.type && TYPE_LABEL[g.type] ? g.type : 'Unknown';
+    if (!byType.has(t)) byType.set(t, []);
+    byType.get(t)!.push(g);
+  }
+  return CAT_ORDER.filter((t) => byType.has(t)).map((t) => ({
+    type: t,
+    label: TYPE_LABEL[t] ?? t,
+    groups: byType.get(t)!,
+    boardCount: byType.get(t)!.reduce((s, g) => s + g.boards.length, 0),
+  }));
+});
+
+function toggleCat(t: string) {
+  expandedCats.value = { ...expandedCats.value, [t]: !expandedCats.value[t] };
+}
+function toggleGroup(id: string) {
+  expandedGroups.value = { ...expandedGroups.value, [id]: !expandedGroups.value[id] };
+}
+/** 组行点击：画布联动 + 展开/收起文件列表 */
+function clickGroup(g: BoardGroup) {
+  if (g.state !== 'unclassified') focusGroupInCanvas(g.id);
+  if (g.boards.length) toggleGroup(g.id);
+}
+/** 文件行点击：切换该组当前展示的板卡实例并聚焦画布 */
+function clickBoardFile(g: BoardGroup, b: BoardRecord) {
+  handleSelect(g.id, b.id);
+  focusGroupInCanvas(g.id);
+}
+/** 长文件名缩短显示：14060876_…1825.sr（title 保留全名） */
+function shortFile(b: BoardRecord): string {
+  return `${b.partNumber}_…${b.sn.slice(-4)}.sr`;
+}
 
 // ── Left-to-right sync ─────────────────────────────────────────────────
 function focusGroupInCanvas(groupId: string) {
@@ -266,80 +305,67 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         >◌ {{ stateCounts.unclassified }}</button>
       </div>
 
-      <!-- ── Canvas groups, sectioned by state ────────────────────── -->
-      <template v-for="s in STATE_SECTION_ORDER" :key="s">
-        <div
-          v-if="groupsByState[s].length"
-          class="state-section"
-          :style="{ '--state-accent': STATE_COLOR[s] } as any"
-        >
-          <div class="state-section-title">
-            <span class="sec-dot" :style="{ background: STATE_COLOR[s] }" />
-            {{ STATE_LABEL[s] }}
-            <span class="sec-count">{{ groupsByState[s].length }}</span>
-          </div>
-          <ul class="grp-summary">
-            <li
-              v-for="g in groupsByState[s]"
-              :key="g.id"
-              class="grp-item"
-              :class="{ 'is-active': activeNode?.id === g.id }"
-              @click="focusGroupInCanvas(g.id)"
-            >
-              <span
-                class="grp-s-badge"
-                :style="{ background: (TYPE_COLOR[g.type] ?? '#6b7280') + '28', color: TYPE_COLOR[g.type] ?? '#6b7280' }"
-              >{{ g.shortLabel }}</span>
-              <span class="grp-s-name">{{ g.name }}</span>
-              <span class="grp-s-count" v-if="g.boards.length">× {{ g.boards.length }}</span>
-            </li>
-          </ul>
-        </div>
-      </template>
-
-      <!-- ── 未分类 section (list-only, not on canvas) ────────────── -->
-      <div v-if="groupsByState.unclassified.length" class="state-section state-section-unclassified">
-        <div class="state-section-title">
-          <span class="sec-dot" :style="{ background: STATE_COLOR.unclassified }" />
-          未分类 <span class="sec-sub">（仅列表，未在画布）</span>
-          <span class="sec-count">{{ groupsByState.unclassified.length }}</span>
-        </div>
-        <ul class="grp-summary">
-          <li
-            v-for="g in groupsByState.unclassified"
-            :key="g.id"
-            class="grp-item grp-item-unclassified"
-          >
-            <div class="unc-row">
-              <span class="grp-s-badge unc-badge">未分类</span>
-              <span class="grp-s-name">{{ g.name }}</span>
-              <button
-                class="unc-assign-btn"
-                :disabled="pendingSlots.length === 0"
-                @click.stop="toggleAssign(g.id)"
-              >指派到…</button>
-            </div>
-            <div v-if="g.connectorRef" class="unc-meta">
-              来源 Connector：<code>{{ g.connectorRef.parentGroupId }} / {{ g.connectorRef.connectorName }}</code>
-            </div>
-            <!-- Slot chooser popover -->
-            <div v-if="assigningId === g.id" class="unc-popover">
-              <div v-if="pendingSlots.length === 0" class="unc-empty">暂无空槽位可指派</div>
-              <button
-                v-for="slot in pendingSlots"
-                :key="slot.id"
-                class="unc-slot"
-                @click.stop="assignTo(g.id, slot.id)"
+      <!-- ── 硬件管理器树：类别 → 板卡组 → 板卡文件 ────────────────── -->
+      <div class="hw-tree">
+        <template v-for="cat in categoryTree" :key="cat.type">
+          <button class="hw-cat-row" @click="toggleCat(cat.type)">
+            <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
+            <span class="hw-cat-label">{{ cat.label }}</span>
+            <span class="hw-count">{{ cat.boardCount || cat.groups.length }}</span>
+          </button>
+          <div v-if="expandedCats[cat.type]" class="hw-cat-body">
+            <template v-for="g in cat.groups" :key="g.id">
+              <div
+                class="hw-grp-row"
+                :class="{ 'is-active': activeNode?.id === g.id }"
+                :title="g.connectorRef ? '来源 Connector：' + g.connectorRef.parentGroupId + ' / ' + g.connectorRef.connectorName : g.label"
+                @click="clickGroup(g)"
               >
-                <span class="unc-slot-type">{{ slot.type }}</span>
-                <span class="unc-slot-name">{{ slot.name }}</span>
-                <span class="unc-slot-state" :style="{ color: STATE_COLOR[slot.state] }">
-                  {{ STATE_LABEL[slot.state] }}
-                </span>
-              </button>
-            </div>
-          </li>
-        </ul>
+                <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">▸</span>
+                <span v-else class="hw-caret hw-caret-empty" />
+                <span class="hw-state-dot" :style="{ background: STATE_COLOR[g.state] }" :title="STATE_LABEL[g.state]" />
+                <span class="hw-grp-name">{{ g.name }}</span>
+                <span v-if="g.boards.length" class="hw-count">{{ g.boards.length }}</span>
+                <button
+                  v-if="g.state === 'unclassified'"
+                  class="unc-assign-btn"
+                  :disabled="pendingSlots.length === 0"
+                  @click.stop="toggleAssign(g.id)"
+                >指派</button>
+              </div>
+              <!-- 板卡文件列表（.sr / _soft.sr 折叠为主文件一行） -->
+              <div v-if="expandedGroups[g.id] && g.boards.length" class="hw-files">
+                <button
+                  v-for="b in g.boards"
+                  :key="b.id"
+                  class="hw-file-row"
+                  :class="{ 'is-current': (selectedByGroup[g.id] ?? g.boards[0]?.id) === b.id }"
+                  :title="'SN ' + b.sn + '\n' + b.files.join('\n')"
+                  @click.stop="clickBoardFile(g, b)"
+                >
+                  <svg class="hw-file-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  <span class="hw-file-name">{{ shortFile(b) }}</span>
+                </button>
+              </div>
+              <!-- 指派 popover（未分类板卡 → 空槽位） -->
+              <div v-if="assigningId === g.id" class="unc-popover">
+                <div v-if="pendingSlots.length === 0" class="unc-empty">暂无空槽位可指派</div>
+                <button
+                  v-for="slot in pendingSlots"
+                  :key="slot.id"
+                  class="unc-slot"
+                  @click.stop="assignTo(g.id, slot.id)"
+                >
+                  <span class="unc-slot-type">{{ slot.type }}</span>
+                  <span class="unc-slot-name">{{ slot.name }}</span>
+                  <span class="unc-slot-state" :style="{ color: STATE_COLOR[slot.state] }">
+                    {{ STATE_LABEL[slot.state] }}
+                  </span>
+                </button>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
 
       <!-- ── Layout actions ───────────────────────────────────────── -->
@@ -472,6 +498,118 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
 </template>
 
 <style scoped>
+/* ── 硬件管理器树（类别 → 板卡组 → 文件） ─────────────────────── */
+.hw-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.hw-caret {
+  width: 12px;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--text-dim, #6b7498);
+  transition: transform 0.12s;
+  display: inline-block;
+  text-align: center;
+}
+.hw-caret.open { transform: rotate(90deg); }
+.hw-caret-empty { visibility: hidden; }
+
+.hw-cat-row {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub, #c3c9de);
+}
+.hw-cat-row:hover { background: rgba(255, 255, 255, 0.05); }
+.hw-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.hw-count {
+  flex-shrink: 0;
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim, #6b7498);
+  text-align: center;
+  line-height: 15px;
+}
+
+.hw-cat-body { display: flex; flex-direction: column; gap: 1px; }
+
+.hw-grp-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-sub, #98a0b8);
+  transition: background 0.12s, color 0.12s;
+}
+.hw-grp-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-main, #e6e8ef); }
+.hw-grp-row.is-active {
+  background: rgba(79, 110, 247, 0.16);
+  color: var(--text-main, #e6e8ef);
+}
+.hw-state-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hw-grp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.hw-files {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 30px;
+}
+.hw-file-row {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 3px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-dim, #6b7498);
+  transition: background 0.12s, color 0.12s;
+}
+.hw-file-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-sub, #c3c9de); }
+.hw-file-row.is-current { color: #7c9aff; }
+.hw-file-ic {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hw-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .grp-summary {
   list-style: none;
   padding: 0;

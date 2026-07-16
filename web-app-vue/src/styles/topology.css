@@ -19,7 +19,7 @@
   transition: width var(--motion-smooth, 200ms);
 }
 
-.topo-palette.open { width: 200px; padding: 12px; }
+.topo-palette.open { width: 236px; padding: 12px; }
 .topo-palette.closed { width: 36px; padding: 8px 4px; overflow: hidden; }
 
 .palette-toggle {
