@@ -1295,6 +1295,146 @@
 .ide-term-line--open { color: var(--primary); }
 .ide-term-line--info { color: var(--foreground-muted); }
 
+/* ── Status bar (bottom strip, VS Code convention) ── */
+
+.ide-status-bar {
+  padding: 0 8px;
+  gap: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ide-status-bar__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ide-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--foreground-muted);
+  font: var(--ide-frame-meta-font);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-fast, 0.12s) var(--easing-default, ease),
+              color var(--duration-fast, 0.12s) var(--easing-default, ease);
+}
+
+.ide-status-item:hover {
+  background: var(--state-hover);
+  color: var(--foreground-secondary);
+}
+
+.ide-status-item.is-active { color: var(--primary); }
+
+.ide-status-item--static { cursor: default; }
+.ide-status-item--static:hover { background: transparent; color: var(--foreground-muted); }
+
+.ide-status-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ide-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ide-status-dot--ok   { background: var(--success); }
+.ide-status-dot--warn { background: var(--warning); }
+.ide-status-dot--err  { background: var(--danger); }
+
+/* ── Activity rail "more" flyout (Beta features) ── */
+
+.ide-rail-more-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 176px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ide-rail-more-menu__title {
+  padding: 4px 10px 6px;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ide-rail-more-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground-secondary);
+  font-size: 12.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast, 0.12s) var(--easing-default, ease),
+              color var(--duration-fast, 0.12s) var(--easing-default, ease);
+}
+
+.ide-rail-more-item:hover {
+  background: var(--state-hover);
+  color: var(--foreground);
+}
+
+.ide-rail-more-item.is-disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ide-rail-more-item.is-disabled:hover {
+  background: transparent;
+  color: var(--foreground-secondary);
+}
+
+.ide-rail-more-item__icon {
+  display: inline-flex;
+  opacity: 0.7;
+}
+.ide-rail-more-item__icon svg { width: 15px; height: 15px; }
+
+.ide-rail-more-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ide-rail-more-item__badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--foreground-muted);
+  background: var(--state-hover);
+}
+
 /* ── Topbar quick actions (agent shortcuts) ── */
 
 .topbar-quick-actions {

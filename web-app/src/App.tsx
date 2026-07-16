@@ -461,6 +461,9 @@ export default function App() {
   const [extMenuOpen, setExtMenuOpen] = useState(false);
   const [extMenuPos, setExtMenuPos] = useState<{ top: number; right: number } | null>(null);
   const extBtnRef = useRef<HTMLButtonElement>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [moreMenuPos, setMoreMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
 
   // ── Pane layout state ──────────────────────────────────────────────────
   const initPaneId = useRef(uid());
@@ -948,8 +951,6 @@ export default function App() {
     { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
-    { id: 'hwTopology',   tooltip: '硬件拓扑' },
-    { id: 'threeD',       tooltip: '3D仿真' },
     { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
     { id: 'serverView',   tooltip: '服务器视图' },
     ...(csr ? [
@@ -957,9 +958,15 @@ export default function App() {
       { id: 'association'  as ViewId, tooltip: '软硬件关联' },
       { id: 'simulator'    as ViewId, tooltip: '仿真调试' },
       { id: 'sensor'       as ViewId, tooltip: '传感器配置' },
-      { id: 'event'        as ViewId, tooltip: '事件配置' },
       ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑' }] : []),
     ] : []),
+  ];
+
+  // 未成熟功能收进「更多」菜单（Beta 预览）
+  const moreItems: { id: ViewId; csrRequired?: boolean }[] = [
+    { id: 'hwTopology' },
+    { id: 'threeD' },
+    { id: 'event', csrRequired: true },
   ];
 
   // Rail button is highlighted if the view is the active tab in any pane
@@ -1126,8 +1133,50 @@ export default function App() {
                 {ICONS[item.id]}
               </button>
             ))}
+            <button
+              ref={moreBtnRef}
+              className={`pto-ide-frame__rail-button ${moreMenuOpen || moreItems.some(m => activeTabViewIds.has(m.id)) ? 'is-selected' : ''}`}
+              title="更多功能（预览）"
+              onClick={() => {
+                const r = moreBtnRef.current?.getBoundingClientRect();
+                if (r) setMoreMenuPos({ top: r.top - 4, left: r.right + 10 });
+                setMoreMenuOpen(v => !v);
+              }}
+            >
+              <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24" style={{ fill: 'currentColor', stroke: 'none' }}>
+                <circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" />
+              </svg>
+            </button>
           </div>
         </nav>
+        {moreMenuOpen && moreMenuPos && (
+          <div
+            className="ide-rail-more-menu"
+            style={{ top: moreMenuPos.top, left: moreMenuPos.left }}
+            onMouseLeave={() => setMoreMenuOpen(false)}
+          >
+            <div className="ide-rail-more-menu__title">更多功能 · 预览</div>
+            {moreItems.map(item => {
+              const disabled = !!item.csrRequired && !csr;
+              return (
+                <button
+                  key={item.id}
+                  className={`ide-rail-more-item${disabled ? ' is-disabled' : ''}`}
+                  title={disabled ? '需先加载工程 CSR' : undefined}
+                  onClick={() => {
+                    if (disabled) return;
+                    handleNavTo(item.id);
+                    setMoreMenuOpen(false);
+                  }}
+                >
+                  <span className="ide-rail-more-item__icon">{ICONS[item.id]}</span>
+                  <span className="ide-rail-more-item__label">{VIEW_LABELS[item.id]}</span>
+                  <span className="ide-rail-more-item__badge">Beta</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="pto-ide-frame__workarea">
           <div className="ide-workarea-main">
@@ -1186,6 +1235,41 @@ export default function App() {
           </aside>
           </>
         )}
+      </div>
+
+      {/* ── Status bar ── */}
+      <div className="pto-ide-frame__status-strip ide-status-bar">
+        <div className="ide-status-bar__group">
+          <button className="ide-status-item" onClick={() => handleNavTo('bmcEnv')} title="BMC 环境管理 · 3 台 SSH 可达 / 共 5 台">
+            <span className="ide-status-dot ide-status-dot--ok" />
+            BMC 3/5 可达
+          </button>
+          <button className="ide-status-item" onClick={() => setTermOpen(true)} title="问题统计 · 打开输出面板">
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
+            0
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><path d="M12 3L2 20h20L12 3z" /><path d="M12 10v4M12 17.5v.01" /></svg>
+            {csr ? 2 : 0}
+          </button>
+        </div>
+        <div className="ide-status-bar__group">
+          {modelInfo && (
+            <span className="ide-status-item ide-status-item--static" title="当前工程">
+              {modelInfo.name}{modelInfo.badge ? ` · ${modelInfo.badge}` : ''}
+            </span>
+          )}
+          <button className="ide-status-item" onClick={() => runQuickAction('mcp')} title="已接入 MCP Server · 点击查看工具清单">
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><path d="M4 17l6-6-6-6" /><path d="M12 19h8" /></svg>
+            MCP 7
+          </button>
+          <button
+            className={`ide-status-item${termOpen ? ' is-active' : ''}`}
+            onClick={() => setTermOpen(v => !v)}
+            title="agent 终端（Ctrl+`）"
+          >
+            <svg viewBox="0 0 24 24" className="ide-status-icon"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M6 9l3 3-3 3M12 15h6" /></svg>
+            终端
+          </button>
+        </div>
       </div>
     </div>
   );
