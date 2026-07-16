@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import { ProjectList } from './components/ProjectList';
+import { AgentTerminal, type TermRunRequest } from './components/AgentTerminal';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
 
@@ -452,6 +453,10 @@ export default function App() {
   const [lightMode, setLightMode] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiPanelWidth, setAiPanelWidth] = useState(340);
+  const [termOpen, setTermOpen] = useState(false);
+  const [termHeight, setTermHeight] = useState(240);
+  const [termResizing, setTermResizing] = useState(false);
+  const [termCmd, setTermCmd] = useState<TermRunRequest | null>(null);
   const [extMenuOpen, setExtMenuOpen] = useState(false);
   const [extMenuPos, setExtMenuPos] = useState<{ top: number; right: number } | null>(null);
   const extBtnRef = useRef<HTMLButtonElement>(null);
@@ -615,21 +620,69 @@ export default function App() {
     }
   }, [loadCsr]);
 
+  // 场景打开（分屏）— AI 助手 iframe 消息与 agent 终端共用同一入口，
+  // CSR 依赖视图自动兜底加载默认样例工程
+  const openScenario = useCallback((viewId: string) => {
+    const id = viewId as ViewId;
+    if (CSR_REQUIRED.has(id)) {
+      void ensureCsrLoaded().then(ok => { if (ok) openViewInSplit(id); });
+    } else {
+      openViewInSplit(id);
+    }
+  }, [ensureCsrLoaded, openViewInSplit]);
+
   // AI 助手 iframe → 打开历史会话关联的功能视图（分屏）
   useEffect(() => {
     function onScenarioMsg(event: MessageEvent) {
       const msg = event.data as { type?: string; viewId?: string };
       if (msg?.type !== 'ai-open-scenario' || !msg.viewId) return;
-      const viewId = msg.viewId as ViewId;
-      if (CSR_REQUIRED.has(viewId)) {
-        void ensureCsrLoaded().then(ok => { if (ok) openViewInSplit(viewId); });
-      } else {
-        openViewInSplit(viewId);
-      }
+      openScenario(msg.viewId);
     }
     window.addEventListener('message', onScenarioMsg);
     return () => window.removeEventListener('message', onScenarioMsg);
-  }, [ensureCsrLoaded, openViewInSplit]);
+  }, [openScenario]);
+
+  // 顶栏快捷动作 → 打开终端并派发 agent 命令
+  const runQuickAction = useCallback((cmd: string) => {
+    setTermOpen(true);
+    setTermCmd({ id: Date.now(), cmd });
+  }, []);
+
+  // Ctrl+` 切换终端（VS Code 习惯）
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === '`') {
+        e.preventDefault();
+        setTermOpen(v => !v);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 终端高度拖拽（macOS 风格手柄，同 AI 面板逻辑）
+  const handleTermResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = termHeight;
+    setTermResizing(true);
+    const onMouseMove = (ev: MouseEvent) => {
+      const dy = startY - ev.clientY;
+      const max = Math.min(600, window.innerHeight * 0.7);
+      setTermHeight(Math.max(140, Math.min(max, startHeight + dy)));
+    };
+    const onMouseUp = () => {
+      setTermResizing(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [termHeight]);
 
   const handleProjectSelect = useCallback(
     async (project: { id: string; manufacturer: string; model: string; rootSrPath?: string }) => {
@@ -937,6 +990,29 @@ export default function App() {
           )}
         </div>
         <div className="pto-ide-frame__topbar-right">
+          {/* Agent 快捷动作：打开终端并派发 agent 任务 */}
+          <div className="topbar-quick-actions">
+            <button
+              className="btn-text"
+              title="agent 巡检在线 BMC（自动调用 bmc-remote MCP 工具）"
+              onClick={() => runQuickAction('agent 巡检在线 BMC')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/>
+              </svg>
+              巡检
+            </button>
+            <button
+              className="btn-text"
+              title="agent 校验当前 CSR（csr_validate）"
+              onClick={() => runQuickAction('agent 校验当前 CSR')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
+              </svg>
+              CSR 校验
+            </button>
+          </div>
           {csr && (
             <button
               onClick={handleSave}
@@ -946,6 +1022,13 @@ export default function App() {
             >{vscode ? '保存' : 'CSR出包'}</button>
           )}
           <div className="pto-ide-frame__window-actions">
+            <button
+              className={`pto-ide-frame__window-action${termOpen ? ' is-selected' : ''}`}
+              onClick={() => setTermOpen(v => !v)}
+              title="agent 终端（Ctrl+`）"
+            >
+              <WI d={['M4 17l6-6-6-6', 'M12 19h8']} />
+            </button>
             {/* Extensions dropdown */}
             <button
               ref={extBtnRef}
@@ -1046,20 +1129,37 @@ export default function App() {
         </nav>
 
         <div className="pto-ide-frame__workarea">
-          <PaneView
-            node={layout}
-            activePaneId={activePaneId}
-            dragState={dragState}
-            onActivatePane={handleActivatePane}
-            onActivateTab={handleActivateTab}
-            onCloseTab={handleCloseTab}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDrop}
-            onSetRatio={handleSetRatio}
-            onSplitPane={handleSplitPane}
-            renderContent={renderContent}
-          />
+          <div className="ide-workarea-main">
+            <PaneView
+              node={layout}
+              activePaneId={activePaneId}
+              dragState={dragState}
+              onActivatePane={handleActivatePane}
+              onActivateTab={handleActivateTab}
+              onCloseTab={handleCloseTab}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDrop}
+              onSetRatio={handleSetRatio}
+              onSplitPane={handleSplitPane}
+              renderContent={renderContent}
+            />
+          </div>
+          {termOpen && (
+            <>
+              <div
+                className={`ide-bottom-dock__handle${termResizing ? ' is-resizing' : ''}`}
+                onMouseDown={handleTermResizeMouseDown}
+              />
+              <div className="ide-bottom-dock" style={{ height: termHeight }}>
+                <AgentTerminal
+                  onOpenScenario={openScenario}
+                  onClose={() => setTermOpen(false)}
+                  runRequest={termCmd}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {aiPanelOpen && (
