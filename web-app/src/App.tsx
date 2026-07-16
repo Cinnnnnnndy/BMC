@@ -982,11 +982,7 @@ export default function App() {
       <div className="pto-ide-frame__topbar">
         <div className="pto-ide-frame__topbar-left">
           <div className="pto-ide-frame__workspace">
-            <svg className="pto-ide-frame__host-icon" viewBox="0 0 24 24">
-              <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
-              <path d="M9 9h6v6H9z"/>
-              <path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>
-            </svg>
+            <img className="ide-brand-logo" src={withBase('welcome/assets/icon.svg')} alt="openUBMC" />
             <span>openUBMC Studio</span>
           </div>
         </div>

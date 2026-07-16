@@ -1295,6 +1295,15 @@
 .ide-term-line--open { color: var(--primary); }
 .ide-term-line--info { color: var(--foreground-muted); }
 
+/* ── Topbar brand logo (openUBMC) ── */
+
+.ide-brand-logo {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
+}
+
 /* ── Status bar (bottom strip, VS Code convention) ── */
 
 .ide-status-bar {
