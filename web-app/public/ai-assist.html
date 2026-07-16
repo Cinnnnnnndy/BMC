@@ -345,7 +345,8 @@ function ICON(name, size) {
 const VIEW_LABELS = {
   bmcEnv: 'BMC 环境管理', event: '事件配置', sensor: '传感器配置',
   topology: '拓扑视图', smcExt: 'SMC 偏移量', pipeExpr: '管道表达式',
-  explorer: '资源管理器', threeD: '3D 仿真', coolingConfig: '能效调速配置',
+  explorer: '资源管理器', threeD: '3D 仿真', simulator: '仿真调试',
+  coolingConfig: '能效调速配置',
 };
 
 const SCENARIOS = [
@@ -417,11 +418,11 @@ const SCENARIOS = [
     ],
   },
   {
-    id: 'sc-twin', icon: 'cube', title: '风扇故障注入（数字孪生）', view: 'threeD', time: '2 周前',
+    id: 'sc-twin', icon: 'cube', title: '风扇故障注入（数字孪生）', view: 'simulator', time: '2 周前',
     messages: [
       { role: 'user', text: '聚焦风扇 FAN3，注入转速骤降故障' },
       { role: 'ai', tools: ['sim_focus', 'sim_inject_fault'],
-        text: '已在 3D 仿真中聚焦 FAN3 并注入 rpm 骤降（8000 → 1200）。\n转速仪表转红，FAN3 关联的 PWM 总线已高亮。\n后续接入 bmc_remote_ssh_exec 周期拉取真机传感器后，此视图可作为数字孪生监控面。' },
+        text: '已在仿真调试中聚焦 FAN3 并注入 rpm 骤降（8000 → 1200）。\n转速仪表转红，FAN3 关联的 PWM 总线已高亮。\n后续接入 bmc_remote_ssh_exec 周期拉取真机传感器后，此视图可作为数字孪生监控面。' },
     ],
   },
   {

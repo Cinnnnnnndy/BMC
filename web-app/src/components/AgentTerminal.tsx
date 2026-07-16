@@ -105,7 +105,7 @@ const AGENT_TASKS: AgentTask[] = [
     tools: [['sim_focus', 15], ['sim_inject_fault', 22]],
     out: ['FAN3 rpm 8000 → 1200，关联 PWM 总线已高亮'],
     ok: '故障已注入，转速仪表转红',
-    view: 'threeD', viewLabel: '3D 仿真',
+    view: 'simulator', viewLabel: '仿真调试',
   },
   {
     keys: ['调速', '温区', '曲线'],
@@ -128,6 +128,7 @@ const OPEN_ALIASES: Record<string, { view: string; label: string }> = {
   smc: { view: 'smcExt', label: 'SMC 偏移量' },
   expr: { view: 'pipeExpr', label: '管道表达式' },
   explorer: { view: 'explorer', label: '资源管理器' },
+  sim: { view: 'simulator', label: '仿真调试' },
   '3d': { view: 'threeD', label: '3D 仿真' },
   cooling: { view: 'coolingConfig', label: '能效调速配置' },
   welcome: { view: 'home', label: '欢迎页' },
