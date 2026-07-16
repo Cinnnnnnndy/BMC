@@ -842,6 +842,12 @@
   padding: var(--ide-frame-pane-inset-top) 0 var(--ide-frame-pane-inset-bottom) 4px;
 }
 
+/* When no side panel follows (AI panel closed), keep the right inset —
+   otherwise panes sit flush against the window edge */
+.pto-ide-frame--page .pto-ide-frame__workarea:last-child {
+  padding-right: var(--ide-frame-pane-inset-h);
+}
+
 /* ── Activity rail ── */
 
 .pto-ide-frame__activity-rail {

@@ -553,10 +553,13 @@ export default function App() {
     });
   }, []);
 
-  // Open a view in a new split pane to the right of the active pane
-  // (focus the existing tab instead if the view is already open somewhere)
+  // Open a view "beside" the welcome pane. Split the layout at most ONCE
+  // (welcome | work); every later scenario opens as a TAB in the work pane.
+  // Re-splitting on each open would re-parent existing panes and remount their
+  // iframes (visible flicker / "shake") — this avoids that.
   const openViewInSplit = useCallback((viewId: ViewId) => {
     setLayout(prev => {
+      // Already open somewhere → just focus that pane + tab.
       for (const leaf of allLeaves(prev)) {
         const tab = leaf.tabs.find(t => t.viewId === viewId);
         if (tab) {
@@ -566,11 +569,23 @@ export default function App() {
         }
       }
       const leaves = allLeaves(prev);
+      const newTab: TabEntry = { tabId: uid(), viewId };
+
+      // Already split → add as a tab to a pane that ISN'T the welcome pane
+      // (no new split, so no iframe remount elsewhere).
+      if (leaves.length > 1) {
+        const homePane = leaves.find(l => l.tabs.some(t => t.viewId === 'home'));
+        const target = leaves.find(l => l !== homePane) ?? leaves[0];
+        setActivePaneId(target.paneId);
+        activePaneIdRef.current = target.paneId;
+        return lAddTab(prev, target.paneId, newTab);
+      }
+
+      // Single pane → split once (welcome | view).
       const curPaneId = activePaneIdRef.current;
       const targetPaneId = leaves.some(l => l.paneId === curPaneId)
         ? curPaneId
         : leaves[0]?.paneId;
-      const newTab: TabEntry = { tabId: uid(), viewId };
       if (!targetPaneId) return prev;
       const result = lSplit(prev, targetPaneId, 'h', 'b', newTab);
       if (!result.newId) return lAddTab(prev, targetPaneId, newTab);
