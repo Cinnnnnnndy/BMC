@@ -182,7 +182,7 @@ body {
   content: '';
   width: 16px;
   height: 16px;
-  background-image:url('../resources/assets/png/red.svg');
+  background-image:url('./assets/red.svg');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -926,7 +926,7 @@ body {
 
 .flower {
   display: inline-block;
-  background-image: url('../resources/assets/png/flowerIcons.png');
+  background-image: url('./assets/flowerIcons.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -941,7 +941,7 @@ body {
 }
 .flower {
   display: inline-block;
-  background-image:url('../resources/assets/png/flowerIcons.png');
+  background-image:url('./assets/flowerIcons.png');
   background-size: contain;
   width: 24px;
   height: 24px;

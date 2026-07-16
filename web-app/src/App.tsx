@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import { ProjectList } from './components/ProjectList';
 import { AgentTerminal, type TermRunRequest } from './components/AgentTerminal';
+import { withBase } from './base';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
 
@@ -606,9 +607,7 @@ export default function App() {
     const project = HARDWARE_PROJECTS.find(p => p.rootSrPath);
     if (!project?.rootSrPath) return false;
     try {
-      const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-      const path = base.endsWith('/') ? base + project.rootSrPath : base + '/' + project.rootSrPath;
-      const res = await fetch(path);
+      const res = await fetch(withBase(project.rootSrPath));
       const text = await res.text();
       loadCsr(text);
       setFileName(`${project.manufacturer}_${project.model}.sr`);
@@ -690,9 +689,7 @@ export default function App() {
       setCurrentProject({ manufacturer: project.manufacturer, model: project.model });
       if (project.rootSrPath) {
         try {
-          const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-          const path = base.endsWith('/') ? base + project.rootSrPath : base + '/' + project.rootSrPath;
-          const res = await fetch(path);
+          const res = await fetch(withBase(project.rootSrPath));
           const text = await res.text();
           loadCsr(text);
           setFileName(`${project.manufacturer}_${project.model}.sr`);
@@ -869,9 +866,8 @@ export default function App() {
     return <div className="view-loading">正在加载 CSR 文件…</div>;
   }
 
-  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-  const vueSrc  = base.endsWith('/') ? base + 'vue-topo/index.html'  : base + '/vue-topo/index.html';
-  const threeDSrc = base.endsWith('/') ? base + '3d-viewer/index.html' : base + '/3d-viewer/index.html';
+  const vueSrc  = withBase('vue-topo/index.html');
+  const threeDSrc = withBase('3d-viewer/index.html');
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
 
   // ── Content renderer (called per-tab by LeafPaneView) ─────────────────
@@ -882,7 +878,7 @@ export default function App() {
           <>
             <input ref={fileInputRef} type="file" accept=".sr,.json,application/json" onChange={handleFileUpload} style={{ display: 'none' }} />
             <input ref={eventDefInputRef} type="file" accept=".json" onChange={handleEventDefUpload} style={{ display: 'none' }} />
-            <iframe src="/welcome.html" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="欢迎页" />
+            <iframe src={withBase('welcome.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="欢迎页" />
           </>
         );
       case 'topology':
@@ -900,7 +896,7 @@ export default function App() {
       case 'explorer':
         return <ExplorerView />;
       case 'installGuide':
-        return <iframe src="/setup-wizard/setup.html" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
+        return <iframe src={withBase('setup-wizard/setup.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':

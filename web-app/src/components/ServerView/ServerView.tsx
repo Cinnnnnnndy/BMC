@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { withBase } from '../../base';
 import type { CSRDocument } from '../../types';
 import { HOTSPOTS, type HotspotMetric, type HotspotStatus } from './hotspots';
 import { StatusPanel } from './StatusPanel';
@@ -149,7 +150,7 @@ export function ServerView({ csr }: { csr: CSRDocument }) {
     <div className="server2-root">
       <div className="server2-left" style={{ position: 'relative', flex: 1, minWidth: 0 }}>
         <div className={`sim2-image-wrap ${selectedId !== null ? 'has-selection' : ''}`}>
-          <img className="sim2-image" src="/images/server-exploded.png" alt="服务器爆炸图" />
+          <img className="sim2-image" src={withBase('images/server-exploded.png')} alt="服务器爆炸图" />
 
           {HOTSPOTS.map((h) => {
             const isSelected = selectedId === h.id;
