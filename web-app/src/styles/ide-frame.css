@@ -987,6 +987,31 @@
   border-left: 1px solid var(--ide-frame-pane-border);
 }
 
+/* Contextual tab-row actions (巡检/校验/出包 — editor-title-actions style) */
+.ide-tab-action-btn {
+  height: 22px;
+  padding: 0 9px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--foreground-muted);
+  font-size: 11.5px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.ide-tab-action-btn:hover {
+  background: var(--state-hover);
+  color: var(--foreground);
+}
+.ide-tab-action-btn--primary { color: var(--primary); }
+.ide-tab-action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ide-tab-action-btn:disabled:hover { background: transparent; }
+
 .ide-split-btn {
   width: 22px;
   height: 22px;
@@ -1388,6 +1413,10 @@
   text-transform: uppercase;
   color: var(--foreground-muted);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.ide-rail-more-menu__title--sub {
+  margin-top: 6px;
 }
 
 .ide-rail-more-item {

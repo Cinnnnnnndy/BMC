@@ -210,6 +210,8 @@ interface PaneViewProps {
   onSetRatio: (splitPaneId: PaneId, ratio: number) => void;
   onSplitPane: (paneId: PaneId, dir: 'h' | 'v') => void;
   renderContent: (viewId: ViewId) => React.ReactNode;
+  /** 随激活 tab 变化的上下文动作（巡检/校验/出包），渲染在分屏按钮左侧 */
+  renderTabActions: (viewId: ViewId) => React.ReactNode;
 }
 
 function PaneView({ node, ...props }: { node: PaneNode } & PaneViewProps) {
@@ -320,6 +322,7 @@ function LeafPaneView({ leaf, ...props }: { leaf: LeafPane } & PaneViewProps) {
         </div>
         {leaf.tabs.length > 0 && (
           <div className="ide-tab-bar__actions">
+            {activeTab && props.renderTabActions(activeTab.viewId)}
             <button
               className="ide-split-btn"
               title="向右分屏"
@@ -458,9 +461,6 @@ export default function App() {
   const [termHeight, setTermHeight] = useState(240);
   const [termResizing, setTermResizing] = useState(false);
   const [termCmd, setTermCmd] = useState<TermRunRequest | null>(null);
-  const [extMenuOpen, setExtMenuOpen] = useState(false);
-  const [extMenuPos, setExtMenuPos] = useState<{ top: number; right: number } | null>(null);
-  const extBtnRef = useRef<HTMLButtonElement>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuPos, setMoreMenuPos] = useState<{ top: number; left: number } | null>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
@@ -940,6 +940,41 @@ export default function App() {
     }
   }
 
+  // ── Tab 行上下文动作（原顶栏全局按钮，按 IDE editor-title-actions 惯例下放） ──
+  const CONTEXT_AGENT: Partial<Record<ViewId, { label: string; cmd: string; title: string }>> = {
+    bmcEnv:   { label: '巡检', cmd: 'agent 巡检在线 BMC',  title: 'agent 巡检在线 BMC（bmc-remote MCP）' },
+    topology: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+    vueTopo:  { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+    event:    { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+    sensor:   { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+  };
+  const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'sensor', 'association', 'boardTopology', 'simulator']);
+
+  function renderTabActions(viewId: ViewId): React.ReactNode {
+    const agentAct = CONTEXT_AGENT[viewId];
+    const canSave = csr !== null && CSR_SAVE_VIEWS.has(viewId);
+    if (!agentAct && !canSave) return null;
+    return (
+      <>
+        {agentAct && (
+          <button
+            className="ide-tab-action-btn"
+            title={agentAct.title}
+            onClick={e => { e.stopPropagation(); runQuickAction(agentAct.cmd); }}
+          >{agentAct.label}</button>
+        )}
+        {canSave && (
+          <button
+            className="ide-tab-action-btn ide-tab-action-btn--primary"
+            disabled={!dirty}
+            title={dirty ? (vscode ? '保存 CSR 文件' : '下载 CSR 文件') : '暂无修改'}
+            onClick={e => { e.stopPropagation(); handleSave(); }}
+          >{vscode ? '保存' : '出包'}</button>
+        )}
+      </>
+    );
+  }
+
   // ── Activity rail items ────────────────────────────────────────────────
   type RailItem = { id: ViewId; tooltip: string };
 
@@ -969,6 +1004,9 @@ export default function App() {
     { id: 'event', csrRequired: true },
   ];
 
+  // 代码辅助扩展（VS Code 扩展占位页，原顶栏星标下拉）
+  const extItems: ViewId[] = ['jsonNorth', 'srLang', 'srPrev', 'mibSup'];
+
   // Rail button is highlighted if the view is the active tab in any pane
   const activeTabViewIds = new Set(
     allLeaves(layout)
@@ -994,37 +1032,6 @@ export default function App() {
           )}
         </div>
         <div className="pto-ide-frame__topbar-right">
-          {/* Agent 快捷动作：打开终端并派发 agent 任务 */}
-          <div className="topbar-quick-actions">
-            <button
-              className="btn-text"
-              title="agent 巡检在线 BMC（自动调用 bmc-remote MCP 工具）"
-              onClick={() => runQuickAction('agent 巡检在线 BMC')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/>
-              </svg>
-              巡检
-            </button>
-            <button
-              className="btn-text"
-              title="agent 校验当前 CSR（csr_validate）"
-              onClick={() => runQuickAction('agent 校验当前 CSR')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
-              </svg>
-              CSR 校验
-            </button>
-          </div>
-          {csr && (
-            <button
-              onClick={handleSave}
-              className="btn-primary"
-              disabled={!dirty}
-              title={dirty ? (vscode ? '保存 CSR 文件' : '下载 CSR 文件') : '暂无修改'}
-            >{vscode ? '保存' : 'CSR出包'}</button>
-          )}
           <div className="pto-ide-frame__window-actions">
             <button
               className={`pto-ide-frame__window-action${termOpen ? ' is-selected' : ''}`}
@@ -1033,58 +1040,6 @@ export default function App() {
             >
               <WI d={['M4 17l6-6-6-6', 'M12 19h8']} />
             </button>
-            {/* Extensions dropdown */}
-            <button
-              ref={extBtnRef}
-              className={`pto-ide-frame__window-action${extMenuOpen ? ' is-selected' : ''}`}
-              title="代码辅助扩展"
-              onClick={() => {
-                const r = extBtnRef.current?.getBoundingClientRect();
-                if (r) setExtMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
-                setExtMenuOpen(v => !v);
-              }}
-            >
-              <WI d={['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z']} />
-            </button>
-          {extMenuOpen && extMenuPos && (
-            <div
-              style={{
-                position: 'fixed', top: extMenuPos.top, right: extMenuPos.right,
-                background: 'var(--surface-2, #101118)',
-                border: '1px solid var(--border-subtle, #1c1d2a)',
-                borderRadius: 6, padding: '4px 0', zIndex: 9999,
-                minWidth: 190, boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-              }}
-              onMouseLeave={() => setExtMenuOpen(false)}
-            >
-              <div style={{ padding: '4px 10px 6px', fontSize: 10.5, color: 'var(--foreground-muted, #5a6280)', letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-subtle, #1c1d2a)', marginBottom: 4 }}>
-                代码辅助扩展
-              </div>
-              {([
-                { id: 'jsonNorth' as ViewId, label: 'JSON 北向接口辅助' },
-                { id: 'srLang'    as ViewId, label: 'SR 语言服务器' },
-                { id: 'srPrev'    as ViewId, label: 'SR 文件预览' },
-                { id: 'mibSup'    as ViewId, label: 'MIB 文件支持' },
-              ] as { id: ViewId; label: string }[]).map(item => (
-                <button
-                  key={item.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    width: '100%', padding: '6px 12px',
-                    background: 'transparent', border: 'none',
-                    color: 'var(--foreground, #cccccc)', cursor: 'pointer',
-                    fontSize: 12.5, textAlign: 'left', fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                  onClick={() => { handleNavTo(item.id); setExtMenuOpen(false); }}
-                >
-                  <span style={{ opacity: 0.7 }}>{ICONS[item.id]}</span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
             <button
               className="pto-ide-frame__window-action"
               title="全屏"
@@ -1131,7 +1086,7 @@ export default function App() {
             ))}
             <button
               ref={moreBtnRef}
-              className={`pto-ide-frame__rail-button ${moreMenuOpen || moreItems.some(m => activeTabViewIds.has(m.id)) ? 'is-selected' : ''}`}
+              className={`pto-ide-frame__rail-button ${moreMenuOpen || moreItems.some(m => activeTabViewIds.has(m.id)) || extItems.some(id => activeTabViewIds.has(id)) ? 'is-selected' : ''}`}
               title="更多功能（预览）"
               onClick={() => {
                 const r = moreBtnRef.current?.getBoundingClientRect();
@@ -1171,6 +1126,17 @@ export default function App() {
                 </button>
               );
             })}
+            <div className="ide-rail-more-menu__title ide-rail-more-menu__title--sub">代码辅助扩展</div>
+            {extItems.map(id => (
+              <button
+                key={id}
+                className="ide-rail-more-item"
+                onClick={() => { handleNavTo(id); setMoreMenuOpen(false); }}
+              >
+                <span className="ide-rail-more-item__icon">{ICONS[id]}</span>
+                <span className="ide-rail-more-item__label">{VIEW_LABELS[id]}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -1189,6 +1155,7 @@ export default function App() {
               onSetRatio={handleSetRatio}
               onSplitPane={handleSplitPane}
               renderContent={renderContent}
+              renderTabActions={renderTabActions}
             />
           </div>
           {termOpen && (
