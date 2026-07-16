@@ -630,22 +630,27 @@ export default function App() {
     }
   }, [ensureCsrLoaded, openViewInSplit]);
 
-  // AI 助手 iframe → 打开历史会话关联的功能视图（分屏）
-  useEffect(() => {
-    function onScenarioMsg(event: MessageEvent) {
-      const msg = event.data as { type?: string; viewId?: string };
-      if (msg?.type !== 'ai-open-scenario' || !msg.viewId) return;
-      openScenario(msg.viewId);
-    }
-    window.addEventListener('message', onScenarioMsg);
-    return () => window.removeEventListener('message', onScenarioMsg);
-  }, [openScenario]);
-
-  // 顶栏快捷动作 → 打开终端并派发 agent 命令
+  // 顶栏快捷动作 / iframe 请求 → 打开终端并派发 agent 命令
   const runQuickAction = useCallback((cmd: string) => {
     setTermOpen(true);
     setTermCmd({ id: Date.now(), cmd });
   }, []);
+
+  // iframe 消息总线：
+  //   ai-open-scenario — AI 助手打开历史会话关联的功能视图（分屏）
+  //   ai-run-agent     — 页面（如安装引导失败横幅）请求派发 agent 任务到终端
+  useEffect(() => {
+    function onScenarioMsg(event: MessageEvent) {
+      const msg = event.data as { type?: string; viewId?: string; cmd?: string };
+      if (msg?.type === 'ai-open-scenario' && msg.viewId) {
+        openScenario(msg.viewId);
+      } else if (msg?.type === 'ai-run-agent' && msg.cmd) {
+        runQuickAction(msg.cmd);
+      }
+    }
+    window.addEventListener('message', onScenarioMsg);
+    return () => window.removeEventListener('message', onScenarioMsg);
+  }, [openScenario, runQuickAction]);
 
   // Ctrl+` 切换终端（VS Code 习惯）
   useEffect(() => {

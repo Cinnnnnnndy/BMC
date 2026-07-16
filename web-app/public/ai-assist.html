@@ -295,6 +295,7 @@ body.show-history .chat-view { display: none; }
       <div class="chat-messages" id="chat-log"></div>
 
       <div class="suggestions">
+        <button class="sug-btn" onclick="fillInput('帮我检查开发环境，配置检测失败')">检查开发环境</button>
         <button class="sug-btn" onclick="fillInput('现在有哪些 BMC 在线？')">哪些 BMC 在线</button>
         <button class="sug-btn" onclick="fillInput('给 CPU0 加一个过温事件，阈值 85 度')">加过温事件</button>
         <button class="sug-btn" onclick="fillInput('func=0x0B cmd=0x120 读操作，算 SMC 偏移量')">算 SMC 偏移量</button>
@@ -334,6 +335,7 @@ const ICON_PATHS = {
   cube:   '<path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7l8.7 5 8.7-5M12 22V12"/>',
   snow:   '<path d="M12 2v20M4 6l16 12M20 6 4 18"/>',
   chat:   '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
 };
 function ICON(name, size) {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -346,10 +348,21 @@ const VIEW_LABELS = {
   bmcEnv: 'BMC 环境管理', event: '事件配置', sensor: '传感器配置',
   topology: '拓扑视图', smcExt: 'SMC 偏移量', pipeExpr: '管道表达式',
   explorer: '资源管理器', threeD: '3D 仿真', simulator: '仿真调试',
-  coolingConfig: '能效调速配置',
+  coolingConfig: '能效调速配置', installGuide: '安装引导',
 };
 
 const SCENARIOS = [
+  {
+    id: 'sc-setup', icon: 'wrench', title: '开发环境诊断与修复（安装引导）', view: 'installGuide', time: '今天 09:40',
+    messages: [
+      { role: 'user', text: '帮我检查一下开发环境，安装引导里配置检测一直失败' },
+      { role: 'ai', tools: ['setup_verify_all'],
+        text: '诊断完成（6 项）：\n```\n✓ 平台        WSL2 · Ubuntu 22.04\n✓ GitCode SSH 连通（git@gitcode.com）\n✓ manifest    已拉取（openubmc-24.03）\n✓ bmc_sdk     已就位（校验和一致）\n✗ conan remote 未配置\n✗ init.py     未执行\n```\n2 个失败项都可以自动修复（属写操作，需你确认）。要我继续吗？' },
+      { role: 'user', text: '修吧' },
+      { role: 'ai', tools: ['setup_configure_conan_remote', 'setup_run_init'],
+        text: '已配置 conan remote（openubmc 源）。\ninit.py 执行完成（exit 0 · 4.2s，日志见底栏终端）。\n重新运行 setup_verify_all：6/6 全部通过 ✓\n检测结果已回写「安装引导」Step 2.2——配置检测已通过，可直接点「下一步」选择开发机型。\n\n提示：登录官网（Step 1）和 GitCode 公钥上传属于账号授权操作，仍需你本人完成。' },
+    ],
+  },
   {
     id: 'sc-inspect', icon: 'server', title: 'BMC 批量巡检（命令宏）', view: 'bmcEnv', time: '昨天 14:32',
     messages: [

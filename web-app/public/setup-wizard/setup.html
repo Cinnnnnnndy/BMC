@@ -210,6 +210,9 @@
             <div class="sw-error-content">
               <img class="sw-error-icon" src="./error-icon.svg" alt="错误图标">
               <span class="sw-error-title">环境准备配置检测失败</span>
+              <button class="sw-btn sw-btn-primary" id="btn-agent-fix"
+                style="margin-left: auto; height: 28px; padding: 0 14px; font-size: 12px; flex-shrink: 0;"
+                title="打开 agent 终端，诊断并修复环境（setup_verify_all）">让 agent 诊断修复</button>
             </div>
             <!-- 详细错误信息 -->
             <div class="sw-error-detail">
@@ -355,6 +358,43 @@
 
   <script src="../welcome/vscode-stub.js"></script>
   <script src="setup.js"></script>
+  <script>
+    // ── Web demo shim ─────────────────────────────────────────────────
+    // standalone（非 VS Code）环境下 vscode-stub 会吞掉所有 postMessage，
+    // 这里模拟扩展端响应，让引导流程在网页 demo 中可走通：
+    //   · 登录 → 延迟回 loginSuccess
+    //   · 配置检测 → 首次回失败（展示「让 agent 诊断修复」入口），
+    //     agent 修复回写 configured:true 后，再次检测即通过
+    // VS Code 扩展环境中由扩展真实驱动，此段不参与（扩展消息优先到达）。
+    (function () {
+      var envFixed = false;
+
+      var btnLogin = document.getElementById('btn-login');
+      if (btnLogin) btnLogin.addEventListener('click', function () {
+        setTimeout(function () {
+          window.postMessage({ type: 'loginSuccess', userInfo: { name: 'demo' } }, '*');
+        }, 800);
+      });
+
+      var btnCheck = document.getElementById('btn-check-environment');
+      if (btnCheck) btnCheck.addEventListener('click', function () {
+        setTimeout(function () {
+          window.postMessage({ type: 'conanChecked', exists: envFixed, configured: envFixed }, '*');
+        }, 1100);
+      });
+
+      // agent 终端修复完成后，宿主向本 iframe 回写 conanChecked configured:true
+      window.addEventListener('message', function (e) {
+        var m = e.data;
+        if (m && m.type === 'conanChecked' && m.configured) envFixed = true;
+      });
+
+      var btnAgentFix = document.getElementById('btn-agent-fix');
+      if (btnAgentFix) btnAgentFix.addEventListener('click', function () {
+        window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent 诊断安装环境' }, '*');
+      });
+    })();
+  </script>
 </body>
 
 </html>

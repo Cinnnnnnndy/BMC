@@ -28,6 +28,8 @@ interface AgentTask {
   ok: string;
   view?: string;
   viewLabel?: string;
+  /** 任务完成后的联动动作（如向安装引导 iframe 回写检测状态） */
+  after?: 'wizard-env-ok';
 }
 
 const AGENT_TASKS: AgentTask[] = [
@@ -38,6 +40,18 @@ const AGENT_TASKS: AgentTask[] = [
     out: [],
     ok: '校验通过：0 errors / 2 warnings（存在未引用对象）',
     view: 'topology', viewLabel: '拓扑视图',
+  },
+  {
+    keys: ['安装', '诊断', '部署', 'setup'],
+    title: '开发环境诊断（安装引导）',
+    tools: [['setup_verify_all', 143], ['setup_configure_conan_remote', 310], ['setup_run_init', 1240]],
+    out: [
+      '诊断：✓ WSL2·Ubuntu 22.04  ✓ GitCode SSH  ✓ manifest  ✓ bmc_sdk  ✗ conan remote  ✗ init 未执行',
+      '修复：conan remote 已配置（openubmc 源）→ init.py 执行完成 (exit 0)',
+    ],
+    ok: '环境准备 6/6 项通过，检测结果已回写安装引导「配置检测」',
+    view: 'installGuide', viewLabel: '安装引导',
+    after: 'wizard-env-ok',
   },
   {
     keys: ['巡检', '在线', '健康', 'inspect'],
@@ -128,6 +142,8 @@ const OPEN_ALIASES: Record<string, { view: string; label: string }> = {
   smc: { view: 'smcExt', label: 'SMC 偏移量' },
   expr: { view: 'pipeExpr', label: '管道表达式' },
   explorer: { view: 'explorer', label: '资源管理器' },
+  setup: { view: 'installGuide', label: '安装引导' },
+  install: { view: 'installGuide', label: '安装引导' },
   sim: { view: 'simulator', label: '仿真调试' },
   '3d': { view: 'threeD', label: '3D 仿真' },
   cooling: { view: 'coolingConfig', label: '能效调速配置' },
@@ -137,7 +153,8 @@ const OPEN_ALIASES: Record<string, { view: string; label: string }> = {
 };
 
 const MCP_SUMMARY: string[] = [
-  '已接入 6 个 MCP Server · 18 个工具',
+  '已接入 7 个 MCP Server · 26 个工具',
+  'setup        环境引导    verify_all · check_ssh · check_toolchain · configure_conan_remote · clone_manifest · install_sdk · run_init · check_platform',
   'bmc-remote   连接/巡检   list_connections · add_connection · set_auto_check · check_health · macro_run · ssh_exec',
   'csr          配置校验    validate · list_bus_types · list_chip_types · analyze_expr',
   'localview    接口路径    search_paths · search_paths_fuzzy · get_path_node',
@@ -154,7 +171,7 @@ const HELP_LINES: string[] = [
   '  views              列出可打开的视图',
   '  clear              清屏',
   '  exit               关闭终端',
-  '示例：agent 巡检在线 BMC ・ agent 给 CPU0 加过温事件 ・ agent 校验当前 CSR',
+  '示例：agent 诊断安装环境 ・ agent 巡检在线 BMC ・ agent 给 CPU0 加过温事件 ・ agent 校验当前 CSR',
 ];
 
 const GREETING: string[] = [
@@ -167,11 +184,17 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
   const [busy, setBusy] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const timers = useRef<number[]>([]);
   const busyRef = useRef(false);
   busyRef.current = busy;
 
-  useEffect(() => () => { timers.current.forEach(t => window.clearTimeout(t)); }, []);
+  // 挂载守卫：卸载后 timer 回调变 no-op。
+  // 不能在卸载时 clearTimeout —— StrictMode 的模拟卸载会清掉刚派发的
+  // 任务脚本（runRequest effect 首挂载即执行），导致 busy 卡死。
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const el = bodyRef.current;
@@ -185,7 +208,7 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
   }
 
   function schedule(fn: () => void, delay: number) {
-    timers.current.push(window.setTimeout(fn, delay));
+    window.setTimeout(() => { if (mountedRef.current) fn(); }, delay);
   }
 
   function runAgent(taskText: string) {
@@ -215,6 +238,13 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
       }
       setBusy(false);
     }, at);
+    // 联动：向安装引导 iframe 回写检测状态（等 iframe 挂载完成后再发）
+    if (task.after === 'wizard-env-ok') {
+      schedule(() => {
+        const wizard = document.querySelector<HTMLIFrameElement>('iframe[title="安装部署引导"]');
+        wizard?.contentWindow?.postMessage({ type: 'conanChecked', exists: true, configured: true }, '*');
+      }, at + 1500);
+    }
   }
 
   function exec(raw: string) {
