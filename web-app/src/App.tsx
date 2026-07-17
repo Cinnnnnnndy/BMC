@@ -976,7 +976,7 @@ export default function App() {
   }
 
   // ── Activity rail items ────────────────────────────────────────────────
-  type RailItem = { id: ViewId; tooltip: string; csrRequired?: boolean };
+  type RailItem = { id: ViewId; tooltip: string; csrRequired?: boolean; };
 
   const railItems: RailItem[] = [
     { id: 'home',         tooltip: '欢迎页' },
@@ -1072,20 +1072,22 @@ export default function App() {
       <div className="pto-ide-frame__body">
         <nav className="pto-ide-frame__activity-rail ide-activity-rail">
           <div className="ide-rail-section">
-            {railItems.map((item) => {
-              const locked = !!item.csrRequired && !csr;
-              return (
-                <button
-                  key={item.id}
-                  className={`pto-ide-frame__rail-button ${activeTabViewIds.has(item.id) ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}
-                  onClick={() => !locked && handleNavTo(item.id)}
-                  title={locked ? `${item.tooltip}（需先加载工程 CSR）` : item.tooltip}
-                  style={locked ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
-                >
-                  {ICONS[item.id]}
-                </button>
-              );
-            })}
+            {railItems.map((item) => (
+              <button
+                key={item.id}
+                className={`pto-ide-frame__rail-button ${activeTabViewIds.has(item.id) ? 'is-selected' : ''}`}
+                onClick={() => {
+                  if (item.csrRequired) {
+                    void ensureCsrLoaded().then(ok => { if (ok) openView(item.id); });
+                  } else {
+                    handleNavTo(item.id);
+                  }
+                }}
+                title={item.tooltip}
+              >
+                {ICONS[item.id]}
+              </button>
+            ))}
             <button
               ref={moreBtnRef}
               className={`pto-ide-frame__rail-button ${moreMenuOpen || moreItems.some(m => activeTabViewIds.has(m.id)) || extItems.some(id => activeTabViewIds.has(id)) ? 'is-selected' : ''}`}
