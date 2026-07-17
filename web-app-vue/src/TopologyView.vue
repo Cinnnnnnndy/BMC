@@ -431,10 +431,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
           <span class="wake-ic" aria-hidden="true">⚙</span>
           在表达式计算器中调试 sensor
         </button>
-        <button class="wake-btn wake-cool" @click="wakeCooling">
-          <span class="wake-ic" aria-hidden="true">❄</span>
-          在能效调速配置模板中配置
-        </button>
+
       </div>
 
       <div class="pp-body">
