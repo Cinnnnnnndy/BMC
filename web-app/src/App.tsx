@@ -987,19 +987,19 @@ export default function App() {
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
     { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
-    { id: 'hwTopology',   tooltip: '硬件拓扑' },
-    { id: 'threeD',       tooltip: '3D 仿真' },
-    { id: 'topology',     tooltip: '拓扑视图', csrRequired: true },
-    { id: 'association',  tooltip: '软硬件关联', csrRequired: true },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
-    { id: 'sensor',       tooltip: '传感器配置', csrRequired: true },
-    ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑', csrRequired: true as const }] : []),
   ];
 
   // 未成熟功能收进「更多」菜单（Beta 预览）
   const moreItems: { id: ViewId; csrRequired?: boolean }[] = [
+    { id: 'hwTopology' },
+    { id: 'threeD' },
+    { id: 'topology',    csrRequired: true },
+    { id: 'association', csrRequired: true },
+    { id: 'sensor',      csrRequired: true },
+    { id: 'event',       csrRequired: true },
     { id: 'serverView' },
-    { id: 'event', csrRequired: true },
+    ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, csrRequired: true }] : []),
   ];
 
   // 代码辅助扩展（VS Code 扩展占位页，原顶栏星标下拉）
@@ -1111,25 +1111,24 @@ export default function App() {
             onMouseLeave={() => setMoreMenuOpen(false)}
           >
             <div className="ide-rail-more-menu__title">更多功能 · 预览</div>
-            {moreItems.map(item => {
-              const disabled = !!item.csrRequired && !csr;
-              return (
-                <button
-                  key={item.id}
-                  className={`ide-rail-more-item${disabled ? ' is-disabled' : ''}`}
-                  title={disabled ? '需先加载工程 CSR' : undefined}
-                  onClick={() => {
-                    if (disabled) return;
+            {moreItems.map(item => (
+              <button
+                key={item.id}
+                className="ide-rail-more-item"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  if (item.csrRequired) {
+                    void ensureCsrLoaded().then(ok => { if (ok) openView(item.id); });
+                  } else {
                     handleNavTo(item.id);
-                    setMoreMenuOpen(false);
-                  }}
-                >
-                  <span className="ide-rail-more-item__icon">{ICONS[item.id]}</span>
-                  <span className="ide-rail-more-item__label">{VIEW_LABELS[item.id]}</span>
-                  <span className="ide-rail-more-item__badge">Beta</span>
-                </button>
-              );
-            })}
+                  }
+                }}
+              >
+                <span className="ide-rail-more-item__icon">{ICONS[item.id]}</span>
+                <span className="ide-rail-more-item__label">{VIEW_LABELS[item.id]}</span>
+                <span className="ide-rail-more-item__badge">Beta</span>
+              </button>
+            ))}
             <div className="ide-rail-more-menu__title ide-rail-more-menu__title--sub">代码辅助扩展</div>
             {extItems.map(id => (
               <button
