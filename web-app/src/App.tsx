@@ -911,7 +911,7 @@ export default function App() {
       case 'explorer':
         return <ExplorerView />;
       case 'installGuide':
-        return <iframe src={withBase('ai-install.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 安装向导" />;
+        return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':

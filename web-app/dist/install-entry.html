@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>安装部署引导</title>
+<style>
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #141416;
+  --surface:  #1e1e21;
+  --surface2: #26262a;
+  --border:   rgba(255,255,255,0.08);
+  --border-h: rgba(255,255,255,0.15);
+  --fg:       #e8e8ed;
+  --fg2:      rgba(232,232,237,0.55);
+  --fg3:      rgba(232,232,237,0.35);
+  --primary:  #5b8af5;
+  --primary-h:#7a9ff7;
+  --primary-bg: rgba(91,138,245,0.12);
+  --green:    #3dd68c;
+  --green-bg: rgba(61,214,140,0.10);
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+[data-theme="light"] {
+  --bg:       #f5f5f7;
+  --surface:  #ffffff;
+  --surface2: #f0f0f5;
+  --border:   rgba(0,0,0,0.08);
+  --border-h: rgba(0,0,0,0.18);
+  --fg:       #1d1d1f;
+  --fg2:      rgba(29,29,31,0.55);
+  --fg3:      rgba(29,29,31,0.35);
+  --primary-bg: rgba(91,138,245,0.10);
+  --green-bg: rgba(61,214,140,0.10);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.heading {
+  text-align: center;
+}
+
+.heading h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+.heading p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--fg2);
+  line-height: 1.6;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, transform 0.15s;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  border-color: var(--border-h);
+  background: var(--surface2);
+  transform: translateY(-1px);
+}
+
+.card.primary {
+  border-color: rgba(91,138,245,0.35);
+  background: var(--primary-bg);
+}
+
+.card.primary:hover {
+  border-color: rgba(91,138,245,0.6);
+}
+
+.card-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  user-select: none;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card.primary .card-icon {
+  background: rgba(91,138,245,0.18);
+}
+
+.card.secondary .card-icon {
+  background: var(--surface2);
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card.primary .card-icon svg { stroke: var(--primary-h); }
+.card.secondary .card-icon svg { stroke: var(--fg2); }
+
+.card-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--fg);
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--fg2);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.card-cta {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card.primary .card-cta { color: var(--primary-h); }
+.card.secondary .card-cta { color: var(--fg2); }
+
+.card-cta svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: currentColor;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.card:hover .card-cta svg {
+  transform: translateX(3px);
+}
+
+.hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg3);
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="heading">
+    <h1>安装部署引导</h1>
+    <p>选择安装方式，将 openUBMC Studio 配置到您的开发环境</p>
+  </div>
+
+  <div class="cards">
+    <a class="card primary" href="ai-install.html">
+      <span class="card-badge">推荐</span>
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        </svg>
+      </div>
+      <div class="card-title">AI 引导安装</div>
+      <div class="card-desc">由 AI 全程引导，自动检测环境、安装工具，只需回答几个简单问题。</div>
+      <div class="card-cta">
+        开始引导
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </div>
+    </a>
+
+    <a class="card secondary" href="install-guide.html">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <path d="M9 7h7M9 11h5"/>
+        </svg>
+      </div>
+      <div class="card-title">手动安装文档</div>
+      <div class="card-desc">查看完整安装文档，按照步骤自行配置依赖环境和插件。</div>
+      <div class="card-cta">
+        查看文档
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </div>
+    </a>
+  </div>
+
+  <p class="hint">首次安装推荐使用 AI 引导，可节省大量配置时间</p>
+</div>
+
+<script>
+  // sync light/dark theme from parent
+  try {
+    const theme = window.parent?.document?.documentElement?.getAttribute('data-theme');
+    if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  } catch (_) {}
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'theme-change') {
+      if (e.data.theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.removeAttribute('data-theme');
+    }
+  });
+</script>
+</body>
+</html>
