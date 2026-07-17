@@ -800,7 +800,14 @@ export default function App() {
   }, []);
 
   const handleCloseTab = useCallback((paneId: PaneId, tabId: TabId) => {
-    setLayout(prev => lCloseTab(prev, paneId, tabId));
+    setLayout(prev => {
+      const next = lCloseTab(prev, paneId, tabId);
+      if (next.kind === 'leaf' && next.tabs.length === 0) {
+        const homeTab: TabEntry = { tabId: uid(), viewId: 'home' };
+        return { ...next, tabs: [homeTab], activeTabId: homeTab.tabId };
+      }
+      return next;
+    });
   }, []);
 
   const handleDragStart = useCallback((ds: DragState) => {
@@ -904,7 +911,7 @@ export default function App() {
       case 'explorer':
         return <ExplorerView />;
       case 'installGuide':
-        return <iframe src={withBase('setup-wizard/setup.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
+        return <iframe src={withBase('ai-install.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 安装向导" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':

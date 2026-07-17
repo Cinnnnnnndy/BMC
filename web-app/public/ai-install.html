@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI 安装向导</title>
+<style>
+/* ═══ 全局深色滚动条约束 ═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+:root {
+  --bg:        #0e0f15;
+  --sf1:       #161820;
+  --sf2:       #1c1e27;
+  --sf3:       #23263a;
+  --fg:        rgba(255,255,255,.90);
+  --fg2:       rgba(255,255,255,.60);
+  --fg3:       rgba(255,255,255,.38);
+  --border:    rgba(255,255,255,.08);
+  --blue:      #4369ef;
+  --blue-dim:  rgba(67,105,239,.14);
+  --green:     #04d793;
+  --red:       #ef4444;
+  --yellow:    #f59e0b;
+  --font:      'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --mono:      'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg); font-family:var(--font); font-size:13px; line-height:1.6; }
+
+.layout { display:flex; height:100vh; overflow:hidden; }
+
+/* ── Step Rail ────────────────────────────────── */
+.rail {
+  width:190px; flex-shrink:0;
+  background:var(--sf1); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:0;
+}
+.rail-head {
+  padding:14px 16px 12px;
+  font-size:11px; font-weight:600; color:var(--fg3);
+  text-transform:uppercase; letter-spacing:.06em;
+  border-bottom:1px solid var(--border);
+}
+.rail-steps { padding:8px 0; display:flex; flex-direction:column; gap:0; }
+
+.s-item {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 16px; cursor:default;
+  transition:background .12s;
+  position:relative;
+}
+.s-item::before {
+  content:'';
+  position:absolute; left:26px; top:32px; width:1.5px; height:16px;
+  background:var(--border);
+}
+.s-item:last-child::before { display:none; }
+
+.s-num {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700;
+  border:1.5px solid var(--border); color:var(--fg3); background:transparent;
+  transition:all .25s; position:relative; z-index:1; background:var(--sf1);
+}
+.s-label { font-size:12.5px; color:var(--fg3); transition:color .2s; }
+
+.s-item.active  .s-num  { background:var(--blue); border-color:var(--blue); color:#fff; }
+.s-item.active  .s-label { color:var(--fg); font-weight:500; }
+.s-item.done    .s-num  { background:transparent; border-color:var(--green); color:var(--green); }
+.s-item.done    .s-label { color:var(--fg2); }
+.s-item.done::before { background:var(--green); opacity:.35; }
+
+.rail-footer {
+  margin-top:auto; padding:14px 16px;
+  border-top:1px solid var(--border);
+  font-size:11.5px; color:var(--fg3); line-height:1.5;
+}
+
+/* ── Chat Main ────────────────────────────────── */
+.chat-main { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+
+.chat-head {
+  height:44px; flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 16px; gap:8px;
+}
+.ch-avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--blue-dim);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.ch-avatar svg { width:14px; height:14px; fill:none; stroke:var(--blue); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.ch-name { font-size:13px; font-weight:600; }
+.ch-badge { font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px; background:var(--blue-dim); color:var(--blue); letter-spacing:.04em; }
+.ch-status { margin-left:auto; font-size:11.5px; color:var(--fg3); }
+
+.messages { flex:1; overflow-y:auto; padding:20px 20px 12px; display:flex; flex-direction:column; gap:14px; }
+
+/* ── Message Rows ────────────────────────────── */
+.row { display:flex; gap:10px; align-items:flex-start; }
+
+.av {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; margin-top:1px;
+}
+.av-ai   { background:var(--blue-dim); color:var(--blue); }
+.av-user { background:rgba(255,255,255,.08); color:var(--fg2); }
+
+.body-wrap { flex:1; min-width:0; }
+.msg-name { font-size:11.5px; font-weight:600; color:var(--fg3); margin-bottom:4px; }
+
+.bubble {
+  display:inline-block; max-width:100%;
+  background:var(--sf2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 13px;
+  font-size:13px; line-height:1.65; color:var(--fg); word-break:break-word;
+}
+.bubble p+p { margin-top:6px; }
+.bubble strong { color:var(--fg); }
+.bubble code { font-family:var(--mono); font-size:11.5px; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:3px; color:#86d9fa; }
+
+.row.user .bubble { background:var(--blue-dim); border-color:rgba(67,105,239,.22); }
+
+/* Thinking */
+.thinking { display:flex; align-items:center; gap:3px; padding:8px 12px; background:var(--sf2); border:1px solid var(--border); border-radius:10px; width:fit-content; }
+.td { width:6px; height:6px; border-radius:50%; background:var(--fg3); animation:tp 1.2s ease-in-out infinite; }
+.td:nth-child(2) { animation-delay:.2s; }
+.td:nth-child(3) { animation-delay:.4s; }
+@keyframes tp { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+/* Actions */
+.actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.abtn {
+  padding:6px 14px; border-radius:8px;
+  border:1px solid var(--border); background:var(--sf3);
+  color:var(--fg); font-size:12.5px; font-family:inherit; cursor:pointer;
+  transition:all .12s;
+}
+.abtn:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-dim); }
+.abtn.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+.abtn.primary:hover { background:#3457d5; border-color:#3457d5; }
+.abtn:disabled { opacity:.35; cursor:default; pointer-events:none; }
+
+/* Inline input */
+.input-group { display:flex; flex-direction:column; gap:8px; margin-top:10px; max-width:340px; }
+.irow { display:flex; flex-direction:column; gap:4px; }
+.ilabel { font-size:11.5px; font-weight:600; color:var(--fg3); }
+.ifield {
+  height:34px; padding:0 10px; border-radius:8px;
+  border:1px solid var(--border); background:var(--sf3);
+  color:var(--fg); font-size:13px; font-family:inherit; outline:none;
+  transition:border-color .15s;
+}
+.ifield:focus { border-color:var(--blue); }
+
+/* Check list */
+.checks { margin-top:10px; background:var(--sf3); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
+.chk { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+.chk:last-child { border-bottom:none; }
+.chk-icon { flex-shrink:0; width:18px; text-align:center; font-size:13px; }
+.chk-label { flex:1; }
+.chk-note { font-size:11.5px; color:var(--fg3); }
+
+/* Terminal */
+.term {
+  margin-top:10px;
+  background:#060609; border:1px solid rgba(255,255,255,.06);
+  border-radius:8px; padding:10px 13px;
+  font-family:var(--mono); font-size:11.5px; line-height:1.75;
+  color:rgba(255,255,255,.60); max-height:220px; overflow-y:auto;
+}
+.tc  { color:#86d9fa; }
+.tc::before { content:'$ '; color:rgba(255,255,255,.25); }
+.tok { color:var(--green); }
+.ter { color:var(--red); }
+.twa { color:var(--yellow); }
+.tdm { color:rgba(255,255,255,.35); }
+
+/* Chat input bar */
+.input-bar {
+  flex-shrink:0; border-top:1px solid var(--border);
+  padding:10px 16px; display:flex; gap:8px; align-items:center;
+  background:var(--sf1);
+}
+.ibar-field {
+  flex:1; height:36px; padding:0 12px; border-radius:8px;
+  border:1px solid var(--border); background:var(--sf2);
+  color:var(--fg); font-size:13px; font-family:inherit; outline:none;
+}
+.ibar-field:focus { border-color:var(--blue); }
+.ibar-send {
+  width:36px; height:36px; border-radius:8px; border:none;
+  background:var(--blue); color:#fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .12s;
+}
+.ibar-send:hover { background:#3457d5; }
+.ibar-send svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Done overlay */
+.done-overlay {
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:rgba(10,11,16,.92); z-index:100;
+  opacity:0; pointer-events:none; transition:opacity .4s;
+}
+.done-overlay.show { opacity:1; pointer-events:all; }
+.done-icon { font-size:56px; margin-bottom:14px; animation:pop .4s ease-out; }
+.done-title { font-size:20px; font-weight:700; margin-bottom:6px; }
+.done-sub { font-size:13px; color:var(--fg2); margin-bottom:20px; }
+@keyframes pop { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Step Rail -->
+  <aside class="rail">
+    <div class="rail-head">安装向导</div>
+    <div class="rail-steps">
+      <div class="s-item active" id="si1">
+        <div class="s-num" id="sn1">1</div>
+        <div class="s-label">账号准备</div>
+      </div>
+      <div class="s-item" id="si2">
+        <div class="s-num" id="sn2">2</div>
+        <div class="s-label">环境检测</div>
+      </div>
+      <div class="s-item" id="si3">
+        <div class="s-num" id="sn3">3</div>
+        <div class="s-label">工具安装</div>
+      </div>
+      <div class="s-item" id="si4">
+        <div class="s-num" id="sn4">4</div>
+        <div class="s-label">机型配置</div>
+      </div>
+    </div>
+    <div class="rail-footer">大部分步骤由 AI 自动完成<br>你只需回答关键问题</div>
+  </aside>
+
+  <!-- Chat -->
+  <main class="chat-main">
+    <div class="chat-head">
+      <div class="ch-avatar">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r=".5" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <span class="ch-name">安装助手</span>
+      <span class="ch-badge">AI</span>
+      <span class="ch-status" id="ch-status">待机中</span>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-bar" id="input-bar" style="display:none">
+      <input class="ibar-field" id="ibar-field" placeholder="输入消息，按 Enter 发送…" />
+      <button class="ibar-send" id="ibar-send">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </main>
+</div>
+
+<!-- Done overlay -->
+<div class="done-overlay" id="done-overlay">
+  <div class="done-icon">✅</div>
+  <div class="done-title">安装部署完成！</div>
+  <div class="done-sub" id="done-sub">正在打开开发视图…</div>
+  <button class="abtn primary" onclick="document.getElementById('done-overlay').classList.remove('show')">进入开发环境</button>
+</div>
+
+<script>
+// ── Utils ──────────────────────────────────────────────────────────────
+const msgs   = document.getElementById('messages');
+const status = document.getElementById('ch-status');
+
+function toParent(msg) {
+  try { window.parent.postMessage(msg, '*'); } catch(_) {}
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function scrollEnd() { msgs.scrollTop = msgs.scrollHeight; }
+function setStatus(t) { status.textContent = t; }
+
+// ── Step rail ──────────────────────────────────────────────────────────
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const si = document.getElementById('si' + i);
+    const sn = document.getElementById('sn' + i);
+    si.classList.remove('active','done');
+    if (i < n) { si.classList.add('done'); sn.textContent = '✓'; }
+    if (i === n) { si.classList.add('active'); }
+  }
+}
+
+// ── Message primitives ─────────────────────────────────────────────────
+let thinkRow = null;
+
+function showThinking() {
+  thinkRow = document.createElement('div');
+  thinkRow.className = 'row';
+  thinkRow.innerHTML =
+    `<div class="av av-ai">AI</div>
+     <div class="body-wrap">
+       <div class="thinking"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+     </div>`;
+  msgs.appendChild(thinkRow);
+  scrollEnd();
+}
+
+function hideThinking() {
+  if (thinkRow) { thinkRow.remove(); thinkRow = null; }
+}
+
+async function aiMsg(html, { delay = 700, actions = [] } = {}) {
+  showThinking();
+  setStatus('正在思考…');
+  await sleep(delay);
+  hideThinking();
+  setStatus('待机中');
+
+  const row = document.createElement('div');
+  row.className = 'row ai';
+  let actHtml = '';
+  if (actions.length) {
+    actHtml = `<div class="actions">${actions.map(a =>
+      `<button class="abtn${a.primary?' primary':''}" data-act="${a.act}">${a.label}</button>`
+    ).join('')}</div>`;
+  }
+  row.innerHTML =
+    `<div class="av av-ai">AI</div>
+     <div class="body-wrap">
+       <div class="msg-name">安装助手</div>
+       <div class="bubble">${html}</div>
+       ${actHtml}
+     </div>`;
+  msgs.appendChild(row);
+  scrollEnd();
+  return row;
+}
+
+function userMsg(text) {
+  const row = document.createElement('div');
+  row.className = 'row user';
+  row.innerHTML =
+    `<div class="av av-user">我</div>
+     <div class="body-wrap">
+       <div class="msg-name">你</div>
+       <div class="bubble">${text}</div>
+     </div>`;
+  msgs.appendChild(row);
+  scrollEnd();
+  return row;
+}
+
+function disableActions(row) {
+  row.querySelectorAll('.abtn').forEach(b => b.disabled = true);
+}
+
+// ── Terminal block ─────────────────────────────────────────────────────
+async function termBlock(bubble, lines) {
+  const block = document.createElement('div');
+  block.className = 'term';
+  bubble.appendChild(block);
+  scrollEnd();
+  for (const ln of lines) {
+    await sleep(ln.d ?? 250);
+    const div = document.createElement('div');
+    div.className = ln.c ?? '';
+    div.textContent = ln.t;
+    block.appendChild(div);
+    scrollEnd();
+  }
+  return block;
+}
+
+// ── Run a command in the agent terminal ───────────────────────────────
+function runCmd(cmd) {
+  toParent({ type: 'ai-run-agent', cmd });
+}
+
+// ── Wizard Flow ────────────────────────────────────────────────────────
+
+// Step 1 – Account check
+async function step1Welcome() {
+  const row = await aiMsg(
+    `<p>你好！我是 openUBMC <strong>安装助手</strong>。</p>
+     <p>我来帮你完成开发环境的全部配置——绝大部分步骤我会自动执行，你只需要在关键处回答我几个问题。</p>
+     <p>整个过程分 4 步，预计 5–10 分钟。开始吧！</p>
+     <p style="margin-top:8px">你目前有 openUBMC 开发者账号了吗？</p>`,
+    {
+      delay: 900,
+      actions: [
+        { act: 'has-acct',   label: '已有账号，跳过注册' },
+        { act: 'need-acct',  label: '还没有账号' },
+      ]
+    }
+  );
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    if (btn.dataset.act === 'has-acct') {
+      userMsg('已有账号，跳过注册');
+      step1GitCheck();
+    } else {
+      userMsg('还没有账号');
+      step1Register();
+    }
+  });
+}
+
+async function step1Register() {
+  const row = await aiMsg(
+    `<p>没关系！先完成账号注册再继续，只需要几分钟。</p>
+     <div class="checks">
+       <div class="chk"><span class="chk-icon">1</span><span class="chk-label">前往 openUBMC 开发者社区，注册并激活账号</span></div>
+       <div class="chk"><span class="chk-icon">2</span><span class="chk-label">在 GitCode 上传 SSH 公钥（用于仓库访问）</span></div>
+     </div>`,
+    {
+      actions: [
+        { act: 'open-reg',   label: '打开注册页面' },
+        { act: 'reg-done',   label: '已注册完成，继续' },
+      ]
+    }
+  );
+  row.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    if (btn.dataset.act === 'open-reg') {
+      window.open('https://www.openubmc.com/', '_blank');
+      userMsg('已打开注册页面');
+    } else {
+      disableActions(row);
+      userMsg('已注册完成，继续');
+      step1GitCheck();
+    }
+  });
+}
+
+async function step1GitCheck() {
+  const row = await aiMsg(
+    `<p>好！请确认你已上传 SSH 公钥到 GitCode，否则后续克隆代码仓库会失败。</p>
+     <div class="checks">
+       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">①</span>
+         <span class="chk-label">打开终端，运行 <code>cat ~/.ssh/id_rsa.pub</code> 复制公钥</span></div>
+       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">②</span>
+         <span class="chk-label">GitCode 设置 → SSH 密钥 → 添加密钥</span></div>
+     </div>`,
+    {
+      actions: [
+        { act: 'open-git', label: '打开 GitCode 密钥设置' },
+        { act: 'git-done', label: '已上传，继续' },
+      ]
+    }
+  );
+  row.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    if (btn.dataset.act === 'open-git') {
+      window.open('https://gitcode.com/-/user_settings/ssh_keys', '_blank');
+      userMsg('已打开 GitCode 密钥设置');
+    } else {
+      disableActions(row);
+      userMsg('已上传，继续');
+      step2EnvCheck();
+    }
+  });
+}
+
+// Step 2 – Environment detection
+async function step2EnvCheck() {
+  setStep(2);
+  const row = await aiMsg(
+    `<p>账号准备完毕 ✓　下面自动检测你的本机开发环境…</p>`,
+    { delay: 500 }
+  );
+  const bubble = row.querySelector('.bubble');
+
+  runCmd('setup_verify_all');
+  setStatus('检测中…');
+
+  await termBlock(bubble, [
+    { t: 'setup_verify_all', c: 'tc', d: 300 },
+    { t: '正在检测开发环境...', c: 'tdm', d: 500 },
+    { t: '  ✓  VS Code 1.107.2 — 通过', c: 'tok', d: 600 },
+    { t: '  ✓  Node.js v20.11.0 — 通过', c: 'tok', d: 400 },
+    { t: '  ✓  Git 2.43.0 — 通过', c: 'tok', d: 350 },
+    { t: '  ✗  Conan remote 未配置', c: 'ter', d: 500 },
+    { t: '  ✗  openubmc-cli 未安装', c: 'ter', d: 400 },
+    { t: '检测完成：3/5 通过，2 项待修复', c: 'twa', d: 400 },
+  ]);
+
+  setStatus('待机中');
+  await sleep(500);
+  step2AutoFix();
+}
+
+async function step2AutoFix() {
+  const row = await aiMsg(
+    `<p>VS Code、Node.js、Git 已就绪。发现 2 项需要配置，我来自动修复：</p>
+     <div class="checks">
+       <div class="chk"><span class="chk-icon" style="color:var(--red)">✗</span>
+         <span class="chk-label">Conan 工具链 remote 未配置</span>
+         <span class="chk-note">自动修复</span></div>
+       <div class="chk"><span class="chk-icon" style="color:var(--red)">✗</span>
+         <span class="chk-label">openubmc-cli 未安装</span>
+         <span class="chk-note">自动安装</span></div>
+     </div>`,
+    {
+      delay: 500,
+      actions: [{ act: 'do-fix', label: '开始自动修复', primary: true }]
+    }
+  );
+  row.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    userMsg('开始自动修复');
+    step2Fix();
+  });
+}
+
+async function step2Fix() {
+  const row = await aiMsg('<p>正在自动修复，请稍候…</p>', { delay: 400 });
+  const bubble = row.querySelector('.bubble');
+
+  runCmd('setup_configure_conan_remote && setup_install_openubmc_cli');
+  setStatus('修复中…');
+
+  await termBlock(bubble, [
+    { t: 'setup_configure_conan_remote', c: 'tc', d: 300 },
+    { t: '  添加 conan remote "openubmc"...', c: 'tdm', d: 800 },
+    { t: '  ✓  remote 配置成功', c: 'tok', d: 600 },
+    { t: 'setup_install_openubmc_cli', c: 'tc', d: 400 },
+    { t: '  下载 openubmc-cli v1.4.2...', c: 'tdm', d: 1100 },
+    { t: '  ✓  openubmc-cli 安装成功', c: 'tok', d: 700 },
+    { t: '重新验证全部检测项...', c: 'tdm', d: 500 },
+    { t: '  ✓  5/5 全部通过', c: 'tok', d: 600 },
+  ]);
+
+  setStatus('待机中');
+  await sleep(500);
+  step3InstallChoice();
+}
+
+// Step 3 – Extension install
+async function step3InstallChoice() {
+  setStep(3);
+  const row = await aiMsg(
+    `<p>环境全部就绪 ✓　现在安装 <strong>BMC Studio CodeX</strong> 扩展。</p>
+     <p>选择安装方式：</p>`,
+    {
+      delay: 600,
+      actions: [
+        { act: 'mkt',  label: '扩展市场安装（推荐）', primary: true },
+        { act: 'vsix', label: '手动安装 VSIX' },
+      ]
+    }
+  );
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    if (btn.dataset.act === 'mkt') {
+      userMsg('扩展市场安装');
+      step3Marketplace();
+    } else {
+      userMsg('手动安装 VSIX');
+      step3Vsix();
+    }
+  });
+}
+
+async function step3Marketplace() {
+  await aiMsg(
+    `<p>好！扩展市场安装最简单，只需 3 步：</p>
+     <div class="checks">
+       <div class="chk"><span class="chk-icon">1</span>
+         <span class="chk-label">在 VS Code 中按 <code>Ctrl+Shift+X</code> 打开扩展面板</span></div>
+       <div class="chk"><span class="chk-icon">2</span>
+         <span class="chk-label">搜索 <code>BMC Studio CodeX</code>，点击「安装」</span></div>
+       <div class="chk"><span class="chk-icon">3</span>
+         <span class="chk-label">安装完成后点击「重新加载窗口」</span></div>
+     </div>
+     <p style="margin-top:10px">安装完成后告诉我 👇</p>`,
+    {
+      delay: 600,
+      actions: [
+        { act: 'mkt-done', label: '已安装完成', primary: true },
+        { act: 'mkt-fail', label: '找不到扩展 / 安装失败' },
+      ]
+    }
+  );
+  msgs.querySelector('.row.ai:last-child').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const row = btn.closest('.row');
+    disableActions(row);
+    if (btn.dataset.act === 'mkt-done') {
+      userMsg('已安装完成');
+      step3Verify();
+    } else {
+      userMsg('找不到扩展');
+      step3Fallback();
+    }
+  });
+}
+
+async function step3Fallback() {
+  const row = await aiMsg(
+    `<p>网络可能无法访问扩展市场，换用 VSIX 手动安装——我来自动构建。</p>`,
+    {
+      actions: [{ act: 'ok', label: '好的，继续', primary: true }]
+    }
+  );
+  row.addEventListener('click', e => {
+    if (!e.target.closest('[data-act]')) return;
+    disableActions(row);
+    userMsg('好的，继续');
+    step3Vsix();
+  });
+}
+
+async function step3Vsix() {
+  const row = await aiMsg('<p>正在克隆仓库并构建 VSIX 安装包，稍候…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+
+  runCmd('git clone <repo-url> bmcstudio_codex && cd bmcstudio_codex && npm install && npm run plugin-package');
+  setStatus('构建中…');
+
+  await termBlock(bubble, [
+    { t: 'git clone <repo-url> bmcstudio_codex', c: 'tc', d: 300 },
+    { t: '  Cloning into \'bmcstudio_codex\'...', c: 'tdm', d: 1200 },
+    { t: '  ✓  克隆成功', c: 'tok', d: 400 },
+    { t: 'npm install', c: 'tc', d: 300 },
+    { t: '  added 847 packages in 12.3s', c: 'tdm', d: 1500 },
+    { t: 'npm run plugin-package', c: 'tc', d: 400 },
+    { t: '  构建中...', c: 'tdm', d: 1800 },
+    { t: '  ✓  openubmcstudio-codex-0.0.34.vsix 已生成', c: 'tok', d: 600 },
+    { t: 'code --install-extension openubmcstudio-codex-0.0.34.vsix', c: 'tc', d: 500 },
+    { t: '  ✓  Extension successfully installed.', c: 'tok', d: 1000 },
+  ]);
+
+  setStatus('待机中');
+  await sleep(500);
+  step3Verify();
+}
+
+async function step3Verify() {
+  const row = await aiMsg('<p>正在验证安装结果…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+
+  runCmd('code --list-extensions | grep openubmc');
+  setStatus('验证中…');
+
+  await termBlock(bubble, [
+    { t: 'code --list-extensions | grep openubmc', c: 'tc', d: 400 },
+    { t: '  openubmcstudio-codex-0.0.34', c: 'tok', d: 700 },
+  ]);
+
+  setStatus('待机中');
+  await sleep(400);
+  step4ModelSelect();
+}
+
+// Step 4 – Model configuration
+async function step4ModelSelect() {
+  setStep(4);
+  const row = await aiMsg(
+    `<p>BMC Studio CodeX 安装成功 🎉</p>
+     <p>最后一步——选择你要开发的主要机型，我会为你打开对应的 CSR 拓扑视图：</p>`,
+    {
+      delay: 700,
+      actions: [
+        { act: 'kunlun',  label: '昆仑（KunLun）', primary: true },
+        { act: 'tianchi', label: '天池（TianChi）' },
+        { act: 'skip',    label: '暂不配置，进入主界面' },
+      ]
+    }
+  );
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    const map = { kunlun:'昆仑（KunLun）', tianchi:'天池（TianChi）', skip:'暂不配置' };
+    userMsg(map[btn.dataset.act]);
+    step4Complete(btn.dataset.act);
+  });
+}
+
+async function step4Complete(model) {
+  const names   = { kunlun:'昆仑', tianchi:'天池', skip:'' };
+  const viewIds = { kunlun:'topology', tianchi:'boardTopology', skip:'home' };
+  const name   = names[model];
+  const viewId = viewIds[model];
+
+  const txt = name
+    ? `<p>完成！正在为你打开 <strong>${name}</strong> CSR 拓扑视图…</p>`
+    : `<p>好的！你可以随时从左侧导航栏进入对应功能视图。</p><p>开发环境部署全部完成 ✓</p>`;
+
+  await aiMsg(txt, { delay: 600 });
+
+  // Mark step 4 done
+  document.getElementById('si4').classList.remove('active');
+  document.getElementById('si4').classList.add('done');
+  document.getElementById('sn4').textContent = '✓';
+
+  await sleep(1200);
+  document.getElementById('done-sub').textContent = name
+    ? `正在打开 ${name} CSR 拓扑视图…`
+    : '安装部署全部完成。';
+  document.getElementById('done-overlay').classList.add('show');
+
+  await sleep(1000);
+  toParent({ type: 'ai-open-scenario', viewId });
+}
+
+// ── Start ──────────────────────────────────────────────────────────────
+(async () => {
+  await sleep(500);
+  step1Welcome();
+})();
+</script>
+</body>
+</html>
