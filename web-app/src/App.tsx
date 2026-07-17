@@ -89,7 +89,7 @@ const ICONS: Record<string, React.ReactNode> = {
   simulator:    <SI d="M5 3l14 9-14 9V3z" />,
   hwTopology:   <SI d={['M9 3H5a2 2 0 0 0-2 2v4m6-6h6m-6 0v18m6-18h4a2 2 0 0 1 2 2v4M3 9h6M21 9h-6','M3 21h6m-6 0v-4m18 4h-6m6 0v-4M9 21v-4m0 0h6m0 0v4']} />,
   threeD:       <SI d={['M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z','M3.27 6.96L12 12.01l8.73-5.05','M12 22.08V12']} />,
-  vueTopo:      <SI d={['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z','M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z']} />,
+  vueTopo:      <SI d={['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z','M11 9h4a2 2 0 0 0 2-2V3','M9 7a2 2 0 1 0 0 4 2 2 0 0 0 0-4','M7 21v-4a2 2 0 0 1 2-2h4','M15 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4']} />,
   csrTopo:      <SI d={['M4 4h4v4H4z', 'M16 4h4v4h-4z', 'M4 16h4v4H4z', 'M16 16h4v4h-4z', 'M8 6h8M6 8v8M8 18h8M18 8v8']} />,
   serverView:   <SI d={['M21 4H3a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z','M21 14H3a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z']} />,
   smcOffset:    <SI d="M4 9h16M4 15h16M10 3v18M14 3v18" />,
@@ -192,7 +192,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
-  threeD: '3D 仿真', vueTopo: 'CSR 拓扑', csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
+  threeD: '3D 仿真', vueTopo: '硬件适配', csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
@@ -925,7 +925,7 @@ export default function App() {
       case 'aiHistory':
         return <iframe src={withBase('ai-assist.html') + '?view=history'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 历史" />;
       case 'vueTopo':
-        return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="CSR拓扑Vue视图" />;
+        return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />;
       case 'csrTopo':
         return (
           <iframe
@@ -1013,7 +1013,7 @@ export default function App() {
     { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
-    { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
+    { id: 'vueTopo',      tooltip: '硬件适配' },
     { id: 'csrTopo',      tooltip: 'CSR 拓扑编辑器' },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
   ];
