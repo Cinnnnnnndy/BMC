@@ -549,9 +549,7 @@ export default { name: 'SmcOffsetView' };
 .section-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
 .sec-title {
   font-size: 13px; font-weight: 600; color: var(--text);
-  padding-left: 10px; position: relative;
 }
-.sec-title::before { content:""; position:absolute; left:0; top:2px; bottom:2px; width:3px; border-radius:2px; background:var(--accent); }
 .sec-hint { font-size: 11.5px; color: var(--text-dim); font-family: var(--font-mono); }
 
 /* ── Offset bar ────────────────────────────────────────────────────────── */

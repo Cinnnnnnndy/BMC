@@ -735,13 +735,13 @@ export default { name: 'ExprCalcView' };
 .phase-head-body { flex:1; min-width:0; }
 
 .phase-num {
-  width:26px; height:26px; border-radius:50%; flex-shrink:0;
-  background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.4);
+  width:22px; height:22px; border-radius:5px; flex-shrink:0;
+  background:var(--accent-soft); color:var(--accent); border:none;
   display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-mono); font-size:13px; font-weight:700;
+  font-family:var(--font-mono); font-size:12px; font-weight:700;
 }
-.phase-num.done { background:rgba(52,211,153,.12); color:var(--ok); border-color:rgba(52,211,153,.4); }
-.phase-num.num-error { background:rgba(240,101,112,.10); color:var(--err); border-color:rgba(240,101,112,.4); }
+.phase-num.done { background:rgba(52,211,153,.15); color:var(--ok); }
+.phase-num.num-error { background:rgba(240,101,112,.12); color:var(--err); }
 
 .phase-title { font-size:13.5px; font-weight:600; color:var(--text); }
 .phase-sub { font-size:11.5px; color:var(--text-dim); margin-top:1px; }
@@ -847,8 +847,8 @@ export default { name: 'ExprCalcView' };
 .stage.input-stage { border-color:rgba(79,110,247,.4); background:rgba(79,110,247,.05); }
 .stage.stage-error { border-color:rgba(240,101,112,.5); background:rgba(240,101,112,.04); }
 
-.stage-num { width:24px; height:24px; border-radius:50%; background:var(--bg); border:1px solid var(--border-s); color:var(--text-mute); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; }
-.stage-num.sn-input { background:var(--accent-soft); color:var(--accent); border-color:rgba(79,110,247,.4); }
+.stage-num { width:22px; height:22px; border-radius:4px; background:var(--bg-elev-2); border:none; color:var(--text-mute); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; }
+.stage-num.sn-input { background:var(--accent-soft); color:var(--accent); }
 .stage-body { min-width:0; }
 .op-text { font-family:var(--font-mono); font-size:13px; color:var(--text); }
 .op-name { font-weight:600; }
