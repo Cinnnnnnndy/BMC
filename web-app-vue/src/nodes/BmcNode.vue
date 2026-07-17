@@ -72,7 +72,7 @@ const topo = BMC_TOPOLOGY;
 .bmc-topo-label {
   font-size: 9px;
   font-weight: 700;
-  color: rgba(129,140,248,0.75);
+  color: rgba(255,255,255,0.45);
   margin-bottom: 4px;
   letter-spacing: 0.4px;
   text-transform: uppercase;

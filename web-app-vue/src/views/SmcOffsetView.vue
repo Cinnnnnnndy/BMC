@@ -515,7 +515,7 @@ export default { name: 'SmcOffsetView' };
 .page-head-info { min-width:0; }
 .page-head-line { display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
 .page-title { font-size:16px; font-weight:600; margin:0; letter-spacing:.01em; color:var(--text); }
-.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.3); border-radius:4px; padding:2px 8px; white-space:nowrap; }
+.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--bg-elev-3); color:var(--text-mute); border:none; border-radius:4px; padding:2px 8px; white-space:nowrap; }
 .page-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
 .head-actions { display:flex; gap:8px; flex-shrink:0; align-items:flex-start; }
 @media (max-width:640px) {
@@ -701,7 +701,7 @@ export default { name: 'SmcOffsetView' };
 }
 .func-opt:hover { background:var(--accent-soft); }
 .func-opt.active { background:var(--accent-soft); }
-.fo-hex { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--accent); min-width:42px; }
+.fo-hex { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--text); min-width:42px; }
 .fo-label { font-size:12px; color:var(--text); }
 .func-menu-note { font-size:10px; color:var(--text-dim); padding:4px 8px 2px; border-top:1px solid var(--border); margin-top:2px; }
 

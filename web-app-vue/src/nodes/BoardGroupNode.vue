@@ -198,7 +198,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 
     <!-- ── Header ────────────────────────────────────────────────── -->
     <div class="group-header">
-      <span class="group-badge" :style="{ background: accent + '33', color: accent }">
+      <span class="group-badge">
         {{ group.shortLabel }}
       </span>
       <span
@@ -225,7 +225,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       v-if="activeVariant && (group.topoVariants?.length ?? 0) > 1"
       class="variant-crumb nodrag nopan"
     >
-      <span class="crumb-letter" :style="{ background: accent + '26', color: accent }">
+      <span class="crumb-letter">
         变体 {{ activeVariant.letter }}
       </span>
       <span class="crumb-label">{{ activeVariant.label }}</span>
@@ -238,7 +238,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     <!-- ── Variant picker (shown when multiple topologies, none selected) ── -->
     <div v-if="needsVariantPick" class="variant-picker nodrag nopan">
       <div class="variant-picker-hint">
-        <span class="variant-hint-icon" :style="{ color: accent }">◈</span>
+        <span class="variant-hint-icon">◈</span>
         <span>该板卡有 <strong>{{ group.topoVariants.length }} 种拓扑结构</strong>，请选择适用于本机型的变体</span>
       </div>
       <div class="variant-list">
@@ -249,18 +249,12 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
           @pointerdown.stop
           @click.stop="pickedVariantKey = v.key"
         >
-          <span
-            class="variant-letter-badge"
-            :style="{ background: accent + '26', color: accent }"
-          >{{ v.letter }}</span>
+          <span class="variant-letter-badge">{{ v.letter }}</span>
           <div class="variant-card-body">
             <div class="variant-card-label">{{ v.label || '标准结构' }}</div>
             <div class="variant-card-count">{{ v.boards.length }} 个实例</div>
           </div>
-          <button
-            class="variant-select-btn"
-            :style="{ background: accent + '22', color: accent }"
-          >选择</button>
+          <button class="variant-select-btn">选择</button>
         </div>
       </div>
     </div>
@@ -344,7 +338,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
     <!-- nodrag so chip drags inside don't fire VueFlow node-drag -->
     <div v-if="!needsVariantPick && (state === 'resolved' || state === 'multi-match')" class="topo-section nodrag nopan">
       <div class="topo-header" @click.stop="topoCollapsed = !topoCollapsed">
-        <span class="topo-header-label" :style="{ color: accent }">I2C 拓扑</span>
+        <span class="topo-header-label">I2C 拓扑</span>
         <span class="topo-toggle">{{ topoCollapsed ? '▶' : '▼' }}</span>
       </div>
       <MiniTopology
@@ -448,11 +442,12 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 .group-badge {
   font-size: 9px;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.5px;
   flex-shrink: 0;
-  opacity: 0.85;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.70);
 }
 .group-title {
   flex: 1;
@@ -571,6 +566,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.45);
 }
 .topo-toggle {
   font-size: 9px;
@@ -661,6 +657,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-weight: 800;
   letter-spacing: 0.3px;
   flex-shrink: 0;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.75);
 }
 .crumb-label {
   flex: 1;
@@ -706,6 +704,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-size: 12px;
   flex-shrink: 0;
   margin-top: 1px;
+  color: rgba(255,255,255,0.45);
 }
 .variant-picker-hint strong {
   color: rgba(255,255,255,0.70);
@@ -742,6 +741,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   justify-content: center;
   flex-shrink: 0;
   letter-spacing: 0;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.75);
 }
 .variant-card-body {
   flex: 1;
@@ -769,9 +770,11 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: filter 0.12s;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.85);
+  transition: background 0.12s;
 }
-.variant-select-btn:hover { filter: brightness(1.35); }
+.variant-select-btn:hover { background: rgba(255,255,255,0.18); }
 
 /* ── Missing-state actions in dropdown ── */
 .combo-actions {

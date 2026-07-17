@@ -736,7 +736,7 @@ export default { name: 'ExprCalcView' };
 
 .phase-num {
   width:22px; height:22px; border-radius:5px; flex-shrink:0;
-  background:var(--accent-soft); color:var(--accent); border:none;
+  background:var(--bg-elev-3); color:var(--text-mute); border:none;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-mono); font-size:12px; font-weight:700;
 }
@@ -799,8 +799,8 @@ export default { name: 'ExprCalcView' };
   color:var(--text); cursor:pointer; transition:all .1s; user-select:none; line-height:1.4;
 }
 .op-chip:hover { background:var(--bg-elev-3); border-color:var(--accent); transform:translateY(-1px); }
-.op-chip[data-cat="vars"] { background:var(--accent-soft); color:var(--accent); border-color:rgba(79,110,247,.4); font-weight:600; }
-.op-chip[data-cat="vars"]:hover { background:rgba(79,110,247,.18); }
+.op-chip[data-cat="vars"] { background:var(--bg-elev-3); color:var(--text); font-weight:600; }
+.op-chip[data-cat="vars"]:hover { background:var(--bg-elev-3); filter:brightness(1.2); }
 .op-arg { color:var(--text-dim); margin-left:4px; font-size:10.5px; }
 
 /* Chip popup tooltip */
@@ -848,15 +848,11 @@ export default { name: 'ExprCalcView' };
 .stage.stage-error { border-color:rgba(240,101,112,.5); background:rgba(240,101,112,.04); }
 
 .stage-num { width:22px; height:22px; border-radius:4px; background:var(--bg-elev-2); border:none; color:var(--text-mute); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; }
-.stage-num.sn-input { background:var(--accent-soft); color:var(--accent); }
+.stage-num.sn-input { background:var(--bg-elev-3); color:var(--text); }
 .stage-body { min-width:0; }
 .op-text { font-family:var(--font-mono); font-size:13px; color:var(--text); }
 .op-name { font-weight:600; }
-.op-name.cat-arith  { color: #4f6ef7; }
-.op-name.cat-cast   { color: #f5b454; }
-.op-name.cat-string { color: #34d399; }
-.op-name.cat-custom { color: #a78bfa; }
-.var-ref  { color:var(--accent); }
+.var-ref  { color:var(--text); font-weight:600; }
 .arg-lit  { color:var(--text-mute); }
 .stage-desc { margin-top:2px; font-size:11px; color:var(--text-dim); }
 .stage-val { font-family:var(--font-mono); font-size:13.5px; color:var(--text); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
