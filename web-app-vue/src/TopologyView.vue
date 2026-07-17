@@ -100,6 +100,7 @@ const stateCounts = computed(() => ({
 const CAT_ORDER = ['BCU', 'CLU', 'EXU', 'IEU', 'SEU', 'NICCard', 'Unknown'];
 const expandedCats   = ref<Record<string, boolean>>(Object.fromEntries(CAT_ORDER.map((c) => [c, true])));
 const expandedGroups = ref<Record<string, boolean>>({});
+const hwSearchQuery  = ref<string>('');
 
 interface CatNode { type: string; label: string; groups: BoardGroup[]; boardCount: number }
 const categoryTree = computed<CatNode[]>(() => {
@@ -116,6 +117,14 @@ const categoryTree = computed<CatNode[]>(() => {
     groups: byType.get(t)!,
     boardCount: byType.get(t)!.reduce((s, g) => s + g.boards.length, 0),
   }));
+});
+
+const filteredCategoryTree = computed<CatNode[]>(() => {
+  const q = hwSearchQuery.value.trim().toLowerCase();
+  if (!q) return categoryTree.value;
+  return categoryTree.value
+    .map((cat) => ({ ...cat, groups: cat.groups.filter((g) => g.name.toLowerCase().includes(q)) }))
+    .filter((cat) => cat.groups.length > 0);
 });
 
 function toggleCat(t: string) {
@@ -278,36 +287,51 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
   <div class="topo-root">
     <!-- ── Left panel ────────────────────────────────────────────── -->
     <aside class="topo-palette open">
-      <div class="palette-section-title">硬件管理器</div>
-
-      <div class="pp-field">
-        <div class="pp-field-label">数据源</div>
-        <div class="pp-field-value">openUBMC（{{ totalBoards }} 张物理板）</div>
+      <!-- ── Panel header ── -->
+      <div class="panel-hd">
+        硬件管理器
+        <div class="ph-actions">
+          <button class="ib" title="适应画布" @click="handleFit">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+            </svg>
+          </button>
+          <button class="ib" title="重置布局" @click="handleResetLayout">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <!-- ── Check summary (mini 检查 panel) ─────────────────────── -->
-      <div class="check-summary">
-        <button
-          class="chk-chip chk-ok"
-          :title="STATE_LABEL.resolved"
-        >✓ {{ stateCounts.resolved }}</button>
-        <button
-          class="chk-chip chk-warn"
-          :title="STATE_LABEL['multi-match'] + ' / ' + STATE_LABEL['type-placeholder']"
-        >⚠ {{ stateCounts['multi-match'] + stateCounts['type-placeholder'] }}</button>
-        <button
-          class="chk-chip chk-err"
-          :title="STATE_LABEL.missing"
-        >⛔ {{ stateCounts.missing }}</button>
-        <button
-          class="chk-chip chk-grey"
-          :title="STATE_LABEL.unclassified"
-        >◌ {{ stateCounts.unclassified }}</button>
+      <!-- ── Summary strip ── -->
+      <div class="hw-sum-strip">
+        <span class="hw-sum-label">openUBMC · {{ totalBoards }} 张物理板</span>
+        <button class="chk-chip chk-ok"   :title="STATE_LABEL.resolved">{{ stateCounts.resolved }}</button>
+        <button class="chk-chip chk-warn" :title="STATE_LABEL['multi-match'] + ' / ' + STATE_LABEL['type-placeholder']">{{ stateCounts['multi-match'] + stateCounts['type-placeholder'] }}</button>
+        <button class="chk-chip chk-err"  :title="STATE_LABEL.missing">{{ stateCounts.missing }}</button>
+      </div>
+
+      <!-- ── Search ── -->
+      <div class="hw-search-row">
+        <svg class="hw-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="hw-search-input" v-model="hwSearchQuery" placeholder="搜索板卡名称…" />
+      </div>
+
+      <!-- ── Section header ── -->
+      <div class="sec-hd">
+        <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+        板卡分类
+        <div class="sec-acts">
+          <button class="ib" title="全部重置为首张" @click="handleResetSelections">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- ── 硬件管理器树：类别 → 板卡组 → 板卡文件 ────────────────── -->
       <div class="hw-tree">
-        <template v-for="cat in categoryTree" :key="cat.type">
+        <template v-for="cat in filteredCategoryTree" :key="cat.type">
           <button class="hw-cat-row" @click="toggleCat(cat.type)">
             <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
             <span class="hw-cat-label">{{ cat.label }}</span>
@@ -368,11 +392,6 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         </template>
       </div>
 
-      <!-- ── Layout actions ───────────────────────────────────────── -->
-      <div class="palette-section-title" style="margin-top:16px;">操作</div>
-      <button class="palette-action primary" @click="handleResetLayout">重置布局</button>
-      <button class="palette-action" @click="handleFit">适应画布</button>
-      <button class="palette-action" @click="handleResetSelections">全部重置为首张</button>
     </aside>
 
     <!-- ── Canvas ────────────────────────────────────────────────── -->
@@ -394,7 +413,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
         @edge-click="onEdgeClick"
         @pane-click="onPaneClick"
       >
-        <Background pattern-color="#151528" :gap="24" :size="0.9" />
+        <Background pattern-color="#1a1a1e" :gap="28" :size="0.85" />
         <Controls />
         <MiniMap
           :node-color="miniColor"
@@ -499,16 +518,15 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
 .hw-tree {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  margin-top: 4px;
   overflow-y: auto;
+  flex: 1;
   min-height: 0;
 }
 .hw-caret {
   width: 12px;
   flex-shrink: 0;
   font-size: 9px;
-  color: var(--text-dim, #6b7498);
+  color: var(--foreground-muted);
   transition: transform 0.12s;
   display: inline-block;
   text-align: center;
@@ -516,53 +534,56 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
 .hw-caret.open { transform: rotate(90deg); }
 .hw-caret-empty { visibility: hidden; }
 
+/* category row – matches bmc-env .g-row */
 .hw-cat-row {
   all: unset;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   width: 100%;
-  padding: 5px 4px;
-  border-radius: 5px;
+  padding: 0 8px 0 12px;
+  height: 28px;
   cursor: pointer;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-sub, #c3c9de);
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--foreground-secondary);
+  user-select: none;
 }
-.hw-cat-row:hover { background: rgba(255, 255, 255, 0.05); }
+.hw-cat-row:hover { background: var(--state-hover); }
 .hw-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* count badge – matches bmc-env .g-badge */
 .hw-count {
   flex-shrink: 0;
-  min-width: 16px;
-  padding: 0 5px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--text-dim, #6b7498);
-  text-align: center;
-  line-height: 15px;
+  font: 500 11px/1.2 var(--font-sans);
+  padding: 2px 8px;
+  border-radius: 999px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--success, #04d793) 20%, transparent);
+  color: var(--success, #04d793);
 }
 
-.hw-cat-body { display: flex; flex-direction: column; gap: 1px; }
+.hw-cat-body { display: flex; flex-direction: column; }
 
+/* group row – matches bmc-env .c-row */
 .hw-grp-row {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 4px 4px 14px;
-  border-radius: 5px;
+  gap: 8px;
+  padding: 0 12px 0 28px;
+  height: 28px;
   cursor: pointer;
-  font-size: 11.5px;
-  color: var(--text-sub, #98a0b8);
-  transition: background 0.12s, color 0.12s;
+  user-select: none;
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--foreground-secondary);
+  transition: background var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 }
-.hw-grp-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-main, #e6e8ef); }
+.hw-grp-row:hover { background: var(--state-hover); }
 .hw-grp-row.is-active {
-  background: rgba(79, 110, 247, 0.16);
-  color: var(--text-main, #e6e8ef);
+  background: var(--state-selected, rgba(67, 105, 239, 0.14));
+  color: var(--foreground);
 }
 .hw-state-dot {
   width: 7px;
@@ -718,29 +739,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
 .wake-ic-smc  { background: color-mix(in srgb, var(--primary) 20%, transparent); }
 .wake-ic-expr { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 
-/* ── Check summary (mini 检查 panel) ── */
-.check-summary {
-  display: flex;
-  gap: 6px;
-  margin: 6px 0 10px 0;
-  flex-wrap: wrap;
-}
-.chk-chip {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  cursor: help;
-  border: 1px solid transparent;
-}
-.chk-ok   { background: rgba(34,197,94,0.14);  color: #86efac; border-color: rgba(34,197,94,0.35); }
-.chk-warn { background: rgba(245,158,11,0.14); color: #fcd34d; border-color: rgba(245,158,11,0.35); }
-.chk-err  { background: rgba(239,68,68,0.14);  color: #fca5a5; border-color: rgba(239,68,68,0.35); }
-.chk-grey { background: rgba(107,114,128,0.18); color: #cbd5e1; border-color: rgba(107,114,128,0.4); }
+/* chk-chip styles are now defined in topology.css via .chk-ok / .chk-warn / .chk-err */
 
 /* ── State sections in the sidebar ── */
 .state-section {

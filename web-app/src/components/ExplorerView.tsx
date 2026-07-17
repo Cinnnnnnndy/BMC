@@ -641,39 +641,73 @@ export function ExplorerView() {
     }}>
       {/* Tree panel */}
       <div style={{
-        width: 220,
+        width: 280,
         flexShrink: 0,
-        background: 'var(--surface-1, #0c0d14)',
-        borderRight: '1px solid var(--border-subtle, #1c1d2a)',
-        overflow: 'auto',
+        background: 'var(--surface-2)',
+        borderRight: '1px solid var(--border-subtle)',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
       }}>
+        {/* Panel header — matches bmc-env .panel-hd pattern */}
         <div style={{
-          padding: '7px 10px 5px',
-          fontSize: 10.5,
-          fontWeight: 600,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--foreground-muted, #5a6280)',
-          borderBottom: '1px solid var(--border-subtle, #1c1d2a)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 12px 0 16px',
+          height: 44,
+          font: '500 11px/1.2 var(--font-sans)',
+          textTransform: 'uppercase' as const,
+          letterSpacing: '0.06em',
+          color: 'var(--foreground-secondary)',
+          userSelect: 'none' as const,
           flexShrink: 0,
+          borderBottom: '1px solid var(--border-subtle)',
         }}>
-          资源管理器
+          <span>资源管理器</span>
+          <div style={{ display: 'flex', gap: 2 }}>
+            {/* collapse icon */}
+            <button style={{ background: 'none', border: 'none', color: 'var(--foreground-muted)', cursor: 'pointer', padding: 5, borderRadius: 8, display: 'flex', alignItems: 'center' }}
+              title="折叠全部">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div style={{ flex: 1, paddingTop: 4 }}>
+        {/* Section header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 8px 0 12px',
+          height: 32,
+          font: '500 11px/1.2 var(--font-sans)',
+          textTransform: 'uppercase' as const,
+          letterSpacing: '0.06em',
+          color: 'var(--foreground-muted)',
+          userSelect: 'none' as const,
+          flexShrink: 0,
+          gap: 6,
+        }}>
+          <svg viewBox="0 0 24 24" width="10" height="10" style={{ color: 'var(--foreground-muted)', transform: 'rotate(90deg)', flexShrink: 0 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+          vpd-main
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' as const }}>
           {TREE.map((node, i) => (
             <TreeItem key={i} node={node} depth={0} selectedId={selectedId} onSelect={setSelectedId} />
           ))}
         </div>
         <div style={{
-          padding: '6px 10px',
+          padding: '6px 12px',
           fontSize: 10.5,
-          color: 'var(--foreground-muted, #5a6280)',
-          borderTop: '1px solid var(--border-subtle, #1c1d2a)',
+          color: 'var(--foreground-muted)',
+          borderTop: '1px solid var(--border-subtle)',
           fontFamily: 'ui-monospace, monospace',
+          flexShrink: 0,
         }}>
-          vpd-main · 示例文件
+          示例文件
         </div>
       </div>
 
