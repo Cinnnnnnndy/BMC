@@ -79,7 +79,7 @@ async function doWriteback() {
   position: relative;
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   margin: 0 0 14px 0;
   font-size: 12px;
 }
@@ -88,27 +88,23 @@ async function doWriteback() {
   align-items: center;
   gap: 8px;
   padding: 7px 11px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 .rail-left { flex: 1; min-width: 0; }
-.rail-left.filled {
-  border-color: rgba(29, 158, 117, 0.45);
-  background: rgba(29, 158, 117, 0.10);
-}
-.rail-dir { font-size: 15px; color: #1d9e75; flex-shrink: 0; }
-.rail-left:not(.filled) .rail-dir { color: #5a6178; }
+.rail-left.filled { background: var(--surface-3); }
+.rail-dir { font-size: 15px; color: var(--success); flex-shrink: 0; }
+.rail-left:not(.filled) .rail-dir { color: var(--foreground-muted); }
 .rail-text { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
 .rail-label {
   font-weight: 600;
-  color: #34d399;
+  color: var(--success);
   flex-shrink: 0;
 }
-.rail-src { color: #e6e8ef; font-weight: 500; white-space: nowrap; }
+.rail-src { color: var(--foreground); font-weight: 500; white-space: nowrap; }
 .rail-detail {
-  color: #98a0b8;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--foreground-secondary);
+  font-family: var(--font-mono);
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -117,62 +113,59 @@ async function doWriteback() {
 .rail-chips { display: flex; gap: 5px; flex-wrap: wrap; min-width: 0; }
 .chip {
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 10.5px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: rgba(79, 110, 247, 0.18);
-  color: #c7d2fe;
+  font-family: var(--font-mono);
+  background: var(--surface-4);
+  color: var(--foreground-secondary);
   white-space: nowrap;
 }
-.chip-temp { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
-.chip-expr { background: rgba(167, 139, 250, 0.18); color: #ddd6fe; }
-.rail-empty { color: #6b7280; font-style: italic; }
+.chip-temp { color: var(--warning); }
+.chip-expr { color: var(--accent); }
+.rail-empty { color: var(--foreground-muted); font-style: italic; }
 .rail-x {
   all: unset;
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   padding: 2px;
-  border-radius: 4px;
-  color: #98a0b8;
+  border-radius: var(--radius-sm);
+  color: var(--foreground-muted);
   cursor: pointer;
   flex-shrink: 0;
 }
-.rail-x:hover { background: rgba(255, 255, 255, 0.08); color: #e6e8ef; }
+.rail-x:hover { background: var(--state-hover); color: var(--foreground); }
 
-.rail-right {
-  flex-shrink: 0;
-  border-color: rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-}
-.rail-code-label { color: var(--foreground-secondary, #9aa0b8); font-size: 11px; white-space: nowrap; }
+.rail-right { flex-shrink: 0; }
+.rail-code-label { color: var(--foreground-secondary); font-size: 11px; white-space: nowrap; }
 .rail-writeback {
   all: unset;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 4px 11px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--foreground-secondary, #9aa0b8);
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--foreground-secondary);
   font-weight: 600;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
 }
-.rail-writeback:hover { background: rgba(255, 255, 255, 0.10); }
+.rail-writeback:hover { background: var(--surface-4); color: var(--foreground); }
 
 .rail-toast {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
   padding: 6px 12px;
-  border-radius: 6px;
-  background: #1e2240;
-  border: 1px solid rgba(79, 110, 247, 0.5);
-  color: #e6e8ef;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--foreground);
   font-size: 11.5px;
   z-index: 20;
   white-space: nowrap;
+  box-shadow: var(--shadow-md);
 }
 .rail-toast-enter-active, .rail-toast-leave-active { transition: opacity 0.18s; }
 .rail-toast-enter-from, .rail-toast-leave-to { opacity: 0; }

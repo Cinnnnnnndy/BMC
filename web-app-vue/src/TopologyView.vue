@@ -423,12 +423,12 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
       <!-- ── 唤醒联动工具（左联动入口）── -->
       <div class="pp-wake">
         <div class="pp-wake-title">联动工具</div>
-        <button class="wake-btn wake-smc" @click="wakeSmc">
-          <span class="wake-ic" aria-hidden="true">🧮</span>
+        <button class="wake-btn" @click="wakeSmc">
+          <span class="wake-ic-wrap wake-ic-smc" aria-hidden="true">🧮</span>
           在 SMC 偏移量计算器中解析
         </button>
-        <button class="wake-btn wake-expr" @click="wakeExpr">
-          <span class="wake-ic" aria-hidden="true">⚙</span>
+        <button class="wake-btn" @click="wakeExpr">
+          <span class="wake-ic-wrap wake-ic-expr" aria-hidden="true">⚙</span>
           在表达式计算器中调试 sensor
         </button>
 
@@ -689,22 +689,34 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
   all: unset;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
-  border-radius: 6px;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
   font-size: 11.5px;
   font-weight: 500;
+  color: var(--foreground-secondary);
+  background: var(--surface-2);
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
 }
-.wake-ic { font-size: 13px; }
-.wake-smc  { background: rgba(79, 110, 247, 0.14);  color: #c7d2fe; border-color: rgba(79, 110, 247, 0.32); }
-.wake-smc:hover  { background: rgba(79, 110, 247, 0.26); }
-.wake-expr { background: rgba(167, 139, 250, 0.14); color: #ddd6fe; border-color: rgba(167, 139, 250, 0.32); }
-.wake-expr:hover { background: rgba(167, 139, 250, 0.26); }
-.wake-cool { background: rgba(52, 211, 153, 0.14);  color: #a7f3d0; border-color: rgba(52, 211, 153, 0.32); }
-.wake-cool:hover { background: rgba(52, 211, 153, 0.26); }
+.wake-btn:hover {
+  background: var(--surface-3);
+  color: var(--foreground);
+}
+.wake-ic-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+/* tight accent region — icon pill only, per PTO fill principle */
+.wake-ic-smc  { background: color-mix(in srgb, var(--primary) 20%, transparent); }
+.wake-ic-expr { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 
 /* ── Check summary (mini 检查 panel) ── */
 .check-summary {
