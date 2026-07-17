@@ -454,7 +454,7 @@ function resetLayout() {
   height: 4px;
   background: repeating-linear-gradient(
     90deg,
-    var(--chip-body-border, rgba(255,255,255,0.30)) 0 2px,
+    var(--chip-pin, rgba(255,255,255,0.40)) 0 2px,
     transparent 2px 8px
   );
   pointer-events: none;
@@ -499,7 +499,7 @@ function resetLayout() {
   height: 4px;
   background: repeating-linear-gradient(
     90deg,
-    var(--chip-body-border, rgba(255,255,255,0.30)) 0 2px,
+    var(--chip-pin, rgba(255,255,255,0.40)) 0 2px,
     transparent 2px 8px
   );
   pointer-events: none;
@@ -525,8 +525,7 @@ function resetLayout() {
   min-width: 12px;
   height: 12px;
   border-radius: 2px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));
+  background: rgba(255,255,255,0.10);
   font-size: 7.5px;
   font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -544,9 +543,9 @@ function resetLayout() {
   bottom: 0;
   right: 0;
   padding: 2px 6px;
-  border: 1px solid rgba(255,255,255,0.10);
+  border: none;
   border-radius: 5px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.07);
   color: rgba(255,255,255,0.35);
   font-size: 9px;
   cursor: pointer;

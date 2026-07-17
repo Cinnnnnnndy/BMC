@@ -647,7 +647,6 @@ export default { name: 'SmcOffsetView' };
   border-radius: var(--radius); padding: 12px 12px 10px;
   transition: border-color .12s, background .12s; position: relative; min-width: 0;
 }
-.field-card:focus-within { background: var(--bg-elev-3); }
 .field-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:8px; }
 .field-label { font-size:12.5px; font-weight:600; color:var(--text); display:inline-flex; align-items:center; gap:6px; }
 .code-anno { font-style:normal; font-weight:400; font-size:11px; color:var(--text-dim); font-family:var(--font-mono); opacity:.8; }
@@ -656,7 +655,7 @@ export default { name: 'SmcOffsetView' };
 
 .field-input-wrap { display:flex; gap:6px; }
 .field-input {
-  flex:1; background:var(--bg-elev-2); border:none; border-radius:var(--radius);
+  flex:1; background:var(--bg-elev-3); border:none; border-radius:var(--radius);
   color:var(--text); font-family:var(--font-mono); font-size:14px; font-weight:600;
   padding:7px 10px; outline:none; transition:background .12s, box-shadow .12s; min-width:0;
 }
@@ -665,7 +664,7 @@ export default { name: 'SmcOffsetView' };
 .field-input::placeholder { color: var(--placeholder); }
 /* Hex prefix wrapper — field inputs with fixed "0x" prefix */
 .hex-pfx-wrap {
-  display:flex; align-items:center; background:var(--bg-elev-2);
+  display:flex; align-items:center; background:var(--bg-elev-3);
   border:none; border-radius:var(--radius);
   overflow:hidden; flex:1; position:relative;
   transition:background .12s, box-shadow .12s;

@@ -62,14 +62,14 @@
           <!-- Sticky bar: step-flow + collapsible entity nav -->
           <div class="sticky-bar" id="sticky-bar">
             <div class="step-flow">
-              <span>① 全局</span><span class="arrow">→</span>
-              <span>② 温度点</span><span class="arrow">→</span>
-              <span>③ 调速风扇</span><span class="arrow">→</span>
-              <span>④ 调速策略</span><span class="arrow">→</span>
-              <span>⑤ 绑定区域</span><span class="arrow">→</span>
-              <span>⑥ 风扇类型</span><span class="arrow">·</span>
-              <span>⑦ 异常风扇</span><span class="arrow">·</span>
-              <span>⑧ 风扇组</span>
+              <span>1 全局</span><span class="arrow">→</span>
+              <span>2 温度点</span><span class="arrow">→</span>
+              <span>3 调速风扇</span><span class="arrow">→</span>
+              <span>4 调速策略</span><span class="arrow">→</span>
+              <span>5 绑定区域</span><span class="arrow">→</span>
+              <span>6 风扇类型</span><span class="arrow">·</span>
+              <span>7 异常风扇</span><span class="arrow">·</span>
+              <span>8 风扇组</span>
               <span style="flex:1"></span>
               <span class="step-hint">先定义，再绑定</span>
               <button class="nav-toggle" id="nav-toggle" title="展开/收起导航面板">▾</button>
@@ -80,7 +80,7 @@
           <!-- (1) Global -->
           <section class="section" id="sec-global">
             <div class="section-head">
-              <span class="order">①</span>
+              <span class="order">1</span>
               <span class="h">全局配置 <span class="subt">slot_id · cooling_config</span></span>
             </div>
             <div class="section-desc">整机调速的<b>总开关与兜底参数</b>：是否启用智能调速、无策略匹配时的默认转速、风扇分区数与温度采样周期。</div>
@@ -120,7 +120,7 @@
           <!-- (2) Temperature points -->
           <section class="section" id="sec-temp">
             <div class="section-head">
-              <span class="order">②</span>
+              <span class="order">2</span>
               <span class="h">温度监控点 <span class="subt">cooling_requirements</span></span>
               <span class="count" id="cnt-temp">0</span>
               <span class="spacer"></span>
@@ -133,7 +133,7 @@
           <!-- (3) Fans -->
           <section class="section" id="sec-fan">
             <div class="section-head">
-              <span class="order">③</span>
+              <span class="order">3</span>
               <span class="h">风扇配置 <span class="subt">cooling_fans · 执行器</span></span>
               <span class="count" id="cnt-fan">0</span>
               <span class="spacer"></span>
@@ -146,7 +146,7 @@
           <!-- (4) Policies -->
           <section class="section" id="sec-policy">
             <div class="section-head">
-              <span class="order">④</span>
+              <span class="order">4</span>
               <span class="h">调速策略 <span class="subt">cooling_policies · 温度 → 转速曲线</span></span>
               <span class="count" id="cnt-policy">0</span>
               <span class="spacer"></span>
@@ -159,7 +159,7 @@
           <!-- (5) Areas -->
           <section class="section" id="sec-area">
             <div class="section-head">
-              <span class="order">⑤</span>
+              <span class="order">5</span>
               <span class="h">调速区域 <span class="subt">cooling_areas · 温度点 + 策略 + 风扇的绑定</span></span>
               <span class="count" id="cnt-area">0</span>
               <span class="spacer"></span>
@@ -183,23 +183,23 @@
             <div class="row-list" id="list-area"></div>
           </section>
 
-          <!-- ⑥ Fan Types -->
+          <!-- 6 Fan Types -->
           <section class="section" id="sec-fantype">
             <div class="section-head">
-              <span class="order">⑥</span>
+              <span class="order">6</span>
               <span class="h">风扇类型 <span class="subt">fan_types · 型号与规格定义</span></span>
               <span class="count" id="cnt-fantype">0</span>
               <span class="spacer"></span>
               <button class="add-btn" data-add="fanType">+ 新增类型</button>
             </div>
-            <div class="section-desc"><b>风扇型号库</b>：转速范围、转子数等规格定义，供「③ 风扇」按名称引用，避免重复填写。</div>
+            <div class="section-desc"><b>风扇型号库</b>：转速范围、转子数等规格定义，供「3 风扇」按名称引用，避免重复填写。</div>
             <div class="row-list" id="list-fantype"></div>
           </section>
 
-          <!-- ⑦ Abnormal Fans -->
+          <!-- 7 Abnormal Fans -->
           <section class="section" id="sec-abnormal">
             <div class="section-head">
-              <span class="order">⑦</span>
+              <span class="order">7</span>
               <span class="h">异常风扇 <span class="subt">abnormal_fans · 异常行为监控规则</span></span>
               <span class="count" id="cnt-abnormal">0</span>
               <span class="spacer"></span>
@@ -209,10 +209,10 @@
             <div class="row-list" id="list-abnormal"></div>
           </section>
 
-          <!-- ⑧ Fan Groups -->
+          <!-- 8 Fan Groups -->
           <section class="section" id="sec-fangroup">
             <div class="section-head">
-              <span class="order">⑧</span>
+              <span class="order">8</span>
               <span class="h">风扇组 <span class="subt">basic_cooling_config · fan_groups · 控制分组</span></span>
               <span class="count" id="cnt-fangroup">0</span>
               <span class="spacer"></span>

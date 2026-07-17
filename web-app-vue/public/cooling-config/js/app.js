@@ -7,8 +7,8 @@
          锚点允许同屏对照，标签页切换会丢失上下文。
 
    模块顺序（依赖顺序）：
-     ① 全局配置   ② 温度点   ③ 调速风扇   ④ 调速策略
-     ⑤ 调速区域   ⑥ 风扇类型  ⑦ 异常风扇   ⑧ 风扇组
+     1 全局配置   2 温度点   3 调速风扇   4 调速策略
+     5 调速区域   6 风扇类型  7 异常风扇   8 风扇组
    ==================================================================== */
 
 const TEMP_TYPES       = ['CpuInlet','Cpu','CpuCore','Memory','Disk','PSU','Ambient','NetworkAdapter'];
@@ -227,7 +227,7 @@ function bindGlobalListeners() {
 }
 
 /* ==================================================================
-   ② Temperature rows
+   2 Temperature rows
    ================================================================== */
 function renderTemps() {
   const host = document.getElementById('list-temp');
@@ -265,7 +265,7 @@ function renderTemps() {
 }
 
 /* ==================================================================
-   ③ Fan rows
+   3 Fan rows
    ================================================================== */
 function renderFans() {
   const host = document.getElementById('list-fan');
@@ -280,7 +280,7 @@ function renderFans() {
         <span class="cell-lbl">安装位置 <i class="code">position</i></span>
         <input data-k="position" value="${esc(f.position)}" list="fanpos-datalist" placeholder="前-左 / 后-中…" />
       </div>
-      <div class="cell" style="flex:1.2;min-width:150px;" title="引用「⑥ 风扇类型」中定义的型号（fan_type）">
+      <div class="cell" style="flex:1.2;min-width:150px;" title="引用「6 风扇类型」中定义的型号（fan_type）">
         <span class="cell-lbl">风扇型号 <i class="code">fan_type</i></span>
         <input data-k="fan_type" value="${esc(f.fan_type)}" list="fantype-datalist" />
       </div>
@@ -322,7 +322,7 @@ function updateFanTypeDatalist() {
 }
 
 /* ==================================================================
-   ④ Policy rows — compact top + arrays + expandable curve chart
+   4 Policy rows — compact top + arrays + expandable curve chart
    ================================================================== */
 function renderPolicies() {
   const host = document.getElementById('list-policy');
@@ -489,7 +489,7 @@ function buildCurvePoints(policy) {
 }
 
 /* ==================================================================
-   ⑤ Area rows + chip-multi pickers
+   5 Area rows + chip-multi pickers
    ================================================================== */
 function renderAreas() {
   const host = document.getElementById('list-area');
@@ -668,14 +668,14 @@ function renderServerDiagram() {
 }
 
 /* ==================================================================
-   ⑥ Fan Type rows
+   6 Fan Type rows
    ================================================================== */
 function renderFanTypes() {
   const host = document.getElementById('list-fantype');
   host.innerHTML = state.fanTypes.map((ft, idx) => `
     <div class="row-compact" id="fantype-${ft.id}" data-i="${idx}" data-kind="fantype">
       <span class="row-id">#${ft.id}</span>
-      <div class="cell" style="flex:1.5;min-width:160px;" title="风扇型号名称，供「③ 风扇」引用（name）">
+      <div class="cell" style="flex:1.5;min-width:160px;" title="风扇型号名称，供「3 风扇」引用（name）">
         <span class="cell-lbl">型号名称 <i class="code">name</i></span>
         <input data-k="name" value="${esc(ft.name)}" />
       </div>
@@ -704,7 +704,7 @@ function renderFanTypes() {
 }
 
 /* ==================================================================
-   ⑦ Abnormal fan rows
+   7 Abnormal fan rows
    ================================================================== */
 function renderAbnormalFans() {
   const host = document.getElementById('list-abnormal');
@@ -738,7 +738,7 @@ function renderAbnormalFans() {
 }
 
 /* ==================================================================
-   ⑧ Fan Group rows (with chip-multi for fan_ids)
+   8 Fan Group rows (with chip-multi for fan_ids)
    ================================================================== */
 function renderFanGroups() {
   const host = document.getElementById('list-fangroup');

@@ -200,9 +200,6 @@ function handleResetLayout() {
   edges.value = next.edges;
   setTimeout(() => fitView({ padding: 0.10 }), 80);
 }
-function handleFit() {
-  fitView({ padding: 0.10 });
-}
 function handleResetSelections() {
   const reset: Record<string, string> = {};
   for (const g of built.groups) {
@@ -302,11 +299,6 @@ function catStateClass(cat: CatNode): string {
       <div class="panel-hd">
         硬件管理器
         <div class="ph-actions">
-          <button class="ib" title="适应画布" @click="handleFit">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
-            </svg>
-          </button>
           <button class="ib" title="重置布局" @click="handleResetLayout">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
@@ -659,19 +651,52 @@ function catStateClass(cat: CatNode): string {
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 .pp-files { display: flex; flex-direction: column; gap: 2px; word-break: break-all; }
 
-/* ── Bus-type colour legend (floating on canvas) ── */
+/* ── Bottom-left canvas toolbar: zoom controls + legend in one row ── */
+:deep(.vue-flow__controls) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  left: 12px;
+  bottom: 12px;
+  margin: 0;
+  padding: 4px;
+  box-shadow: none;
+  border-radius: 8px;
+  background: var(--board-tag-bg, #1b1b21);
+  backdrop-filter: blur(4px);
+}
+:deep(.vue-flow__controls-button) {
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #e4e6ee;
+  fill: #e4e6ee;
+}
+:deep(.vue-flow__controls-button svg) {
+  fill: currentColor;
+  max-width: 13px;
+  max-height: 13px;
+}
+:deep(.vue-flow__controls-button:hover) {
+  background: rgba(255, 255, 255, 0.10);
+}
+
 .bus-legend {
   position: absolute;
-  left: 12px;
+  left: 148px;   /* sits right of the horizontal zoom controls */
   bottom: 12px;
   z-index: 6;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 7px 12px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 14px;
   border-radius: 8px;
-  background: rgba(20, 20, 32, 0.88);
-  border: 1px solid #2e2e4e;
+  background: var(--board-tag-bg, #1b1b21);
   backdrop-filter: blur(4px);
   font-size: 11px;
   color: var(--text-secondary, #c3c9de);

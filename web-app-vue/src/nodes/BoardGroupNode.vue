@@ -204,7 +204,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       <span
         class="state-pill"
         :title="stateMeta.label"
-        :style="{ background: stateMeta.color + '22', color: stateMeta.color, borderColor: stateMeta.color + '55' }"
+        :style="{ background: stateMeta.color + '26', color: stateMeta.color }"
       >
         <span class="state-icon">{{ stateMeta.icon }}</span>
         <span>{{ stateMeta.label }}</span>
@@ -225,7 +225,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       v-if="activeVariant && (group.topoVariants?.length ?? 0) > 1"
       class="variant-crumb nodrag nopan"
     >
-      <span class="crumb-letter" :style="{ background: accent + '22', color: accent, borderColor: accent + '55' }">
+      <span class="crumb-letter" :style="{ background: accent + '26', color: accent }">
         变体 {{ activeVariant.letter }}
       </span>
       <span class="crumb-label">{{ activeVariant.label }}</span>
@@ -251,7 +251,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
         >
           <span
             class="variant-letter-badge"
-            :style="{ background: accent + '22', color: accent, borderColor: accent + '44' }"
+            :style="{ background: accent + '26', color: accent }"
           >{{ v.letter }}</span>
           <div class="variant-card-body">
             <div class="variant-card-label">{{ v.label || '标准结构' }}</div>
@@ -259,7 +259,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
           </div>
           <button
             class="variant-select-btn"
-            :style="{ borderColor: accent + '55', color: accent }"
+            :style="{ background: accent + '22', color: accent }"
           >选择</button>
         </div>
       </div>
@@ -427,8 +427,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   left: 0;
   padding: 5px 12px;
   border-radius: 8px;
-  background: var(--board-tag-bg, #0b0b0e);
-  border: 1px solid var(--board-border, rgba(255,255,255,0.10));
+  background: var(--board-tag-bg, #1b1b21);
   color: var(--board-label, rgba(255,255,255,0.88));
   font-size: 12px;
   font-weight: 600;
@@ -495,16 +494,15 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 5px 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(120,130,170,0.22);
+  padding: 6px 9px;
+  background: rgba(255,255,255,0.06);
   border-radius: 7px;
   cursor: pointer;
   font-size: 10.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   box-sizing: border-box;
 }
-.group-combo-btn:hover { background: rgba(255,255,255,0.07); }
+.group-combo-btn:hover { background: rgba(255,255,255,0.10); }
 .combo-sn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .combo-pn { color: var(--text-secondary, #98a0b8); font-size: 9.5px; }
 .combo-caret { color: var(--text-secondary, #98a0b8); transition: transform .15s; font-size: 9px; }
@@ -516,25 +514,24 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   left: 0;
   right: 0;
   background: var(--panel-bg, #10131c);
-  border: 1px solid rgba(120,130,170,0.4);
   border-radius: 9px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
   padding: 6px;
   z-index: 40;
 }
 .combo-search {
   width: 100%;
   box-sizing: border-box;
-  padding: 5px 8px;
+  padding: 6px 9px;
   border-radius: 6px;
-  border: 1px solid rgba(120,130,170,0.3);
-  background: rgba(255,255,255,0.05);
+  border: none;
+  background: rgba(255,255,255,0.07);
   color: var(--text-primary, #e6e8ef);
   font-size: 11px;
   outline: none;
   margin-bottom: 5px;
 }
-.combo-search:focus { border-color: rgba(100,140,255,0.7); }
+.combo-search:focus { background: rgba(255,255,255,0.11); }
 .combo-list { max-height: 160px; overflow-y: auto; }
 .combo-item {
   display: flex;
@@ -581,10 +578,10 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   transition: opacity .15s;
 }
 
-/* ── Resolution-state variants of the card border ── */
-.group-node.state-multimatch      { border-color: #f59e0b99; }
-.group-node.state-typeplaceholder { border-color: #eab30899; }
-.group-node.state-missing         { border-color: #ef4444aa; }
+/* ── Resolution-state variants: background tint instead of border ── */
+.group-node.state-multimatch      { background: #1b1712; }
+.group-node.state-typeplaceholder { background: #1b1811; }
+.group-node.state-missing         { background: #1d1214; }
 /* Cancel the generic "opacity 0.65" applied to category=unknown when a
    missing card happens to be in that category. Missing needs to stay
    legible. */
@@ -595,9 +592,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.3px;
@@ -611,17 +607,15 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   line-height: 1.3;
   margin: -2px 0 6px 0;
   opacity: 0.92;
-  padding: 3px 6px;
+  padding: 4px 7px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.05);
   word-break: break-all;
 }
 
 /* ── Combo button in "needs action" mode (pulses) ── */
 .group-combo-btn.needs-action {
-  border-color: rgba(245, 158, 11, 0.6);
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(245, 158, 11, 0.14);
   animation: pulse-border 2.2s ease-in-out infinite;
 }
 @keyframes pulse-border {
@@ -657,14 +651,12 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   margin-bottom: 6px;
   padding: 4px 6px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.05);
   font-size: 10px;
 }
 .crumb-letter {
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
-  border: 1px solid;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.3px;
@@ -685,15 +677,15 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 }
 .crumb-change {
   all: unset;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
   font-size: 9px;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.50);
   cursor: pointer;
   flex-shrink: 0;
 }
-.crumb-change:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.75); }
+.crumb-change:hover { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.80); }
 
 /* ── Variant picker ── */
 .variant-picker {
@@ -732,20 +724,17 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   gap: 8px;
   padding: 7px 8px;
   border-radius: 7px;
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s;
 }
 .variant-card:hover {
-  background: rgba(255,255,255,0.055);
-  border-color: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.09);
 }
 .variant-letter-badge {
   width: 22px;
   height: 22px;
   border-radius: 5px;
-  border: 1px solid;
   font-size: 10px;
   font-weight: 800;
   display: flex;
@@ -774,16 +763,15 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 }
 .variant-select-btn {
   all: unset;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 5px;
-  border: 1px solid;
   font-size: 9.5px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.12s;
+  transition: filter 0.12s;
 }
-.variant-select-btn:hover { background: rgba(255,255,255,0.10); }
+.variant-select-btn:hover { filter: brightness(1.35); }
 
 /* ── Missing-state actions in dropdown ── */
 .combo-actions {
@@ -820,9 +808,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   display: flex;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px dashed rgba(255,255,255,0.18);
   border-radius: 8px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.04);
 }
 .ph-chip {
   width: 26px;
@@ -830,10 +817,9 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   border-radius: 3px;
   background: repeating-linear-gradient(
     45deg,
-    rgba(255,255,255,0.06) 0 4px,
-    rgba(255,255,255,0.10) 4px 8px
+    rgba(255,255,255,0.08) 0 4px,
+    rgba(255,255,255,0.14) 4px 8px
   );
-  border: 1px solid rgba(255,255,255,0.12);
 }
 .placeholder-illustration.ph-missing .ph-chip {
   background: repeating-linear-gradient(

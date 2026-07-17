@@ -1,0 +1,1 @@
+import{j as t}from"./vendor-xyflow-D0FvDkLz.js";import{w as r}from"./index-HklKPhyL.js";import"./vendor-three-Dxc4XgUP.js";function m(){return t.jsx("iframe",{src:r("bmc-env.html"),style:{width:"100%",height:"100%",border:"none",display:"block"},title:"BMC 环境管理"})}export{m as BmcEnvView};
