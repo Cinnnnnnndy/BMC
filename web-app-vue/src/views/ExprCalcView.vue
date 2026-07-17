@@ -765,7 +765,7 @@ export default { name: 'ExprCalcView' };
 /* ── Expression input ──────────────────────────────────────────────────── */
 .expr-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:14px; }
 .expr-input {
-  background:var(--bg-elev-2); border:none; border-radius:var(--radius);
+  background:var(--bg-elev-3); border:none; border-radius:var(--radius);
   color:var(--text); font-family:var(--font-mono); font-size:15px;
   padding:10px 12px; outline:none; resize:vertical; min-height:44px;
   transition:background .12s, box-shadow .12s;
@@ -777,7 +777,7 @@ export default { name: 'ExprCalcView' };
 .qs-wrap { margin-top:6px; padding-top:12px; border-top:1px solid var(--border); }
 .qs-title { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); margin-bottom:8px; }
 .qs-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; }
-.qs-card { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:var(--bg-elev-2); border:none; border-radius:var(--radius); cursor:pointer; text-align:left; transition:background .15s; font-family:inherit; }
+.qs-card { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:var(--bg-elev-3); border:none; border-radius:var(--radius); cursor:pointer; text-align:left; transition:background .15s; font-family:inherit; }
 .qs-card:hover { background:rgba(79,110,247,.10); }
 .qs-card code { font-family:var(--font-mono); font-size:11.5px; color:var(--text); font-weight:600; }
 .qs-card span { font-size:11px; color:var(--text-dim); }
