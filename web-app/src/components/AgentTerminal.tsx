@@ -211,6 +211,11 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
     window.setTimeout(() => { if (mountedRef.current) fn(); }, delay);
   }
 
+  // 任务状态写入 localStorage，供欢迎页 agent 工作台读取（同源 storage 事件联动）
+  function writeAgentStatus(status: Record<string, unknown>) {
+    try { localStorage.setItem('bmcAgentTaskStatus', JSON.stringify(status)); } catch { /* noop */ }
+  }
+
   function runAgent(taskText: string) {
     const s = taskText.toLowerCase();
     const task = AGENT_TASKS.find(t => t.keys.some(k => s.includes(k)));
@@ -219,6 +224,7 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
       return;
     }
     setBusy(true);
+    writeAgentStatus({ state: 'running', title: task.title, startedAt: Date.now() });
     let at = 260;
     push('plan', '⏺ 已规划任务：' + task.title);
     for (const [name, ms] of task.tools) {
@@ -237,6 +243,7 @@ export function AgentTerminal({ onOpenScenario, onClose, runRequest }: AgentTerm
         onOpenScenario(task.view);
       }
       setBusy(false);
+      writeAgentStatus({ state: 'done', title: task.title, summary: task.ok, finishedAt: Date.now() });
     }, at);
     // 联动：向安装引导 iframe 回写检测状态（等 iframe 挂载完成后再发）
     if (task.after === 'wizard-env-ok') {
