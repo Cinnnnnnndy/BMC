@@ -19,12 +19,17 @@
       --red-dot-image: url('./welcome/assets/red.svg');
     }
 
-    /* ═══ Agent 工作台 ═══ */
+    /* ═══ Agent 工作台 ═══
+       样式约束（与 CLAUDE.md「欢迎系页面视觉规范」一致）：
+       - 卡片 #111113 / radius 16px，靠填充色分层，禁止 1px 描边框线
+       - 面型（fill）图标优先；AI/agent 统一 ✦ 四角星 #a78bfa（同 ai-assist）
+       - 主按钮 #0077FF 胶囊（radius 100px），同欢迎页「新建工程」
+       - 空状态用演示数据兜底，不留空白区 */
     .agent-workbench {
       background: #111113;
       border-radius: 16px;
-      padding: 18px;
-      margin-top: 20px;
+      padding: 14px;
+      margin-top: 16px;
     }
     .aw-header {
       display: flex;
@@ -33,23 +38,24 @@
       gap: 12px;
       margin-bottom: 14px;
     }
-    .aw-header .title {
-      font-size: 16px;
-      color: #8D98AA;
-      font-weight: bold;
+    .aw-title {
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #FFFFFF;
+      letter-spacing: 0.3px;
     }
-    .aw-header .title svg { color: #4F46E5; }
+    .aw-title svg { color: #a78bfa; display: block; }
     .aw-mcp-note {
       font-size: 11px;
-      color: rgba(232,232,237,0.35);
+      color: rgba(255,255,255,0.40);
       white-space: nowrap;
     }
     .aw-body {
       display: flex;
-      gap: 16px;
+      gap: 20px;
       align-items: stretch;
     }
     .aw-main {
@@ -57,7 +63,7 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
     .aw-input-row {
       display: flex;
@@ -65,32 +71,32 @@
     }
     .aw-input {
       flex: 1;
-      height: 38px;
-      padding: 0 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-      color: #e8e8ed;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 100px;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
       font-size: 13px;
       outline: none;
-      transition: border-color 0.15s;
+      transition: background 0.15s;
     }
-    .aw-input::placeholder { color: rgba(232,232,237,0.30); }
-    .aw-input:focus { border-color: #4F46E5; }
+    .aw-input::placeholder { color: rgba(255,255,255,0.35); }
+    .aw-input:focus { background: rgba(255,255,255,0.10); }
     .aw-send {
-      height: 38px;
-      padding: 0 18px;
-      border-radius: 10px;
+      height: 36px;
+      padding: 0 20px;
+      border-radius: 100px;
       border: none;
-      background: #4F46E5;
-      color: #fff;
-      font-size: 13px;
+      background: rgba(0, 119, 255, 1);
+      color: #FFFFFE;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       flex-shrink: 0;
       transition: background 0.15s;
     }
-    .aw-send:hover { background: #6159ef; }
+    .aw-send:hover { background: rgba(50, 145, 254, 1); }
     .aw-chips {
       display: flex;
       flex-wrap: wrap;
@@ -101,50 +107,49 @@
       align-items: center;
       gap: 6px;
       height: 28px;
-      padding: 0 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: transparent;
-      color: rgba(232,232,237,0.65);
+      padding: 0 14px;
+      border-radius: 100px;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.70);
       font-size: 12px;
       cursor: pointer;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      transition: background 0.15s, color 0.15s;
       white-space: nowrap;
     }
+    .aw-chip svg { display: block; }
     .aw-chip:hover {
-      color: #e8e8ed;
-      border-color: rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.95);
     }
     .aw-chip.accent {
-      border-color: rgba(79,70,229,0.45);
-      color: #a5b4fc;
+      background: rgba(167,139,250,0.14);
+      color: #a78bfa;
     }
     .aw-chip.accent:hover {
-      border-color: #4F46E5;
-      background: rgba(79,70,229,0.12);
+      background: rgba(167,139,250,0.24);
+      color: #c4b5fd;
     }
     .aw-status {
       display: flex;
       align-items: center;
       gap: 8px;
-      min-height: 30px;
-      padding: 6px 12px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
+      min-height: 32px;
+      padding: 7px 14px;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.04);
       font-size: 12px;
-      color: rgba(232,232,237,0.5);
+      color: rgba(255,255,255,0.50);
     }
     .aw-status .dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
       flex-shrink: 0;
-      background: rgba(232,232,237,0.25);
+      background: rgba(255,255,255,0.25);
     }
     .aw-status.running .dot {
-      background: #4F46E5;
+      background: rgba(0,119,255,1);
       animation: aw-pulse 1s ease-in-out infinite;
     }
     .aw-status.done .dot { background: #35C81D; }
@@ -158,48 +163,52 @@
       50% { opacity: 0.35; }
     }
     .aw-recent {
-      flex: 0 0 240px;
+      flex: 0 0 250px;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      min-width: 0;
     }
     .aw-recent-title {
       font-size: 12px;
       font-weight: 600;
-      color: rgba(232,232,237,0.45);
+      color: rgba(255,255,255,0.40);
       letter-spacing: .03em;
+      padding: 0 8px 8px;
     }
     .aw-recent-item {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 8px 10px;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 8px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid transparent;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      transition: background 0.15s;
     }
-    .aw-recent-item:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.10);
+    .aw-recent-item:hover { background: rgba(255,255,255,0.07); }
+    .aw-recent-ico {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(167,139,250,0.12);
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
+    .aw-recent-ico svg { display: block; }
+    .aw-recent-main { flex: 1 1 auto; min-width: 0; }
     .aw-recent-name {
       font-size: 12px;
-      color: rgba(232,232,237,0.75);
+      color: rgba(255,255,255,0.75);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .aw-recent-time {
       font-size: 11px;
-      color: rgba(232,232,237,0.30);
-    }
-    .aw-recent-empty {
-      font-size: 12px;
-      color: rgba(232,232,237,0.28);
-      padding: 8px 10px;
+      color: rgba(255,255,255,0.32);
+      margin-top: 1px;
     }
     @media (max-width: 720px) {
       .aw-body { flex-direction: column; }
@@ -255,45 +264,6 @@
       </div>
     </div>
 
-    <!-- Agent 工作台 -->
-    <div class="agent-workbench">
-      <div class="aw-header">
-        <h2 class="title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-          </svg>
-          AGENT 工作台
-        </h2>
-        <span class="aw-mcp-note">已接入 7 个 MCP Server · 26 个工具</span>
-      </div>
-      <div class="aw-body">
-        <div class="aw-main">
-          <div class="aw-input-row">
-            <input class="aw-input" id="aw-input" type="text"
-                   placeholder="让 agent 帮你完成任务，如：巡检在线 BMC / 给 CPU0 加过温事件 / 校验当前 CSR…">
-            <button class="aw-send" id="aw-send">派发任务</button>
-          </div>
-          <div class="aw-chips" id="aw-chips">
-            <button class="aw-chip accent" data-view="installGuide">✦ AI 引导安装部署</button>
-            <button class="aw-chip" data-cmd="agent 诊断安装环境">环境诊断</button>
-            <button class="aw-chip" data-cmd="agent 巡检在线 BMC">BMC 巡检</button>
-            <button class="aw-chip" data-cmd="agent 校验当前 CSR">CSR 校验</button>
-            <button class="aw-chip" data-cmd="agent 给 CPU0 加过温事件">过温事件配置</button>
-            <button class="aw-chip" data-cmd="agent 注入风扇故障">风扇故障注入</button>
-            <button class="aw-chip" data-cmd="agent 计算 smc 偏移">SMC 偏移编码</button>
-          </div>
-          <div class="aw-status" id="aw-status">
-            <span class="dot"></span>
-            <span class="aw-status-text">暂无运行中的 agent 任务 — 点击上方快捷任务或输入指令开始</span>
-          </div>
-        </div>
-        <div class="aw-recent">
-          <div class="aw-recent-title">最近 agent 对话</div>
-          <div id="aw-recent-list"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- 消息提示 -->
     <div class="message-bar">
       <div class="message-bar-content">
@@ -313,6 +283,46 @@
       <button class="btn-close" id="closeBtn">
         <img src="./welcome/assets/publicClose.svg">
       </button>
+    </div>
+
+    <!-- Agent 工作台 -->
+    <div class="agent-workbench">
+      <div class="aw-header">
+        <div class="aw-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+          AGENT 工作台
+        </div>
+        <span class="aw-mcp-note">已接入 7 个 MCP Server · 26 个工具</span>
+      </div>
+      <div class="aw-body">
+        <div class="aw-main">
+          <div class="aw-input-row">
+            <input class="aw-input" id="aw-input" type="text"
+                   placeholder="让 agent 帮你完成任务，如：巡检在线 BMC / 给 CPU0 加过温事件 / 校验当前 CSR…">
+            <button class="aw-send" id="aw-send">派发任务</button>
+          </div>
+          <div class="aw-chips" id="aw-chips">
+            <button class="aw-chip accent" data-view="installGuide">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+              AI 引导安装部署
+            </button>
+            <button class="aw-chip" data-cmd="agent 诊断安装环境">环境诊断</button>
+            <button class="aw-chip" data-cmd="agent 巡检在线 BMC">BMC 巡检</button>
+            <button class="aw-chip" data-cmd="agent 校验当前 CSR">CSR 校验</button>
+            <button class="aw-chip" data-cmd="agent 给 CPU0 加过温事件">过温事件配置</button>
+            <button class="aw-chip" data-cmd="agent 注入风扇故障">风扇故障注入</button>
+            <button class="aw-chip" data-cmd="agent 计算 smc 偏移">SMC 偏移编码</button>
+          </div>
+          <div class="aw-status" id="aw-status">
+            <span class="dot"></span>
+            <span class="aw-status-text">暂无运行中的 agent 任务</span>
+          </div>
+        </div>
+        <div class="aw-recent">
+          <div class="aw-recent-title">最近 agent 对话</div>
+          <div id="aw-recent-list"></div>
+        </div>
+      </div>
     </div>
 
     <!-- 底部区域 -->
@@ -505,7 +515,9 @@
         statusEl.classList.remove('running', 'done');
         var text = statusEl.querySelector('.aw-status-text');
         if (!st) {
-          text.textContent = '暂无运行中的 agent 任务 — 点击上方快捷任务或输入指令开始';
+          // 演示数据兜底：无真实记录时展示典型完成态
+          statusEl.classList.add('done');
+          text.textContent = '上次任务：开发环境诊断（安装引导）✔ — 环境准备 6/6 项通过';
         } else if (st.state === 'running') {
           statusEl.classList.add('running');
           text.textContent = '正在执行：' + st.title + '…';
@@ -520,34 +532,48 @@
       });
       setInterval(renderStatus, 3000); // storage 事件兜底（同文档写入不触发事件）
 
-      // ── 最近 agent 对话（localStorage: bmcAiChatSessions，ai-assist 写入）──
+      // ── 最近 agent 对话（localStorage: bmcAiChatSessions，ai-assist 写入；
+      //    无记录时用 ai-assist 同款示例场景兜底，保持两处列表一致）──
+      var SPARK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>';
+      var DEMO_SESSIONS = [
+        { title: '开发环境诊断与修复（安装引导）', timeText: '今天 09:40' },
+        { title: 'BMC 批量巡检（命令宏）', timeText: '昨天 14:32' },
+        { title: 'CPU0 过温事件配置', timeText: '3 天前' },
+        { title: '风扇故障注入（数字孪生）', timeText: '2 周前' }
+      ];
       var recentList = document.getElementById('aw-recent-list');
+      function mkRecentItem(title, timeText) {
+        var item = document.createElement('div');
+        item.className = 'aw-recent-item';
+        var ico = document.createElement('div');
+        ico.className = 'aw-recent-ico';
+        ico.innerHTML = SPARK;
+        var main = document.createElement('div');
+        main.className = 'aw-recent-main';
+        var name = document.createElement('div');
+        name.className = 'aw-recent-name';
+        name.textContent = title;
+        var time = document.createElement('div');
+        time.className = 'aw-recent-time';
+        time.textContent = timeText;
+        main.appendChild(name);
+        main.appendChild(time);
+        item.appendChild(ico);
+        item.appendChild(main);
+        item.addEventListener('click', function () { openView('aiHistory'); });
+        return item;
+      }
       function renderRecent() {
         var sessions = [];
         try { sessions = JSON.parse(localStorage.getItem('bmcAiChatSessions')) || []; } catch (_) {}
         recentList.innerHTML = '';
-        if (!sessions.length) {
-          var empty = document.createElement('div');
-          empty.className = 'aw-recent-empty';
-          empty.textContent = '暂无对话记录，试试右侧 AI 助手';
-          recentList.appendChild(empty);
-          return;
-        }
-        sessions.slice(0, 4).forEach(function (ss) {
-          var item = document.createElement('div');
-          item.className = 'aw-recent-item';
+        var rows = sessions.slice(0, 4).map(function (ss) {
           var firstUser = (ss.messages || []).find(function (m) { return m.role === 'user'; });
-          var name = document.createElement('div');
-          name.className = 'aw-recent-name';
-          name.textContent = ss.title || (firstUser ? firstUser.text : '(空会话)');
-          var time = document.createElement('div');
-          time.className = 'aw-recent-time';
-          time.textContent = fmtAgo(ss.time || Date.now());
-          item.appendChild(name);
-          item.appendChild(time);
-          item.addEventListener('click', function () { openView('aiHistory'); });
-          recentList.appendChild(item);
+          return { title: ss.title || (firstUser ? firstUser.text : '(空会话)'), timeText: fmtAgo(ss.time || Date.now()) };
         });
+        // 不足 4 条时用示例场景补齐（演示数据兜底）
+        for (var i = 0; rows.length < 4 && i < DEMO_SESSIONS.length; i++) rows.push(DEMO_SESSIONS[i]);
+        rows.slice(0, 4).forEach(function (r) { recentList.appendChild(mkRecentItem(r.title, r.timeText)); });
       }
       renderRecent();
       window.addEventListener('storage', function (e) {

@@ -11,17 +11,20 @@
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
 
+/* ═══ PTO design tokens（与 ai-assist.html 一致，见 CLAUDE.md 欢迎系页面视觉规范）═══ */
 :root {
-  --bg:        #0e0f15;
-  --sf1:       #161820;
-  --sf2:       #1c1e27;
-  --sf3:       #23263a;
+  --bg:        #101010;
+  --sf1:       #161616;
+  --sf2:       #1c1c1c;
+  --sf3:       #262626;
   --fg:        rgba(255,255,255,.90);
   --fg2:       rgba(255,255,255,.60);
-  --fg3:       rgba(255,255,255,.38);
-  --border:    rgba(255,255,255,.08);
+  --fg3:       rgba(255,255,255,.40);
+  --divider:   rgba(255,255,255,.06);
   --blue:      #4369ef;
   --blue-dim:  rgba(67,105,239,.14);
+  --purple:    #a78bfa;
+  --purple-dim:rgba(167,139,250,.14);
   --green:     #04d793;
   --red:       #ef4444;
   --yellow:    #f59e0b;
@@ -34,30 +37,28 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 
 .layout { display:flex; height:100vh; overflow:hidden; }
 
-/* ── Step Rail ────────────────────────────────── */
+/* ── Step Rail（填充分层，无描边）──────────────── */
 .rail {
   width:190px; flex-shrink:0;
-  background:var(--sf1); border-right:1px solid var(--border);
+  background:var(--sf1);
   display:flex; flex-direction:column; padding:0;
 }
 .rail-head {
-  padding:14px 16px 12px;
+  padding:16px 16px 10px;
   font-size:11px; font-weight:600; color:var(--fg3);
   text-transform:uppercase; letter-spacing:.06em;
-  border-bottom:1px solid var(--border);
 }
-.rail-steps { padding:8px 0; display:flex; flex-direction:column; gap:0; }
+.rail-steps { padding:4px 0; display:flex; flex-direction:column; gap:0; }
 
 .s-item {
   display:flex; align-items:center; gap:10px;
   padding:9px 16px; cursor:default;
-  transition:background .12s;
   position:relative;
 }
 .s-item::before {
   content:'';
   position:absolute; left:26px; top:32px; width:1.5px; height:16px;
-  background:var(--border);
+  background:var(--divider);
 }
 .s-item:last-child::before { display:none; }
 
@@ -65,39 +66,38 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
   width:22px; height:22px; border-radius:50%; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   font-size:11px; font-weight:700;
-  border:1.5px solid var(--border); color:var(--fg3); background:transparent;
-  transition:all .25s; position:relative; z-index:1; background:var(--sf1);
+  color:var(--fg3); background:var(--sf3);
+  transition:all .25s; position:relative; z-index:1;
 }
 .s-label { font-size:12.5px; color:var(--fg3); transition:color .2s; }
 
-.s-item.active  .s-num  { background:var(--blue); border-color:var(--blue); color:#fff; }
+.s-item.active  .s-num  { background:var(--blue); color:#fff; }
 .s-item.active  .s-label { color:var(--fg); font-weight:500; }
-.s-item.done    .s-num  { background:transparent; border-color:var(--green); color:var(--green); }
+.s-item.done    .s-num  { background:rgba(4,215,147,.14); color:var(--green); }
 .s-item.done    .s-label { color:var(--fg2); }
 .s-item.done::before { background:var(--green); opacity:.35; }
 
 .rail-footer {
   margin-top:auto; padding:14px 16px;
-  border-top:1px solid var(--border);
   font-size:11.5px; color:var(--fg3); line-height:1.5;
 }
 
 /* ── Chat Main ────────────────────────────────── */
-.chat-main { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+.chat-main { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
 
 .chat-head {
   height:44px; flex-shrink:0;
-  border-bottom:1px solid var(--border);
   display:flex; align-items:center; padding:0 16px; gap:8px;
+  background:var(--sf1);
 }
 .ch-avatar {
   width:28px; height:28px; border-radius:50%;
-  background:var(--blue-dim);
+  background:var(--purple-dim); color:var(--purple);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.ch-avatar svg { width:14px; height:14px; fill:none; stroke:var(--blue); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.ch-avatar svg { display:block; }
 .ch-name { font-size:13px; font-weight:600; }
-.ch-badge { font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px; background:var(--blue-dim); color:var(--blue); letter-spacing:.04em; }
+.ch-badge { font-size:10px; font-weight:600; padding:1px 7px; border-radius:100px; background:var(--purple-dim); color:var(--purple); letter-spacing:.04em; }
 .ch-status { margin-left:auto; font-size:11.5px; color:var(--fg3); }
 
 .messages { flex:1; overflow-y:auto; padding:20px 20px 12px; display:flex; flex-direction:column; gap:14px; }
@@ -108,44 +108,45 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .av {
   width:28px; height:28px; border-radius:50%; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
-  font-size:12px; font-weight:700; margin-top:1px;
+  font-size:11px; font-weight:700; margin-top:1px;
+  background:var(--sf3);
 }
-.av-ai   { background:var(--blue-dim); color:var(--blue); }
-.av-user { background:rgba(255,255,255,.08); color:var(--fg2); }
+.av-ai   { color:var(--blue); }
+.av-user { color:var(--green); }
 
 .body-wrap { flex:1; min-width:0; }
 .msg-name { font-size:11.5px; font-weight:600; color:var(--fg3); margin-bottom:4px; }
 
 .bubble {
   display:inline-block; max-width:100%;
-  background:var(--sf2); border:1px solid var(--border);
-  border-radius:10px; padding:10px 13px;
+  background:var(--sf2);
+  border-radius:0 10px 10px 10px; padding:10px 13px;
   font-size:13px; line-height:1.65; color:var(--fg); word-break:break-word;
 }
 .bubble p+p { margin-top:6px; }
 .bubble strong { color:var(--fg); }
 .bubble code { font-family:var(--mono); font-size:11.5px; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:3px; color:#86d9fa; }
 
-.row.user .bubble { background:var(--blue-dim); border-color:rgba(67,105,239,.22); }
+.row.user .bubble { background:var(--blue-dim); }
 
 /* Thinking */
-.thinking { display:flex; align-items:center; gap:3px; padding:8px 12px; background:var(--sf2); border:1px solid var(--border); border-radius:10px; width:fit-content; }
+.thinking { display:flex; align-items:center; gap:3px; padding:8px 12px; background:var(--sf2); border-radius:0 10px 10px 10px; width:fit-content; }
 .td { width:6px; height:6px; border-radius:50%; background:var(--fg3); animation:tp 1.2s ease-in-out infinite; }
 .td:nth-child(2) { animation-delay:.2s; }
 .td:nth-child(3) { animation-delay:.4s; }
 @keyframes tp { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
 
-/* Actions */
+/* Actions（填充胶囊，无描边）*/
 .actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
 .abtn {
-  padding:6px 14px; border-radius:8px;
-  border:1px solid var(--border); background:var(--sf3);
-  color:var(--fg); font-size:12.5px; font-family:inherit; cursor:pointer;
-  transition:all .12s;
+  height:30px; padding:0 16px; border-radius:100px;
+  border:none; background:var(--sf3);
+  color:var(--fg2); font-size:12.5px; font-family:inherit; cursor:pointer;
+  transition:background .12s, color .12s;
 }
-.abtn:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-dim); }
-.abtn.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
-.abtn.primary:hover { background:#3457d5; border-color:#3457d5; }
+.abtn:hover { background:rgba(255,255,255,.14); color:var(--fg); }
+.abtn.primary { background:var(--blue); color:#fff; }
+.abtn.primary:hover { background:#3457d5; }
 .abtn:disabled { opacity:.35; cursor:default; pointer-events:none; }
 
 /* Inline input */
@@ -153,26 +154,26 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .irow { display:flex; flex-direction:column; gap:4px; }
 .ilabel { font-size:11.5px; font-weight:600; color:var(--fg3); }
 .ifield {
-  height:34px; padding:0 10px; border-radius:8px;
-  border:1px solid var(--border); background:var(--sf3);
+  height:34px; padding:0 14px; border-radius:100px;
+  border:none; background:var(--sf3);
   color:var(--fg); font-size:13px; font-family:inherit; outline:none;
-  transition:border-color .15s;
+  transition:background .15s;
 }
-.ifield:focus { border-color:var(--blue); }
+.ifield:focus { background:rgba(255,255,255,.12); }
 
-/* Check list */
-.checks { margin-top:10px; background:var(--sf3); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
-.chk { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+/* Check list（填充块 + 细分隔线）*/
+.checks { margin-top:10px; background:var(--sf3); border-radius:10px; padding:8px 12px; }
+.chk { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--divider); font-size:12.5px; }
 .chk:last-child { border-bottom:none; }
 .chk-icon { flex-shrink:0; width:18px; text-align:center; font-size:13px; }
 .chk-label { flex:1; }
 .chk-note { font-size:11.5px; color:var(--fg3); }
 
-/* Terminal */
+/* Terminal（同步展示，完整执行在底栏 agent 终端）*/
 .term {
   margin-top:10px;
-  background:#060609; border:1px solid rgba(255,255,255,.06);
-  border-radius:8px; padding:10px 13px;
+  background:#060609;
+  border-radius:10px; padding:10px 13px;
   font-family:var(--mono); font-size:11.5px; line-height:1.75;
   color:rgba(255,255,255,.60); max-height:220px; overflow-y:auto;
 }
@@ -182,33 +183,34 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .ter { color:var(--red); }
 .twa { color:var(--yellow); }
 .tdm { color:rgba(255,255,255,.35); }
+.term-note { margin-top:6px; font-size:11px; color:var(--fg3); }
 
 /* Chat input bar */
 .input-bar {
-  flex-shrink:0; border-top:1px solid var(--border);
+  flex-shrink:0;
   padding:10px 16px; display:flex; gap:8px; align-items:center;
   background:var(--sf1);
 }
 .ibar-field {
-  flex:1; height:36px; padding:0 12px; border-radius:8px;
-  border:1px solid var(--border); background:var(--sf2);
+  flex:1; height:36px; padding:0 14px; border-radius:100px;
+  border:none; background:var(--sf2);
   color:var(--fg); font-size:13px; font-family:inherit; outline:none;
 }
-.ibar-field:focus { border-color:var(--blue); }
+.ibar-field:focus { background:var(--sf3); }
 .ibar-send {
-  width:36px; height:36px; border-radius:8px; border:none;
+  width:36px; height:36px; border-radius:50%; border:none;
   background:var(--blue); color:#fff; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   transition:background .12s;
 }
 .ibar-send:hover { background:#3457d5; }
-.ibar-send svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.ibar-send svg { width:16px; height:16px; fill:currentColor; }
 
 /* Done overlay */
 .done-overlay {
   position:fixed; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  background:rgba(10,11,16,.92); z-index:100;
+  background:rgba(16,16,16,.92); z-index:100;
   opacity:0; pointer-events:none; transition:opacity .4s;
 }
 .done-overlay.show { opacity:1; pointer-events:all; }
@@ -248,7 +250,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
   <main class="chat-main">
     <div class="chat-head">
       <div class="ch-avatar">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r=".5" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
       </div>
       <span class="ch-name">安装助手</span>
       <span class="ch-badge">AI</span>
@@ -258,7 +260,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
     <div class="input-bar" id="input-bar" style="display:none">
       <input class="ibar-field" id="ibar-field" placeholder="输入消息，按 Enter 发送…" />
       <button class="ibar-send" id="ibar-send">
-        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
       </button>
     </div>
   </main>
@@ -376,9 +378,17 @@ async function termBlock(bubble, lines) {
   return block;
 }
 
-// ── Run a command in the agent terminal ───────────────────────────────
+// ── 派发任务到底栏 agent 终端（联动展示真实执行过程）────────────────
+// 必须用 `agent <任务描述>` 格式——终端按关键词匹配任务词表执行；
+// 页内 .term 块只做同步摘要，完整过程以底栏终端为准。
 function runCmd(cmd) {
   toParent({ type: 'ai-run-agent', cmd });
+}
+function termNote(bubble) {
+  const n = document.createElement('div');
+  n.className = 'term-note';
+  n.textContent = '⤷ 完整执行过程见底部 agent 终端';
+  bubble.appendChild(n);
 }
 
 // ── Wizard Flow ────────────────────────────────────────────────────────
@@ -479,7 +489,7 @@ async function step2EnvCheck() {
   );
   const bubble = row.querySelector('.bubble');
 
-  runCmd('setup_verify_all');
+  runCmd('agent 诊断安装环境');
   setStatus('检测中…');
 
   await termBlock(bubble, [
@@ -492,6 +502,7 @@ async function step2EnvCheck() {
     { t: '  ✗  openubmc-cli 未安装', c: 'ter', d: 400 },
     { t: '检测完成：3/5 通过，2 项待修复', c: 'twa', d: 400 },
   ]);
+  termNote(bubble);
 
   setStatus('待机中');
   await sleep(500);
@@ -527,7 +538,6 @@ async function step2Fix() {
   const row = await aiMsg('<p>正在自动修复，请稍候…</p>', { delay: 400 });
   const bubble = row.querySelector('.bubble');
 
-  runCmd('setup_configure_conan_remote && setup_install_openubmc_cli');
   setStatus('修复中…');
 
   await termBlock(bubble, [
@@ -628,7 +638,7 @@ async function step3Vsix() {
   const row = await aiMsg('<p>正在克隆仓库并构建 VSIX 安装包，稍候…</p>', { delay: 500 });
   const bubble = row.querySelector('.bubble');
 
-  runCmd('git clone <repo-url> bmcstudio_codex && cd bmcstudio_codex && npm install && npm run plugin-package');
+  runCmd('agent 构建 vsix 扩展安装包');
   setStatus('构建中…');
 
   await termBlock(bubble, [
@@ -643,6 +653,7 @@ async function step3Vsix() {
     { t: 'code --install-extension openubmcstudio-codex-0.0.34.vsix', c: 'tc', d: 500 },
     { t: '  ✓  Extension successfully installed.', c: 'tok', d: 1000 },
   ]);
+  termNote(bubble);
 
   setStatus('待机中');
   await sleep(500);
@@ -653,7 +664,6 @@ async function step3Verify() {
   const row = await aiMsg('<p>正在验证安装结果…</p>', { delay: 500 });
   const bubble = row.querySelector('.bubble');
 
-  runCmd('code --list-extensions | grep openubmc');
   setStatus('验证中…');
 
   await termBlock(bubble, [

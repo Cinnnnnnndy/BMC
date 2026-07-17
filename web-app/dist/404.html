@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <title>openUBMC Studio</title>
+  <style>
+    /* ═══ 全局深色滚动条约束（design constraint）═══ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+    * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+    body { background: #101010; }
+  </style>
   <script>
     // GitHub Pages project-site fallback: send any unmatched path back to the
     // app root (/<repo>/) so a refresh or deep link never dead-ends on 404.

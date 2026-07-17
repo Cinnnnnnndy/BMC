@@ -5,50 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>安装部署引导</title>
 <style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
 
+/* ═══ 欢迎系页面视觉规范（见 CLAUDE.md）：
+   - 背景复用欢迎页蓝紫渐变
+   - 卡片 #111113 填充分层，禁止 1px 描边框线
+   - 面型（fill）图标；AI/agent 统一 ✦ 四角星 #a78bfa
+   - 主 CTA #0077FF 胶囊（radius 100px） ═══ */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --bg:       #141416;
-  --surface:  #1e1e21;
-  --surface2: #26262a;
-  --border:   rgba(255,255,255,0.08);
-  --border-h: rgba(255,255,255,0.15);
-  --fg:       #e8e8ed;
-  --fg2:      rgba(232,232,237,0.55);
-  --fg3:      rgba(232,232,237,0.35);
-  --primary:  #5b8af5;
-  --primary-h:#7a9ff7;
-  --primary-bg: rgba(91,138,245,0.12);
-  --green:    #3dd68c;
-  --green-bg: rgba(61,214,140,0.10);
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-}
-
-[data-theme="light"] {
-  --bg:       #f5f5f7;
-  --surface:  #ffffff;
-  --surface2: #f0f0f5;
-  --border:   rgba(0,0,0,0.08);
-  --border-h: rgba(0,0,0,0.18);
-  --fg:       #1d1d1f;
-  --fg2:      rgba(29,29,31,0.55);
-  --fg3:      rgba(29,29,31,0.35);
-  --primary-bg: rgba(91,138,245,0.10);
-  --green-bg: rgba(61,214,140,0.10);
-}
-
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  height: 100vh;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(161, 174, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 50% 120%, rgba(53, 80, 244, 0.3) 0%, transparent 70%),
+    #181B20;
+  color: rgba(255,255,255,0.90);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -57,27 +36,25 @@ body {
 
 .wrap {
   width: 100%;
-  max-width: 640px;
+  max-width: 660px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 26px;
 }
 
-.heading {
-  text-align: center;
-}
+.heading { text-align: center; }
 
 .heading h1 {
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--fg);
+  letter-spacing: 0.3px;
+  color: #FFFFFF;
 }
 
 .heading p {
   margin-top: 8px;
   font-size: 14px;
-  color: var(--fg2);
+  color: rgba(255,255,255,0.55);
   line-height: 1.6;
 }
 
@@ -88,34 +65,31 @@ body {
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 24px 20px 20px;
+  background: #111113;
+  border-radius: 16px;
+  padding: 22px 20px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   cursor: pointer;
-  transition: border-color 0.18s, background 0.18s, transform 0.15s;
   text-decoration: none;
   color: inherit;
   position: relative;
   overflow: hidden;
+  transition: background 0.18s, transform 0.15s;
 }
 
 .card:hover {
-  border-color: var(--border-h);
-  background: var(--surface2);
+  background: #17171a;
   transform: translateY(-1px);
 }
 
 .card.primary {
-  border-color: rgba(91,138,245,0.35);
-  background: var(--primary-bg);
+  background: linear-gradient(135deg, rgba(167,139,250,0.10) 0%, rgba(53,80,244,0.12) 100%), #111113;
 }
 
 .card.primary:hover {
-  border-color: rgba(91,138,245,0.6);
+  background: linear-gradient(135deg, rgba(167,139,250,0.16) 0%, rgba(53,80,244,0.18) 100%), #111113;
 }
 
 .card-badge {
@@ -125,89 +99,84 @@ body {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .05em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--primary);
-  color: #fff;
+  padding: 3px 9px;
+  border-radius: 100px;
+  background: rgba(0, 119, 255, 1);
+  color: #FFFFFE;
   user-select: none;
 }
 
 .card-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.card.primary .card-icon {
-  background: rgba(91,138,245,0.18);
-}
+.card.primary .card-icon { background: rgba(167,139,250,0.14); color: #a78bfa; }
+.card.secondary .card-icon { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.60); }
 
-.card.secondary .card-icon {
-  background: var(--surface2);
-}
-
-.card-icon svg {
-  width: 20px;
-  height: 20px;
-  stroke-width: 1.8;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.card.primary .card-icon svg { stroke: var(--primary-h); }
-.card.secondary .card-icon svg { stroke: var(--fg2); }
+.card-icon svg { display: block; }
 
 .card-title {
   font-size: 15px;
-  font-weight: 650;
-  color: var(--fg);
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: 0.3px;
 }
 
 .card-desc {
   font-size: 13px;
-  color: var(--fg2);
+  color: rgba(255,255,255,0.55);
   line-height: 1.55;
   flex: 1;
 }
 
 .card-cta {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
+  margin-top: 6px;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s;
 }
 
-.card.primary .card-cta { color: var(--primary-h); }
-.card.secondary .card-cta { color: var(--fg2); }
+.card.primary .card-cta {
+  background: rgba(0, 119, 255, 1);
+  color: #FFFFFE;
+}
+
+.card.primary:hover .card-cta { background: rgba(50, 145, 254, 1); }
+
+.card.secondary .card-cta {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+}
+
+.card.secondary:hover .card-cta {
+  background: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.95);
+}
 
 .card-cta svg {
-  width: 14px;
-  height: 14px;
-  stroke-width: 2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke: currentColor;
-  flex-shrink: 0;
+  display: block;
   transition: transform 0.15s;
 }
 
-.card:hover .card-cta svg {
-  transform: translateX(3px);
-}
+.card:hover .card-cta svg { transform: translateX(3px); }
 
 .hint {
   text-align: center;
   font-size: 12px;
-  color: var(--fg3);
+  color: rgba(255,255,255,0.35);
   line-height: 1.5;
 }
 
@@ -227,50 +196,34 @@ body {
     <a class="card primary" href="ai-install.html">
       <span class="card-badge">推荐</span>
       <div class="card-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/>
         </svg>
       </div>
       <div class="card-title">AI 引导安装</div>
       <div class="card-desc">由 AI 全程引导，自动检测环境、安装工具，只需回答几个简单问题。</div>
-      <div class="card-cta">
+      <span class="card-cta">
         开始引导
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </div>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
     </a>
 
     <a class="card secondary" href="install-guide.html">
       <div class="card-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          <path d="M9 7h7M9 11h5"/>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22H20V2H6.5zM6 4.5c0-.28.22-.5.5-.5H18v11H6.5c-.17 0-.34.02-.5.05V4.5zM6.5 17H18v3H6.5a1.5 1.5 0 0 1 0-3zM8 6h8v1.5H8V6zm0 4h6v1.5H8V10z"/>
         </svg>
       </div>
       <div class="card-title">手动安装文档</div>
       <div class="card-desc">查看完整安装文档，按照步骤自行配置依赖环境和插件。</div>
-      <div class="card-cta">
+      <span class="card-cta">
         查看文档
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </div>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
     </a>
   </div>
 
   <p class="hint">首次安装推荐使用 AI 引导，可节省大量配置时间</p>
 </div>
-
-<script>
-  // sync light/dark theme from parent
-  try {
-    const theme = window.parent?.document?.documentElement?.getAttribute('data-theme');
-    if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-  } catch (_) {}
-  window.addEventListener('message', e => {
-    if (e.data?.type === 'theme-change') {
-      if (e.data.theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-      else document.documentElement.removeAttribute('data-theme');
-    }
-  });
-</script>
 </body>
 </html>

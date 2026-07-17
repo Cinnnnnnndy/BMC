@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/user/BMC/scripts/check-ui-style.mjs 2>&1 || echo '⚠ UI 样式约束检查未通过——必须先修复上述违规再继续（规范见 CLAUDE.md）'"
+          }
+        ]
+      }
+    ]
+  }
+}
