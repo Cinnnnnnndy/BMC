@@ -315,14 +315,6 @@ function catStateClass(cat: CatNode): string {
         </div>
       </div>
 
-      <!-- ── Summary strip ── -->
-      <div class="hw-sum-strip">
-        <span class="hw-sum-label">openUBMC · {{ totalBoards }} 张物理板</span>
-        <button class="chk-chip chk-ok"   :title="STATE_LABEL.resolved">{{ stateCounts.resolved }}</button>
-        <button class="chk-chip chk-warn" :title="STATE_LABEL['multi-match'] + ' / ' + STATE_LABEL['type-placeholder']">{{ stateCounts['multi-match'] + stateCounts['type-placeholder'] }}</button>
-        <button class="chk-chip chk-err"  :title="STATE_LABEL.missing">{{ stateCounts.missing }}</button>
-      </div>
-
       <!-- ── Search ── -->
       <div class="hw-search-row">
         <svg class="hw-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -346,7 +338,7 @@ function catStateClass(cat: CatNode): string {
           <button class="hw-cat-row" @click="toggleCat(cat.type)">
             <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
             <span class="hw-cat-label">{{ cat.label }}</span>
-            <span :class="['hw-count', catStateClass(cat)]">{{ cat.boardCount || cat.groups.length }}</span>
+            <span class="hw-count">{{ cat.boardCount || cat.groups.length }}</span>
           </button>
           <div v-if="expandedCats[cat.type]" class="hw-cat-body">
             <template v-for="g in cat.groups" :key="g.id">
@@ -360,7 +352,6 @@ function catStateClass(cat: CatNode): string {
                 <span v-else class="hw-caret hw-caret-empty" />
                 <span class="hw-state-dot" :style="{ background: STATE_COLOR[g.state] }" :title="STATE_LABEL[g.state]" />
                 <span class="hw-grp-name">{{ g.name }}</span>
-                <span v-if="g.boards.length" :class="['hw-count', stateClass(g.state)]">{{ g.boards.length }}</span>
                 <button
                   v-if="g.state === 'unclassified'"
                   class="unc-assign-btn"
@@ -563,7 +554,7 @@ function catStateClass(cat: CatNode): string {
 .hw-cat-row:hover { background: var(--state-hover); }
 .hw-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* count badge – matches bmc-env .g-badge */
+/* count badge – grey, no color */
 .hw-count {
   flex-shrink: 0;
   font: 500 11px/1.2 var(--font-sans);
@@ -572,10 +563,9 @@ function catStateClass(cat: CatNode): string {
   height: 20px;
   display: flex;
   align-items: center;
+  background: rgba(255,255,255,0.08);
+  color: var(--foreground-muted, #6b7498);
 }
-.hw-count-ok   { background: color-mix(in srgb, var(--success, #04d793) 20%, transparent); color: var(--success, #04d793); }
-.hw-count-warn { background: color-mix(in srgb, var(--warning, #ffaa3b) 20%, transparent); color: var(--warning, #ffaa3b); }
-.hw-count-err  { background: color-mix(in srgb, var(--danger, #ff4b7b) 18%, transparent); color: var(--danger, #ff4b7b); }
 
 .hw-cat-body { display: flex; flex-direction: column; }
 

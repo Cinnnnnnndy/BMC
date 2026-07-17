@@ -1038,13 +1038,6 @@ export default function App() {
             >
               <WI d={['M4 17l6-6-6-6', 'M12 19h8']} />
             </button>
-            <button
-              className="pto-ide-frame__window-action"
-              title="全屏"
-              onClick={() => document.fullscreenElement ? document.exitFullscreen?.() : document.documentElement.requestFullscreen?.()}
-            >
-              <WI d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
-            </button>
             <span className="pto-ide-frame__window-separator" />
             <button
               className="pto-ide-frame__window-action"
