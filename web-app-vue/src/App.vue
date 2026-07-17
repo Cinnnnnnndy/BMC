@@ -55,26 +55,6 @@ watch(() => [link.dockTool, dockWidth.value], () => {
 
 <template>
   <div class="app-root">
-    <!-- Toolbar: only shown in normal (non-solo) mode -->
-    <nav v-if="!soloMode" class="tab-bar">
-      <button
-        class="tab-btn"
-        :class="{ active: link.anchor === 'topology' }"
-        @click="setAnchor('topology')"
-      >
-        <span class="tab-icon">🗺</span>
-        <span class="tab-label">CSR 拓扑</span>
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: link.anchor === 'code' }"
-        @click="setAnchor('code')"
-      >
-        <span class="tab-icon">{ }</span>
-        <span class="tab-label">代码</span>
-      </button>
-    </nav>
-
     <!-- View area: anchor (left) + optional docked tool (right) -->
     <div class="view-area" :class="{ split: link.dockTool && !soloMode }">
       <!-- Topology / code pane — hidden in solo mode -->
@@ -116,70 +96,6 @@ watch(() => [link.dockTool, dockWidth.value], () => {
   color: var(--foreground);
   overflow: hidden;
 }
-
-/* ── Toolbar ── */
-.tab-bar {
-  display: flex;
-  align-items: stretch;
-  height: var(--comp-toolbar-height, 44px);
-  background: var(--surface-1);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-  gap: 2px;
-  padding: 0 var(--space-2);
-}
-.tab-flex { flex: 1; }
-.tab-group-label {
-  display: flex;
-  align-items: center;
-  padding: 0 10px 0 4px;
-  font-size: 11px;
-  color: var(--foreground-secondary, #6b7498);
-  opacity: 0.8;
-  white-space: nowrap;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 var(--space-4, 14px);
-  background: transparent;
-  color: var(--foreground-secondary, #6b7498);
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-  transition: color 0.18s, border-color 0.18s, background 0.18s;
-  border-radius: var(--radius-sm, 5px) var(--radius-sm, 5px) 0 0;
-}
-.tab-btn:hover:not(.active) {
-  color: var(--foreground, #e6e8ef);
-  background: var(--state-hover, rgba(255,255,255,0.05));
-}
-.tab-btn.active {
-  color: var(--foreground, #e6e8ef);
-  border-bottom-color: var(--primary, #4f6ef7);
-  background: var(--state-selected, rgba(79,110,247,0.14));
-}
-/* Tool toggles read as pills so they're distinct from the anchor tab */
-.tool-toggle {
-  font-size: 12px;
-  padding: 0 11px;
-  margin: 6px 0;
-  border-radius: 6px;
-  border-bottom: none;
-  border: 1px solid transparent;
-}
-.tool-toggle.active {
-  border-bottom: none;
-  border-color: rgba(79,110,247,0.5);
-  background: rgba(79,110,247,0.16);
-}
-.tab-icon { font-size: 14px; line-height: 1; }
 
 /* ── Split view ── */
 .view-area {
@@ -237,8 +153,4 @@ watch(() => [link.dockTool, dockWidth.value], () => {
 
 .dock-body { flex: 1; min-height: 0; overflow-y: auto; }
 
-@media (max-width: 760px) {
-  .tab-group-label { display: none; }
-  .tool-toggle .tab-label { display: none; }
-}
 </style>
