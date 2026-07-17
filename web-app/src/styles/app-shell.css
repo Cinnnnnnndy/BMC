@@ -10,11 +10,11 @@
 
 .pto-ide-frame__window-action.is-selected {
   background: var(--state-selected, rgba(255,255,255,0.08));
-  color: var(--primary);
+  color: var(--foreground);
 }
 .pto-ide-frame__window-action.is-selected .pto-ide-frame__window-icon {
   opacity: 1;
-  stroke: var(--primary);
+  stroke: var(--foreground);
 }
 
 .topbar-subtitle {

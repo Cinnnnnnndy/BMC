@@ -39,7 +39,7 @@
   --state-hover:    rgba(255, 255, 255, 0.06);
   --state-press:    rgba(255, 255, 255, 0.10);
   --state-muted:    rgba(255, 255, 255, 0.06);
-  --state-selected: rgba(67, 105, 239, 0.14);
+  --state-selected: rgba(255, 255, 255, 0.08);
   --state-focus:    rgba(67, 105, 239, 0.20);
 
   /* Disabled States */
@@ -69,7 +69,7 @@
   --state-hover:    rgba(0, 0, 0, 0.05);
   --state-press:    rgba(0, 0, 0, 0.09);
   --state-muted:    rgba(0, 0, 0, 0.05);
-  --state-selected: rgba(67, 105, 239, 0.10);
+  --state-selected: rgba(0, 0, 0, 0.06);
   --state-focus:    rgba(67, 105, 239, 0.16);
 
   --surface-disabled: rgba(0, 0, 0, 0.04);

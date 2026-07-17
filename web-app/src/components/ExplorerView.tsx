@@ -297,172 +297,6 @@ class Registry:
 }`,
   },
 
-  'ext-json-api': {
-    lang: 'json',
-    content: `{
-  "$schema": "https://ubmc.openeuler.org/schema/northbound/v1",
-  "version": "1.3.0",
-  "title": "BMC 北向接口映射定义",
-  "description": "将 SR 内部对象属性映射到 Redfish / SNMP / IPMI 北向协议字段",
-  "mappings": [
-    {
-      "srPath": "Unit.Type",
-      "redfish": "/redfish/v1/Chassis/{id}#/ChassisType",
-      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.1.1",
-      "ipmi": "FRU 0x01 Product Name"
-    },
-    {
-      "srPath": "ManagementTopology.Anchor.Buses",
-      "redfish": "/redfish/v1/Systems/{id}/NetworkInterfaces",
-      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.2.1",
-      "ipmi": "N/A"
-    },
-    {
-      "srPath": "Objects.*.Address",
-      "redfish": "/redfish/v1/Chassis/{id}/PCIeDevices/{dev}#/Id",
-      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.3.1",
-      "ipmi": "SDR Sensor Number"
-    },
-    {
-      "srPath": "Objects.*.HealthStatus",
-      "redfish": "/redfish/v1/Chassis/{id}#/Status/Health",
-      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.4.1",
-      "ipmi": "SEL Event Data Byte1"
-    }
-  ],
-  "protocols": {
-    "redfish": { "version": "1.16.0", "auth": "BasicAuth / SessionAuth" },
-    "snmp":    { "version": "v2c / v3",  "mibs": ["HUAWEI-BMC-MIB"] },
-    "ipmi":    { "version": "2.0",       "channel": "LAN / KCS" }
-  }
-}`,
-  },
-
-  'ext-sr-lsp': {
-    lang: 'json',
-    content: `{
-  "name": "sr-language-server",
-  "displayName": "SR 语言服务器",
-  "version": "0.9.4",
-  "description": "为 .sr 板卡描述文件提供语法检查、补全、悬停提示和跳转定义",
-  "capabilities": {
-    "textDocumentSync": 2,
-    "completionProvider": {
-      "triggerCharacters": [".", "#", "/", "\""],
-      "resolveProvider": true
-    },
-    "hoverProvider": true,
-    "definitionProvider": true,
-    "referencesProvider": true,
-    "documentSymbolProvider": true,
-    "diagnosticProvider": {
-      "interFileDependencies": true,
-      "workspaceDiagnostics": true
-    }
-  },
-  "schemas": {
-    "sr": "https://ubmc.openeuler.org/schema/sr/v3",
-    "softSr": "https://ubmc.openeuler.org/schema/soft-sr/v1"
-  },
-  "validation": {
-    "checkConnectorRefs": true,
-    "checkChipAddressConflict": true,
-    "checkBusTopology": true,
-    "lintFormatVersion": true
-  },
-  "status": "running",
-  "pid": 41872,
-  "port": 2087
-}`,
-  },
-
-  'ext-sr-preview': {
-    lang: 'json',
-    content: `{
-  "name": "sr-file-preview",
-  "displayName": "SR 文件预览",
-  "version": "0.6.1",
-  "description": "在编辑器内以拓扑图方式可视化 .sr 板卡描述文件的 ManagementTopology",
-  "supportedFileTypes": [".sr", "_soft.sr", ".json"],
-  "renderModes": [
-    {
-      "id": "topology",
-      "label": "拓扑视图",
-      "description": "以节点图展示 Anchor → Bus → Chip → Connector 链路",
-      "default": true
-    },
-    {
-      "id": "table",
-      "label": "对象列表",
-      "description": "以表格展示所有 Objects 条目及其关键属性"
-    },
-    {
-      "id": "diff",
-      "label": "版本对比",
-      "description": "对比两个版本 sr 文件中 Objects/Topology 的差异"
-    }
-  ],
-  "colorScheme": {
-    "Bus":       "#4f6ef7",
-    "Chip":      "#22c55e",
-    "Connector": "#f59e0b",
-    "Eeprom":    "#a855f7",
-    "MCU":       "#06b6d4"
-  },
-  "keybindings": {
-    "openPreview": "Ctrl+Shift+V",
-    "toggleMode":  "Ctrl+Shift+M"
-  }
-}`,
-  },
-
-  'ext-mib': {
-    lang: 'markdown',
-    content: `# HUAWEI-BMC-MIB  v2
-
-BMC 硬件管理信息库（MIB），符合 RFC 2578 / SMIv2 规范。
-
-## OID 树结构
-
-\`\`\`
-iso(1).org(3).dod(6).internet(1).private(4).enterprises(1)
-  └─ huawei(2011).products(2).iBMC(235)
-       ├─ bmcObjects(1)
-       │    ├─ bmcSystem(1)     — 系统基本信息
-       │    ├─ bmcBoard(2)      — 板卡拓扑
-       │    ├─ bmcSensor(3)     — 传感器读数
-       │    ├─ bmcPower(4)      — 电源状态
-       │    └─ bmcAlarm(5)      — 告警事件
-       └─ bmcNotifications(2)
-            └─ bmcTrap(1)       — SNMP Trap 定义
-\`\`\`
-
-## 常用 OID
-
-| OID                                | 名称               | 类型    | 说明              |
-|------------------------------------|--------------------|---------|-------------------|
-| 1.3.6.1.4.1.2011.2.235.1.1.1.1    | bmcProductName     | String  | 产品型号          |
-| 1.3.6.1.4.1.2011.2.235.1.1.1.2    | bmcFirmwareVersion | String  | 固件版本          |
-| 1.3.6.1.4.1.2011.2.235.1.1.2.1    | bmcBoardCount      | Integer | 在线板卡总数      |
-| 1.3.6.1.4.1.2011.2.235.1.1.3.1    | bmcSensorValue     | Gauge32 | 传感器当前读数    |
-| 1.3.6.1.4.1.2011.2.235.1.1.4.1    | bmcHealthStatus    | Integer | 0=OK,1=Warn,2=Crit|
-| 1.3.6.1.4.1.2011.2.235.2.1.1      | bmcHardwareTrap    | Trap    | 硬件故障告警      |
-
-## SNMP 接入示例
-
-\`\`\`bash
-# 读取固件版本
-snmpget -v2c -c public <bmc-ip> 1.3.6.1.4.1.2011.2.235.1.1.1.2
-
-# 订阅所有告警 Trap
-snmptrapd -f -Lo -c /etc/snmp/snmptrapd.conf
-\`\`\`
-
-## 下载
-
-MIB 文件路径：\`vendor/Huawei/MIB/HUAWEI-BMC-MIB.txt\``,
-  },
-
   hypercard: {
     lang: 'json',
     content: `{
@@ -525,54 +359,9 @@ MIB 文件路径：\`vendor/Huawei/MIB/HUAWEI-BMC-MIB.txt\``,
   },
 };
 
-// ── Code-assist extensions (clickable → opens content in code pane) ───────
+// ── Extension IDs ──────────────────────────────────────────────────────────
 
-const EXTENSIONS = [
-  {
-    id: 'ext-json-api',
-    name: 'JSON 北向接口',
-    iconColor: '#818cf8',
-    iconBg: 'rgba(99, 102, 241, 0.15)',
-    icon: (
-      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'ext-sr-lsp',
-    name: 'SR 语言服务器',
-    iconColor: '#34d399',
-    iconBg: 'rgba(16, 185, 129, 0.12)',
-    icon: (
-      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'ext-sr-preview',
-    name: 'SR 文件预览',
-    iconColor: '#38bdf8',
-    iconBg: 'rgba(14, 165, 233, 0.12)',
-    icon: (
-      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'ext-mib',
-    name: 'MIB 支持',
-    iconColor: '#fbbf24',
-    iconBg: 'rgba(245, 158, 11, 0.12)',
-    icon: (
-      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-      </svg>
-    ),
-  },
-] as const;
+type ExtId = 'json-api' | 'sr-lsp' | 'sr-preview' | 'mib';
 
 // ── Tree structure ─────────────────────────────────────────────────────────
 
@@ -694,9 +483,9 @@ function TreeItem({
           padding: `2px 8px 2px ${8 + depth * 14}px`,
           cursor: 'pointer',
           fontSize: 12.5,
-          color: isSelected ? 'var(--primary, #34d399)' : 'var(--foreground, #cccccc)',
-          background: isSelected ? 'rgba(52,211,153,0.08)' : 'transparent',
-          borderLeft: isSelected ? '2px solid var(--primary, #34d399)' : '2px solid transparent',
+          color: isSelected ? 'var(--foreground, #e8e8e8)' : 'var(--foreground-secondary, #9aa0b8)',
+          background: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+          borderLeft: '2px solid transparent',
           userSelect: 'none',
           lineHeight: '1.6',
           whiteSpace: 'nowrap',
@@ -720,11 +509,10 @@ function TreeItem({
   );
 }
 
-// ── Syntax coloring (simple, no dependencies) ─────────────────────────────
+// ── Syntax coloring ────────────────────────────────────────────────────────
 
 function highlightLine(line: string, lang: string): React.ReactNode {
   if (lang === 'json') {
-    // key: "string": value
     return <span dangerouslySetInnerHTML={{ __html: line
       .replace(/("[\w\s\-/#$]+")(\s*:)/g, '<span style="color:#9cdcfe">$1</span>$2')
       .replace(/:\s*("([^"]*)")/g, (_m, p1) => ': <span style="color:#ce9178">' + p1 + '</span>')
@@ -771,6 +559,15 @@ function CodePane({ fileId }: { fileId: string | null }) {
   if (!file) return null;
 
   const lines = file.content.split('\n');
+  const displayName =
+    fileId === 'risercard'  ? '14100513_00000001040302023947.sr'
+    : fileId === 'hypercard' ? '14140130_HyperCard_0.sr'
+    : fileId === 'readme'    ? 'README.md'
+    : fileId === 'changelog' ? 'CHANGELOG.md'
+    : fileId === 'conan'     ? 'conanfile.py'
+    : fileId === 'registry'  ? 'registry.py'
+    : 'SmcDfxInfo配置说明.md';
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--background, #0a0b10)' }}>
       <div style={{
@@ -788,17 +585,7 @@ function CodePane({ fileId }: { fileId: string | null }) {
           color: 'var(--foreground, #cccccc)',
           fontSize: 12,
         }}>
-          {fileId === 'risercard'         ? '14100513_00000001040302023947.sr'
-            : fileId === 'hypercard'       ? '14140130_HyperCard_0.sr'
-            : fileId === 'readme'          ? 'README.md'
-            : fileId === 'changelog'       ? 'CHANGELOG.md'
-            : fileId === 'conan'           ? 'conanfile.py'
-            : fileId === 'registry'        ? 'registry.py'
-            : fileId === 'ext-json-api'    ? 'northbound-mapping.json'
-            : fileId === 'ext-sr-lsp'      ? 'sr-language-server.json'
-            : fileId === 'ext-sr-preview'  ? 'sr-file-preview.json'
-            : fileId === 'ext-mib'         ? 'HUAWEI-BMC-MIB.md'
-            : 'SmcDfxInfo配置说明.md'}
+          {displayName}
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 10.5 }}>
           vpd-main · openUBMC Studio
@@ -845,10 +632,373 @@ function CodePane({ fileId }: { fileId: string | null }) {
   );
 }
 
+// ── Tool panels ────────────────────────────────────────────────────────────
+
+const panelBase: React.CSSProperties = {
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  background: 'var(--background, #0a0b10)',
+};
+
+const panelHd: React.CSSProperties = {
+  padding: '8px 16px',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'var(--foreground-muted)',
+  borderBottom: '1px solid var(--border-subtle)',
+  flexShrink: 0,
+  background: 'var(--surface-1)',
+};
+
+const cell: React.CSSProperties = {
+  padding: '6px 12px',
+  fontSize: 12,
+  color: 'var(--foreground-secondary)',
+  borderBottom: '1px solid var(--border-subtle)',
+  verticalAlign: 'top',
+};
+
+const thCell: React.CSSProperties = {
+  ...cell,
+  color: 'var(--foreground-muted)',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.04em',
+  background: 'var(--surface-2)',
+};
+
+function PanelJsonApi() {
+  const [tab, setTab] = useState<'redfish' | 'snmp' | 'ipmi'>('redfish');
+
+  const mappings: Array<{ srPath: string; redfish: string; snmp: string; ipmi: string }> = [
+    { srPath: 'Unit.Type', redfish: '/redfish/v1/Chassis/{id}#/ChassisType', snmp: '1.3.6.1.4.1.2011.2.235.1.1.1.1', ipmi: 'FRU 0x01 Product Name' },
+    { srPath: 'ManagementTopology.Anchor.Buses', redfish: '/redfish/v1/Systems/{id}/NetworkInterfaces', snmp: '1.3.6.1.4.1.2011.2.235.1.1.2.1', ipmi: 'N/A' },
+    { srPath: 'Objects.*.Address', redfish: '/redfish/v1/Chassis/{id}/PCIeDevices/{dev}#/Id', snmp: '1.3.6.1.4.1.2011.2.235.1.1.3.1', ipmi: 'SDR Sensor Number' },
+    { srPath: 'Objects.*.HealthStatus', redfish: '/redfish/v1/Chassis/{id}#/Status/Health', snmp: '1.3.6.1.4.1.2011.2.235.1.1.4.1', ipmi: 'SEL Event Data Byte1' },
+    { srPath: 'Objects.*.WriteTmout', redfish: '/redfish/v1/Chassis/{id}/PCIeDevices/{dev}#/Oem/WriteTimeout', snmp: '1.3.6.1.4.1.2011.2.235.1.1.5.1', ipmi: 'N/A' },
+    { srPath: 'FormatVersion', redfish: '/redfish/v1/Chassis/{id}#/Oem/FormatVersion', snmp: '1.3.6.1.4.1.2011.2.235.1.1.6.1', ipmi: 'FRU 0x02 Board Product' },
+  ];
+
+  const tabStyle = (t: string): React.CSSProperties => ({
+    padding: '4px 12px',
+    fontSize: 11.5,
+    fontWeight: 500,
+    border: 'none',
+    borderBottom: tab === t ? '2px solid var(--foreground-secondary)' : '2px solid transparent',
+    background: 'transparent',
+    color: tab === t ? 'var(--foreground)' : 'var(--foreground-muted)',
+    cursor: 'pointer',
+    transition: 'color 0.1s',
+  });
+
+  const colKey = tab === 'redfish' ? 'redfish' : tab === 'snmp' ? 'snmp' : 'ipmi';
+
+  return (
+    <div style={panelBase}>
+      <div style={panelHd}>JSON 北向接口映射</div>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, padding: '0 8px', background: 'var(--surface-1)' }}>
+        <button style={tabStyle('redfish')} onClick={() => setTab('redfish')}>Redfish</button>
+        <button style={tabStyle('snmp')} onClick={() => setTab('snmp')}>SNMP</button>
+        <button style={tabStyle('ipmi')} onClick={() => setTab('ipmi')}>IPMI</button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th style={{ ...thCell, width: '40%' }}>SR 路径</th>
+              <th style={thCell}>{tab === 'redfish' ? 'Redfish URI' : tab === 'snmp' ? 'SNMP OID' : 'IPMI'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mappings.map((m, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                <td style={{ ...cell, fontFamily: 'ui-monospace, monospace', fontSize: 11, color: 'var(--foreground)' }}>{m.srPath}</td>
+                <td style={{ ...cell, fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{m[colKey]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ padding: '10px 12px', fontSize: 11, color: 'var(--foreground-muted)' }}>
+          协议版本：Redfish 1.16.0 · SNMP v2c/v3 · IPMI 2.0
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PanelSrLsp() {
+  const caps = [
+    { name: 'textDocumentSync', val: 'Incremental (2)' },
+    { name: 'completionProvider', val: '触发字符：. # / "' },
+    { name: 'hoverProvider', val: '✓' },
+    { name: 'definitionProvider', val: '✓' },
+    { name: 'referencesProvider', val: '✓' },
+    { name: 'documentSymbolProvider', val: '✓' },
+    { name: 'diagnosticProvider', val: '跨文件依赖 + 工作区诊断' },
+  ];
+  const diags = [
+    { sev: 'warn', file: '14140130_HyperCard_0.sr', msg: 'Chip_CPLD 地址 0x26 与同总线 Chip_BMC 地址相近，建议确认', line: 34 },
+    { sev: 'info', file: 'README.md', msg: '文档中引用的路径 ./vendor/Huawei/Nic/hi1822 未在当前工作区中找到', line: 28 },
+  ];
+
+  return (
+    <div style={panelBase}>
+      <div style={panelHd}>SR 语言服务器</div>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: 'var(--foreground)' }}>sr-language-server v0.9.4</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--foreground-muted)' }}>PID 41872 · :2087</span>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'var(--foreground-muted)' }}>能力</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            {caps.map((c, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <td style={{ ...cell, fontFamily: 'ui-monospace, monospace', fontSize: 11, width: '44%', color: 'var(--foreground)' }}>{c.name}</td>
+                <td style={{ ...cell, fontSize: 11 }}>{c.val}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'var(--foreground-muted)' }}>诊断</div>
+        {diags.map((d, i) => (
+          <div key={i} style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3, flexShrink: 0, marginTop: 1,
+              background: d.sev === 'warn' ? 'rgba(255,170,59,0.18)' : 'rgba(148,163,184,0.14)',
+              color: d.sev === 'warn' ? '#ffaa3b' : '#94a3b8',
+            }}>{d.sev.toUpperCase()}</span>
+            <div>
+              <div style={{ fontSize: 11.5, color: 'var(--foreground)', marginBottom: 2 }}>{d.msg}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--foreground-muted)', fontFamily: 'ui-monospace, monospace' }}>{d.file}:{d.line}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PanelSrPreview() {
+  const nodes = [
+    { id: 'Anchor', x: 140, y: 24, label: 'Anchor', kind: 'anchor' },
+    { id: 'Hisport_0', x: 80, y: 100, label: 'Hisport_0', kind: 'bus' },
+    { id: 'Pca9545', x: 80, y: 176, label: 'Pca9545\nPCA9545', kind: 'chip' },
+    { id: 'Mux4', x: 10, y: 260, label: 'Mux_4', kind: 'bus' },
+    { id: 'Mux1', x: 80, y: 260, label: 'Mux_1', kind: 'bus' },
+    { id: 'Mux2', x: 150, y: 260, label: 'Mux_2', kind: 'bus' },
+    { id: 'Pca9555', x: 10, y: 336, label: 'Pca9555\nIO', kind: 'chip' },
+    { id: 'MCU1', x: 70, y: 336, label: 'Chip\nMCU1', kind: 'chip' },
+    { id: 'PCIE1', x: 80, y: 336, label: 'Conn\nPCIE1', kind: 'connector' },
+    { id: 'PCIE2', x: 150, y: 336, label: 'Conn\nPCIE2', kind: 'connector' },
+    { id: 'McuSwitch', x: 70, y: 410, label: 'McuSw', kind: 'bus' },
+    { id: 'Eeprom', x: 70, y: 484, label: 'Eeprom\nIEU', kind: 'chip' },
+  ];
+
+  const edges = [
+    ['Anchor', 'Hisport_0'],
+    ['Hisport_0', 'Pca9545'],
+    ['Pca9545', 'Mux4'],
+    ['Pca9545', 'Mux1'],
+    ['Pca9545', 'Mux2'],
+    ['Mux4', 'Pca9555'],
+    ['Mux4', 'MCU1'],
+    ['Mux1', 'PCIE1'],
+    ['Mux2', 'PCIE2'],
+    ['MCU1', 'McuSwitch'],
+    ['McuSwitch', 'Eeprom'],
+  ];
+
+  const kindColor: Record<string, string> = {
+    anchor: '#64748b',
+    bus: '#4f6ef7',
+    chip: '#22c55e',
+    connector: '#f59e0b',
+  };
+
+  const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  return (
+    <div style={panelBase}>
+      <div style={panelHd}>SR 文件预览 — 14100513_...023947.sr</div>
+      <div style={{ padding: '6px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, display: 'flex', gap: 16 }}>
+        {Object.entries(kindColor).map(([k, c]) => (
+          <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: 'var(--foreground-muted)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: c, display: 'inline-block' }} />
+            {k}
+          </span>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '8px' }}>
+        <svg width="220" height="530" style={{ display: 'block' }}>
+          {edges.map(([a, b], i) => {
+            const na = nodeById[a];
+            const nb = nodeById[b];
+            if (!na || !nb) return null;
+            return (
+              <line key={i}
+                x1={na.x + 30} y1={na.y + 18}
+                x2={nb.x + 30} y2={nb.y}
+                stroke="rgba(255,255,255,0.12)" strokeWidth="1"
+              />
+            );
+          })}
+          {nodes.map(n => (
+            <g key={n.id}>
+              <rect
+                x={n.x} y={n.y} width={60} height={36} rx={5}
+                fill={kindColor[n.kind] + '22'}
+                stroke={kindColor[n.kind]}
+                strokeWidth="1"
+              />
+              {n.label.split('\n').map((l, li) => (
+                <text key={li} x={n.x + 30} y={n.y + 14 + li * 13}
+                  textAnchor="middle" fontSize="9" fill={kindColor[n.kind]}>
+                  {l}
+                </text>
+              ))}
+            </g>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function PanelMib() {
+  const [query, setQuery] = useState('');
+
+  const oids = [
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.1.1', name: 'bmcProductName', type: 'String', desc: '产品型号' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.1.2', name: 'bmcFirmwareVersion', type: 'String', desc: '固件版本' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.2.1', name: 'bmcBoardCount', type: 'Integer', desc: '在线板卡总数' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.3.1', name: 'bmcSensorValue', type: 'Gauge32', desc: '传感器当前读数' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.4.1', name: 'bmcHealthStatus', type: 'Integer', desc: '0=OK, 1=Warn, 2=Crit' },
+    { oid: '1.3.6.1.4.1.2011.2.235.2.1.1', name: 'bmcHardwareTrap', type: 'Trap', desc: '硬件故障告警' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.5.1', name: 'bmcPowerStatus', type: 'Integer', desc: '电源状态' },
+    { oid: '1.3.6.1.4.1.2011.2.235.1.1.6.1', name: 'bmcCpuTemp', type: 'Gauge32', desc: 'CPU 温度传感器' },
+  ];
+
+  const q = query.toLowerCase();
+  const filtered = q
+    ? oids.filter(o => o.name.toLowerCase().includes(q) || o.oid.includes(q) || o.desc.toLowerCase().includes(q))
+    : oids;
+
+  return (
+    <div style={panelBase}>
+      <div style={panelHd}>HUAWEI-BMC-MIB v2</div>
+      <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--surface-1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-2)', borderRadius: 6, padding: '4px 8px', border: '1px solid var(--border-subtle)' }}>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--foreground-muted)', flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="搜索 OID / 名称..."
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--foreground)', padding: 0 }}
+          />
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ ...thCell }}>名称</th>
+              <th style={{ ...thCell }}>类型</th>
+              <th style={{ ...thCell }}>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((o, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <td style={{ ...cell, padding: '5px 12px' }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--foreground)' }}>{o.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--foreground-muted)', fontFamily: 'ui-monospace, monospace', marginTop: 1 }}>{o.oid}</div>
+                </td>
+                <td style={{ ...cell, fontSize: 11, padding: '5px 12px', whiteSpace: 'nowrap' as const }}>{o.type}</td>
+                <td style={{ ...cell, fontSize: 11, padding: '5px 12px' }}>{o.desc}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={3} style={{ ...cell, textAlign: 'center' as const, color: 'var(--foreground-muted)' }}>无匹配结果</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Extension header buttons ────────────────────────────────────────────────
+
+const EXT_BUTTONS: Array<{ id: ExtId; title: string; icon: React.ReactNode }> = [
+  {
+    id: 'json-api',
+    title: 'JSON 北向接口',
+    icon: (
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'sr-lsp',
+    title: 'SR 语言服务器',
+    icon: (
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'sr-preview',
+    title: 'SR 文件预览',
+    icon: (
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'mib',
+    title: 'MIB 支持',
+    icon: (
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+    ),
+  },
+];
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function ExplorerView() {
   const [selectedId, setSelectedId] = useState<string | null>('readme');
+  const [activeExt, setActiveExt] = useState<ExtId | null>(null);
+
+  const toggleExt = (id: ExtId) => {
+    setActiveExt(prev => prev === id ? null : id);
+  };
+
+  const ibStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? 'rgba(255,255,255,0.10)' : 'none',
+    border: 'none',
+    color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
+    cursor: 'pointer',
+    padding: 5,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'color 0.1s, background 0.1s',
+  });
 
   return (
     <div style={{
@@ -868,12 +1018,12 @@ export function ExplorerView() {
         display: 'flex',
         flexDirection: 'column',
       }}>
-        {/* Panel header — matches bmc-env .panel-hd pattern */}
+        {/* Panel header */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 12px 0 16px',
+          padding: '0 8px 0 16px',
           height: 44,
           font: '500 11px/1.2 var(--font-sans)',
           textTransform: 'uppercase' as const,
@@ -884,14 +1034,19 @@ export function ExplorerView() {
           borderBottom: '1px solid var(--border-subtle)',
         }}>
           <span>资源管理器</span>
-          <div style={{ display: 'flex', gap: 2 }}>
-            {/* collapse icon */}
-            <button style={{ background: 'none', border: 'none', color: 'var(--foreground-muted)', cursor: 'pointer', padding: 5, borderRadius: 8, display: 'flex', alignItems: 'center' }}
-              title="折叠全部">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
-              </svg>
-            </button>
+          <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
+            {EXT_BUTTONS.map(btn => (
+              <button
+                key={btn.id}
+                style={ibStyle(activeExt === btn.id)}
+                title={btn.title}
+                onClick={() => toggleExt(btn.id)}
+                onMouseEnter={e => { if (activeExt !== btn.id) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
+                onMouseLeave={e => { if (activeExt !== btn.id) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-muted)'; }}
+              >
+                {btn.icon}
+              </button>
+            ))}
           </div>
         </div>
         {/* Section header */}
@@ -915,59 +1070,17 @@ export function ExplorerView() {
         </div>
         <div style={{ flex: 1, overflowY: 'auto' as const }}>
           {TREE.map((node, i) => (
-            <TreeItem key={i} node={node} depth={0} selectedId={selectedId} onSelect={setSelectedId} />
+            <TreeItem key={i} node={node} depth={0} selectedId={selectedId} onSelect={(id) => { setSelectedId(id); setActiveExt(null); }} />
           ))}
-        </div>
-        {/* Extensions section */}
-        <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)' }}>
-          {/* sec-hd */}
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            padding: '0 8px 0 12px', height: 32,
-            font: '500 11px/1.2 var(--font-sans)',
-            textTransform: 'uppercase' as const, letterSpacing: '0.06em',
-            color: 'var(--foreground-muted)', userSelect: 'none' as const, gap: 6,
-          }}>
-            <svg viewBox="0 0 24 24" width="10" height="10" style={{ color: 'var(--foreground-muted)', transform: 'rotate(90deg)', flexShrink: 0 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-            代码辅助扩展
-          </div>
-          {EXTENSIONS.map((ext) => {
-            const isActive = selectedId === ext.id;
-            return (
-              <div
-                key={ext.id}
-                onClick={() => setSelectedId(ext.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '0 12px', height: 28, cursor: 'pointer',
-                  fontSize: 12, color: isActive ? 'var(--foreground)' : 'var(--foreground-secondary)',
-                  background: isActive ? 'var(--state-selected, rgba(67,105,239,0.14))' : 'transparent',
-                  borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-                  userSelect: 'none' as const,
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--state-hover)'; }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
-              >
-                <div style={{
-                  width: 18, height: 18, borderRadius: 4,
-                  background: ext.iconBg, color: ext.iconColor,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  {ext.icon}
-                </div>
-                {ext.name}
-              </div>
-            );
-          })}
-          <div style={{ height: 8 }} />
         </div>
       </div>
 
-      {/* Code pane */}
-      <CodePane fileId={selectedId} />
+      {/* Right pane: tool panel or code */}
+      {activeExt === 'json-api'    ? <PanelJsonApi />    :
+       activeExt === 'sr-lsp'     ? <PanelSrLsp />      :
+       activeExt === 'sr-preview' ? <PanelSrPreview />  :
+       activeExt === 'mib'        ? <PanelMib />        :
+       <CodePane fileId={selectedId} />}
     </div>
   );
 }
