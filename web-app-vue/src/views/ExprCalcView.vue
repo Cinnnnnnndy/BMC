@@ -1,21 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import LinkageRail from '../components/LinkageRail.vue';
-import { useLinkage } from '../composables/useLinkage';
-
-const { state: link } = useLinkage();
-// Right linkage: the expression string is the field written back into the CSR config.
-function linkCode(): string | null {
-  return exprText.value.trim() || null;
-}
-// Left linkage (live): re-apply inbound expression on each new topology push,
-// so a docked split-screen tool stays in sync with the selection.
-function applyInbound() {
-  const ib = link.inbound.expr;
-  if (ib?.expression) { exprText.value = ib.expression; runEval(); }
-}
-onMounted(applyInbound);
-watch(() => link.inbound.expr?.ts, applyInbound);
+import { ref, computed, watch, nextTick } from 'vue';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 type PipeValue = number | string | boolean | null;
@@ -397,8 +381,6 @@ const histOpen = ref(false);
       </div>
     </div>
 
-    <!-- 左/右联动栏 -->
-    <LinkageRail tool="expr" code-label="表达式 → CSR expression 字段" :get-code="linkCode" />
 
     <!-- ══ Phase 1: 管道表达式 ══════════════════════════════════════════════ -->
     <div class="phase">
@@ -783,12 +765,12 @@ export default { name: 'ExprCalcView' };
 /* ── Expression input ──────────────────────────────────────────────────── */
 .expr-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:14px; }
 .expr-input {
-  background:var(--bg); border:1px solid var(--border-s); border-radius:var(--radius);
+  background:var(--bg-elev-2); border:none; border-radius:var(--radius);
   color:var(--text); font-family:var(--font-mono); font-size:15px;
   padding:10px 12px; outline:none; resize:vertical; min-height:44px;
-  transition:border-color .12s, box-shadow .12s;
+  transition:background .12s, box-shadow .12s;
 }
-.expr-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.expr-input:focus { background:var(--bg-elev-3); box-shadow:0 0 0 2px var(--accent); }
 .expr-input::placeholder { color:var(--placeholder); }
 
 /* ── Quick-start ───────────────────────────────────────────────────────── */
@@ -812,7 +794,7 @@ export default { name: 'ExprCalcView' };
 .op-cat-name::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--cat-color, var(--accent)); }
 .op-chips { display:flex; flex-wrap:wrap; gap:5px; }
 .op-chip {
-  position:relative; background:var(--bg-elev-2); border:1px solid var(--border);
+  position:relative; background:var(--bg-elev-2); border:none;
   border-radius:4px; padding:4px 8px; font-family:var(--font-mono); font-size:11.5px;
   color:var(--text); cursor:pointer; transition:all .1s; user-select:none; line-height:1.4;
 }
@@ -843,12 +825,12 @@ export default { name: 'ExprCalcView' };
 .var-tag.error { background:rgba(240,101,112,.10); color:var(--err); border-color:rgba(240,101,112,.4); }
 .input-with-msg { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .input-with-msg input {
-  background:var(--bg); border:1px solid var(--border-s); border-radius:var(--radius);
+  background:var(--bg-elev-2); border:none; border-radius:var(--radius);
   color:var(--text); font-family:var(--font-mono); font-size:13px; padding:7px 10px; outline:none;
-  transition:border-color .12s, box-shadow .12s;
+  transition:background .12s, box-shadow .12s;
 }
-.input-with-msg input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-.input-with-msg input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
+.input-with-msg input:focus { background:var(--bg-elev-3); box-shadow:0 0 0 2px var(--accent); }
+.input-with-msg input.invalid { box-shadow:0 0 0 2px var(--err); }
 .err-msg { font-size:11px; color:var(--err); font-family:var(--font-mono); }
 .lbl-input { background:transparent; border:0; border-bottom:1px dotted var(--border-s); color:var(--text-mute); font-size:12px; padding:5px 4px; outline:none; width:140px; transition:border-color .1s, color .1s; font-family:inherit; }
 .lbl-input:focus { border-bottom-color:var(--accent); color:var(--text); }
@@ -960,7 +942,7 @@ export default { name: 'ExprCalcView' };
 .hist-time { font-size:10.5px; color:var(--text-dim); flex-shrink:0; }
 
 /* ── Toast ─────────────────────────────────────────────────────────────── */
-.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#0a0c12; border:1px solid var(--border-s); color:var(--text); padding:8px 14px; border-radius:6px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30; box-shadow:0 10px 30px rgba(0,0,0,.55); }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--bg-elev-2); border:none; color:var(--text); padding:8px 14px; border-radius:6px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:30; box-shadow:0 10px 30px rgba(0,0,0,.55); }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 ::-webkit-scrollbar { width:6px; height:6px; }

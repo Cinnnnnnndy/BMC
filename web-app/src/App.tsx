@@ -987,7 +987,6 @@ export default function App() {
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
     { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
-    { id: 'serverView',   tooltip: '服务器视图' },
     ...(csr ? [
       { id: 'topology'     as ViewId, tooltip: '拓扑视图' },
       { id: 'association'  as ViewId, tooltip: '软硬件关联' },
@@ -999,6 +998,7 @@ export default function App() {
 
   // 未成熟功能收进「更多」菜单（Beta 预览）
   const moreItems: { id: ViewId; csrRequired?: boolean }[] = [
+    { id: 'serverView' },
     { id: 'hwTopology' },
     { id: 'threeD' },
     { id: 'event', csrRequired: true },

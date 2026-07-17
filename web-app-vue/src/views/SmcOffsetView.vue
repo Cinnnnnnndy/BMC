@@ -1,24 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
-import LinkageRail from '../components/LinkageRail.vue';
-import { useLinkage } from '../composables/useLinkage';
-
-const { state: link } = useLinkage();
-// Right linkage: the computed full offset is what gets written into a sensor 地址.
-function linkCode(): string | null {
-  if (!anySet()) return null;
-  return fmtHex(composeWord());
-}
-// Left linkage (live): re-apply inbound func whenever the topology pushes a new
-// selection while this tool is docked in split-screen.
-function applyInbound() {
-  const ib = link.inbound.smc;
-  if (ib?.func) {
-    fieldTexts.func = ib.func.replace(/^0x/i, '').toUpperCase().padStart(FIELDS.func.hexDigits, '0');
-    onFieldInput('func');
-  }
-}
-watch(() => link.inbound.smc?.ts, applyInbound);
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
 
 /* ─── Field definitions ─────────────────────────────────────────────────── */
 type FieldKey = 'func' | 'cmd' | 'ms' | 'rw' | 'param';
@@ -258,7 +239,6 @@ function pickFunc(hex: string) {
 }
 onMounted(() => {
   loadHistory();
-  applyInbound();   // left linkage on first mount
   window.addEventListener('keydown',onKeydown);
   document.addEventListener('click',closeFmt);
 });
@@ -283,8 +263,6 @@ onUnmounted(() => { window.removeEventListener('keydown',onKeydown); document.re
       </div>
     </div>
 
-    <!-- 左/右联动栏 -->
-    <LinkageRail tool="smc" code-label="offset → sensor 地址字段" :get-code="linkCode" />
 
     <!-- ① Offset bar -->
     <div class="offset-bar">
@@ -581,13 +559,13 @@ export default { name: 'SmcOffsetView' };
 .off-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: stretch; }
 
 .offset-input-wrap {
-  background: var(--bg); border: 1px solid var(--border-s); border-radius: var(--radius);
+  background: var(--bg-elev-2); border: none; border-radius: var(--radius);
   padding: 8px 12px; display: flex; flex-direction: column; gap: 4px;
-  transition: border-color .12s, box-shadow .12s;
+  transition: background .12s, box-shadow .12s;
 }
-.offset-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.offset-input-wrap.invalid { border-color: var(--err); box-shadow: 0 0 0 3px rgba(240,101,112,.12); }
-.offset-input-wrap.synced { border-color: rgba(79,110,247,.4); }
+.offset-input-wrap:focus-within { background: var(--bg-elev-3); box-shadow: 0 0 0 2px var(--accent); }
+.offset-input-wrap.invalid { box-shadow: 0 0 0 2px var(--err); }
+.offset-input-wrap.synced { box-shadow: 0 0 0 1px rgba(79,110,247,.5); }
 .oiw-tag { display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.08em; }
 .sync { font-size: 10px; color: var(--text-dim); }
 .offset-input-wrap.synced .sync { color: var(--accent); }
@@ -680,22 +658,22 @@ export default { name: 'SmcOffsetView' };
 
 .field-input-wrap { display:flex; gap:6px; }
 .field-input {
-  flex:1; background:var(--bg); border:1px solid var(--border-s); border-radius:var(--radius);
+  flex:1; background:var(--bg-elev-2); border:none; border-radius:var(--radius);
   color:var(--text); font-family:var(--font-mono); font-size:14px; font-weight:600;
-  padding:7px 10px; outline:none; transition:border-color .12s, box-shadow .12s; min-width:0;
+  padding:7px 10px; outline:none; transition:background .12s, box-shadow .12s; min-width:0;
 }
-.field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-.field-input.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
+.field-input:focus { background:var(--bg-elev-3); box-shadow:0 0 0 2px var(--accent); }
+.field-input.invalid { box-shadow:0 0 0 2px var(--err); }
 .field-input::placeholder { color: var(--placeholder); }
 /* Hex prefix wrapper — field inputs with fixed "0x" prefix */
 .hex-pfx-wrap {
-  display:flex; align-items:center; background:var(--bg);
-  border:1px solid var(--border-s); border-radius:var(--radius);
+  display:flex; align-items:center; background:var(--bg-elev-2);
+  border:none; border-radius:var(--radius);
   overflow:hidden; flex:1; position:relative;
-  transition:border-color .12s, box-shadow .12s;
+  transition:background .12s, box-shadow .12s;
 }
-.hex-pfx-wrap:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-.hex-pfx-wrap.invalid { border-color:var(--err); box-shadow:0 0 0 3px rgba(240,101,112,.12); }
+.hex-pfx-wrap:focus-within { background:var(--bg-elev-3); box-shadow:0 0 0 2px var(--accent); }
+.hex-pfx-wrap.invalid { box-shadow:0 0 0 2px var(--err); }
 .hex-pfx {
   padding:7px 2px 7px 10px; font-family:var(--font-mono); font-size:14px; font-weight:600;
   color:var(--text-dim); user-select:none; pointer-events:none; flex-shrink:0;
@@ -735,7 +713,7 @@ export default { name: 'SmcOffsetView' };
 .smc-pill {
   flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
   padding:7px 6px; border-radius:var(--radius); cursor:pointer;
-  background:var(--bg); border:1px solid var(--border-s); color:var(--text-dim);
+  background:var(--bg-elev-2); border:none; color:var(--text-dim);
   font-family:inherit; font-size:12.5px; font-weight:500; transition:all .12s; white-space:nowrap;
 }
 .smc-pill b { font-family:var(--font-mono); font-weight:700; opacity:.85; }

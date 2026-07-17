@@ -1,6 +1,6 @@
 /* ============================================================
    openUBMC Studio · Power & Fan Template
-   Dark theme, green accent (#34d399)
+   Dark theme, PTO primary blue accent (#4369ef)
    ============================================================ */
 
 :root {
@@ -14,10 +14,10 @@
   --text-mute:    #98a0b8;
   --text-dim:     #5a6280;
   --placeholder:  #343549;
-  --accent:       #34d399;
-  --accent-hi:    #4be2a9;
-  --accent-soft:  rgba(52,211,153,0.10);
-  --ok:           #34d399;
+  --accent:       #4369ef;
+  --accent-hi:    #5a92e6;
+  --accent-soft:  rgba(67,105,239,0.14);
+  --ok:           #04d793;
   --warn:         #f5b454;
   --err:          #f06570;
 
