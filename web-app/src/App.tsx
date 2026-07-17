@@ -804,7 +804,14 @@ export default function App() {
   }, []);
 
   const handleCloseTab = useCallback((paneId: PaneId, tabId: TabId) => {
-    setLayout(prev => lCloseTab(prev, paneId, tabId));
+    setLayout(prev => {
+      const next = lCloseTab(prev, paneId, tabId);
+      if (next.kind === 'leaf' && next.tabs.length === 0) {
+        const homeTab: TabEntry = { tabId: uid(), viewId: 'home' };
+        return { ...next, tabs: [homeTab], activeTabId: homeTab.tabId };
+      }
+      return next;
+    });
   }, []);
 
   const handleDragStart = useCallback((ds: DragState) => {
