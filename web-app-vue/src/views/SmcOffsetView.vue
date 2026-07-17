@@ -712,13 +712,13 @@ export default { name: 'SmcOffsetView' };
 }
 .smc-pill {
   flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
-  padding:5px 6px; border-radius:calc(var(--radius) - 1px); cursor:pointer;
-  background:transparent; border:none; color:var(--text-dim);
+  padding:5px 8px; border-radius:calc(var(--radius) - 1px); cursor:pointer;
+  background:rgba(255,255,255,0.05); border:none; color:var(--text-mute);
   font-family:inherit; font-size:12.5px; font-weight:500; transition:all .12s; white-space:nowrap;
 }
 .smc-pill b { font-family:var(--font-mono); font-weight:700; }
-.smc-pill:hover { color:var(--text); background:var(--bg-elev-3); }
-.smc-pill.on { background:var(--bg-elev-3); color:var(--text); }
+.smc-pill:hover { color:var(--text); background:rgba(255,255,255,0.10); }
+.smc-pill.on { background:rgba(255,255,255,0.18); color:var(--text); font-weight:600; }
 .field-copy {
   width:30px; height:32px; padding:0; border-radius:var(--radius);
   background:transparent; border:1px solid var(--border); color:var(--text-dim);
