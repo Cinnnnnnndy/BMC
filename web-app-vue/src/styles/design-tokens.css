@@ -41,17 +41,17 @@
   --motion-smooth: var(--duration-base) var(--easing-default);
 
   /* ── Data-viz-exempt: topology canvas (keep exact values) ── */
-  --canvas-bg: #09090e;
+  --canvas-bg: #1b1b1c;
   --canvas-dot: #141428;
   --node-bg: #0e0f1a;
   --node-label-bg: #0a0b14;
   --node-label-color: rgba(255, 255, 255, 0.55);
   --node-mux-label-bg: #0d0d1e;
-  --board-bg: #131318;
+  --board-bg: #232326;
   --board-label: rgba(255, 255, 255, 0.88);
   --board-border: rgba(255, 255, 255, 0.06);
-  --board-tag-bg: #1b1b21;
-  --chip-body-bg: #202027;
+  --board-tag-bg: #2a2a2e;
+  --chip-body-bg: #303035;
   --chip-body-border: rgba(255, 255, 255, 0.08);
   --chip-body-text: #e4e6ee;
   --chip-pin: rgba(255, 255, 255, 0.40);

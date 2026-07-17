@@ -408,7 +408,7 @@ function catStateClass(cat: CatNode): string {
         @pane-click="onPaneClick"
       >
         <Background :variant="BackgroundVariant.Lines" pattern-color="rgba(255,255,255,0.045)" :gap="42" :size="1" />
-        <Controls />
+        <Controls :show-interactive="false" />
         <MiniMap
           :node-color="miniColor"
           mask-color="rgba(8,8,18,0.65)"
@@ -653,40 +653,45 @@ function catStateClass(cat: CatNode): string {
 
 /* ── Bottom-left canvas toolbar: zoom controls + legend in one row ── */
 :deep(.vue-flow__controls) {
-  display: flex;
-  flex-direction: row;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
   gap: 2px;
-  left: 12px;
-  bottom: 12px;
+  left: 12px !important;
+  bottom: 12px !important;
   margin: 0;
   padding: 4px;
-  box-shadow: none;
+  height: 34px;
+  box-sizing: border-box;
+  box-shadow: none !important;
   border-radius: 8px;
   background: var(--board-tag-bg, #1b1b21);
   backdrop-filter: blur(4px);
 }
 :deep(.vue-flow__controls-button) {
-  width: 26px;
-  height: 26px;
-  background: transparent;
-  border: none;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px;
+  background: transparent !important;
+  border: none !important;
   border-radius: 6px;
   color: #e4e6ee;
   fill: #e4e6ee;
+  box-sizing: border-box;
+  padding: 0;
 }
 :deep(.vue-flow__controls-button svg) {
   fill: currentColor;
-  max-width: 13px;
-  max-height: 13px;
+  max-width: 12px;
+  max-height: 12px;
 }
 :deep(.vue-flow__controls-button:hover) {
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.10) !important;
 }
 
 .bus-legend {
   position: absolute;
-  left: 148px;   /* sits right of the horizontal zoom controls */
+  left: 110px;   /* clear of the 3-button zoom control pill (~94px wide) */
   bottom: 12px;
   z-index: 6;
   display: flex;

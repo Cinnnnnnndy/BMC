@@ -557,7 +557,7 @@ export default { name: 'SmcOffsetView' };
 .off-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: stretch; }
 
 .offset-input-wrap {
-  background: var(--bg-elev-2); border: none; border-radius: var(--radius);
+  background: var(--bg-elev-3); border: none; border-radius: var(--radius);
   padding: 8px 12px; display: flex; flex-direction: column; gap: 4px;
   transition: background .12s, box-shadow .12s;
 }

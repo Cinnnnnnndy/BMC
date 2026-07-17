@@ -575,9 +575,9 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 }
 
 /* ── Resolution-state variants: background tint instead of border ── */
-.group-node.state-multimatch      { background: #1b1712; }
-.group-node.state-typeplaceholder { background: #1b1811; }
-.group-node.state-missing         { background: #1d1214; }
+.group-node.state-multimatch      { background: #2b2620; }
+.group-node.state-typeplaceholder { background: #2b271f; }
+.group-node.state-missing         { background: #2d2022; }
 /* Cancel the generic "opacity 0.65" applied to category=unknown when a
    missing card happens to be in that category. Missing needs to stay
    legible. */

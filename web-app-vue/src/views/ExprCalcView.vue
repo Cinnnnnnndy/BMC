@@ -715,7 +715,7 @@ export default { name: 'ExprCalcView' };
 .page-head-info { min-width:0; }
 .page-head-line { display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
 .page-title { font-size:16px; font-weight:600; margin:0; letter-spacing:.01em; color:var(--text); }
-.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--accent-soft); color:var(--accent); border:1px solid rgba(79,110,247,.3); border-radius:4px; padding:2px 8px; white-space:nowrap; }
+.page-badge { font-size:10.5px; font-family:var(--font-mono); background:var(--bg-elev-3); color:var(--text-mute); border:none; border-radius:4px; padding:2px 8px; white-space:nowrap; }
 .page-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
 .head-actions { display:flex; gap:8px; flex-shrink:0; align-items:flex-start; }
 
@@ -791,7 +791,7 @@ export default { name: 'ExprCalcView' };
   font-size:11.5px; color:var(--text-mute); font-weight:600; padding-top:4px;
   display:inline-flex; align-items:center; gap:6px;
 }
-.op-cat-name::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--cat-color, var(--accent)); }
+.op-cat-name::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--text-dim); }
 .op-chips { display:flex; flex-wrap:wrap; gap:5px; }
 .op-chip {
   position:relative; background:var(--bg-elev-2); border:none;
