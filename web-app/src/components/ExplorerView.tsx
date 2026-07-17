@@ -297,6 +297,172 @@ class Registry:
 }`,
   },
 
+  'ext-json-api': {
+    lang: 'json',
+    content: `{
+  "$schema": "https://ubmc.openeuler.org/schema/northbound/v1",
+  "version": "1.3.0",
+  "title": "BMC 北向接口映射定义",
+  "description": "将 SR 内部对象属性映射到 Redfish / SNMP / IPMI 北向协议字段",
+  "mappings": [
+    {
+      "srPath": "Unit.Type",
+      "redfish": "/redfish/v1/Chassis/{id}#/ChassisType",
+      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.1.1",
+      "ipmi": "FRU 0x01 Product Name"
+    },
+    {
+      "srPath": "ManagementTopology.Anchor.Buses",
+      "redfish": "/redfish/v1/Systems/{id}/NetworkInterfaces",
+      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.2.1",
+      "ipmi": "N/A"
+    },
+    {
+      "srPath": "Objects.*.Address",
+      "redfish": "/redfish/v1/Chassis/{id}/PCIeDevices/{dev}#/Id",
+      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.3.1",
+      "ipmi": "SDR Sensor Number"
+    },
+    {
+      "srPath": "Objects.*.HealthStatus",
+      "redfish": "/redfish/v1/Chassis/{id}#/Status/Health",
+      "snmpOid": "1.3.6.1.4.1.2011.2.235.1.1.4.1",
+      "ipmi": "SEL Event Data Byte1"
+    }
+  ],
+  "protocols": {
+    "redfish": { "version": "1.16.0", "auth": "BasicAuth / SessionAuth" },
+    "snmp":    { "version": "v2c / v3",  "mibs": ["HUAWEI-BMC-MIB"] },
+    "ipmi":    { "version": "2.0",       "channel": "LAN / KCS" }
+  }
+}`,
+  },
+
+  'ext-sr-lsp': {
+    lang: 'json',
+    content: `{
+  "name": "sr-language-server",
+  "displayName": "SR 语言服务器",
+  "version": "0.9.4",
+  "description": "为 .sr 板卡描述文件提供语法检查、补全、悬停提示和跳转定义",
+  "capabilities": {
+    "textDocumentSync": 2,
+    "completionProvider": {
+      "triggerCharacters": [".", "#", "/", "\""],
+      "resolveProvider": true
+    },
+    "hoverProvider": true,
+    "definitionProvider": true,
+    "referencesProvider": true,
+    "documentSymbolProvider": true,
+    "diagnosticProvider": {
+      "interFileDependencies": true,
+      "workspaceDiagnostics": true
+    }
+  },
+  "schemas": {
+    "sr": "https://ubmc.openeuler.org/schema/sr/v3",
+    "softSr": "https://ubmc.openeuler.org/schema/soft-sr/v1"
+  },
+  "validation": {
+    "checkConnectorRefs": true,
+    "checkChipAddressConflict": true,
+    "checkBusTopology": true,
+    "lintFormatVersion": true
+  },
+  "status": "running",
+  "pid": 41872,
+  "port": 2087
+}`,
+  },
+
+  'ext-sr-preview': {
+    lang: 'json',
+    content: `{
+  "name": "sr-file-preview",
+  "displayName": "SR 文件预览",
+  "version": "0.6.1",
+  "description": "在编辑器内以拓扑图方式可视化 .sr 板卡描述文件的 ManagementTopology",
+  "supportedFileTypes": [".sr", "_soft.sr", ".json"],
+  "renderModes": [
+    {
+      "id": "topology",
+      "label": "拓扑视图",
+      "description": "以节点图展示 Anchor → Bus → Chip → Connector 链路",
+      "default": true
+    },
+    {
+      "id": "table",
+      "label": "对象列表",
+      "description": "以表格展示所有 Objects 条目及其关键属性"
+    },
+    {
+      "id": "diff",
+      "label": "版本对比",
+      "description": "对比两个版本 sr 文件中 Objects/Topology 的差异"
+    }
+  ],
+  "colorScheme": {
+    "Bus":       "#4f6ef7",
+    "Chip":      "#22c55e",
+    "Connector": "#f59e0b",
+    "Eeprom":    "#a855f7",
+    "MCU":       "#06b6d4"
+  },
+  "keybindings": {
+    "openPreview": "Ctrl+Shift+V",
+    "toggleMode":  "Ctrl+Shift+M"
+  }
+}`,
+  },
+
+  'ext-mib': {
+    lang: 'markdown',
+    content: `# HUAWEI-BMC-MIB  v2
+
+BMC 硬件管理信息库（MIB），符合 RFC 2578 / SMIv2 规范。
+
+## OID 树结构
+
+\`\`\`
+iso(1).org(3).dod(6).internet(1).private(4).enterprises(1)
+  └─ huawei(2011).products(2).iBMC(235)
+       ├─ bmcObjects(1)
+       │    ├─ bmcSystem(1)     — 系统基本信息
+       │    ├─ bmcBoard(2)      — 板卡拓扑
+       │    ├─ bmcSensor(3)     — 传感器读数
+       │    ├─ bmcPower(4)      — 电源状态
+       │    └─ bmcAlarm(5)      — 告警事件
+       └─ bmcNotifications(2)
+            └─ bmcTrap(1)       — SNMP Trap 定义
+\`\`\`
+
+## 常用 OID
+
+| OID                                | 名称               | 类型    | 说明              |
+|------------------------------------|--------------------|---------|-------------------|
+| 1.3.6.1.4.1.2011.2.235.1.1.1.1    | bmcProductName     | String  | 产品型号          |
+| 1.3.6.1.4.1.2011.2.235.1.1.1.2    | bmcFirmwareVersion | String  | 固件版本          |
+| 1.3.6.1.4.1.2011.2.235.1.1.2.1    | bmcBoardCount      | Integer | 在线板卡总数      |
+| 1.3.6.1.4.1.2011.2.235.1.1.3.1    | bmcSensorValue     | Gauge32 | 传感器当前读数    |
+| 1.3.6.1.4.1.2011.2.235.1.1.4.1    | bmcHealthStatus    | Integer | 0=OK,1=Warn,2=Crit|
+| 1.3.6.1.4.1.2011.2.235.2.1.1      | bmcHardwareTrap    | Trap    | 硬件故障告警      |
+
+## SNMP 接入示例
+
+\`\`\`bash
+# 读取固件版本
+snmpget -v2c -c public <bmc-ip> 1.3.6.1.4.1.2011.2.235.1.1.1.2
+
+# 订阅所有告警 Trap
+snmptrapd -f -Lo -c /etc/snmp/snmptrapd.conf
+\`\`\`
+
+## 下载
+
+MIB 文件路径：\`vendor/Huawei/MIB/HUAWEI-BMC-MIB.txt\``,
+  },
+
   hypercard: {
     lang: 'json',
     content: `{
@@ -358,6 +524,55 @@ class Registry:
 }`,
   },
 };
+
+// ── Code-assist extensions (clickable → opens content in code pane) ───────
+
+const EXTENSIONS = [
+  {
+    id: 'ext-json-api',
+    name: 'JSON 北向接口',
+    iconColor: '#818cf8',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    icon: (
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'ext-sr-lsp',
+    name: 'SR 语言服务器',
+    iconColor: '#34d399',
+    iconBg: 'rgba(16, 185, 129, 0.12)',
+    icon: (
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'ext-sr-preview',
+    name: 'SR 文件预览',
+    iconColor: '#38bdf8',
+    iconBg: 'rgba(14, 165, 233, 0.12)',
+    icon: (
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'ext-mib',
+    name: 'MIB 支持',
+    iconColor: '#fbbf24',
+    iconBg: 'rgba(245, 158, 11, 0.12)',
+    icon: (
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+    ),
+  },
+] as const;
 
 // ── Tree structure ─────────────────────────────────────────────────────────
 
@@ -573,12 +788,16 @@ function CodePane({ fileId }: { fileId: string | null }) {
           color: 'var(--foreground, #cccccc)',
           fontSize: 12,
         }}>
-          {fileId === 'risercard' ? '14100513_00000001040302023947.sr'
-            : fileId === 'hypercard' ? '14140130_HyperCard_0.sr'
-            : fileId === 'readme' ? 'README.md'
-            : fileId === 'changelog' ? 'CHANGELOG.md'
-            : fileId === 'conan' ? 'conanfile.py'
-            : fileId === 'registry' ? 'registry.py'
+          {fileId === 'risercard'         ? '14100513_00000001040302023947.sr'
+            : fileId === 'hypercard'       ? '14140130_HyperCard_0.sr'
+            : fileId === 'readme'          ? 'README.md'
+            : fileId === 'changelog'       ? 'CHANGELOG.md'
+            : fileId === 'conan'           ? 'conanfile.py'
+            : fileId === 'registry'        ? 'registry.py'
+            : fileId === 'ext-json-api'    ? 'northbound-mapping.json'
+            : fileId === 'ext-sr-lsp'      ? 'sr-language-server.json'
+            : fileId === 'ext-sr-preview'  ? 'sr-file-preview.json'
+            : fileId === 'ext-mib'         ? 'HUAWEI-BMC-MIB.md'
             : 'SmcDfxInfo配置说明.md'}
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 10.5 }}>
@@ -699,15 +918,51 @@ export function ExplorerView() {
             <TreeItem key={i} node={node} depth={0} selectedId={selectedId} onSelect={setSelectedId} />
           ))}
         </div>
-        <div style={{
-          padding: '6px 12px',
-          fontSize: 10.5,
-          color: 'var(--foreground-muted)',
-          borderTop: '1px solid var(--border-subtle)',
-          fontFamily: 'ui-monospace, monospace',
-          flexShrink: 0,
-        }}>
-          示例文件
+        {/* Extensions section */}
+        <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)' }}>
+          {/* sec-hd */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            padding: '0 8px 0 12px', height: 32,
+            font: '500 11px/1.2 var(--font-sans)',
+            textTransform: 'uppercase' as const, letterSpacing: '0.06em',
+            color: 'var(--foreground-muted)', userSelect: 'none' as const, gap: 6,
+          }}>
+            <svg viewBox="0 0 24 24" width="10" height="10" style={{ color: 'var(--foreground-muted)', transform: 'rotate(90deg)', flexShrink: 0 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+            代码辅助扩展
+          </div>
+          {EXTENSIONS.map((ext) => {
+            const isActive = selectedId === ext.id;
+            return (
+              <div
+                key={ext.id}
+                onClick={() => setSelectedId(ext.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '0 12px', height: 28, cursor: 'pointer',
+                  fontSize: 12, color: isActive ? 'var(--foreground)' : 'var(--foreground-secondary)',
+                  background: isActive ? 'var(--state-selected, rgba(67,105,239,0.14))' : 'transparent',
+                  borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                  userSelect: 'none' as const,
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--state-hover)'; }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+              >
+                <div style={{
+                  width: 18, height: 18, borderRadius: 4,
+                  background: ext.iconBg, color: ext.iconColor,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {ext.icon}
+                </div>
+                {ext.name}
+              </div>
+            );
+          })}
+          <div style={{ height: 8 }} />
         </div>
       </div>
 
