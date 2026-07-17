@@ -49,7 +49,7 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 type ViewId =
   | 'home' | 'installGuide' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
-  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD'
+  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig'
   | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup';
 
@@ -90,6 +90,7 @@ const ICONS: Record<string, React.ReactNode> = {
   hwTopology:   <SI d={['M9 3H5a2 2 0 0 0-2 2v4m6-6h6m-6 0v18m6-18h4a2 2 0 0 1 2 2v4M3 9h6M21 9h-6','M3 21h6m-6 0v-4m18 4h-6m6 0v-4M9 21v-4m0 0h6m0 0v4']} />,
   threeD:       <SI d={['M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z','M3.27 6.96L12 12.01l8.73-5.05','M12 22.08V12']} />,
   vueTopo:      <SI d={['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z','M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z']} />,
+  csrTopo:      <SI d={['M4 4h4v4H4z', 'M16 4h4v4h-4z', 'M4 16h4v4H4z', 'M16 16h4v4h-4z', 'M8 6h8M6 8v8M8 18h8M18 8v8']} />,
   serverView:   <SI d={['M21 4H3a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z','M21 14H3a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z']} />,
   smcOffset:    <SI d="M4 9h16M4 15h16M10 3v18M14 3v18" />,
   exprCalc:     <SI d={['M4 17l6-6-6-6','M12 19h8']} />,
@@ -191,7 +192,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
-  threeD: '3D 仿真', vueTopo: 'CSR 拓扑', serverView: '服务器视图',
+  threeD: '3D 仿真', vueTopo: 'CSR 拓扑', csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
@@ -634,6 +635,11 @@ export default function App() {
     }
   }, [ensureCsrLoaded, openViewInSplit]);
 
+  const handleNavTo = useCallback((viewId: ViewId) => {
+    if (CSR_REQUIRED.has(viewId) && !csrRef.current) return;
+    openView(viewId);
+  }, [openView]);
+
   // 顶栏快捷动作 / iframe 请求 → 打开终端并派发 agent 命令
   const runQuickAction = useCallback((cmd: string) => {
     setTermOpen(true);
@@ -766,11 +772,6 @@ export default function App() {
     setDirty(true);
   }, []);
 
-  const handleNavTo = useCallback((viewId: ViewId) => {
-    if (CSR_REQUIRED.has(viewId) && !csrRef.current) return;
-    openView(viewId);
-  }, [openView]);
-
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -885,8 +886,9 @@ export default function App() {
     return <div className="view-loading">正在加载 CSR 文件…</div>;
   }
 
-  const vueSrc  = withBase('vue-topo/index.html');
-  const threeDSrc = withBase('3d-viewer/index.html');
+  const vueSrc     = withBase('vue-topo/index.html');
+  const csrTopoSrc = withBase('csr-topo-ext/index.html');
+  const threeDSrc  = withBase('3d-viewer/index.html');
   const modelInfo = currentProject ? parseModelInfo(currentProject.model) : null;
 
   // ── Content renderer (called per-tab by LeafPaneView) ─────────────────
@@ -924,6 +926,18 @@ export default function App() {
         return <iframe src={withBase('ai-assist.html') + '?view=history'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 历史" />;
       case 'vueTopo':
         return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="CSR拓扑Vue视图" />;
+      case 'csrTopo':
+        return (
+          <iframe
+            src={csrTopoSrc}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            title="CSR拓扑编辑器"
+            onLoad={e => {
+              const win = (e.currentTarget as HTMLIFrameElement).contentWindow;
+              if (win) win.postMessage({ command: 'showAddNodeView' }, '*');
+            }}
+          />
+        );
       case 'hwTopology':
         return <HardwareTopologyCanvas />;
       case 'serverView':
@@ -1000,6 +1014,7 @@ export default function App() {
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
     { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
+    { id: 'csrTopo',      tooltip: 'CSR 拓扑编辑器' },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
   ];
 
