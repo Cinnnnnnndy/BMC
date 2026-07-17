@@ -976,7 +976,7 @@ export default function App() {
   }
 
   // ── Activity rail items ────────────────────────────────────────────────
-  type RailItem = { id: ViewId; tooltip: string };
+  type RailItem = { id: ViewId; tooltip: string; csrRequired?: boolean };
 
   const railItems: RailItem[] = [
     { id: 'home',         tooltip: '欢迎页' },
@@ -987,20 +987,18 @@ export default function App() {
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
     { id: 'vueTopo',      tooltip: 'CSR 拓扑' },
-    ...(csr ? [
-      { id: 'topology'     as ViewId, tooltip: '拓扑视图' },
-      { id: 'association'  as ViewId, tooltip: '软硬件关联' },
-      { id: 'simulator'    as ViewId, tooltip: '仿真调试' },
-      { id: 'sensor'       as ViewId, tooltip: '传感器配置' },
-      ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑' }] : []),
-    ] : []),
+    { id: 'hwTopology',   tooltip: '硬件拓扑' },
+    { id: 'threeD',       tooltip: '3D 仿真' },
+    { id: 'topology',     tooltip: '拓扑视图', csrRequired: true },
+    { id: 'association',  tooltip: '软硬件关联', csrRequired: true },
+    { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
+    { id: 'sensor',       tooltip: '传感器配置', csrRequired: true },
+    ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, tooltip: '板卡拓扑', csrRequired: true as const }] : []),
   ];
 
   // 未成熟功能收进「更多」菜单（Beta 预览）
   const moreItems: { id: ViewId; csrRequired?: boolean }[] = [
     { id: 'serverView' },
-    { id: 'hwTopology' },
-    { id: 'threeD' },
     { id: 'event', csrRequired: true },
   ];
 
@@ -1074,16 +1072,20 @@ export default function App() {
       <div className="pto-ide-frame__body">
         <nav className="pto-ide-frame__activity-rail ide-activity-rail">
           <div className="ide-rail-section">
-            {railItems.map((item) => (
-              <button
-                key={item.id}
-                className={`pto-ide-frame__rail-button ${activeTabViewIds.has(item.id) ? 'is-selected' : ''}`}
-                onClick={() => handleNavTo(item.id)}
-                title={item.tooltip}
-              >
-                {ICONS[item.id]}
-              </button>
-            ))}
+            {railItems.map((item) => {
+              const locked = !!item.csrRequired && !csr;
+              return (
+                <button
+                  key={item.id}
+                  className={`pto-ide-frame__rail-button ${activeTabViewIds.has(item.id) ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}
+                  onClick={() => !locked && handleNavTo(item.id)}
+                  title={locked ? `${item.tooltip}（需先加载工程 CSR）` : item.tooltip}
+                  style={locked ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
+                >
+                  {ICONS[item.id]}
+                </button>
+              );
+            })}
             <button
               ref={moreBtnRef}
               className={`pto-ide-frame__rail-button ${moreMenuOpen || moreItems.some(m => activeTabViewIds.has(m.id)) || extItems.some(id => activeTabViewIds.has(id)) ? 'is-selected' : ''}`}
