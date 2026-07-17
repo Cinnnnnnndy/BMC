@@ -98,6 +98,8 @@
   flex-shrink: 0;
 }
 .hw-search-ic {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   color: var(--foreground-muted);
 }

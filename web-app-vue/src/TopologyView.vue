@@ -281,6 +281,17 @@ function miniColor(n: AnyNode) {
 }
 
 const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.length, 0));
+
+function stateClass(state: ResolutionState): string {
+  if (state === 'missing') return 'hw-count-err';
+  if (state === 'resolved') return 'hw-count-ok';
+  return 'hw-count-warn'; // multi-match, type-placeholder, unclassified
+}
+function catStateClass(cat: CatNode): string {
+  if (cat.groups.some((g) => g.state === 'missing')) return 'hw-count-err';
+  if (cat.groups.some((g) => g.state !== 'resolved')) return 'hw-count-warn';
+  return 'hw-count-ok';
+}
 </script>
 
 <template>
@@ -335,7 +346,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
           <button class="hw-cat-row" @click="toggleCat(cat.type)">
             <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
             <span class="hw-cat-label">{{ cat.label }}</span>
-            <span class="hw-count">{{ cat.boardCount || cat.groups.length }}</span>
+            <span :class="['hw-count', catStateClass(cat)]">{{ cat.boardCount || cat.groups.length }}</span>
           </button>
           <div v-if="expandedCats[cat.type]" class="hw-cat-body">
             <template v-for="g in cat.groups" :key="g.id">
@@ -349,7 +360,7 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
                 <span v-else class="hw-caret hw-caret-empty" />
                 <span class="hw-state-dot" :style="{ background: STATE_COLOR[g.state] }" :title="STATE_LABEL[g.state]" />
                 <span class="hw-grp-name">{{ g.name }}</span>
-                <span v-if="g.boards.length" class="hw-count">{{ g.boards.length }}</span>
+                <span v-if="g.boards.length" :class="['hw-count', stateClass(g.state)]">{{ g.boards.length }}</span>
                 <button
                   v-if="g.state === 'unclassified'"
                   class="unc-assign-btn"
@@ -561,9 +572,10 @@ const totalBoards = computed(() => built.groups.reduce((s, g) => s + g.boards.le
   height: 20px;
   display: flex;
   align-items: center;
-  background: color-mix(in srgb, var(--success, #04d793) 20%, transparent);
-  color: var(--success, #04d793);
 }
+.hw-count-ok   { background: color-mix(in srgb, var(--success, #04d793) 20%, transparent); color: var(--success, #04d793); }
+.hw-count-warn { background: color-mix(in srgb, var(--warning, #ffaa3b) 20%, transparent); color: var(--warning, #ffaa3b); }
+.hw-count-err  { background: color-mix(in srgb, var(--danger, #ff4b7b) 18%, transparent); color: var(--danger, #ff4b7b); }
 
 .hw-cat-body { display: flex; flex-direction: column; }
 
