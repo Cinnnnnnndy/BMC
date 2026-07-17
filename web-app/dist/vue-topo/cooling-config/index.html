@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>能效调速配置 · openUBMC Studio</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="shell">
+
+  <main class="page">
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar">
+      <div class="toolbar-title">
+        <h1>能效调速配置</h1>
+        <span class="meta" id="tb-filename">platform-thermal.yaml</span>
+      </div>
+      <div class="toolbar-status">
+        <span class="save-pulse"></span>
+        <span style="font-size:11.5px;color:var(--text-dim);font-family:var(--font-mono);" id="tb-status">已自动保存</span>
+      </div>
+      <div class="toolbar-actions">
+        <div class="seg" id="view-mode" style="font-size:12px;">
+          <button class="active" data-view="split">分屏</button>
+          <button data-view="form">仅表单</button>
+          <button data-view="yaml">仅 YAML</button>
+        </div>
+        <div class="err-popover-wrap">
+          <button class="btn btn-secondary validate-btn" id="btn-validate">
+            校验
+            <span class="err-count" id="err-count" style="display:none;">0</span>
+          </button>
+          <div class="err-popover" id="err-popover"></div>
+        </div>
+        <button class="btn btn-green" id="btn-generate">生成 CSR ↓</button>
+      </div>
+    </div>
+
+    <div class="editor-layout" id="editor-layout">
+
+      <!-- ══ YAML pane ══ -->
+      <div class="yaml-pane">
+        <div class="yaml-head">
+          <span class="lbl">YAML 源码 <span class="filename">platform-thermal.yaml</span></span>
+          <div class="actions">
+            <button id="yaml-fold-comments" class="active" title="折叠/展开注释">注释折叠</button>
+            <button id="yaml-copy" title="复制全部 YAML">复制</button>
+          </div>
+        </div>
+        <div class="yaml-body">
+          <div class="yaml-gutter" id="yaml-gutter"></div>
+          <pre class="yaml-code" id="yaml-code"></pre>
+        </div>
+      </div>
+
+      <!-- ══ Form pane ══ -->
+      <div class="form-pane">
+        <div class="form-pane-inner">
+
+          <!-- Sticky bar: step-flow + collapsible entity nav -->
+          <div class="sticky-bar" id="sticky-bar">
+            <div class="step-flow">
+              <span>① 全局</span><span class="arrow">→</span>
+              <span>② 温度点</span><span class="arrow">→</span>
+              <span>③ 调速风扇</span><span class="arrow">→</span>
+              <span>④ 调速策略</span><span class="arrow">→</span>
+              <span>⑤ 绑定区域</span><span class="arrow">→</span>
+              <span>⑥ 风扇类型</span><span class="arrow">·</span>
+              <span>⑦ 异常风扇</span><span class="arrow">·</span>
+              <span>⑧ 风扇组</span>
+              <span style="flex:1"></span>
+              <span class="step-hint">先定义，再绑定</span>
+              <button class="nav-toggle" id="nav-toggle" title="展开/收起导航面板">▾</button>
+            </div>
+            <div class="quick-nav" id="quick-nav"></div>
+          </div>
+
+          <!-- (1) Global -->
+          <section class="section" id="sec-global">
+            <div class="section-head">
+              <span class="order">①</span>
+              <span class="h">全局配置 <span class="subt">slot_id · cooling_config</span></span>
+            </div>
+            <div class="section-desc">整机调速的<b>总开关与兜底参数</b>：是否启用智能调速、无策略匹配时的默认转速、风扇分区数与温度采样周期。</div>
+            <div class="global-grid">
+              <div class="field-mini" title="设备槽位编号（slot_id）">
+                <span class="lab">槽位 ID <i class="code">slot_id</i></span>
+                <input id="f-slot-id" value="1" />
+              </div>
+              <div class="field-mini" title="是否启用智能调速（smart cooling）">
+                <span class="lab">智能调速 <i class="code">smart_cooling</i></span>
+                <select id="f-smart-state">
+                  <option value="Enabled" selected>启用 (Enabled)</option>
+                  <option value="Disabled">禁用 (Disabled)</option>
+                </select>
+              </div>
+              <div class="field-mini" title="无策略匹配时的默认占空比（default duty）">
+                <span class="lab">默认占空比 <i class="code">%</i></span>
+                <input id="f-default-duty" type="number" min="0" max="100" value="40" />
+              </div>
+              <div class="field-mini" title="风扇分区数量（fan zones）">
+                <span class="lab">风扇分区数 <i class="code">fan_zones</i></span>
+                <input id="f-fan-zones" type="number" min="1" max="8" value="2" />
+              </div>
+              <div class="field-mini" title="电源风扇转速校准方式（psu calibration）">
+                <span class="lab">电源校准 <i class="code">psu_calibration</i></span>
+                <select id="f-psu-cal">
+                  <option value="Enabled">启用 (Enabled)</option><option value="Auto" selected>自动 (Auto)</option><option value="Disabled">禁用 (Disabled)</option>
+                </select>
+              </div>
+              <div class="field-mini" title="温度采样周期（sample period）">
+                <span class="lab">采样周期 <i class="code">ms</i></span>
+                <input id="f-sample-period" type="number" min="100" step="100" value="1000" />
+              </div>
+            </div>
+          </section>
+
+          <!-- (2) Temperature points -->
+          <section class="section" id="sec-temp">
+            <div class="section-head">
+              <span class="order">②</span>
+              <span class="h">温度监控点 <span class="subt">cooling_requirements</span></span>
+              <span class="count" id="cnt-temp">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="temp">+ 新增温度点</button>
+            </div>
+            <div class="section-desc">声明要<b>监控的温度来源</b>（CPU / 内存 / 硬盘 / 进风口…），每个点绑定一个传感器路径，供下方「调速区域」引用。</div>
+            <div class="row-list" id="list-temp"></div>
+          </section>
+
+          <!-- (3) Fans -->
+          <section class="section" id="sec-fan">
+            <div class="section-head">
+              <span class="order">③</span>
+              <span class="h">风扇配置 <span class="subt">cooling_fans · 执行器</span></span>
+              <span class="count" id="cnt-fan">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fan">+ 新增风扇</button>
+            </div>
+            <div class="section-desc">登记机箱里每个<b>可调速风扇</b>及其位置、型号、占空比上下限——它们是调速的「执行器」，被「调速区域」控制。</div>
+            <div class="row-list" id="list-fan"></div>
+          </section>
+
+          <!-- (4) Policies -->
+          <section class="section" id="sec-policy">
+            <div class="section-head">
+              <span class="order">④</span>
+              <span class="h">调速策略 <span class="subt">cooling_policies · 温度 → 转速曲线</span></span>
+              <span class="count" id="cnt-policy">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="policy">+ 新增策略</button>
+            </div>
+            <div class="section-desc">定义<b>「温度 → 转速」曲线</b>：在各温度区间给出对应转速 %，是调速的算法核心。可展开查看曲线图。</div>
+            <div class="row-list" id="list-policy"></div>
+          </section>
+
+          <!-- (5) Areas -->
+          <section class="section" id="sec-area">
+            <div class="section-head">
+              <span class="order">⑤</span>
+              <span class="h">调速区域 <span class="subt">cooling_areas · 温度点 + 策略 + 风扇的绑定</span></span>
+              <span class="count" id="cnt-area">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="area">+ 新增区域</button>
+            </div>
+            <div class="section-desc">把【<b>温度点 + 策略 + 风扇</b>】绑在一起：某区域温度由谁监控、用哪条曲线、控制哪些风扇——前面几步在这里组装成完整闭环。</div>
+
+            <!-- Server diagram -->
+            <div class="server-diagram">
+              <div class="server-svg-wrap" id="server-svg-host"></div>
+              <div class="server-side">
+                <div class="lbl">机箱视图</div>
+                <div class="legend-row"><span class="sw" style="background:var(--accent);"></span>当前区域绑定的风扇</div>
+                <div class="legend-row"><span class="sw" style="background:rgba(52,211,153,0.25);"></span>已被其他区域绑定</div>
+                <div class="legend-row"><span class="sw" style="background:#2a4738;"></span>未绑定</div>
+                <div class="legend-row"><span class="sw" style="background:rgba(240,101,112,0.18);"></span>孤立未引用</div>
+                <div class="hint">悬停区域行 / 点击风扇 = 切换当前区域绑定</div>
+              </div>
+            </div>
+
+            <div class="row-list" id="list-area"></div>
+          </section>
+
+          <!-- ⑥ Fan Types -->
+          <section class="section" id="sec-fantype">
+            <div class="section-head">
+              <span class="order">⑥</span>
+              <span class="h">风扇类型 <span class="subt">fan_types · 型号与规格定义</span></span>
+              <span class="count" id="cnt-fantype">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fanType">+ 新增类型</button>
+            </div>
+            <div class="section-desc"><b>风扇型号库</b>：转速范围、转子数等规格定义，供「③ 风扇」按名称引用，避免重复填写。</div>
+            <div class="row-list" id="list-fantype"></div>
+          </section>
+
+          <!-- ⑦ Abnormal Fans -->
+          <section class="section" id="sec-abnormal">
+            <div class="section-head">
+              <span class="order">⑦</span>
+              <span class="h">异常风扇 <span class="subt">abnormal_fans · 异常行为监控规则</span></span>
+              <span class="count" id="cnt-abnormal">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="abnormalFan">+ 新增规则</button>
+            </div>
+            <div class="section-desc"><b>风扇异常监控规则</b>：当某风扇出现卡死 / 无反馈 / 超速 / 欠速等情况时触发告警，保障散热可靠性。</div>
+            <div class="row-list" id="list-abnormal"></div>
+          </section>
+
+          <!-- ⑧ Fan Groups -->
+          <section class="section" id="sec-fangroup">
+            <div class="section-head">
+              <span class="order">⑧</span>
+              <span class="h">风扇组 <span class="subt">basic_cooling_config · fan_groups · 控制分组</span></span>
+              <span class="count" id="cnt-fangroup">0</span>
+              <span class="spacer"></span>
+              <button class="add-btn" data-add="fanGroup">+ 新增风扇组</button>
+            </div>
+            <div class="section-desc">把多个风扇<b>编成一组统一限制占空比</b>，便于按区域 / 模块整体管控转速。</div>
+            <div class="row-list" id="list-fangroup"></div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- CSR drawer -->
+    <div class="csr-drawer" id="csr-drawer">
+      <div class="csr-handle" id="csr-handle">
+        <div>
+          <span class="ttl">CSR 对象片段</span>
+          <span class="ttl-meta" id="csr-meta">PSR · — KB</span>
+        </div>
+        <div class="center">
+          <div class="seg" id="csr-tab">
+            <button class="active" data-tab="psr">PSR</button>
+            <button data-tab="sr">SR</button>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost" id="btn-csr-copy">复制</button>
+          <button class="btn btn-ghost" id="btn-csr-download">下载</button>
+          <span class="caret-up">▲</span>
+        </div>
+      </div>
+      <div class="csr-body" id="csr-body">
+        <pre class="csr-code" id="csr-code"></pre>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

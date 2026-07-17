@@ -1,0 +1,103 @@
+<svg viewBox="0 0 56.0833 49.416" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="56.083252" height="49.416016" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_27">
+			<effect x="0.000000" y="5.000000" visibility="visible" fill="rgb(12,100,173)" fill-opacity="0.250980407" effectType="dropShadow" stdDeviation="12.5" radius="0" />
+			<effect x="0.000000" y="-1.250000" visibility="visible" fill="rgb(16,95,156)" fill-opacity="0.501960814" effectType="innerShadow" stdDeviation="2.5" radius="0" />
+		</g>
+		<filter id="filter_27" width="47.248291" height="46.250000" x="0.000000" y="0.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_27)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feOffset dx="0.000000" dy="5.000000" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="4.16666651" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.0470588 0 0 0 0 0.392157 0 0 0 0 0.678431 0 0 0 0.25098 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+			<feOffset dx="0.000000" dy="-1.250000" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="0.833333313" />
+			<feComposite k2="-1" k3="1" in2="SourceAlpha" operator="arithmetic" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.0627451 0 0 0 0 0.372549 0 0 0 0 0.611765 0 0 0 0.501961 0 " />
+			<feBlend result="effect_innerShadow_2" in2="shape" mode="normal" />
+		</filter>
+		<linearGradient id="paint_linear_16" x1="23.6241684" x2="23.6241684" y1="7.5" y2="28.254528" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(108,191,249)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(9,159,255)" offset="1" stop-opacity="1" />
+		</linearGradient>
+		<g id="pixso_custom_effect_28">
+			<effect x="0.000000" y="0.000000" visibility="visible" fill="rgb(108,185,249)" fill-opacity="0.200000003" effectType="dropShadow" stdDeviation="10.250001" radius="0" />
+			<effect x="0.000000" y="0.000000" visibility="visible" fill="rgb(185,227,255)" fill-opacity="1" effectType="innerShadow" stdDeviation="3" radius="0" />
+			<effect visibility="visible" effectType="backgroundBlur" saturation="0" stdDeviation="30.0000019" />
+		</g>
+		<filter id="filter_28" width="40.500000" height="40.500000" x="15.583008" y="8.916016" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_28)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="0.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="3.41666698" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.423529 0 0 0 0 0.72549 0 0 0 0 0.976471 0 0 0 0.2 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="0.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="1" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="arithmetic" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.72549 0 0 0 0 0.890196 0 0 0 0 1 0 0 0 1 0 " />
+			<feBlend result="effect_innerShadow_2" in2="shape" mode="normal" />
+		</filter>
+		<clipPath id="outline_mask_7" transform="matrix(1,0,0,1,-15.583,-8.91602)">
+			<path d="M25.833 29.166C25.833 23.6432 30.3102 19.166 35.833 19.166C41.3559 19.166 45.833 23.6432 45.833 29.166C45.833 34.6889 41.3559 39.166 35.833 39.166C30.3102 39.166 25.833 34.6889 25.833 29.166Z" fill="rgb(255,255,255)" fill-rule="evenodd" />
+		</clipPath>
+		<linearGradient id="paint_linear_17" x1="35.8330078" x2="35.8330078" y1="19.1660156" y2="39.1660156" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(108,179,249)" offset="0" stop-opacity="0" />
+			<stop stop-color="rgb(64,165,255)" offset="1" stop-opacity="1" />
+		</linearGradient>
+		<g id="pixso_custom_effect_29">
+			<effect x="0.000000" y="1.000000" visibility="visible" fill="rgb(12,56,173)" fill-opacity="0.501960814" effectType="dropShadow" stdDeviation="2" radius="0" />
+		</g>
+		<filter id="filter_29" width="6.500000" height="14.000000" x="32.583008" y="21.500000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_29)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feOffset dx="0.000000" dy="1.000000" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="0.666666687" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.0470588 0 0 0 0 0.219608 0 0 0 0 0.678431 0 0 0 0.501961 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<g id="pixso_custom_effect_30">
+			<effect x="0.000000" y="1.000000" visibility="visible" fill="rgb(12,56,173)" fill-opacity="0.501960814" effectType="dropShadow" stdDeviation="2" radius="0" />
+		</g>
+		<filter id="filter_30" width="6.500000" height="6.500000" x="32.583008" y="32.332031" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_30)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feOffset dx="0.000000" dy="1.000000" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="0.666666687" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.0470588 0 0 0 0 0.219608 0 0 0 0 0.678431 0 0 0 0.501961 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+	</defs>
+	<rect id="openUBMC/开源组件介绍" width="40.000000" height="40.000000" x="9.166504" y="2.500000" fill="rgb(255,255,255)" fill-opacity="0" />
+	<g id="组合 98">
+		<rect id="矩形" width="40.000000" height="40.000000" x="9.166504" y="2.500000" fill="rgb(216,216,216)" fill-opacity="0" />
+		<rect id="矩形" width="37.142857" height="37.142857" x="10.595076" y="3.928571" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="2.85714293" />
+		<g id="组合 68">
+			<rect id="矩形" width="40.000000" height="40.000000" x="9.166504" y="2.500000" fill="rgb(216,216,216)" fill-opacity="0" />
+			<rect id="矩形" width="37.142857" height="37.142857" x="10.595076" y="3.928571" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="2.85714293" />
+			<g filter="url(#filter_27)">
+				<path id="减去顶层" d="M25.5709 10.8117C25.5709 10.9604 25.687 11.0876 25.8356 11.0876L30.8602 11.0876C31.6253 11.0876 32.2455 11.7078 32.2455 12.4729L32.2455 14.3856C32.2455 15.0028 32.7459 15.5032 33.3631 15.5032C34.1281 15.5032 34.7483 16.1234 34.7483 16.8884L34.7483 22.949C34.7483 23.7141 34.1281 24.3343 33.3631 24.3343C32.7459 24.3343 32.2455 24.8347 32.2455 25.4519L32.2455 27.3646C32.2455 28.1297 31.6253 28.7499 30.8602 28.7499L13.8853 28.7499C13.1202 28.7499 12.5 28.1297 12.5 27.3646L12.5 24.5335C12.5 23.7563 13.3913 23.2304 14.1684 23.2304C16.0115 23.2304 17.5057 21.7477 17.5057 19.9187C17.5057 18.0897 16.0115 16.6071 14.1684 16.6071C13.3913 16.6071 12.5 16.0811 12.5 15.304L12.5 12.4729C12.5 11.7078 13.1202 11.0876 13.8853 11.0876L18.6315 11.0876C18.7802 11.0876 18.8963 10.9604 18.8963 10.8117C18.8963 8.98269 20.3905 7.5 22.2336 7.5C24.0767 7.5 25.5709 8.98269 25.5709 10.8117Z" fill="url(#paint_linear_16)" fill-rule="evenodd" />
+			</g>
+		</g>
+		<g id="组合 83">
+			<g data-pixso-skip-parse="true">
+				<foreignObject width="40.500000" height="40.500000" x="15.583008" y="8.916016">
+					<div xmlns="http://www.w3.org/1999/xhtml" style="clip-path:url(#outline_mask_7);height:100%;backdrop-filter:blur(15.000001px);width:100%;-webkit-backdrop-filter:blur(15.000001px);" />
+				</foreignObject>
+			</g>
+			<g filter="url(#filter_28)">
+				<rect id="矩形 83" width="19.999998" height="20.000000" x="25.833008" y="19.166016" rx="9.999999" fill="url(#paint_linear_17)" fill-opacity="0.200000003" />
+			</g>
+			<g filter="url(#filter_29)">
+				<rect id="矩形 83" width="2.500000" height="10.000000" x="34.583008" y="22.500000" rx="1.250000" fill="rgb(254.745,254.849,255)" />
+			</g>
+			<g filter="url(#filter_30)">
+				<circle id="椭圆 78" cx="35.8330078" cy="34.5839844" r="1.25" fill="rgb(254.745,254.849,255)" />
+			</g>
+		</g>
+	</g>
+</svg>

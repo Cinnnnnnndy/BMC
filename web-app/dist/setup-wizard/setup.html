@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BMC Studio - 初始配置引导</title>
+  <link rel="stylesheet" href="setup.css">
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+</style>
+</head>
+
+<body>
+  <div class="sw-wizard-container">
+    <div class="sw-wizard-card">
+      <button class="sw-close-btn" id="btn-close" aria-label="关闭">
+        <img src="./public-close.png">
+      </button>
+
+      <!-- 主标题 -->
+      <div class="sw-main-title">初始化引导</div>
+
+      <!-- 步骤条 -->
+      <div class="sw-steps-bar">
+        <div class="sw-step-item sw-active" data-step="1">
+          <span class="sw-step-number">1</span>
+          <span class="sw-step-text">登录官网</span>
+        </div>
+        <div class="sw-step-item" data-step="2">
+          <span class="sw-step-number">2</span>
+          <span class="sw-step-text">环境准备</span>
+        </div>
+        <div class="sw-step-item" data-step="3">
+          <span class="sw-step-number">3</span>
+          <span class="sw-step-text">选择开发机型</span>
+        </div>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="sw-content">
+        <!-- 步骤 1: 登录 -->
+        <div class="sw-step-panel sw-step-login sw-active" id="step-1">
+          <h2 class="sw-welcome-text">
+            <span class="sw-welcome-line-1">欢迎加入</span>
+            <img class="sw-welcome-line-2" src="./openUBMC.png">
+          </h2>
+
+          <!-- 未登录状态 -->
+          <div class="sw-login-panel" id="login-before">
+            <button class="sw-btn sw-btn-login" id="btn-login">
+              登录openUBMC账号
+            </button>
+            <p class="sw-hint-text">前往openUBMC社区官网登录账号，返回进行下一步配置</p>
+          </div>
+
+          <!-- 已登录状态 -->
+          <div class="sw-login-panel sw-hidden" id="login-after">
+            <div class="sw-success-icon">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="32" fill="#389e3a" />
+                <path d="M20 32L28 40L44 24" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="sw-success-title">登录成功</div>
+          </div>
+        </div>
+
+        <!-- 步骤 2: 环境准备 -->
+        <div class="sw-step-panel sw-step-config" id="step-2">
+          <!-- 环境准备配置 -->
+          <div class="sw-config-header sw-card-box">
+            <span class="sw-title-1">环境准备</span>
+            <div class="sw-description">说明：openUBMC编译构建需要在Linux环境中进行，请先完成Linux环境准备和部署，按顺序完成以下步骤，通过配置检测即可成功进入下一环节</div>
+            <div class="sw-hint">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="sw-hint-icon">
+                <circle cx="8" cy="8" r="8" fill="#1890FF" />
+                <path d="M8 4V5M8 7V12" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              <span>若已有Linux环境，请跳过Linux环境准备，直接连接Linux环境继续操作。</span>
+            </div>
+          </div>
+
+          <!-- Step 2.1: Linux环境准备 -->
+          <div class="sw-card-box">
+            <div class="sw-card-box-header">
+              <div class="sw-card-box-header-left">
+                <div class="sw-step-title">
+                  <span class="sw-status-tag" id="step-2-1-tag"></span>
+                  <span class="sw-title-2">Step2.1 Linux环境准备</span>
+                  <span style="color: rgba(2, 153, 49, 1);">Windows环境中配置</span>
+                </div>
+                <div class="sw-description">安装WSL或通过SSH连接到Linux主机</div>
+              </div>
+              <div class="sw-card-box-header-right">
+                <button class="sw-btn-icon sw-card-collapse-btn" data-card="step-2-1" aria-label="收起/展开">
+                  <svg class="sw-collapse-icon" width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M4 6L9 11L14 6" stroke="#D3DCE9" stroke-width="2" fill="none" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                  <svg class="sw-expand-icon sw-hidden" width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M4 11L9 6L14 11" stroke="#D3DCE9" stroke-width="2" fill="none" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="sw-card-box-content" id="card-content-step-2-1">
+              <div class="sw-card-box-content-wrapper">
+                <div class="sw-step-list">
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-line"></div>
+                    <div class="sw-step-content">
+                      安装WSL：请根据社区文档<a
+                        href="https://www.openubmc.cn/docs/zh/development/quick_start/prepare_environment/windows_env.html"
+                        target="_blank" class="sw-link-text">Windows开发环境搭建</a>完成配置后继续
+                    </div>
+                  </div>
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-content">
+                      连接到WSL：<a href="#" id="btn-open-remote" class="sw-link-text">打开配置</a>点击上方弹框列表的"Connect to WSL
+                      "连接到对应的WSL实例
+                    </div>
+                  </div>
+                </div>
+                <img class="sw-remote-demo-image" src="./open-remote.gif" alt="连接到wsl">
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2.2: 部署openUBMC -->
+          <div class="sw-card-box">
+            <div class="sw-card-box-header">
+              <div class="sw-card-box-header-left">
+                <div class="sw-step-title">
+                  <span class="sw-status-tag" id="step-2-2-tag"></span>
+                  <span class="sw-title-2">Step2.2 部署openUBMC</span>
+                  <span style="color: rgba(2, 153, 49, 1);">Linux环境中配置</span>
+                </div>
+                <div class="sw-description">根据社区文档<a
+                    href="https://www.openubmc.cn/docs/zh/development/quick_start/prepare_environment/ubuntu_env.html"
+                    target="_blank" class="sw-link-text">Ubuntu开发环境搭建</a>完成以下步骤并通过配置检测</div>
+              </div>
+              <div class="sw-card-box-header-right">
+                <button class="sw-btn-icon sw-card-collapse-btn" data-card="step-2-2" aria-label="收起/展开">
+                  <svg class="sw-collapse-icon" width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M4 6L9 11L14 6" stroke="#D3DCE9" stroke-width="2" fill="none" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                  <svg class="sw-expand-icon sw-hidden" width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M4 11L9 6L14 11" stroke="#D3DCE9" stroke-width="2" fill="none" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="sw-card-box-content" id="card-content-step-2-2">
+              <div class="sw-card-box-content-wrapper">
+                <div class="sw-step-list">
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-line"></div>
+                    <div class="sw-step-content">配置GitCode账户并连接SSH</div>
+                  </div>
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-line"></div>
+                    <div class="sw-step-content">拉取manifest</div>
+                  </div>
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-line"></div>
+                    <div class="sw-step-content">下载bmc_sdk并上传到Linux环境</div>
+                  </div>
+                  <div class="sw-step-item">
+                    <div class="sw-step-dot"></div>
+                    <div class="sw-step-content">执行初始化脚本命令init.py</div>
+                  </div>
+                </div>
+                <div class="sw-check-environment">
+                  <button class="sw-btn sw-btn-secondary" size="middle" id="btn-check-environment">配置检测</button>
+                  <span class="sw-check-environment-tip">参考以上引导完成全部步骤配置后，点击左侧按钮进行配置检测</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- conan配置完成 -->
+          <div class="sw-conan-config-success sw-hidden" id="env-config-success">
+            <!-- 成功图标：对勾 -->
+            <svg viewBox="0 0 24 24" fill="none" width="24" height="24">
+              <path d="M5 12L10 17L19 8" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+            <span class="sw-banner-text">环境准备配置检测通过，所有配置项验证成功</span>
+          </div>
+
+          <!-- conan配置失败 -->
+          <div class="sw-conan-config-fail sw-hidden" id="env-config-fail">
+            <!-- 错误图标 -->
+            <div class="sw-error-content">
+              <img class="sw-error-icon" src="./error-icon.svg" alt="错误图标">
+              <span class="sw-error-title">环境准备配置检测失败</span>
+              <button class="sw-btn sw-btn-primary" id="btn-agent-fix"
+                style="margin-left: auto; height: 28px; padding: 0 14px; font-size: 12px; flex-shrink: 0;"
+                title="打开 agent 终端，诊断并修复环境（setup_verify_all）">让 agent 诊断修复</button>
+            </div>
+            <!-- 详细错误信息 -->
+            <div class="sw-error-detail">
+              <img class="sw-error-detail-icon" src="./error-detail-icon.svg" alt="错误详情图标">
+              <span class="sw-error-detail-text">未检测到Conan，请返回Step 2.2 部署openUBMC 检查操作</span>
+            </div>
+          </div>
+
+          <!-- Conan 配置检测 windows端-->
+          <div class="sw-detection-results sw-hidden" id="windows-conan-detection-results">
+            <!-- Conan存在状态检测 -->
+            <div class="sw-detection-status sw-error sw-hidden" id="conan-exists-status">
+              <!-- 失败图标 -->
+              <img class="sw-error-detail-icon" src="./error-detail-icon.svg" alt="错误详情图标">
+              <div class="sw-detection-content">
+                <div class="sw-detection-desc" id="conan-exists-desc">
+                  <span class="sw-desc-error" >Conan 包管理器未安装，您可以</span>
+                  <a class="sw-desc-link" id="conan-download-link" href="https://conan.io/downloads" target="_blank">前往官网</a>
+                  <span class="sw-desc-error" >下载安装，安装好之后，重新点击检测即可更新状态。</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Conan远端配置检测 -->
+            <div class="sw-detection-status sw-hidden" id="conan-remote-status">
+              <!-- 告警图标 -->
+              <svg class="sw-icon-warning sw-warning" width="24" height="24" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="12" fill="#FFA500" />
+                <rect x="11" y="7" width="2" height="6" rx="1" fill="#FFFFFF" />
+                <circle cx="12" cy="16" r="1.5" fill="#FFFFFF" />
+              </svg>
+              <div class="sw-detection-content">
+                <div class="sw-detection-desc" id="conan-remote-desc">
+                  <span class="sw-desc-warning">Conan远端未配置，您可以点击</span>
+                  <span class="sw-desc-link" id="conan-config-link">此处</span>
+                  <span class="sw-desc-warning">一键配置</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 检测提示条 -->
+            <div class="sw-banner sw-banner-success sw-hidden" id="conan-result-banner">
+              <!-- 成功图标：对勾 -->
+              <svg class="sw-result-success-icon" viewBox="0 0 24 24" fill="none" width="24" height="24">
+                <path d="M5 12L10 17L19 8" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+              <span class="sw-banner-text">Conan配置成功</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤 3: 配置规则 -->
+        <div class="sw-step-panel sw-step-model" id="step-3">
+          <!-- 规则校验配置 -->
+          <div class="sw-config-card sw-model-config-warning" id="model-config-card">
+            <div class="sw-model-config-header">
+              <!-- 左侧图标区域 -->
+              <div class="sw-config-header-icon">
+                <!-- 警告图标（未配置） -->
+                <img class="sw-model-config-icon-warning" src="./warning-icon.png" width="24" height="24" alt="警告">
+                <!-- 成功图标（已配置） -->
+                <img class="sw-model-config-icon-success" src="./success-icon.png" width="24" height="24" alt="成功">
+              </div>
+              <!-- 中间文字区域 -->
+              <div class="sw-config-header-text">
+                <h3 class="sw-model-config-title" id="model-config-title">开发机型暂未配置</h3>
+                <p class="sw-model-config-description" id="model-config-description">
+                  从本地构建缓存或者任意数据源获取机型配置，搜索并选择想要的机型和型号名称，即可辅助对应版本机型的开发。首次配置之后可以根据项目在IDE右下角状态栏切换</p>
+              </div>
+              <!-- 右侧按钮组 -->
+              <div class="sw-config-header-actions">
+                <button class="sw-btn sw-btn-primary" id="btn-config-rules">前往配置</button>
+              </div>
+            </div>
+
+            <!-- 预览图片区域 -->
+            <div class="sw-model-preview-container" id="model-preview-container">
+              <div class="sw-model-preview-wrapper">
+                <img class="sw-model-preview-image" src="./rule-config.gif" alt="规则校验配置预览">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部按钮 -->
+      <div class="sw-footer">
+        <button class="sw-btn sw-btn-secondary" id="btn-previous" disabled>上一步</button>
+        <button class="sw-btn sw-btn-primary" id="btn-next" disabled>下一步</button>
+        <button class="sw-btn sw-btn-secondary" id="btn-cancel">关闭引导</button>
+      </div>
+    </div>
+
+    <!-- 完成动画 -->
+    <div class="sw-completion-overlay sw-hidden" id="completion-overlay">
+      <div class="sw-fireworks-container" id="fireworks-container"></div>
+      <div class="sw-confetti-container" id="confetti-container"></div>
+
+      <!-- 装饰椭圆 -->
+      <div class="sw-completion-decoration">
+        <div class="sw-decoration-ellipse sw-decoration-ellipse-cyan"></div>
+        <div class="sw-decoration-ellipse sw-decoration-ellipse-red"></div>
+      </div>
+
+      <div class="sw-completion-content">
+        <!-- 卡通人物 -->
+        <div class="sw-completion-character">
+          <img src="./completion-character.png" alt="完成" class="sw-character-image">
+        </div>
+      </div>
+    </div>
+
+    <!-- 取消对话框 -->
+    <div class="sw-cancel-dialog sw-hidden" id="cancel-dialog">
+      <div class="sw-cancel-dialog-content">
+        <div class="sw-cancel-dialog-header">
+          <h3>确认关闭引导</h3>
+          <button class="sw-cancel-dialog-close-btn" id="cancel-dialog-close-btn" aria-label="关闭">×</button>
+        </div>
+        <div class="sw-cancel-dialog-middle">确定要关闭初始配置引导吗？您可以通过快捷键<span
+            class="sw-command-shortcut">Ctrl+Shift+P</span>打开命令面板后，输入：<span class="sw-command-name">显示初始配置引导</span>
+          重新打开初始配置引导。</div>
+        <div class="sw-cancel-dialog-footer">
+          <label class="sw-checkbox-label">
+            <input type="checkbox" id="dont-show-again">
+            <span>不再提醒</span>
+          </label>
+          <div class="sw-cancel-dialog-buttons">
+            <button class="sw-btn sw-btn-primary" id="cancel-confirm">确定</button>
+            <button class="sw-btn sw-btn-secondary" id="cancel-dialog-close">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图片预览模态框 -->
+  <div class="sw-image-modal sw-hidden" id="image-modal">
+    <span class="sw-image-modal-close" id="image-modal-close">&times;</span>
+    <img class="sw-image-modal-content" id="image-modal-content" src="" alt="放大预览">
+  </div>
+
+  <script src="../welcome/vscode-stub.js"></script>
+  <script src="setup.js"></script>
+  <script>
+    // ── Web demo shim ─────────────────────────────────────────────────
+    // standalone（非 VS Code）环境下 vscode-stub 会吞掉所有 postMessage，
+    // 这里模拟扩展端响应，让引导流程在网页 demo 中可走通：
+    //   · 登录 → 延迟回 loginSuccess
+    //   · 配置检测 → 首次回失败（展示「让 agent 诊断修复」入口），
+    //     agent 修复回写 configured:true 后，再次检测即通过
+    // VS Code 扩展环境中由扩展真实驱动，此段不参与（扩展消息优先到达）。
+    (function () {
+      var envFixed = false;
+
+      var btnLogin = document.getElementById('btn-login');
+      if (btnLogin) btnLogin.addEventListener('click', function () {
+        setTimeout(function () {
+          window.postMessage({ type: 'loginSuccess', userInfo: { name: 'demo' } }, '*');
+        }, 800);
+      });
+
+      var btnCheck = document.getElementById('btn-check-environment');
+      if (btnCheck) btnCheck.addEventListener('click', function () {
+        setTimeout(function () {
+          window.postMessage({ type: 'conanChecked', exists: envFixed, configured: envFixed }, '*');
+        }, 1100);
+      });
+
+      // agent 终端修复完成后，宿主向本 iframe 回写 conanChecked configured:true
+      window.addEventListener('message', function (e) {
+        var m = e.data;
+        if (m && m.type === 'conanChecked' && m.configured) envFixed = true;
+      });
+
+      var btnAgentFix = document.getElementById('btn-agent-fix');
+      if (btnAgentFix) btnAgentFix.addEventListener('click', function () {
+        window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent 诊断安装环境' }, '*');
+      });
+    })();
+  </script>
+</body>
+
+</html>

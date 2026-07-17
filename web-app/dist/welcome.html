@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>欢迎使用 openUBMC Studio</title>
+  <link rel="stylesheet" href="./welcome/welcome.css">
+  <style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+    :root {
+      --new-badge-image: url('./welcome/assets/new.png');
+      --red-dot-image: url('./welcome/assets/red.svg');
+    }
+  </style>
+</head>
+<body>
+  <!-- URI storage for JS -->
+  <div id="uri-storage" style="display: none;"
+    data-recent-file-1="./welcome/assets/recentFile-1.svg"
+    data-recent-file-2="./welcome/assets/recentFile-2.svg"
+    data-alphabet-base-uri="./welcome/alphabet">
+  </div>
+
+  <div class="welcome-container">
+    <!-- 顶部区域 -->
+    <div class="top-section-wrapper">
+      <!-- 品牌展示 -->
+      <div class="header-section" style="background-image: url('./welcome/assets/background_big.png'); background-size: cover; background-position: center;">
+        <div class="brand-info">
+          <div class="brand-text-top">
+            <p class="version">version:2.0.3</p>
+          </div>
+          <img class="brand-icon" src="./welcome/assets/icon.svg" alt="openUBMC Studio">
+        </div>
+        <div class="header-right">
+          <div class="role-dropdown" id="role-dropdown">
+            <button class="role-badge" id="role-switch-btn" title="切换角色">
+              <span class="role-badge-text">我是<span id="current-role">--</span></span>
+              <svg class="role-badge-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="role-dropdown-menu" id="role-dropdown-menu">
+              <div class="role-dropdown-item" data-role="machine_developer">整机开发者</div>
+              <div class="role-dropdown-item" data-role="component_developer">部件开发者</div>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary" id="openProject">导入工程</button>
+            <button class="btn btn-primary" id="newProject">新建工程</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 工作流程 -->
+      <div class="workflow-section">
+        <div class="workflow-header">
+          <h2 class="title">GET STARTED</h2>
+        </div>
+        <div class="workflow-items" id="workflowItems"></div>
+      </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="message-bar">
+      <div class="message-bar-content">
+        <div class="message-bar-left">
+          <img src="./welcome/assets/publicNotice.svg">
+          <span class="message-text">
+            <span class="text-content">openUBMC Studio 2.0.3版本已发布</span>
+            <span class="flower-group">
+              <span class="flower"></span>
+              <span class="flower"></span>
+              <span class="flower"></span>
+            </span>
+          </span>
+        </div>
+        <a class="update-link" id="updateBtn">检查更新</a>
+      </div>
+      <button class="btn-close" id="closeBtn">
+        <img src="./welcome/assets/publicClose.svg">
+      </button>
+    </div>
+
+    <!-- 底部区域 -->
+    <div class="footer-section">
+      <div class="recent-section">
+        <h4 class="title">最近打开</h4>
+        <ul class="recent-list" id="recentList">
+          <li class="recent-item" data-path="">
+            <div class="recent-item-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4"/>
+                <path d="M12 8h.01"/>
+              </svg>
+            </div>
+            <div class="recent-item-content">
+              <div class="recent-item-name">暂无最近打开的文件</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="docs-section">
+        <h4 class="title">社区文档&工具引导</h4>
+        <div class="docs-grid">
+          <div class="doc-item" data-url="https://www.openubmc.cn/zh">
+            <img src="./welcome/assets/ubmc.svg" alt="社区官网" class="doc-icon">
+            <span>社区官网</span>
+          </div>
+          <div class="doc-item" data-url="https://www.openubmc.cn/docs/zh/development/quick_start/explore_openubmc.html">
+            <img src="./welcome/assets/quickStart.svg" alt="快速入门" class="doc-icon">
+            <span>快速入门</span>
+          </div>
+          <div class="doc-item" data-url="https://www.openubmc.cn/zh/marketplace">
+            <img src="./welcome/assets/appStore.svg" alt="应用市场" class="doc-icon">
+            <span>应用市场</span>
+          </div>
+          <div class="doc-item" data-url="https://www.openubmc.cn/zh/docs">
+            <img src="./welcome/assets/documentation.svg" alt="文档中心" class="doc-icon">
+            <span>文档中心</span>
+          </div>
+          <div class="doc-item" data-url="https://www.openubmc.cn/docs/zh/development/tool_guide/bmc_studio_tool.html">
+            <img src="./welcome/assets/toolGuide.svg" alt="工具指南" class="doc-icon">
+            <span>工具指南</span>
+          </div>
+          <div class="doc-item" data-url="https://discuss.openubmc.cn/">
+            <img src="./welcome/assets/feedback.svg" alt="问题反馈" class="doc-icon">
+            <span>问题反馈</span>
+          </div>
+          <div class="doc-item" id="setupWizardTrigger" data-action="openSetupWizard">
+            <img src="./welcome/assets/tutorial.svg" alt="初始配置引导" class="doc-icon">
+            <span>初始配置引导</span>
+          </div>
+          <div class="doc-item" data-url="./release-notes.html">
+            <img src="./welcome/assets/newFeature.svg" alt="新功能介绍" class="doc-icon">
+            <span>新功能介绍</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="role-selector-container"></div>
+  <div id="wizard-container"></div>
+
+  <script src="./welcome/vscode-stub.js"></script>
+  <script src="./welcome/welcome.js"></script>
+  <script>
+    window.addEventListener('load', function () {
+      // Actual workflow data from machine-workflow-data.json
+      var workflowData = {
+        "steps": [
+          {
+            "id": "env",
+            "name": "环境部署",
+            "color": "#35C81D",
+            "details": [
+              { "id": "plugin-installation", "name": "插件安装", "status": "released" },
+              { "id": "resource-download", "name": "资源下载", "status": "released" },
+              { "id": "component-repo-management", "name": "组件仓管理", "status": "unreleased" }
+            ]
+          },
+          {
+            "id": "dev",
+            "name": "开发",
+            "color": "#D5CB1C",
+            "details": [
+              { "id": "hardware-adaptation", "name": "硬件适配", "status": "released" },
+              { "id": "resource-tree", "name": "资源协作接口", "status": "released" },
+              { "id": "component-customization", "name": "组件定制", "status": "unreleased" }
+            ]
+          },
+          {
+            "id": "debug",
+            "name": "调试",
+            "color": "#7575FF",
+            "details": [
+              { "id": "hardware-simulation", "name": "硬件仿真", "status": "unreleased" },
+              { "id": "northbound-interface-test", "name": "北向接口测试", "status": "unreleased" },
+              { "id": "online-debug", "name": "在线调试", "status": "unreleased" }
+            ]
+          },
+          {
+            "id": "build",
+            "name": "构建",
+            "color": "#33D7EA",
+            "details": [
+              { "id": "component-build", "name": "组件构建", "status": "unreleased" },
+              { "id": "product-build", "name": "产品构建", "status": "unreleased" },
+              { "id": "part-build", "name": "部件构建", "status": "unreleased" }
+            ]
+          },
+          {
+            "id": "test",
+            "name": "测试",
+            "color": "#DFA404",
+            "details": [
+              { "id": "test-platform", "name": "测试平台", "status": "unreleased" },
+              { "id": "local-test", "name": "本地测试", "status": "unreleased" }
+            ]
+          },
+          {
+            "id": "release",
+            "name": "发布",
+            "color": "#EC6311",
+            "details": [
+              { "id": "publish-component", "name": "发布组件", "status": "released" },
+              { "id": "community-contribution", "name": "社区贡献", "status": "released" },
+              { "id": "publish-product", "name": "发布产品", "status": "unreleased" }
+            ]
+          }
+        ]
+      };
+
+      // Trigger workflow rendering (command field, workflow key)
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { command: 'updateWorkflow', workflow: workflowData }
+      }));
+
+      // Set role display (type field, not command)
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'updateRole', role: 'machine_developer', roleName: '整机开发者' }
+      }));
+    });
+  </script>
+</body>
+</html>

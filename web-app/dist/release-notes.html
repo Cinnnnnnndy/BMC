@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openUBMC Studio · 更新日志与交互说明</title>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+:root {
+  --background: #0e0f15;
+  --surface-1: #14151d;
+  --surface-2: #1a1b25;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.62);
+  --foreground-muted: rgba(255,255,255,.42);
+  --border-subtle: rgba(255,255,255,.07);
+  --border-default: rgba(255,255,255,.12);
+  --primary: #4369ef;
+  --success: #04d793;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background:
+    radial-gradient(circle at top left,  rgba(98,90,215,0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(60,98,235,0.13), transparent 32%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.75;
+}
+.page { max-width: 880px; margin: 0 auto; padding: 40px 28px 80px; }
+
+header.hero { margin-bottom: 28px; }
+.hero h1 { font-size: 24px; font-weight: 700; letter-spacing: .01em; display: flex; align-items: center; gap: 10px; }
+.hero h1 img { width: 30px; height: 30px; }
+.hero p { color: var(--foreground-secondary); margin-top: 6px; font-size: 13px; }
+.hero .meta { color: var(--foreground-muted); font-size: 12px; margin-top: 2px; }
+
+nav.toc {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin: 18px 0 30px;
+}
+nav.toc a {
+  padding: 5px 14px; border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-1);
+  color: var(--foreground-secondary);
+  font-size: 12.5px; text-decoration: none; transition: .15s;
+}
+nav.toc a:hover { color: var(--foreground); border-color: var(--primary); }
+
+h2 {
+  font-size: 18px; font-weight: 700; margin: 44px 0 6px;
+  padding-top: 18px; border-top: 1px solid var(--border-subtle);
+}
+h2:first-of-type { border-top: none; padding-top: 0; margin-top: 24px; }
+h3 { font-size: 14.5px; font-weight: 600; margin: 22px 0 8px; color: var(--foreground); }
+h3 .tag {
+  font-size: 10px; font-weight: 600; vertical-align: 2px;
+  padding: 1px 8px; margin-left: 8px; border-radius: 999px; letter-spacing: .04em;
+}
+.tag-new  { background: rgba(4,215,147,.14);  color: var(--success); }
+.tag-fix  { background: rgba(239,68,68,.14);  color: #f87171; }
+.tag-ui   { background: rgba(67,105,239,.16); color: #7c9aff; }
+
+p.lead { color: var(--foreground-secondary); font-size: 13px; margin-bottom: 14px; }
+ul { padding-left: 20px; color: var(--foreground-secondary); font-size: 13.5px; }
+li { margin: 5px 0; }
+li b, p b { color: var(--foreground); font-weight: 600; }
+code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  padding: 1px 6px; border-radius: 4px; color: #7c9aff;
+}
+kbd {
+  font-family: var(--font-mono); font-size: 11px;
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-bottom-width: 2px; padding: 1px 7px; border-radius: 5px;
+  color: var(--foreground);
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin: 12px 0;
+}
+.card .card-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+
+table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border-subtle); }
+th { color: var(--foreground-muted); font-weight: 600; font-size: 11.5px; letter-spacing: .04em; }
+td { color: var(--foreground-secondary); }
+td code { white-space: nowrap; }
+.table-wrap { overflow-x: auto; }
+
+.flow {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  font-size: 12.5px; color: var(--foreground-secondary);
+  background: var(--surface-1); border: 1px solid var(--border-subtle);
+  border-radius: 10px; padding: 12px 14px; margin: 10px 0;
+}
+.flow .step {
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: 7px; padding: 4px 10px; white-space: nowrap;
+}
+.flow .arr { color: var(--foreground-muted); }
+
+footer {
+  margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border-subtle);
+  color: var(--foreground-muted); font-size: 12px;
+}
+footer a { color: #7c9aff; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <h1><img src="./welcome/assets/icon.svg" alt="">openUBMC Studio 更新日志与交互说明</h1>
+  <p>agent 工作台方向的一轮体验迭代：底栏 agent 终端、AI 辅助安装引导、硬件管理器、全局状态栏与信息架构收纳。</p>
+  <div class="meta">2026-07-16 · 设计原型（Web Demo）· 分支 claude/ubmc-agent-workspace</div>
+</header>
+
+<nav class="toc">
+  <a href="#changelog">更新日志</a>
+  <a href="#guide">交互说明</a>
+  <a href="#terminal">agent 终端命令</a>
+  <a href="#setup-flow">AI 辅助安装引导</a>
+  <a href="#hw-manager">硬件管理器</a>
+</nav>
+
+<!-- ═══════════════════════ 更新日志 ═══════════════════════ -->
+<h2 id="changelog">更新日志（2026-07-16）</h2>
+
+<h3>底栏 agent 终端 <span class="tag tag-new">NEW</span></h3>
+<ul>
+  <li>工作区底部新增 <b>openUBMC agent CLI</b> 终端 dock：<code>agent &lt;任务&gt;</code> 一句话派发任务，自动回放 MCP 工具调用轨迹，完成后分屏打开关联功能视图。</li>
+  <li>支持命令：<code>agent</code> / <code>mcp</code> / <code>open</code> / <code>views</code> / <code>clear</code> / <code>exit</code>；快捷键 <kbd>Ctrl + `</kbd> 开合，macOS 风格胶囊手柄拖拽调高。</li>
+  <li>当前词表覆盖 10 个 agent 任务场景、7 个 MCP Server / 26 个工具（<code>mcp</code> 命令可查全表）。</li>
+</ul>
+
+<h3>AI 辅助安装引导 <span class="tag tag-new">NEW</span></h3>
+<ul>
+  <li>安装引导 Step 2.2「配置检测」失败时，失败横幅出现<b>「让 agent 诊断修复」</b>入口：终端自动执行 <code>setup_verify_all</code> 六项诊断 → 确认后修复（conan remote 配置、init.py 执行）。</li>
+  <li>修复完成后检测状态<b>自动回写向导</b>——Step 2.2 标签翻绿「已完成」，「下一步」解锁；向导即 agent 的进度显示器。</li>
+  <li>AI 助手新增「开发环境诊断与修复」示例场景（含写操作审批门对话），建议 chip「检查开发环境」。</li>
+</ul>
+
+<h3>CSR 拓扑 · 硬件管理器 <span class="tag tag-new">NEW</span></h3>
+<ul>
+  <li>左侧面板由「按解析状态分组的检查清单」改为<b>资源管理器式文件树</b>：板卡类别 → 板卡组 → .sr 板卡文件。</li>
+  <li>组行带解析状态色点并与画布联动聚焦；<b>点击文件行即切换画布上该组展示的板卡实例</b>；检查汇总与未分类「指派到空槽位」保留。</li>
+</ul>
+
+<h3>全局状态栏 <span class="tag tag-ui">UI</span></h3>
+<ul>
+  <li>IDE 底部新增状态栏（VS Code 惯例）：左侧 <b>BMC 可达数 / SSH 会话 / Docker 编译容器 / 问题统计</b>，右侧 <b>当前工程 / MCP 工具数 / 终端开关</b>。</li>
+  <li>环境管理页内的底部蓝条已移除——连接状态全局只保留一处。</li>
+</ul>
+
+<h3>信息架构收纳 <span class="tag tag-ui">UI</span></h3>
+<ul>
+  <li><b>上下文动作下放</b>：出包 / 巡检 / CSR 校验从顶栏移至功能页 tab 行（editor-title-actions 惯例），随激活 tab 出现；顶栏右侧只保留终端、全屏、主题、AI 助手四个全局项。</li>
+  <li><b>活动栏「更多」菜单</b>：硬件拓扑、3D 仿真、事件配置（Beta）与四个代码辅助扩展占位页收进「···」浮出菜单，主栏瘦身。</li>
+  <li>顶栏左上角换用 openUBMC 官方 logo。</li>
+</ul>
+
+<h3>修复 <span class="tag tag-fix">FIX</span></h3>
+<ul>
+  <li>子路径部署（GitHub Pages <code>/BMC/</code>）下欢迎页、安装引导、环境管理、AI 助手等 iframe 页 404 —— 公共资源统一经 <code>withBase()</code> 解析；welcome.css 两处旧目录图标路径修正。</li>
+  <li>风扇故障注入（数字孪生）场景由静态 3D 页改为打开<b>仿真调试</b>整机模型。</li>
+  <li>AI 面板打开时最右侧贴边、终端首次由派发命令打开时任务卡死（StrictMode 双挂载）等问题修复。</li>
+</ul>
+
+<!-- ═══════════════════════ 交互说明 ═══════════════════════ -->
+<h2 id="guide">交互说明</h2>
+
+<h3>布局总览</h3>
+<div class="card">
+  <div class="card-title">五个区域，各司其职</div>
+  <ul>
+    <li><b>活动栏（左）</b>：功能入口；底部「···」收纳 Beta 预览与代码辅助扩展。任一收纳项打开时「···」保持点亮。</li>
+    <li><b>顶栏（上）</b>：品牌 + 当前工程（中）+ 全局动作（右：终端 / 全屏 / 深浅色 / AI 助手）。</li>
+    <li><b>工作区（中）</b>：多 tab 多 pane，tab 可拖拽分屏（五向投放区）；tab 行右侧为<b>上下文动作</b>与分屏按钮。</li>
+    <li><b>底栏终端 / AI 面板</b>：执行流在终端，对话流在右侧 AI 面板，两者共用同一场景打开通道。</li>
+    <li><b>状态栏（下）</b>：连接状态与问题统计，条目均可点击直达来源。</li>
+  </ul>
+</div>
+
+<h3>上下文动作（tab 行右侧）</h3>
+<div class="table-wrap"><table>
+  <tr><th>激活的功能页</th><th>出现的动作</th><th>行为</th></tr>
+  <tr><td>BMC 环境管理</td><td>巡检</td><td>终端执行 <code>agent 巡检在线 BMC</code></td></tr>
+  <tr><td>拓扑视图 / CSR 拓扑 / 事件 / 传感器</td><td>校验</td><td>终端执行 <code>agent 校验当前 CSR</code></td></tr>
+  <tr><td>CSR 编辑类视图（已加载工程）</td><td>出包</td><td>下载 / 保存 CSR，无修改时置灰</td></tr>
+</table></div>
+
+<h3 id="terminal">agent 终端命令</h3>
+<div class="table-wrap"><table>
+  <tr><th>命令</th><th>说明</th></tr>
+  <tr><td><code>agent &lt;任务描述&gt;</code></td><td>按关键词匹配任务场景，回放 MCP 工具轨迹，完成后分屏打开关联视图。示例：<code>agent 诊断安装环境</code>、<code>agent 巡检在线 BMC</code>、<code>agent 给 CPU0 加过温事件</code>、<code>agent 校验当前 CSR</code></td></tr>
+  <tr><td><code>mcp</code></td><td>列出已接入的 7 个 MCP Server / 26 个工具</td></tr>
+  <tr><td><code>open &lt;视图&gt;</code></td><td>打开功能视图：<code>env / topo / event / sensor / smc / expr / explorer / setup / sim / 3d / cooling / welcome / ai</code></td></tr>
+  <tr><td><code>views</code></td><td>列出全部视图别名</td></tr>
+  <tr><td><code>clear</code> / <code>exit</code></td><td>清屏 / 关闭终端</td></tr>
+</table></div>
+<p class="lead">开合方式：顶栏终端图标、状态栏「终端」、<kbd>Ctrl + `</kbd> 三处等价；CSR 依赖的视图会自动兜底加载样例工程。</p>
+
+<h3 id="setup-flow">AI 辅助安装引导（完整体验路径）</h3>
+<div class="flow">
+  <span class="step">安装引导</span><span class="arr">→</span>
+  <span class="step">登录 openUBMC 账号</span><span class="arr">→</span>
+  <span class="step">下一步 · 环境准备</span><span class="arr">→</span>
+  <span class="step">配置检测（失败）</span><span class="arr">→</span>
+  <span class="step">让 agent 诊断修复</span><span class="arr">→</span>
+  <span class="step">终端诊断 6 项 · 修复 2 项</span><span class="arr">→</span>
+  <span class="step">Step 2.2 翻绿 · 下一步解锁</span>
+</div>
+<ul>
+  <li>诊断（<code>setup_verify_all</code>）为只读操作直接执行；conan remote 配置、init.py 属写操作，AI 面板对话版会先请求确认。</li>
+  <li>登录官网、GitCode 公钥上传等<b>账号授权类操作仍需本人完成</b>——agent 只接管可自动化的诊断与修复。</li>
+</ul>
+
+<h3 id="hw-manager">硬件管理器（CSR 拓扑左栏）</h3>
+<ul>
+  <li>树结构：<b>板卡类别</b>（CPU 板 / 风扇板 / 拓展板 / Riser 卡 / 存储转接板 / 网卡 / 未分类）→ <b>板卡组</b> → <b>.sr 板卡文件</b>。</li>
+  <li>组行：左侧色点表示解析状态（绿 已解析 / 橙 多匹配 / 黄 待选型号 / 红 文件缺失 / 灰 未分类）；点击聚焦画布对应节点并展开文件列表。</li>
+  <li>文件行：显示 <code>PartNumber_…SN尾号.sr</code>，悬停查看完整文件名与 SN；<b>点击切换画布上该组当前展示的板卡实例</b>，当前实例高亮。</li>
+  <li>未分类板卡可通过「指派」按钮分配到画布上的空槽位；顶部 ✓⚠⛔◌ 芯片为解析状态汇总。</li>
+</ul>
+
+<h3>AI 助手（右侧面板）</h3>
+<ul>
+  <li>顶栏气泡图标开合，左缘胶囊手柄拖宽；「历史」内的示例场景点击即载入完整会话并<b>分屏打开关联功能视图</b>。</li>
+  <li>场景消息中的绿色 chips 为该轮调用的 MCP 工具；输入框上方的建议 chip 可一键填入常用问题。</li>
+</ul>
+
+<h3>状态栏条目</h3>
+<div class="table-wrap"><table>
+  <tr><th>条目</th><th>含义</th><th>点击</th></tr>
+  <tr><td>● BMC 3/5 可达</td><td>SSH 可达 / 总连接数（周期检测中）</td><td>打开 BMC 环境管理</td></tr>
+  <tr><td>SSH 1</td><td>活跃 SSH 会话数</td><td>打开 BMC 环境管理</td></tr>
+  <tr><td>Docker 2/3</td><td>编译容器运行 / 总数</td><td>派发巡检 agent 任务</td></tr>
+  <tr><td>⊗ 0 ⚠ 2</td><td>错误 / 警告统计（加载工程后生效）</td><td>打开输出面板</td></tr>
+  <tr><td>MCP 7</td><td>已接入 MCP Server 数</td><td>终端列出工具清单</td></tr>
+  <tr><td>终端</td><td>agent 终端开关（打开时高亮）</td><td>开合终端</td></tr>
+</table></div>
+
+<footer>
+  openUBMC Studio 设计原型 · 由 <a href="https://www.openubmc.cn/zh" target="_blank" rel="noopener">openUBMC 社区</a> 相关工具链驱动 · 本页可从欢迎页「新功能介绍」进入
+</footer>
+
+</div>
+</body>
+</html>

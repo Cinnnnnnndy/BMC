@@ -1,0 +1,32 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_76">
+			<effect visibility="visible" effectType="backgroundBlur" saturation="0" stdDeviation="240" />
+		</g>
+		<filter id="filter_76" width="8.000000" height="8.000000" x="4.000000" y="4.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_76)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feBlend result="shape" in="SourceGraphic" in2="BackgroundImageFix" mode="normal" />
+		</filter>
+		<clipPath id="outline_mask_44" transform="matrix(1,0,0,1,-4,-4)">
+			<path d="M12 8C12 5.79086 10.2091 4 8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8Z" fill="rgb(255,255,255)" fill-rule="evenodd" />
+		</clipPath>
+		<linearGradient id="paint_linear_81" x1="3.66201234" x2="14.7729855" y1="2.17028809" y2="2.70103073" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(255,131,57)" offset="0" stop-opacity="0.99000001" />
+			<stop stop-color="rgb(255,63,63)" offset="1" stop-opacity="1" />
+		</linearGradient>
+		<linearGradient id="paint_linear_82" x1="4.48495913" x2="14.4037228" y1="4.00000381" y2="5.03619957" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(148,178,255)" offset="0.00421940908" stop-opacity="1" />
+			<stop stop-color="rgb(255,255,255)" offset="1" stop-opacity="0" />
+		</linearGradient>
+	</defs>
+	<rect id="状态图标" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<g data-pixso-skip-parse="true">
+		<foreignObject width="8.000000" height="8.000000" x="4.000000" y="4.000000">
+			<div xmlns="http://www.w3.org/1999/xhtml" style="clip-path:url(#outline_mask_44);height:100%;backdrop-filter:blur(120.000000px);width:100%;-webkit-backdrop-filter:blur(120.000000px);" />
+		</foreignObject>
+	</g>
+	<g filter="url(#filter_76)">
+		<circle id="椭圆形备份" cx="8" cy="8" r="4" fill="url(#paint_linear_81)" />
+		<circle id="椭圆形备份" cx="8" cy="8" r="3.5" stroke="url(#paint_linear_82)" stroke-opacity="0.100000001" stroke-width="1" />
+	</g>
+</svg>

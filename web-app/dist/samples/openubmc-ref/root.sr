@@ -1,0 +1,59 @@
+{
+    "FormatVersion": 1.0,
+    "DataVersion": 1.0,
+    "ManagementTopology": {
+        "Anchor": {
+            "Buses": [
+                "I2c_1",
+                "I2c_3"
+            ]
+        },
+        "I2c_1": {
+            "Connectors": [
+                "Connector_Exu_1"
+            ]
+        },
+        "I2c_3": {
+            "Connectors": [
+                "Connector_Exu_1"
+            ]
+        }
+    },
+    "Objects": {
+        "I2c_3": {
+            "Id": 3
+        },
+        "Connector_Exu_1": {
+            "Bom": "14100513",
+            "Slot": 1,
+            "Position": 1,
+            "Presence": 1,
+            "Id": "00000001010302044491",
+            "AuxId": "",
+            "Buses": [
+                "I2c_1",
+                "I2c_3"
+            ],
+            "SystemId": 1,
+            "ChassisId": "1",
+            "SilkText": "exu",
+            "IdentifyMode": 2
+        },
+        "Connector_Exu_2": {
+            "Bom": "14100513",
+            "Slot": 2,
+            "Position": 2,
+            "Presence": 1,
+            "Id": "00000001010302044492",
+            "AuxId": "",
+            "Buses": [
+                "I2c_1",
+                "I2c_3"
+            ],
+            "SystemId": 1,
+            "ChassisId": "1",
+            "SilkText": "exu",
+            "IdentifyMode": 2
+        }
+    }
+}

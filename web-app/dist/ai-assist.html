@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI 助手</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+:root {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.40);
+  --border-default: rgba(255,255,255,.10);
+  --border-subtle: rgba(255,255,255,.06);
+  --primary: #4369ef;
+  --success: #04d793;
+  --state-selected: rgba(67,105,239,.14);
+  --state-hover: rgba(255,255,255,.06);
+  --accent-purple: #a78bfa;
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+
+  --bg-base: var(--background);
+  --bg-panel2: var(--surface-1);
+  --bg-hover: var(--surface-2);
+  --bg-active: var(--surface-3);
+  --bg-selected: var(--state-selected);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--foreground-secondary);
+  --text-muted: var(--foreground-muted);
+  --border: var(--border-default);
+  --accent-blue: var(--primary);
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--bg-panel2);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 42px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ph-icon { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; }
+.hist-icon svg, .tool-chip svg, .ph-icon svg { display: block; }
+.ph-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1 1 auto; }
+.badge-beta {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-purple) 18%, transparent);
+  color: var(--accent-purple);
+  letter-spacing: .04em;
+}
+.ph-act-btn {
+  padding: 2px 10px; background: transparent; border: none;
+  border-radius: 4px; color: var(--text-secondary);
+  font-size: 11px; font-family: inherit; cursor: pointer; transition: .15s;
+}
+.ph-act-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ph-act-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
+
+.panel-body {
+  flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.chat-view { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.scenario-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 12px 0; padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
+  background: var(--bg-selected);
+  border-radius: 8px; flex-shrink: 0;
+  font-size: 11.5px; color: var(--text-secondary);
+}
+.scenario-banner b { color: var(--text-primary); font-weight: 600; }
+.scenario-banner button {
+  margin-left: auto; flex-shrink: 0;
+  padding: 3px 10px; border: none; border-radius: 6px;
+  background: var(--accent-blue); color: #fff;
+  font-size: 11px; font-family: inherit; cursor: pointer; transition: .15s;
+}
+.scenario-banner button:hover { background: #5a92e6; }
+
+.chat-messages {
+  flex: 1 1 0; min-height: 0;
+  overflow-y: auto; padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-messages::-webkit-scrollbar { width: 5px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+
+.chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+.chat-msg.user { flex-direction: row-reverse; }
+
+.cm-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg-active);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--accent-blue); flex-shrink: 0;
+}
+.chat-msg.user .cm-avatar { color: var(--success); }
+
+.cm-bubble {
+  max-width: 85%; padding: 9px 12px;
+  border-radius: 0 10px 10px 10px;
+  font-size: 13px; line-height: 1.65;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.chat-msg.user .cm-bubble {
+  background: var(--accent-blue);
+  border-color: transparent;
+  color: #fff;
+  border-radius: 10px 10px 0 10px;
+}
+.cm-bubble code {
+  background: var(--bg-base); padding: 1px 4px; border-radius: 3px;
+  font-size: 11px; color: var(--accent-blue); font-family: var(--font-mono);
+}
+.cm-bubble pre {
+  margin: 6px 0; padding: 8px 10px;
+  background: var(--bg-base); border: 1px solid var(--border-subtle);
+  border-radius: 6px; overflow-x: auto;
+  font-size: 11px; line-height: 1.6;
+  font-family: var(--font-mono); color: var(--text-secondary);
+  white-space: pre;
+}
+
+.tool-calls { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.tool-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 2px 7px; border-radius: 9px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.sys-note {
+  align-self: center;
+  font-size: 10.5px; color: var(--text-muted);
+  padding: 3px 12px; border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.suggestions {
+  padding: 4px 12px 10px;
+  display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
+}
+.sug-btn {
+  font-size: 11px; height: 24px; padding: 0 10px; border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-hover); color: var(--text-secondary);
+  cursor: pointer; font-family: inherit; white-space: nowrap; transition: .15s;
+}
+.sug-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+
+.chat-input-area {
+  display: flex; gap: 8px;
+  padding: 8px 12px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.chat-input {
+  flex: 1 1 0; background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: 10px; padding: 8px 12px;
+  color: var(--text-primary); font-size: 13px; font-family: inherit;
+  resize: none; height: 52px; line-height: 1.5; outline: none; transition: border-color .15s;
+}
+.chat-input:focus { border-color: var(--accent-blue); }
+.chat-send {
+  width: 36px; height: 52px;
+  background: var(--accent-blue); border: none; border-radius: 10px;
+  color: #fff; font-size: 16px; cursor: pointer; transition: background .15s; flex-shrink: 0;
+}
+.chat-send:hover { background: #5a92e6; }
+.chat-send:disabled { background: var(--bg-active); color: var(--text-muted); cursor: default; }
+
+.typing-dots { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+.typing-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes typing-bounce {
+  0%,60%,100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── History view ─────────────────────────────────────── */
+.history-view {
+  flex: 1 1 0; min-height: 0;
+  overflow-y: auto; padding: 12px;
+  display: none; flex-direction: column; gap: 6px;
+}
+.history-view::-webkit-scrollbar { width: 5px; }
+.history-view::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+body.show-history .history-view { display: flex; }
+body.show-history .chat-view { display: none; }
+
+.hv-section-title {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  color: var(--text-muted); text-transform: uppercase;
+  padding: 8px 2px 4px;
+}
+.hist-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 10px; border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  cursor: pointer; transition: .15s;
+}
+.hist-item:hover { background: var(--bg-active); border-color: var(--border-default); }
+.hist-icon {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  background: var(--bg-base); border: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.hist-main { flex: 1 1 auto; min-width: 0; }
+.hist-title {
+  font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hist-preview {
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hist-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.hist-time { font-size: 10px; color: var(--text-muted); }
+.hist-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 1px 7px; border-radius: 9px;
+  background: var(--bg-selected);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
+  color: var(--accent-blue); white-space: nowrap;
+}
+.hist-empty {
+  font-size: 11.5px; color: var(--text-muted);
+  padding: 10px 2px;
+}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="panel-header">
+    <span class="ph-icon" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></span>
+    <span class="ph-title" id="panel-title">AI 助手</span>
+    <span class="badge-beta">BETA</span>
+    <button class="ph-act-btn" id="history-btn" onclick="toggleHistory()">历史</button>
+    <button class="ph-act-btn" onclick="newChat()">新对话</button>
+  </div>
+
+  <div class="panel-body">
+    <div class="chat-view" id="chat-view">
+      <div class="scenario-banner" id="scenario-banner" style="display:none">
+        <span id="scenario-banner-text"></span>
+        <button onclick="reopenScenarioView()">分屏查看 ↗</button>
+      </div>
+
+      <div class="chat-messages" id="chat-log"></div>
+
+      <div class="suggestions">
+        <button class="sug-btn" onclick="fillInput('帮我检查开发环境，配置检测失败')">检查开发环境</button>
+        <button class="sug-btn" onclick="fillInput('现在有哪些 BMC 在线？')">哪些 BMC 在线</button>
+        <button class="sug-btn" onclick="fillInput('给 CPU0 加一个过温事件，阈值 85 度')">加过温事件</button>
+        <button class="sug-btn" onclick="fillInput('func=0x0B cmd=0x120 读操作，算 SMC 偏移量')">算 SMC 偏移量</button>
+      </div>
+
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input"
+          placeholder="描述你的问题，Enter 发送，Shift+Enter 换行…"
+          onkeydown="handleKey(event)"></textarea>
+        <button class="chat-send" id="send-btn" onclick="sendMsg()">↑</button>
+      </div>
+    </div>
+
+    <div class="history-view" id="history-view">
+      <div class="hv-section-title">示例场景 · 点击载入会话并分屏打开对应功能</div>
+      <div id="scenario-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div class="hv-section-title">我的会话</div>
+      <div id="session-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const INIT = '你好！我是 openUBMC Studio 助手。\n点击右上角「历史」查看示例场景会话——点开任意一条，会自动分屏打开对应的功能视图。';
+let thinking = false;
+
+// ── 单色 SVG 图标（不使用 emoji） ──────────────────────────────
+const ICON_PATHS = {
+  server: '<rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/>',
+  link:   '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/>',
+  bolt:   '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>',
+  thermo: '<path d="M14 14.76V5a2 2 0 1 0-4 0v9.76a4 4 0 1 0 4 0z"/>',
+  nodes:  '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6"/>',
+  grid:   '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+  loop:   '<path d="M4 17l6-6-6-6"/><path d="M12 19h8"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  cube:   '<path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7l8.7 5 8.7-5M12 22V12"/>',
+  snow:   '<path d="M12 2v20M4 6l16 12M20 6 4 18"/>',
+  chat:   '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+};
+function ICON(name, size) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    + 'stroke-linecap="round" stroke-linejoin="round" width="' + (size || 16) + '" height="' + (size || 16) + '">'
+    + (ICON_PATHS[name] || '') + '</svg>';
+}
+
+// ── 示例场景会话（对应 MCP 工具驱动的典型工作流） ──────────────
+const VIEW_LABELS = {
+  bmcEnv: 'BMC 环境管理', event: '事件配置', sensor: '传感器配置',
+  topology: '拓扑视图', smcExt: 'SMC 偏移量', pipeExpr: '管道表达式',
+  explorer: '资源管理器', threeD: '3D 仿真', simulator: '仿真调试',
+  coolingConfig: '能效调速配置', installGuide: '安装引导',
+};
+
+const SCENARIOS = [
+  {
+    id: 'sc-setup', icon: 'wrench', title: '开发环境诊断与修复（安装引导）', view: 'installGuide', time: '今天 09:40',
+    messages: [
+      { role: 'user', text: '帮我检查一下开发环境，安装引导里配置检测一直失败' },
+      { role: 'ai', tools: ['setup_verify_all'],
+        text: '诊断完成（6 项）：\n```\n✓ 平台        WSL2 · Ubuntu 22.04\n✓ GitCode SSH 连通（git@gitcode.com）\n✓ manifest    已拉取（openubmc-24.03）\n✓ bmc_sdk     已就位（校验和一致）\n✗ conan remote 未配置\n✗ init.py     未执行\n```\n2 个失败项都可以自动修复（属写操作，需你确认）。要我继续吗？' },
+      { role: 'user', text: '修吧' },
+      { role: 'ai', tools: ['setup_configure_conan_remote', 'setup_run_init'],
+        text: '已配置 conan remote（openubmc 源）。\ninit.py 执行完成（exit 0 · 4.2s，日志见底栏终端）。\n重新运行 setup_verify_all：6/6 全部通过 ✓\n检测结果已回写「安装引导」Step 2.2——配置检测已通过，可直接点「下一步」选择开发机型。\n\n提示：登录官网（Step 1）和 GitCode 公钥上传属于账号授权操作，仍需你本人完成。' },
+    ],
+  },
+  {
+    id: 'sc-inspect', icon: 'server', title: 'BMC 批量巡检（命令宏）', view: 'bmcEnv', time: '昨天 14:32',
+    messages: [
+      { role: 'user', text: '现在有哪些 BMC 在线？' },
+      { role: 'ai', tools: ['bmc_remote_list_connections', 'bmc_remote_check_health'],
+        text: '机房A 共 4 台连接，SSH 端口探测结果：\n• node-1 (192.168.1.10) — 在线\n• node-2 (192.168.1.11) — 在线\n• node-3 (192.168.1.12) — 在线\n• node-4 (192.168.1.13) — 离线（22 端口不可达）' },
+      { role: 'user', text: '对所有在线机器跑一遍「批量查主机名」宏' },
+      { role: 'ai', tools: ['bmc_remote_macro_run'],
+        text: '宏执行完成（targetScope=all-reachable，3 台）：\n```\nnode-1  hostname → bmc-node1   exit 0   118ms\nnode-2  hostname → bmc-node2   exit 0   102ms\nnode-3  hostname → bmc-node3   exit 0   131ms\n```\n汇总：ok 3 / partial 0 / unreachable 1（node-4 未纳入）。结果已同步到「BMC 环境管理」面板。' },
+    ],
+  },
+  {
+    id: 'sc-addconn', icon: 'link', title: '新增 BMC 连接并开自动检测', view: 'bmcEnv', time: '昨天 09:15',
+    messages: [
+      { role: 'user', text: '把 192.168.1.11 加进机房A，用户名 root，打开自动检测' },
+      { role: 'ai', tools: ['bmc_remote_add_connection', 'bmc_remote_set_auto_check', 'bmc_remote_check_health'],
+        text: '已创建连接 `node-2`（机房A / 192.168.1.11 / root），密码写入 SecretStorage 不回显。\n自动检测已开启（10 秒周期探测）。首次探测结果：在线 ✓\n可在「BMC 环境管理」里看到状态指示灯。' },
+    ],
+  },
+  {
+    id: 'sc-event', icon: 'bolt', title: 'CPU0 过温事件配置', view: 'event', time: '3 天前',
+    messages: [
+      { role: 'user', text: '给 CPU0 加一个过温事件，阈值 85 度，级别 critical' },
+      { role: 'ai', tools: ['localview_search_paths', 'csr_validate'],
+        text: '已生成 `Event_CPU0_OverTemp`：\n```\nEventKeyId: temp_above_upper_critical\nReading:    ${Sensor_CPU0_Temp.Reading}\nCondition:  >= 85\nOperatorId: GE\nEnabled:    true\nComponent:  CPU0\n```\ncsr_validate 校验通过（0 errors）。已写入 CSR，请在「事件配置」视图确认后出包。' },
+    ],
+  },
+  {
+    id: 'sc-sensor', icon: 'thermo', title: '温度芯片 Scanner 配置', view: 'sensor', time: '3 天前',
+    messages: [
+      { role: 'user', text: '给 PCA9545 通道1 下的温度芯片建个 Scanner：每 5 秒读一次，偏移 0x1A，读 2 字节' },
+      { role: 'ai', tools: ['csr_list_chip_types', 'binary_mask_validate'],
+        text: '已生成 `Scanner_TMP112_CH1`：\n```\nChip:   TMP112_1（PCA9545_1 · CH1）\nOffset: 0x1A\nSize:   2\nPeriod: 5000ms\n```\nbinary_mask_validate：0x1A 在 U8 范围内合法。\n同时生成了对应的 ThresholdSensor 骨架，阈值字段待填——请在「传感器配置」视图补全。' },
+    ],
+  },
+  {
+    id: 'sc-topo', icon: 'nodes', title: 'I2C 总线挂载 PCA9545', view: 'topology', time: '上周五',
+    messages: [
+      { role: 'user', text: '给 BMC 加一条 I2C 总线，下面挂两个 PCA9545' },
+      { role: 'ai', tools: ['csr_list_bus_types', 'csr_list_chip_types', 'csr_validate'],
+        text: '已在 ManagementTopology 新增：\n• 总线 `I2C_3`（Anchor: BMC.I2C3，类型取自 MDB bus_types）\n• 芯片 `PCA9545_1`、`PCA9545_2` 挂载到 I2C_3\ncsr_validate 通过。「拓扑视图」画布已包含新增节点与连线，空间位置可拖拽微调。' },
+    ],
+  },
+  {
+    id: 'sc-smc', icon: 'grid', title: 'SMC 偏移量编码', view: 'smcExt', time: '上周四',
+    messages: [
+      { role: 'user', text: 'func=0x0B，cmd=0x120，读操作，param=0x33，帮我算 SMC 偏移量' },
+      { role: 'ai', tools: ['binary_mask_encode'],
+        text: '位域拆装：\n```\nfunc[31:26] = 0x0B   → 0x2C000000\ncmd [25:10] = 0x120  → 0x00048000\nms  [9]     = 0\nrw  [8]     = 1 (读) → 0x00000100\nparam[7:0]  = 0x33\n```\n整字结果：`0x2C048133`。已预填到「SMC 偏移量」计算器，可切换 hex/dec 复制。' },
+    ],
+  },
+  {
+    id: 'sc-expr', icon: 'loop', title: '管道表达式生成', view: 'pipeExpr', time: '上周三',
+    messages: [
+      { role: 'user', text: '帮我写个表达式：把 $1 和 $2 相加，再转成 8 位十六进制' },
+      { role: 'ai', tools: ['csr_analyze_expr'],
+        text: '表达式：`$1 | add $2 | toHex 8`\ncsr_analyze_expr：2 级管道，无 dynamic/sync 引用。\n测试用例：$1=100, $2=155 → `0x000000FF` ✓\n已填入「管道表达式」计算器，可继续加测试用例做回归。' },
+    ],
+  },
+  {
+    id: 'sc-path', icon: 'search', title: '运行时路径反查定义', view: 'explorer', time: '上周一',
+    messages: [
+      { role: 'user', text: '/redfish/v1/Systems/1/Sensors 这个路径对应哪个定义？' },
+      { role: 'ai', tools: ['localview_search_paths_fuzzy', 'localview_get_path_node'],
+        text: '模糊反查命中 top1：`/redfish/v1/Systems/{id}/Sensors`（score 12，实例段 `1` 已自动过滤）。\n定义要点：传感器集合资源，成员由 ThresholdSensor 对象投影生成。完整定义已在「资源管理器」中定位。' },
+    ],
+  },
+  {
+    id: 'sc-twin', icon: 'cube', title: '风扇故障注入（数字孪生）', view: 'simulator', time: '2 周前',
+    messages: [
+      { role: 'user', text: '聚焦风扇 FAN3，注入转速骤降故障' },
+      { role: 'ai', tools: ['sim_focus', 'sim_inject_fault'],
+        text: '已在仿真调试中聚焦 FAN3 并注入 rpm 骤降（8000 → 1200）。\n转速仪表转红，FAN3 关联的 PWM 总线已高亮。\n后续接入 bmc_remote_ssh_exec 周期拉取真机传感器后，此视图可作为数字孪生监控面。' },
+    ],
+  },
+  {
+    id: 'sc-cooling', icon: 'snow', title: 'CPU 温区调速曲线调整', view: 'coolingConfig', time: '2 周前',
+    messages: [
+      { role: 'user', text: '把 CPU 温区的风扇调速曲线调激进一点，60 度就拉到 80% 占空比' },
+      { role: 'ai', tools: ['cooling_update_curve'],
+        text: '已更新 `cpu_zone` 曲线锚点：\n```\n50℃ → 40%\n60℃ → 80%   (原 55%)\n75℃ → 100%\n```\nYAML 已同步，可在「能效调速配置」视图预览曲线并导出。' },
+    ],
+  },
+];
+
+// ── 关键词规则（在线 mock 回复） ──────────────────────────────
+const RULES = [
+  [['bmc','连接','添加'], '在「BMC 环境」视图中点击「+ 分组」创建分组，再点击分组右侧的「+」新建连接。填写主机 IP、用户名后保存即可。'],
+  [['健康','ping','可达'], '选中连接后，点击详情页中的「健康检查」按钮，系统会对 SSH 端口（22）进行探测并更新状态指示灯。'],
+  [['ssh'], '在连接详情页点击「SSH 终端」按钮，会生成 `ssh://user@host:port` 链接。在 VS Code 扩展环境中，该链接会直接开启集成终端并登录 BMC。'],
+  [['快捷命令','macro','command'], '切换到「快捷命令」标签，点击「+ 新建」填写命令名称和 shell 命令。在列表中点击复制按钮可将命令快速复制到剪贴板。'],
+  [['csr','拓扑'], '在「拓扑视图」可以查看和编辑 CSR 管理拓扑，支持 .sr/.json 格式。请先从「项目列表」加载项目或上传自定义 CSR 文件。'],
+  [['传感器','sensor'], '传感器配置在「传感器配置」视图中，需先加载 CSR 文件。支持 SDR 传感器类型定义和阈值配置。'],
+  [['事件','event','ipmi'], '事件配置在「事件配置」视图中，用于 IPMI/Redfish 事件和告警定义。支持导入 event_def.json 进行批量配置。'],
+  [['3d','三维','仿真'], '「3D仿真」视图支持服务器整机的三维可视化交互，可以查看物理结构和部件布局。'],
+  [['smc','偏移','寄存器'], '「SMC计算」工具支持功能码/命令码/参数字段解析，以及十进制与十六进制互转，方便 SMC 寄存器调试。'],
+  [['历史','history'], '点击右上角「历史」可以查看示例场景会话与你自己的会话记录。点开任意一条历史，会载入完整对话并分屏打开关联的功能视图。'],
+  [['你好','hello','hi'], '你好！我是 openUBMC Studio 助手，可以帮你了解 BMC 环境管理、CSR 拓扑、传感器配置等功能。请问有什么需要帮助的？'],
+  [['功能','能做什么','帮助'], 'openUBMC Studio 主要功能：\n• BMC 环境管理（SSH/Telnet/WebUI 连接）\n• 快捷命令（批量命令复制/执行）\n• CSR 拓扑可视化与编辑\n• 传感器 / 事件 / 仿真配置\n• SMC 寄存器计算与 3D 仿真视图\n提示：右上角「历史」里有可分屏打开的示例场景。'],
+];
+
+function respond(q) {
+  const s = q.toLowerCase();
+  for (const [keys, reply] of RULES) {
+    if (keys.some(k => s.includes(k))) return reply;
+  }
+  return '抱歉，我暂时无法理解这个问题。可以问我关于 BMC 连接管理、快捷命令、CSR 拓扑、传感器配置等话题。';
+}
+
+// ── 会话状态与持久化 ─────────────────────────────────────────
+const STORE_KEY = 'bmcAiChatSessions';
+let currentScenario = null;              // 当前载入的示例场景
+let session = freshSession();            // 当前会话（有新用户消息才会入库）
+
+function freshSession(seedMessages) {
+  return { id: 'ss-' + Math.random().toString(36).slice(2, 9), title: null,
+           time: Date.now(), messages: seedMessages ? seedMessages.slice() : [], hasNew: false };
+}
+
+function loadSessions() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch { return []; }
+}
+
+function persistSession() {
+  if (!session.hasNew) return;
+  const list = loadSessions().filter(s => s.id !== session.id);
+  list.unshift({ id: session.id, title: session.title, time: session.time, messages: session.messages });
+  localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 20)));
+}
+
+function fmtTime(ts) {
+  const d = Date.now() - ts;
+  if (d < 60e3) return '刚刚';
+  if (d < 3600e3) return Math.floor(d / 60e3) + ' 分钟前';
+  if (d < 86400e3) return Math.floor(d / 3600e3) + ' 小时前';
+  return Math.floor(d / 86400e3) + ' 天前';
+}
+
+// ── 渲染 ─────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderText(text) {
+  // 支持 ```代码块```、`行内代码`、换行
+  const parts = text.split(/```/);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return '<pre>' + escapeHtml(part.replace(/^\n|\n$/g, '')) + '</pre>';
+    return escapeHtml(part)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  }).join('');
+}
+
+function appendMsg(role, text, tools) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  const av = document.createElement('div');
+  av.className = 'cm-avatar';
+  av.textContent = role === 'ai' ? 'AI' : 'ME';
+  const bub = document.createElement('div');
+  bub.className = 'cm-bubble';
+  let html = '';
+  if (tools && tools.length) {
+    html += '<div class="tool-calls">' +
+      tools.map(t => '<span class="tool-chip"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M8 6l6 6-6 6"/></svg>' + escapeHtml(t) + '</span>').join('') +
+      '</div>';
+  }
+  html += renderText(text);
+  bub.innerHTML = html;
+  div.appendChild(av); div.appendChild(bub);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function appendNote(text) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'sys-note';
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showTyping() {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ai'; div.id = 'typing';
+  div.innerHTML = '<div class="cm-avatar">AI</div><div class="cm-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+// ── 历史视图 ─────────────────────────────────────────────────
+function histItem({ icon, title, preview, time, viewLabel }, onClick) {
+  const div = document.createElement('div');
+  div.className = 'hist-item';
+  div.innerHTML =
+    '<div class="hist-icon">' + ICON(icon) + '</div>' +
+    '<div class="hist-main">' +
+      '<div class="hist-title">' + escapeHtml(title) + '</div>' +
+      '<div class="hist-preview">' + escapeHtml(preview) + '</div>' +
+      '<div class="hist-meta">' +
+        '<span class="hist-time">' + escapeHtml(time) + '</span>' +
+        (viewLabel ? '<span class="hist-chip">↗ ' + escapeHtml(viewLabel) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  div.onclick = onClick;
+  return div;
+}
+
+function renderHistory() {
+  const scList = document.getElementById('scenario-list');
+  scList.innerHTML = '';
+  for (const sc of SCENARIOS) {
+    scList.appendChild(histItem({
+      icon: sc.icon, title: sc.title,
+      preview: sc.messages[0].text, time: sc.time,
+      viewLabel: VIEW_LABELS[sc.view],
+    }, () => loadScenario(sc)));
+  }
+
+  const ssList = document.getElementById('session-list');
+  ssList.innerHTML = '';
+  const sessions = loadSessions();
+  if (!sessions.length) {
+    const empty = document.createElement('div');
+    empty.className = 'hist-empty';
+    empty.textContent = '暂无会话记录——发送一条消息后会自动保存到这里。';
+    ssList.appendChild(empty);
+  } else {
+    for (const ss of sessions) {
+      ssList.appendChild(histItem({
+        icon: 'chat', title: ss.title || '未命名会话',
+        preview: (ss.messages.find(m => m.role === 'user') || ss.messages[0] || { text: '' }).text,
+        time: fmtTime(ss.time),
+        viewLabel: null,
+      }, () => loadSession(ss)));
+    }
+  }
+}
+
+function toggleHistory(force) {
+  const show = force !== undefined ? force : !document.body.classList.contains('show-history');
+  if (show) renderHistory();
+  document.body.classList.toggle('show-history', show);
+  document.getElementById('history-btn').classList.toggle('is-active', show);
+  document.getElementById('history-btn').textContent = show ? '返回' : '历史';
+  document.getElementById('panel-title').textContent = show ? '聊天历史' : 'AI 助手';
+}
+
+// ── 载入历史 / 场景 ──────────────────────────────────────────
+function setChatLog(messages, note) {
+  const log = document.getElementById('chat-log');
+  log.innerHTML = '';
+  if (note) appendNote(note);
+  for (const m of messages) appendMsg(m.role, m.text, m.tools);
+}
+
+function openScenarioView(viewId) {
+  window.parent.postMessage({ type: 'ai-open-scenario', viewId }, '*');
+}
+
+function loadScenario(sc) {
+  persistSession();
+  currentScenario = sc;
+  session = freshSession(sc.messages);
+  session.title = sc.title + '（续）';
+  setChatLog(sc.messages, '已载入示例场景 · ' + sc.title);
+  const banner = document.getElementById('scenario-banner');
+  banner.style.display = 'flex';
+  document.getElementById('scenario-banner-text').innerHTML =
+    '关联视图：<b>' + escapeHtml(VIEW_LABELS[sc.view] || sc.view) + '</b>';
+  toggleHistory(false);
+  openScenarioView(sc.view);
+}
+
+function loadSession(ss) {
+  persistSession();
+  currentScenario = null;
+  session = { id: ss.id, title: ss.title, time: ss.time, messages: ss.messages.slice(), hasNew: false };
+  setChatLog(ss.messages, '已载入历史会话');
+  document.getElementById('scenario-banner').style.display = 'none';
+  toggleHistory(false);
+}
+
+function reopenScenarioView() {
+  if (currentScenario) openScenarioView(currentScenario.view);
+}
+
+// ── 会话操作 ─────────────────────────────────────────────────
+function newChat() {
+  persistSession();
+  currentScenario = null;
+  session = freshSession();
+  document.getElementById('scenario-banner').style.display = 'none';
+  setChatLog([], null);
+  appendMsg('ai', INIT);
+  toggleHistory(false);
+}
+
+function fillInput(text) {
+  const el = document.getElementById('chat-input');
+  el.value = text; el.focus();
+}
+
+function recordMsg(role, text) {
+  session.messages.push({ role, text });
+  if (role === 'user') {
+    session.hasNew = true;
+    if (!session.title) session.title = text.length > 18 ? text.slice(0, 18) + '…' : text;
+  }
+  persistSession();
+}
+
+function sendMsg() {
+  if (thinking) return;
+  const el = document.getElementById('chat-input');
+  const text = el.value.trim();
+  if (!text) return;
+  el.value = '';
+  appendMsg('user', text);
+  recordMsg('user', text);
+  thinking = true;
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    const reply = respond(text);
+    appendMsg('ai', reply);
+    recordMsg('ai', reply);
+    thinking = false;
+    document.getElementById('send-btn').disabled = false;
+  }, 600 + Math.random() * 500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+// ── 初始化 ───────────────────────────────────────────────────
+appendMsg('ai', INIT);
+window.addEventListener('beforeunload', persistSession);
+</script>
+</body>
+</html>
