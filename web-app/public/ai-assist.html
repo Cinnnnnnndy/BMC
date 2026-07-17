@@ -232,6 +232,13 @@ html, body {
 body.show-history .history-view { display: flex; }
 body.show-history .chat-view { display: none; }
 
+/* history-tab-mode: opened as a full pane tab via ?view=history */
+body.history-tab-mode #history-btn,
+body.history-tab-mode #new-chat-btn,
+body.history-tab-mode .badge-beta { display: none; }
+body.history-tab-mode .history-view { padding: 16px 20px; }
+body.history-tab-mode .hist-item { background: var(--bg-active); }
+
 .hv-section-title {
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
   color: var(--text-muted); text-transform: uppercase;
@@ -281,8 +288,8 @@ body.show-history .chat-view { display: none; }
     <span class="ph-icon" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></span>
     <span class="ph-title" id="panel-title">AI 助手</span>
     <span class="badge-beta">BETA</span>
-    <button class="ph-act-btn" id="history-btn" onclick="toggleHistory()">历史</button>
-    <button class="ph-act-btn" onclick="newChat()">新对话</button>
+    <button class="ph-act-btn" id="history-btn" onclick="onHistoryBtn()">历史</button>
+    <button class="ph-act-btn" id="new-chat-btn" onclick="newChat()">新对话</button>
   </div>
 
   <div class="panel-body">
@@ -710,7 +717,21 @@ function handleKey(e) {
 }
 
 // ── 初始化 ───────────────────────────────────────────────────
-appendMsg('ai', INIT);
+const IS_HISTORY_TAB = new URLSearchParams(location.search).get('view') === 'history';
+
+function onHistoryBtn() {
+  if (IS_HISTORY_TAB) return;
+  // In the right-side AI panel: open history as a proper tab in the main pane
+  window.parent.postMessage({ type: 'ai-open-history' }, '*');
+}
+
+if (IS_HISTORY_TAB) {
+  document.body.classList.add('history-tab-mode', 'show-history');
+  document.getElementById('panel-title').textContent = 'AI 历史';
+  renderHistory();
+} else {
+  appendMsg('ai', INIT);
+}
 window.addEventListener('beforeunload', persistSession);
 </script>
 </body>

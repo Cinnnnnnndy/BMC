@@ -47,7 +47,7 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
-  | 'home' | 'installGuide' | 'explorer' | 'bmcEnv' | 'aiAssist'
+  | 'home' | 'installGuide' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig'
@@ -80,6 +80,7 @@ const ICONS: Record<string, React.ReactNode> = {
   installGuide: <SI d={['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z','M9 7h7M9 11h5']} />,
   bmcEnv:       <SI d={['M4 4h16a2 2 0 0 1 2 2v4H2V6a2 2 0 0 1 2-2z','M2 10h20v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8z','M8 7v3M12 7v3M16 7v3']} />,
   aiAssist:     <SI d={['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z','M8 10h8M8 14h5']} />,
+  aiHistory:    <SI d={['M12 8v4l3 3','M3.05 11a9 9 0 1 0 .5-3','M3 4v4h4']} />,
   topology:     <SI d={['M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M8.59 13.51l6.83 3.98','M15.41 6.51l-6.82 3.98']} />,
   boardTopology:<SI d="M4 5h16M4 12h16M4 19h16M9 5v14M15 5v14" />,
   association:  <SI d={['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71','M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71']} />,
@@ -193,7 +194,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   threeD: '3D 仿真', vueTopo: 'CSR 拓扑', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
-  aiAssist: 'AI 助手', smcOffset: 'SMC 偏移量',
+  aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
 };
 
 // ── Pane components ────────────────────────────────────────────────────────
@@ -642,6 +643,7 @@ export default function App() {
   // iframe 消息总线：
   //   ai-open-scenario — AI 助手打开历史会话关联的功能视图（分屏）
   //   ai-run-agent     — 页面（如安装引导失败横幅）请求派发 agent 任务到终端
+  //   ai-open-history  — AI 面板「历史」按钮 → 在主区域开 aiHistory tab
   useEffect(() => {
     function onScenarioMsg(event: MessageEvent) {
       const msg = event.data as { type?: string; viewId?: string; cmd?: string };
@@ -649,11 +651,13 @@ export default function App() {
         openScenario(msg.viewId);
       } else if (msg?.type === 'ai-run-agent' && msg.cmd) {
         runQuickAction(msg.cmd);
+      } else if (msg?.type === 'ai-open-history') {
+        handleNavTo('aiHistory');
       }
     }
     window.addEventListener('message', onScenarioMsg);
     return () => window.removeEventListener('message', onScenarioMsg);
-  }, [openScenario, runQuickAction]);
+  }, [openScenario, runQuickAction, handleNavTo]);
 
   // Ctrl+` 切换终端（VS Code 习惯）
   useEffect(() => {
@@ -909,6 +913,8 @@ export default function App() {
         return <BmcEnvView />;
       case 'aiAssist':
         return <AiAssistView />;
+      case 'aiHistory':
+        return <iframe src={withBase('ai-assist.html') + '?view=history'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 历史" />;
       case 'vueTopo':
         return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="CSR拓扑Vue视图" />;
       case 'hwTopology':
