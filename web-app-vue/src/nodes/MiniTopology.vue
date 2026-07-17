@@ -17,22 +17,9 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import ChipIcon from './ChipIcon.vue';
 import type { BusRow } from '../data/boardTopologies';
 
 const props = defineProps<{ buses: BusRow[] }>();
-
-// ─── Chip colours ────────────────────────────────────────────────────────
-const CHIP_COLOR: Record<string, string> = {
-  Eeprom:  '#93c5fd',
-  CPU:     '#86efac',
-  Lm75:    '#fcd34d',
-  Smc:     '#fdba74',
-  Cpld:    '#d8b4fe',
-  VRD:     '#67e8f9',
-  bigchip: '#f9a8d4',
-};
-const cc = (t: string) => CHIP_COLOR[t] ?? '#9ca3af';
 
 const BUS_ABBR: Record<string, string> = {
   i2c: 'I2C', smbus: 'SMB', hisport: 'HSP', jtag: 'JTAG',
@@ -43,9 +30,9 @@ const busAbbr = (b: BusRow) => BUS_ABBR[b.busType] ?? b.busType;
 const PILL_W   = 118   // bus pill width (approximate, accounts for font variability)
 const PILL_H   = 22    // bus pill height
 const CHIP_W   = 60    // chip card width
-const CHIP_H   = 58    // chip card height (icon + label + padding)
+const CHIP_H   = 34    // chip card height (IC body, label inside)
 const MUX_W    = 72    // mux card width
-const MUX_H    = 68    // mux card height (icon + label + handles + padding)
+const MUX_H    = 46    // mux card height (IC body + channel ports)
 const ITEM_GAP = 8     // gap between chips / mux on same bus
 const CHIPS_X0 = PILL_W + 8  // first chip column start x (after pill + small gap)
 const WIRE_OFS = PILL_H / 2  // wire is at vertical centre of pill
@@ -298,15 +285,15 @@ function resetLayout() {
         :style="{
           left:        (positions[bk(bus.id)]?.x ?? 0) + 'px',
           top:         (positions[bk(bus.id)]?.y ?? 0) + 'px',
-          borderColor: bus.color + 'cc',
-          background:  bus.color + '18',
-          color:       bus.color,
+          borderColor: bus.color,
+          background:  bus.color,
+          color:       '#fff',
         }"
         @pointerdown="(e) => onItemDown(bk(bus.id), e)"
       >
         <svg width="13" height="13" viewBox="0 0 13 13" style="flex-shrink:0">
-          <circle cx="6.5" cy="6.5" r="5.5" :stroke="bus.color" stroke-width="1.5" fill="none" />
-          <circle cx="6.5" cy="6.5" r="2.5"  :fill="bus.color"  opacity="0.8" />
+          <circle cx="6.5" cy="6.5" r="5.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" fill="none" />
+          <circle cx="6.5" cy="6.5" r="2.5" fill="rgba(255,255,255,0.9)" />
         </svg>
         <span class="bus-abbr">{{ busAbbr(bus) }}</span>
         <span class="bus-name">{{ bus.label }}</span>
@@ -321,11 +308,9 @@ function resetLayout() {
         :style="{
           left: (positions[ck(bus.id, ci)]?.x ?? 0) + 'px',
           top:  (positions[ck(bus.id, ci)]?.y ?? 0) + 'px',
-          '--cc': cc(chip.chipType),
         }"
         @pointerdown="(e) => onItemDown(ck(bus.id, ci), e)"
       >
-        <div class="chip-icon-box"><ChipIcon :size="26" /></div>
         <div class="chip-lbl">{{ chip.label }}</div>
       </div>
 
@@ -340,7 +325,6 @@ function resetLayout() {
           }"
           @pointerdown="(e) => onItemDown(mk(bus.id), e)"
         >
-          <div class="mux-icon-box"><ChipIcon :size="26" /></div>
           <div class="mux-lbl">{{ bus.mux.label }}</div>
           <div class="mux-handles">
             <span
@@ -361,11 +345,9 @@ function resetLayout() {
           :style="{
             left: (positions[fck(bus.id, fi)]?.x ?? 0) + 'px',
             top:  (positions[fck(bus.id, fi)]?.y ?? 0) + 'px',
-            '--cc': cc(chip.chipType),
           }"
           @pointerdown="(e) => onItemDown(fck(bus.id, fi), e)"
         >
-          <div class="chip-icon-box"><ChipIcon :size="22" /></div>
           <div class="chip-lbl">{{ chip.label }}</div>
         </div>
       </template>
@@ -450,65 +432,88 @@ function resetLayout() {
   flex: 1;
 }
 
-/* ─── Chip card ─── */
+/* ─── Chip card — IC body, label inside, pin stubs top/bottom ─── */
 .chip-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  width: 60px;
-  padding: 5px 3px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 7px;
-  box-sizing: border-box;
-}
-.chip-card:hover:not(.item-hot) { background: rgba(255,255,255,0.06); }
-.chip-icon-box {
-  --chip-icon-body: rgba(0,0,0,0.30);
-  --chip-icon-pin:  rgba(255,255,255,0.50);
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 60px;
+  height: 34px;
+  padding: 0 4px;
+  background: var(--chip-body-bg, #17171c);
+  border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));
+  border-radius: 5px;
+  box-sizing: border-box;
 }
+.chip-card::before,
+.chip-card::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--chip-body-border, rgba(255,255,255,0.30)) 0 2px,
+    transparent 2px 8px
+  );
+  pointer-events: none;
+}
+.chip-card::before { top: -4px; }
+.chip-card::after  { bottom: -4px; }
+.chip-card:hover:not(.item-hot) { border-color: rgba(255,255,255,0.55); }
 .chip-lbl {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 600;
-  color: var(--cc, rgba(255,255,255,0.60));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--chip-body-text, #e4e6ee);
   text-align: center;
   line-height: 1.2;
   white-space: nowrap;
-  max-width: 54px;
+  max-width: 52px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ─── Mux card ─── */
+/* ─── Mux card — IC body + channel ports below ─── */
 .mux-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 3px;
   width: 72px;
-  padding: 5px 3px 4px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(168,85,247,0.40);
-  border-radius: 7px;
+  height: 46px;
+  padding: 4px 3px;
+  background: var(--chip-body-bg, #17171c);
+  border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));
+  border-radius: 5px;
   box-sizing: border-box;
 }
-.mux-card:hover:not(.item-hot) { background: rgba(168,85,247,0.06); }
-.mux-icon-box {
-  --chip-icon-body: rgba(0,0,0,0.30);
-  --chip-icon-pin:  rgba(168,85,247,0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.mux-card::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  top: -4px;
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--chip-body-border, rgba(255,255,255,0.30)) 0 2px,
+    transparent 2px 8px
+  );
+  pointer-events: none;
 }
+.mux-card:hover:not(.item-hot) { border-color: rgba(255,255,255,0.55); }
 .mux-lbl {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
-  color: rgba(192,132,252,0.90);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--chip-body-text, #e4e6ee);
   white-space: nowrap;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mux-handles {
   display: flex;
@@ -517,14 +522,15 @@ function resetLayout() {
   justify-content: center;
 }
 .mux-handle {
-  min-width: 13px;
-  height: 13px;
-  border-radius: 3px;
-  background: rgba(168,85,247,0.2);
-  border: 1px solid rgba(168,85,247,0.55);
+  min-width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));
   font-size: 7.5px;
   font-weight: 700;
-  color: #c084fc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--chip-body-text, #e4e6ee);
   display: flex;
   align-items: center;
   justify-content: center;

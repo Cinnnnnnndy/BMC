@@ -47,9 +47,13 @@
   --node-label-bg: #0a0b14;
   --node-label-color: rgba(255, 255, 255, 0.55);
   --node-mux-label-bg: #0d0d1e;
-  --board-bg: rgba(255, 255, 255, 0.02);
-  --board-label: rgba(255, 255, 255, 0.55);
-  --board-border: rgba(255, 255, 255, 0.12);
+  --board-bg: #101013;
+  --board-label: rgba(255, 255, 255, 0.88);
+  --board-border: rgba(255, 255, 255, 0.10);
+  --board-tag-bg: #0b0b0e;
+  --chip-body-bg: #17171c;
+  --chip-body-border: rgba(255, 255, 255, 0.30);
+  --chip-body-text: #e4e6ee;
 
   --chip-icon-body: rgba(0, 0, 0, 0.35);
   --chip-icon-core: transparent;
@@ -63,9 +67,13 @@
   --node-label-bg: #f2f1f6;
   --node-label-color: #5a5a72;
   --node-mux-label-bg: #eeecf8;
-  --board-bg: rgba(248, 248, 246, 0.70);
-  --board-label: rgba(0, 0, 0, 0.32);
-  --board-border: rgba(120, 140, 180, 0.22);
+  --board-bg: #fbfaf8;
+  --board-label: rgba(0, 0, 0, 0.78);
+  --board-border: rgba(120, 140, 180, 0.28);
+  --board-tag-bg: #ffffff;
+  --chip-body-bg: #f2f1f6;
+  --chip-body-border: rgba(60, 70, 110, 0.40);
+  --chip-body-text: #2a2c3a;
   --chip-icon-body: rgba(100, 100, 140, 0.10);
   --chip-icon-core: transparent;
   --chip-icon-pin: #9090b0;

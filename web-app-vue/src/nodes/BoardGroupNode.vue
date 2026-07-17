@@ -189,10 +189,8 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       'state-missing':         state === 'missing',
     }"
   >
-    <!-- ── Drag handle bar (grab here to move the whole card) ──── -->
-    <div class="drag-handle" title="拖动移动卡片">
-      <span class="drag-grip">⠿</span>
-    </div>
+    <!-- ── Floating board name tag (reference: label chip above the card) ── -->
+    <div class="board-tag">{{ group.label }}</div>
     <Handle
       type="target" :position="Position.Left" id="l"
       :style="{ width: '8px', height: '8px', background: accent, border: '2px solid #0b0d12', left: '-5px' }"
@@ -211,7 +209,6 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
         <span class="state-icon">{{ stateMeta.icon }}</span>
         <span>{{ stateMeta.label }}</span>
       </span>
-      <span class="group-title">{{ group.label }}</span>
       <span class="group-count" v-if="variants.length">× {{ variants.length }}</span>
     </div>
 
@@ -406,10 +403,10 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   /* min-width so the card starts at 360px but can grow as chips are dragged right */
   min-width: 360px;
   width: max-content;
-  padding: 10px 12px 12px;
-  border-radius: 10px;
-  background: var(--board-bg, rgba(255,255,255,0.02));
-  border: 1px dashed var(--board-border, rgba(255,255,255,0.14));
+  padding: 12px 12px 12px;
+  border-radius: 12px;
+  background: var(--board-bg, #101013);
+  border: 1px solid var(--board-border, rgba(255,255,255,0.10));
   color: var(--text-primary, #e6e8ef);
   user-select: none;
   cursor: grab;
@@ -423,27 +420,21 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 }
 .group-node.is-unknown { opacity: 0.65; }
 
-/* ── Drag handle bar ── */
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 12px;
-  margin: -2px -12px 6px -12px;   /* stretch to full card width */
-  border-radius: 10px 10px 0 0;
-  cursor: grab;
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  transition: background 0.12s;
-}
-.drag-handle:hover {
-  background: rgba(255,255,255,0.06);
-}
-.drag-grip {
-  font-size: 11px;
-  color: rgba(255,255,255,0.20);
-  letter-spacing: 1px;
-  line-height: 1;
+/* ── Floating board name tag (above the card, reference style) ── */
+.board-tag {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--board-tag-bg, #0b0b0e);
+  border: 1px solid var(--board-border, rgba(255,255,255,0.10));
+  color: var(--board-label, rgba(255,255,255,0.88));
+  font-size: 12px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
   pointer-events: none;
   user-select: none;
 }
@@ -477,6 +468,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-size: 9px;
   color: rgba(255,255,255,0.35);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* ── Port number label (beside distributed source handles) ── */
@@ -590,9 +582,9 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
 }
 
 /* ── Resolution-state variants of the card border ── */
-.group-node.state-multimatch      { border-style: dashed; border-color: #f59e0b99; }
-.group-node.state-typeplaceholder { border-style: dashed; border-color: #eab30899; background: rgba(234, 179, 8, 0.04); }
-.group-node.state-missing         { border-style: dashed; border-color: #ef4444aa; background: rgba(239, 68, 68, 0.06); }
+.group-node.state-multimatch      { border-color: #f59e0b99; }
+.group-node.state-typeplaceholder { border-color: #eab30899; }
+.group-node.state-missing         { border-color: #ef4444aa; }
 /* Cancel the generic "opacity 0.65" applied to category=unknown when a
    missing card happens to be in that category. Missing needs to stay
    legible. */

@@ -13,7 +13,7 @@ const topo = BMC_TOPOLOGY;
 
 <template>
   <div class="bmc-node" :class="{ 'is-selected': props.selected }">
-    <div class="bmc-title">{{ props.data.label ?? 'BMC' }}</div>
+    <div class="board-tag">{{ props.data.label ?? 'BMC' }}</div>
     <div class="bmc-sub">{{ props.data.subtitle ?? '根节点 · openUBMC' }}</div>
 
     <div class="bmc-topo-section">
@@ -32,9 +32,9 @@ const topo = BMC_TOPOLOGY;
 .bmc-node {
   width: 240px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--board-bg, rgba(255,255,255,0.02));
-  border: 1px dashed var(--board-border, rgba(255,255,255,0.14));
+  border-radius: 12px;
+  background: var(--board-bg, #101013);
+  border: 1px solid var(--board-border, rgba(255,255,255,0.10));
   color: var(--text-primary, #e6e8ef);
   user-select: none;
   cursor: grab;
@@ -44,14 +44,24 @@ const topo = BMC_TOPOLOGY;
   border-color: rgba(255,255,255,0.32);
   box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
 }
-.bmc-title {
-  font-size: 13px;
-  font-weight: 700;
+.board-tag {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--board-tag-bg, #0b0b0e);
+  border: 1px solid var(--board-border, rgba(255,255,255,0.10));
+  color: var(--board-label, rgba(255,255,255,0.88));
+  font-size: 12px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.4px;
-  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 .bmc-sub {
-  margin-top: 2px;
   font-size: 9.5px;
   color: rgba(255,255,255,0.38);
   margin-bottom: 10px;

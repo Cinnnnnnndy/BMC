@@ -4,7 +4,7 @@
 // Each card shows inline: header + SN/PN dropdown + I2C bus / mux / chip tree.
 import { computed, markRaw, onMounted, provide, readonly, ref, watch } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
-import { Background } from '@vue-flow/background';
+import { Background, BackgroundVariant } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
 
@@ -415,7 +415,7 @@ function catStateClass(cat: CatNode): string {
         @edge-click="onEdgeClick"
         @pane-click="onPaneClick"
       >
-        <Background pattern-color="#1a1a1e" :gap="28" :size="0.85" />
+        <Background :variant="BackgroundVariant.Lines" pattern-color="rgba(255,255,255,0.045)" :gap="42" :size="1" />
         <Controls />
         <MiniMap
           :node-color="miniColor"
