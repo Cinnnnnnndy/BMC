@@ -858,6 +858,9 @@
   align-items: center;
   gap: 14px;
   padding: 10px 0;
+  position: relative;
+  z-index: 10;
+  overflow: visible;
 }
 
 .pto-ide-frame__activity-rail[hidden],
@@ -877,12 +880,41 @@
   place-items: center;
   font: var(--ide-frame-title-font);
   color: var(--button-ghost-fg);
+  position: relative;
   transition:
     background  var(--duration-fast) var(--easing-default),
     border-color var(--duration-fast) var(--easing-default),
     color        var(--duration-fast) var(--easing-default),
     box-shadow   var(--duration-fast) var(--easing-default),
     transform    var(--duration-fast) var(--easing-default);
+}
+
+/* Hover tooltip — appears to the right of the rail icon */
+.pto-ide-frame__rail-button::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--surface-2, #2a2a2e);
+  color: var(--foreground);
+  border: 1px solid var(--border-default, rgba(255,255,255,0.08));
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+  transition: opacity 0.10s;
+  transition-delay: 0s;
+}
+.pto-ide-frame__rail-button:hover::after {
+  opacity: 1;
+  transition-delay: 0.45s;
 }
 
 .pto-ide-frame__rail-button:hover {

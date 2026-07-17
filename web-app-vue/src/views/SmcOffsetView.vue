@@ -705,19 +705,20 @@ export default { name: 'SmcOffsetView' };
 .fo-label { font-size:12px; color:var(--text); }
 .func-menu-note { font-size:10px; color:var(--text-dim); padding:4px 8px 2px; border-top:1px solid var(--border); margin-top:2px; }
 
-/* Segmented pill selector for single-bit fields (MS / RW) */
-.smc-pillset { flex:1; display:flex; gap:6px; min-width:0; }
+/* Segmented control for single-bit fields (MS / RW) */
+.smc-pillset {
+  flex:1; display:flex; background:var(--bg-elev-2);
+  border-radius:var(--radius); padding:3px; gap:3px; min-width:0;
+}
 .smc-pill {
   flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
-  padding:7px 6px; border-radius:var(--radius); cursor:pointer;
-  background:var(--bg-elev-2); border:none; color:var(--text-dim);
+  padding:5px 8px; border-radius:calc(var(--radius) - 1px); cursor:pointer;
+  background:rgba(255,255,255,0.05); border:none; color:var(--text-mute);
   font-family:inherit; font-size:12.5px; font-weight:500; transition:all .12s; white-space:nowrap;
 }
-.smc-pill b { font-family:var(--font-mono); font-weight:700; opacity:.85; }
-.smc-pill:hover { color:var(--text); border-color:var(--accent); }
-.smc-pill.on { color:#fff; border-color:transparent; }
-.smc-pill.p-write.on { background:#34d399; color:#06281d; }
-.smc-pill.p-read.on  { background:#4f6ef7; }
+.smc-pill b { font-family:var(--font-mono); font-weight:700; }
+.smc-pill:hover { color:var(--text); background:rgba(255,255,255,0.10); }
+.smc-pill.on { background:rgba(255,255,255,0.18); color:var(--text); font-weight:600; }
 .field-copy {
   width:30px; height:32px; padding:0; border-radius:var(--radius);
   background:transparent; border:1px solid var(--border); color:var(--text-dim);
