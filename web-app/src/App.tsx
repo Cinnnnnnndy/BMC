@@ -467,7 +467,11 @@ export default function App() {
   const [currentProject, setCurrentProject] = useState<{ manufacturer: string; model: string } | null>(null);
   const [lightMode, setLightMode] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [aiPanelWidth, setAiPanelWidth] = useState(340);
+  // 默认宽度取屏宽 ~40%（约 1/3–1/2 屏），并按屏幕大小自适应夹取
+  const [aiPanelWidth, setAiPanelWidth] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    return Math.min(Math.max(Math.round(w * 0.4), 420), 660);
+  });
   const [termOpen, setTermOpen] = useState(false);
   const [termHeight, setTermHeight] = useState(240);
   const [termResizing, setTermResizing] = useState(false);
@@ -834,11 +838,17 @@ export default function App() {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = aiPanelWidth;
+    const maxW = Math.min(880, Math.round(window.innerWidth * 0.6));
+    // 覆盖层盖住 iframe，拖拽时 mousemove 才能到达父窗口（否则不跟手）
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;cursor:ew-resize';
+    document.body.appendChild(overlay);
     const onMouseMove = (ev: MouseEvent) => {
       const dx = startX - ev.clientX;
-      setAiPanelWidth(Math.max(260, Math.min(680, startWidth + dx)));
+      setAiPanelWidth(Math.max(360, Math.min(maxW, startWidth + dx)));
     };
     const onMouseUp = () => {
+      overlay.remove();
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       document.body.style.cursor = '';
