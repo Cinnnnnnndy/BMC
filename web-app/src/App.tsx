@@ -51,7 +51,8 @@ type ViewId =
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig'
-  | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup';
+  | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup'
+  | 'openubmcLogin' | 'gitcodeKeys';
 
 const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'sensor', 'simulator']);
 
@@ -102,6 +103,8 @@ const ICONS: Record<string, React.ReactNode> = {
   pipeExpr:     <SI d={['M4 21v-7','M4 10V3','M12 21v-9','M12 8V3','M20 21v-5','M20 12V3','M1 14h6','M9 8h6','M17 16h6']} />,
   smcExt:       <SI d={['M6 6h12v12H6z','M9 6V3','M15 6V3','M9 18v3','M15 18v3','M6 9H3','M6 15H3','M18 9h3','M18 15h3']} />,
   mibSup:       <SI d={['M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2','M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0H9V5z','M9 12h6','M9 16h6']} />,
+  openubmcLogin:<SI d={['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z','M2 12h20','M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z']} />,
+  gitcodeKeys:  <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
 };
 
 // ── Pane layout system ─────────────────────────────────────────────────────
@@ -197,6 +200,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
+  openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥',
 };
 
 // ── Pane components ────────────────────────────────────────────────────────
@@ -607,6 +611,40 @@ export default function App() {
     });
   }, []);
 
+  // 在「向导所在 pane 之外」打开一个视图（如登录/密钥页），使向导保持可见——
+  // 安装引导要求：外部页面在分屏内打开而非跳出浏览器。
+  const openViewBesideWizard = useCallback((viewId: ViewId) => {
+    const WIZARD_VIEWS = new Set<ViewId>(['aiInstall', 'installGuide']);
+    setLayout(prev => {
+      // 已打开 → 聚焦
+      for (const leaf of allLeaves(prev)) {
+        const tab = leaf.tabs.find(t => t.viewId === viewId);
+        if (tab) {
+          setActivePaneId(leaf.paneId);
+          activePaneIdRef.current = leaf.paneId;
+          return lActivateTab(prev, leaf.paneId, tab.tabId);
+        }
+      }
+      const leaves = allLeaves(prev);
+      const newTab: TabEntry = { tabId: uid(), viewId };
+      // 优先放到不承载向导的 pane（保持向导可见）
+      const beside = leaves.find(l => !l.tabs.some(t => WIZARD_VIEWS.has(t.viewId)));
+      if (beside) {
+        setActivePaneId(beside.paneId);
+        activePaneIdRef.current = beside.paneId;
+        return lAddTab(prev, beside.paneId, newTab);
+      }
+      // 只有向导 pane → 拆分一次（新页放左侧，向导留右侧）
+      const wizardLeaf = leaves.find(l => l.tabs.some(t => WIZARD_VIEWS.has(t.viewId))) ?? leaves[0];
+      if (!wizardLeaf) return prev;
+      const result = lSplit(prev, wizardLeaf.paneId, 'h', 'a', newTab);
+      if (!result.newId) return lAddTab(prev, wizardLeaf.paneId, newTab);
+      setActivePaneId(result.newId);
+      activePaneIdRef.current = result.newId;
+      return result.n;
+    });
+  }, []);
+
   // CSR-required views need a document loaded; fall back to the default sample project
   const ensureCsrLoaded = useCallback(async (): Promise<boolean> => {
     if (csrRef.current) return true;
@@ -656,6 +694,9 @@ export default function App() {
       const msg = event.data as { type?: string; viewId?: string; cmd?: string };
       if (msg?.type === 'ai-open-scenario' && msg.viewId) {
         openScenario(msg.viewId);
+      } else if (msg?.type === 'ai-open-web' && msg.viewId) {
+        // 安装引导：外部页面（登录/GitCode 密钥）在向导旁的分屏内打开，不跳出浏览器
+        openViewBesideWizard(msg.viewId as ViewId);
       } else if (msg?.type === 'ai-run-agent' && msg.cmd) {
         runQuickAction(msg.cmd);
       } else if (msg?.type === 'ai-open-history') {
@@ -664,7 +705,7 @@ export default function App() {
     }
     window.addEventListener('message', onScenarioMsg);
     return () => window.removeEventListener('message', onScenarioMsg);
-  }, [openScenario, runQuickAction, handleNavTo]);
+  }, [openScenario, openViewBesideWizard, runQuickAction, handleNavTo]);
 
   // Ctrl+` 切换终端（VS Code 习惯）
   useEffect(() => {
@@ -921,6 +962,10 @@ export default function App() {
         return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'aiInstall':
         return <iframe src={withBase('ai-install.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 引导安装" />;
+      case 'openubmcLogin':
+        return <iframe src="https://www.openubmc.cn/" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="openUBMC 登录" />;
+      case 'gitcodeKeys':
+        return <iframe src="https://gitcode.com/-/user_settings/ssh_keys" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="GitCode 密钥" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':

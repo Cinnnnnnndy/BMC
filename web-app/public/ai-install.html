@@ -366,6 +366,10 @@ async function termBlock(bubble, lines) {
 function runCmd(cmd) {
   toParent({ type: 'ai-run-agent', cmd });
 }
+// 在向导旁的分屏内打开外部页面（登录 / GitCode 密钥），不跳出浏览器
+function openWeb(viewId) {
+  toParent({ type: 'ai-open-web', viewId });
+}
 function termNote(bubble) {
   const n = document.createElement('div');
   n.className = 'term-note';
@@ -404,50 +408,44 @@ async function step1Welcome() {
 
 async function step1Register() {
   const row = await aiMsg(
-    `<p>请先前往 openUBMC 开发者社区注册账号，完成后回来继续。</p>`,
-    {
-      actions: [
-        { act: 'open-reg',  label: '前往注册', primary: true },
-        { act: 'reg-done',  label: '注册完成，继续' },
-      ]
-    }
+    `<p>好，点下方按钮，我在左侧分屏打开 openUBMC 注册页——注册并登录后我会自动检测登录状态并继续。</p>`,
+    { actions: [ { act: 'open-reg', label: '前往注册 openUBMC 账号', primary: true } ] }
   );
-  row.addEventListener('click', async e => {
+  row.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
-    if (btn.dataset.act === 'open-reg') {
-      window.open('https://www.openubmc.cn/', '_blank');
-      userMsg('已打开注册页面');
-    } else {
-      disableActions(row);
-      userMsg('注册完成，继续');
-      step1Login();
-    }
+    disableActions(row);
+    userMsg('前往注册');
+    openWeb('openubmcLogin');
+    step1DetectLogin();
   });
 }
 
 async function step1Login() {
   const row = await aiMsg(
-    `<p>好，请登录你的 openUBMC 账号。登录完成后点击「已登录，继续」。</p>`,
-    {
-      actions: [
-        { act: 'open-login', label: '前往登录 openUBMC 账号', primary: true },
-        { act: 'login-done', label: '已登录，继续' },
-      ]
-    }
+    `<p>好，点下方按钮，我在左侧分屏打开 openUBMC 登录页——登录成功后会自动检测并进入下一步，无需手动确认。</p>`,
+    { actions: [ { act: 'open-login', label: '前往登录 openUBMC 账号', primary: true } ] }
   );
-  row.addEventListener('click', async e => {
+  row.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
-    if (btn.dataset.act === 'open-login') {
-      window.open('https://www.openubmc.cn/', '_blank');
-      userMsg('已前往登录');
-    } else {
-      disableActions(row);
-      userMsg('已登录，继续');
-      step2LinuxEnv();
-    }
+    disableActions(row);
+    userMsg('前往登录');
+    openWeb('openubmcLogin');
+    step1DetectLogin();
   });
+}
+
+// 登录状态自动检测（模拟 setup 登录态探测）→ 成功后自动进入下一步，无需点击
+async function step1DetectLogin() {
+  const row = await aiMsg('<p>已在左侧分屏打开登录页，正在自动检测登录状态…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [
+    { t: '检测 openUBMC 登录状态…', c: 'tdm', d: 1500 },
+    { t: '✓ 已登录（账号会话有效）', c: 'tok', d: 600 },
+  ]);
+  await sleep(300);
+  step2LinuxEnv();
 }
 
 // ── Step 2: 环境准备 ──────────────────────────────────────────────────
@@ -481,7 +479,7 @@ async function step2LinuxEnv() {
 
 async function step2InstallWSL() {
   const row = await aiMsg(
-    `<p>没问题，WSL 安装命令我直接推到下方 agent 终端里运行，你照着终端执行即可，不用另外翻文档。</p>`,
+    `<p>没问题，WSL 安装命令我直接推到下方 agent 终端运行，装好后会自动带你继续，无需手动确认。</p>`,
     { delay: 800 }
   );
   const bubble = row.querySelector('.bubble');
@@ -495,88 +493,51 @@ async function step2InstallWSL() {
     { t: '  ① wsl --install -d Ubuntu-22.04（WSL2 内核 + Ubuntu-22.04，装好重启）', c: 'tdm', d: 900 },
     { t: '  ② 重启后设置 Linux 用户名/密码 → sudo apt update && upgrade -y', c: 'tdm', d: 900 },
     { t: '  ③ VS Code 装 Remote-WSL，左下角 >< → Connect to WSL', c: 'tdm', d: 800 },
+    { t: '  ✓ WSL2 · Ubuntu-22.04 就绪', c: 'tok', d: 700 },
   ]);
   termNote(bubble);
 
-  const acts = document.createElement('div');
-  acts.className = 'actions';
-  acts.innerHTML = '<button class="abtn primary" data-act="wsl-done">WSL 安装完成，继续</button>';
-  row.querySelector('.body-wrap').appendChild(acts);
-  scrollEnd();
-
-  row.addEventListener('click', e => {
-    const btn = e.target.closest('[data-act]');
-    if (!btn) return;
-    disableActions(row);
-    userMsg('WSL 安装完成，继续');
-    step2GitCode();
-  });
+  await sleep(600);
+  step2GitCode();
 }
 
 async function step2GitCode() {
   const row = await aiMsg(
-    `<p>下面配置 <strong>GitCode SSH 密钥</strong>，用于拉取代码仓库。</p>
+    `<p>下面配置 <strong>GitCode SSH 密钥</strong>，用于拉取代码仓。点下方按钮我在左侧分屏打开 GitCode 密钥设置页；公钥会在终端取出，添加后我自动检测并继续。</p>
      <div class="checks">
        <div class="chk"><span class="chk-icon">①</span>
-         <span class="chk-label">Linux 终端运行 <code>cat ~/.ssh/id_rsa.pub</code>，复制公钥内容</span></div>
+         <span class="chk-label">终端运行 <code>cat ~/.ssh/id_rsa.pub</code> 复制公钥</span></div>
        <div class="chk"><span class="chk-icon">②</span>
-         <span class="chk-label">在 GitCode 个人设置 → SSH 密钥 → 添加公钥</span></div>
+         <span class="chk-label">GitCode 个人设置 → SSH 密钥 → 添加公钥</span></div>
      </div>`,
-    {
-      actions: [
-        { act: 'open-git', label: '打开 GitCode 密钥设置' },
-        { act: 'git-done', label: '已上传密钥，继续', primary: true },
-      ]
-    }
-  );
-  row.addEventListener('click', async e => {
-    const btn = e.target.closest('[data-act]');
-    if (!btn) return;
-    if (btn.dataset.act === 'open-git') {
-      window.open('https://gitcode.com/-/user_settings/ssh_keys', '_blank');
-      userMsg('已打开 GitCode 密钥设置');
-    } else {
-      disableActions(row);
-      userMsg('已上传密钥，继续');
-      step2Deploy();
-    }
-  });
-}
-
-async function step2Deploy() {
-  const row = await aiMsg(
-    `<p>下面部署 openUBMC 开发环境，我来自动完成以下步骤：</p>
-     <div class="checks">
-       <div class="chk"><span class="chk-icon">①</span>
-         <span class="chk-label">拉取 manifest 代码仓（openubmc-24.03）</span></div>
-       <div class="chk"><span class="chk-icon">②</span>
-         <span class="chk-label">下载 bmc_sdk 并上传到 Linux 环境</span></div>
-       <div class="chk"><span class="chk-icon">③</span>
-         <span class="chk-label">执行初始化脚本 init.py</span></div>
-     </div>`,
-    {
-      actions: [
-        { act: 'deploy',    label: '开始部署', primary: true },
-        { act: 'skip-dep',  label: '跳过（本地已有代码仓）' },
-      ]
-    }
+    { actions: [ { act: 'open-git', label: '打开 GitCode 密钥设置', primary: true } ] }
   );
   row.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     disableActions(row);
-    if (btn.dataset.act === 'deploy') {
-      userMsg('开始部署');
-      step2DoDeploy();
-    } else {
-      userMsg('跳过，本地已有代码仓');
-      step2Verify();
-    }
+    userMsg('打开 GitCode 密钥设置');
+    openWeb('gitcodeKeys');
+    step2DetectKey();
   });
 }
 
+// SSH 公钥自动检测 → 成功后自动进入部署，无需点击
+async function step2DetectKey() {
+  const row = await aiMsg('<p>已在左侧分屏打开 GitCode 密钥设置页，正在自动检测 SSH 公钥…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [
+    { t: 'cat ~/.ssh/id_rsa.pub', c: 'tc', d: 400 },
+    { t: '  ssh-ed25519 AAAAC3Nz…dev@openubmc', c: 'tdm', d: 700 },
+    { t: '  检测 GitCode SSH 公钥…', c: 'tdm', d: 1200 },
+    { t: '  ✓ 公钥已添加，SSH 连接 gitcode.com 通过', c: 'tok', d: 600 },
+  ]);
+  await sleep(300);
+  step2DoDeploy();
+}
+
 async function step2DoDeploy() {
-  const row = await aiMsg('<p>正在部署开发环境，稍候…</p>', { delay: 400 });
+  const row = await aiMsg('<p>密钥就绪。下面我自动部署开发环境——拉取 manifest、下载 bmc_sdk、执行 init.py。</p>', { delay: 500 });
   const bubble = row.querySelector('.bubble');
 
   runCmd('agent 下载开发资源 拉取 manifest');
@@ -597,29 +558,11 @@ async function step2DoDeploy() {
 
   setStatus('待机中');
   await sleep(500);
-  step2Verify();
-}
-
-async function step2Verify() {
-  const row = await aiMsg(
-    `<p>代码仓与 SDK 准备完毕。下面运行配置检测，确认开发环境全部就绪。</p>`,
-    {
-      actions: [
-        { act: 'run-check', label: '配置检测', primary: true },
-      ]
-    }
-  );
-  row.addEventListener('click', e => {
-    const btn = e.target.closest('[data-act]');
-    if (!btn) return;
-    disableActions(row);
-    userMsg('配置检测');
-    step2DoVerify();
-  });
+  step2DoVerify();
 }
 
 async function step2DoVerify() {
-  const row = await aiMsg('<p>正在检测环境配置…</p>', { delay: 400 });
+  const row = await aiMsg('<p>代码仓与 SDK 就绪，最后自动运行配置检测，确认环境全部通过。</p>', { delay: 400 });
   const bubble = row.querySelector('.bubble');
 
   runCmd('agent 诊断安装环境');
@@ -650,36 +593,40 @@ async function step3ModelSelect() {
   setStep(3);
   const row = await aiMsg(
     `<p>环境准备配置检测通过 ✓</p>
-     <p>最后一步——配置开发机型。从本地构建缓存或任意数据源获取机型配置，搜索并选择机型和型号，即可开启对应版本的开发辅助。</p>
-     <p>首次配置后可在 IDE 右下角状态栏随时切换。</p>`,
+     <p>最后一步——选择开发机型。选好后我直接加载对应机型配置并打开硬件适配视图，之后可在 IDE 右下角状态栏随时切换。</p>`,
     {
       delay: 700,
       actions: [
-        { act: 'config', label: '前往配置', primary: true },
-        { act: 'skip',   label: '暂不配置，进入主界面' },
+        { act: 'taishan', label: '华为 TaiShan 200 2180（均衡型）', primary: true },
+        { act: 'tianchi', label: '华为 天池 TianChi' },
+        { act: 'ref',     label: 'openUBMC 社区参考机型' },
       ]
     }
   );
+  const MODELS = {
+    taishan: '华为 TaiShan 200 2180（均衡型）',
+    tianchi: '华为 天池 TianChi',
+    ref:     'openUBMC 社区参考机型',
+  };
   row.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     disableActions(row);
-    if (btn.dataset.act === 'config') {
-      userMsg('前往配置');
-      step3OpenConfig();
-    } else {
-      userMsg('暂不配置，进入主界面');
-      step3Complete('home');
-    }
+    const name = MODELS[btn.dataset.act];
+    userMsg('选择机型：' + name);
+    step3ApplyModel(name);
   });
 }
 
-async function step3OpenConfig() {
-  await aiMsg(
-    `<p>已打开硬件适配视图，在搜索框中输入机型名称即可选择并应用配置。</p>
-     <p>配置完成后开发环境全部就绪 ✓</p>`,
-    { delay: 500 }
-  );
+// 机型配置在流程内完成 → 配置就绪后再打开硬件适配视图
+async function step3ApplyModel(name) {
+  const row = await aiMsg('<p>正在加载机型配置：<strong>' + name + '</strong>…</p>', { delay: 400 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [
+    { t: 'setup_check_platform', c: 'tc', d: 300 },
+    { t: '  载入机型配置 ' + name, c: 'tdm', d: 900 },
+    { t: '  ✓ 机型配置就绪，开发辅助已启用', c: 'tok', d: 600 },
+  ]);
 
   const si3 = document.getElementById('si3');
   const sn3 = document.getElementById('sn3');
@@ -687,31 +634,12 @@ async function step3OpenConfig() {
   si3.classList.add('done');
   sn3.textContent = '✓';
 
-  await sleep(800);
+  await aiMsg('<p>机型「' + name + '」配置完成 ✓ 正在打开硬件适配视图…</p>', { delay: 400 });
+  await sleep(700);
   document.getElementById('done-sub').textContent = '正在打开硬件适配视图…';
   document.getElementById('done-overlay').classList.add('show');
   await sleep(800);
   toParent({ type: 'ai-open-scenario', viewId: 'vueTopo' });
-}
-
-async function step3Complete(viewId) {
-  await aiMsg(
-    `<p>好的！可随时从左侧导航栏进入硬件适配视图完成机型配置。</p>
-     <p>开发环境部署全部完成 ✓</p>`,
-    { delay: 500 }
-  );
-
-  const si3 = document.getElementById('si3');
-  const sn3 = document.getElementById('sn3');
-  si3.classList.remove('active');
-  si3.classList.add('done');
-  sn3.textContent = '✓';
-
-  await sleep(1200);
-  document.getElementById('done-sub').textContent = '安装部署全部完成。';
-  document.getElementById('done-overlay').classList.add('show');
-  await sleep(1000);
-  toParent({ type: 'ai-open-scenario', viewId });
 }
 
 // ── Start ──────────────────────────────────────────────────────────────
