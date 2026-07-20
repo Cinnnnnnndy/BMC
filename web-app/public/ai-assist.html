@@ -63,28 +63,25 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
+  padding: 0 10px;
   height: 42px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-subtle);
 }
-.ph-icon { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; }
-.hist-icon svg, .tool-chip svg, .ph-icon svg { display: block; }
-.ph-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1 1 auto; }
-.badge-beta {
-  font-size: 10px; font-weight: 600;
-  padding: 1px 6px; border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-purple) 18%, transparent);
-  color: var(--accent-purple);
-  letter-spacing: .04em;
+.hist-icon svg, .tool-chip svg, .ph-icon-btn svg { display: block; }
+.ph-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; margin: 0 4px 0 2px; }
+.ph-title {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.ph-act-btn {
-  padding: 2px 10px; background: transparent; border: none;
-  border-radius: 4px; color: var(--text-secondary);
-  font-size: 11px; font-family: inherit; cursor: pointer; transition: .15s;
+.ph-icon-btn {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-secondary);
+  cursor: pointer; transition: .15s;
 }
-.ph-act-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.ph-act-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
+.ph-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ph-icon-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
 
 .panel-body {
   flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
@@ -95,7 +92,6 @@ html, body {
 .scenario-banner {
   display: flex; align-items: center; gap: 8px;
   margin: 10px 12px 0; padding: 7px 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
   background: var(--bg-selected);
   border-radius: 8px; flex-shrink: 0;
   font-size: 11.5px; color: var(--text-secondary);
@@ -133,8 +129,7 @@ html, body {
   max-width: 85%; padding: 9px 12px;
   border-radius: 0 10px 10px 10px;
   font-size: 13px; line-height: 1.65;
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
   color: var(--text-secondary);
 }
 .chat-msg.user .cm-bubble {
@@ -149,7 +144,7 @@ html, body {
 }
 .cm-bubble pre {
   margin: 6px 0; padding: 8px 10px;
-  background: var(--bg-base); border: 1px solid var(--border-subtle);
+  background: var(--bg-base);
   border-radius: 6px; overflow-x: auto;
   font-size: 11px; line-height: 1.6;
   font-family: var(--font-mono); color: var(--text-secondary);
@@ -161,9 +156,8 @@ html, body {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; font-family: var(--font-mono);
   padding: 2px 7px; border-radius: 9px;
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
-  color: var(--success);
+  background: var(--bg-active);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -179,27 +173,26 @@ html, body {
   display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
 }
 .sug-btn {
-  font-size: 11px; height: 24px; padding: 0 10px; border-radius: 12px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-hover); color: var(--text-secondary);
+  font-size: 11px; height: 26px; padding: 0 12px; border-radius: 100px;
+  border: none;
+  background: var(--bg-active); color: var(--text-secondary);
   cursor: pointer; font-family: inherit; white-space: nowrap; transition: .15s;
 }
-.sug-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+.sug-btn:hover { background: var(--bg-selected); color: var(--text-primary); }
 
 .chat-input-area {
   display: flex; gap: 8px;
   padding: 8px 12px 12px;
   flex-shrink: 0;
-  border-top: 1px solid var(--border-subtle);
 }
 .chat-input {
-  flex: 1 1 0; background: var(--bg-base);
-  border: 1px solid var(--border-default);
+  flex: 1 1 0; background: var(--surface-2);
+  border: none;
   border-radius: 10px; padding: 8px 12px;
   color: var(--text-primary); font-size: 13px; font-family: inherit;
-  resize: none; height: 52px; line-height: 1.5; outline: none; transition: border-color .15s;
+  resize: none; height: 52px; line-height: 1.5; outline: none; transition: background .15s;
 }
-.chat-input:focus { border-color: var(--accent-blue); }
+.chat-input:focus { background: var(--surface-3); }
 .chat-send {
   width: 36px; height: 52px;
   background: var(--accent-blue); border: none; border-radius: 10px;
@@ -234,22 +227,23 @@ body.show-history .panel-body { flex-direction: row; }
 body.show-history .history-view {
   display: flex;
   order: -1;                 /* 历史在左，对话在右（Claude 布局） */
-  flex: 0 0 200px;
-  border-right: 1px solid var(--border-subtle);
+  flex: 0 0 210px;
+  margin: 8px 0 8px 8px;
+  padding: 10px;
+  background: var(--surface-1);
+  border-radius: 12px;       /* 历史作为独立卡片 */
 }
 
 /* history-tab-mode: opened as a full pane tab via ?view=history */
 body.history-tab-mode #history-btn,
-body.history-tab-mode #new-chat-btn,
-body.history-tab-mode .badge-beta { display: none; }
+body.history-tab-mode #new-chat-btn { display: none; }
 body.history-tab-mode .history-view { padding: 16px 20px; }
 body.history-tab-mode .hist-item { background: var(--bg-active); }
 
 /* 全局任务 checklist（跨对话，位于历史区顶部；随历史一起展开/收起） */
 .global-checklist {
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  background: var(--bg-base);
+  border-radius: 10px;
   padding: 10px 11px;
   margin-bottom: 8px;
 }
@@ -259,12 +253,12 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
   width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; font-weight: 700;
-  border: 1.5px solid var(--border-default); color: transparent; background: transparent;
+  background: var(--bg-active); color: transparent;
 }
 .gc-item.current { color: var(--text-primary); }
-.gc-item.current .gc-mark { border-color: var(--accent-blue); }
+.gc-item.current .gc-mark { background: color-mix(in srgb, var(--accent-blue) 32%, transparent); }
 .gc-item.done { color: var(--text-secondary); }
-.gc-item.done .gc-mark { background: var(--accent-blue); border-color: transparent; color: #fff; }
+.gc-item.done .gc-mark { background: var(--accent-blue); color: #fff; }
 
 .hv-section-title {
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
@@ -274,14 +268,13 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
 .hist-item {
   display: flex; gap: 10px; align-items: flex-start;
   padding: 9px 10px; border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-2);
+  background: var(--bg-base);
   cursor: pointer; transition: .15s;
 }
-.hist-item:hover { background: var(--bg-active); border-color: var(--border-default); }
+.hist-item:hover { background: var(--bg-active); }
 .hist-icon {
   width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
-  background: var(--bg-base); border: 1px solid var(--border-subtle);
+  background: var(--bg-active); color: var(--text-secondary);
   display: flex; align-items: center; justify-content: center;
   font-size: 14px;
 }
@@ -299,9 +292,8 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
 .hist-chip {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 10px; padding: 1px 7px; border-radius: 9px;
-  background: var(--bg-selected);
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
-  color: var(--accent-blue); white-space: nowrap;
+  background: var(--bg-active);
+  color: var(--text-secondary); white-space: nowrap;
 }
 .hist-empty {
   font-size: 11.5px; color: var(--text-muted);
@@ -312,11 +304,14 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
 <body>
 <div class="panel">
   <div class="panel-header">
-    <span class="ph-icon" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></span>
-    <span class="ph-title" id="panel-title">AI 助手</span>
-    <span class="badge-beta">BETA</span>
-    <button class="ph-act-btn" id="history-btn" onclick="onHistoryBtn()">历史</button>
-    <button class="ph-act-btn" id="new-chat-btn" onclick="newChat()">新对话</button>
+    <span class="ph-status" id="ph-status" title="就绪"></span>
+    <span class="ph-title" id="panel-title">新对话</span>
+    <button class="ph-icon-btn" id="new-chat-btn" onclick="newChat()" title="新对话">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+    </button>
+    <button class="ph-icon-btn" id="history-btn" onclick="onHistoryBtn()" title="历史">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+    </button>
   </div>
 
   <div class="panel-body">
@@ -345,7 +340,7 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
 
     <div class="history-view" id="history-view">
       <div class="global-checklist" id="global-checklist"></div>
-      <div class="hv-section-title">示例场景</div>
+      <div class="hv-section-title">最近对话</div>
       <div id="scenario-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div class="hv-section-title">我的会话</div>
       <div id="session-list" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -670,8 +665,9 @@ function toggleHistory(force) {
   const show = force !== undefined ? force : !document.body.classList.contains('show-history');
   if (show) renderHistory();
   document.body.classList.toggle('show-history', show);
-  document.getElementById('history-btn').classList.toggle('is-active', show);
-  document.getElementById('history-btn').textContent = show ? '收起历史' : '历史';
+  const hbtn = document.getElementById('history-btn');
+  hbtn.classList.toggle('is-active', show);
+  hbtn.title = show ? '收起历史' : '历史';
 }
 
 // ── 载入历史 / 场景 ──────────────────────────────────────────
@@ -691,6 +687,7 @@ function loadScenario(sc) {
   currentScenario = sc;
   session = freshSession(sc.messages);
   session.title = sc.title + '（续）';
+  setConvTitle();
   setChatLog(sc.messages, '已载入示例场景 · ' + sc.title);
   const banner = document.getElementById('scenario-banner');
   banner.style.display = 'flex';
@@ -704,6 +701,7 @@ function loadSession(ss) {
   persistSession();
   currentScenario = null;
   session = { id: ss.id, title: ss.title, time: ss.time, messages: ss.messages.slice(), hasNew: false };
+  setConvTitle();
   setChatLog(ss.messages, '已载入历史会话');
   document.getElementById('scenario-banner').style.display = 'none';
   // 历史保持在左侧展开，对话在右侧刷新（左右并排，不收起）
@@ -713,11 +711,18 @@ function reopenScenarioView() {
   if (currentScenario) openScenarioView(currentScenario.view);
 }
 
+// 头部标题显示当前对话名称（无名时显示「新对话」）
+function setConvTitle() {
+  if (IS_HISTORY_TAB) return;
+  document.getElementById('panel-title').textContent = (session && session.title) ? session.title : '新对话';
+}
+
 // ── 会话操作 ─────────────────────────────────────────────────
 function newChat() {
   persistSession();
   currentScenario = null;
   session = freshSession();
+  setConvTitle();
   document.getElementById('scenario-banner').style.display = 'none';
   setChatLog([], null);
   appendMsg('ai', INIT);
@@ -733,7 +738,7 @@ function recordMsg(role, text) {
   session.messages.push({ role, text });
   if (role === 'user') {
     session.hasNew = true;
-    if (!session.title) session.title = text.length > 18 ? text.slice(0, 18) + '…' : text;
+    if (!session.title) { session.title = text.length > 18 ? text.slice(0, 18) + '…' : text; setConvTitle(); }
   }
   persistSession();
 }
