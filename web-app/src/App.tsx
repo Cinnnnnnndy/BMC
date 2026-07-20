@@ -279,6 +279,10 @@ function SplitView({ split, ...props }: { split: SplitPane } & PaneViewProps) {
       <div style={{ flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
         <PaneView node={split.b} {...props} />
       </div>
+      {/* 拖拽时铺一层覆盖层盖住 iframe，保证 mousemove 事件能到达父窗口（否则手柄不跟随鼠标）*/}
+      {resizing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, cursor: isH ? 'col-resize' : 'row-resize' }} />
+      )}
     </div>
   );
 }
@@ -961,7 +965,8 @@ export default function App() {
       case 'installGuide':
         return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'aiInstall':
-        return <iframe src={withBase('ai-install.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 引导安装" />;
+        // 安装引导已并入 AI 助手：以 flow=install 打开同一页面（新建安装引导对话）
+        return <iframe src={withBase('ai-assist.html') + '?flow=install'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 引导安装" />;
       case 'openubmcLogin':
         return <iframe src="https://www.openubmc.cn/" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="openUBMC 登录" />;
       case 'gitcodeKeys':
