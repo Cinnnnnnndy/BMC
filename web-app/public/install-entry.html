@@ -93,13 +93,13 @@ body {
 }
 
 .card-badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .05em;
-  padding: 3px 9px;
+  padding: 2px 8px;
   border-radius: 100px;
   background: rgba(0, 119, 255, 1);
   color: #FFFFFE;
@@ -122,6 +122,9 @@ body {
 .card-icon svg { display: block; }
 
 .card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
   color: #FFFFFF;
@@ -194,13 +197,12 @@ body {
 
   <div class="cards">
     <a class="card primary" href="ai-install.html">
-      <span class="card-badge">推荐</span>
       <div class="card-icon">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
           <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/>
         </svg>
       </div>
-      <div class="card-title">AI 引导安装</div>
+      <div class="card-title">AI 引导安装<span class="card-badge">推荐</span></div>
       <div class="card-desc">由 AI 全程引导，自动检测环境、安装工具，只需回答几个简单问题。</div>
       <span class="card-cta">
         开始引导

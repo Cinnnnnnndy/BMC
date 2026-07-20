@@ -58,22 +58,27 @@
       margin-bottom: 8px;
     }
     .aw-mcp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 8px;
+    }
+    /* 场景能力卡：点击直接派发到 agent 运行（背后是对应 MCP Server 的工具） */
+    .aw-cap {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .aw-mcp-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 11px;
-      border-radius: 100px;
+      flex-direction: column;
+      gap: 3px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: none;
       background: rgba(255,255,255,0.06);
-      font-size: 11.5px;
-      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: background 0.15s;
     }
-    .aw-mcp-item b { font-weight: 600; color: rgba(255,255,255,0.85); }
-    .aw-mcp-item em { font-style: normal; font-weight: 600; color: #a78bfa; }
+    .aw-cap:hover { background: rgba(255,255,255,0.12); }
+    .aw-cap-name { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.90); }
+    .aw-cap-meta { font-size: 10.5px; color: #a78bfa; }
     .aw-body {
       display: flex;
       gap: 20px;
@@ -299,23 +304,17 @@
               <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
               AI 引导安装部署
             </button>
-            <button class="aw-chip" data-cmd="agent 诊断安装环境">环境诊断</button>
-            <button class="aw-chip" data-cmd="agent 巡检在线 BMC">BMC 巡检</button>
-            <button class="aw-chip" data-cmd="agent 校验当前 CSR">CSR 校验</button>
-            <button class="aw-chip" data-cmd="agent 给 CPU0 加过温事件">过温事件配置</button>
-            <button class="aw-chip" data-cmd="agent 注入风扇故障">风扇故障注入</button>
-            <button class="aw-chip" data-cmd="agent 计算 smc 偏移">SMC 偏移编码</button>
           </div>
           <div class="aw-mcp">
-            <div class="aw-mcp-title">MCP 能力</div>
-            <div class="aw-mcp-grid">
-              <span class="aw-mcp-item"><b>setup</b>环境引导<em>8</em></span>
-              <span class="aw-mcp-item"><b>bmc-remote</b>连接巡检<em>6</em></span>
-              <span class="aw-mcp-item"><b>csr</b>配置校验<em>4</em></span>
-              <span class="aw-mcp-item"><b>localview</b>接口路径<em>3</em></span>
-              <span class="aw-mcp-item"><b>binary-mask</b>位域计算<em>2</em></span>
-              <span class="aw-mcp-item"><b>sim</b>数字孪生<em>2</em></span>
-              <span class="aw-mcp-item"><b>cooling</b>能效调速<em>1</em></span>
+            <div class="aw-mcp-title">MCP 能力 · 点击直接运行</div>
+            <div class="aw-mcp-grid" id="aw-mcp-grid">
+              <button class="aw-cap" data-cmd="agent 诊断安装环境"><span class="aw-cap-name">环境诊断</span><span class="aw-cap-meta">setup · 8 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 巡检在线 BMC"><span class="aw-cap-name">BMC 巡检</span><span class="aw-cap-meta">bmc-remote · 6 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 校验当前 CSR"><span class="aw-cap-name">CSR 校验</span><span class="aw-cap-meta">csr · 4 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 反查运行时路径"><span class="aw-cap-name">路径反查</span><span class="aw-cap-meta">localview · 3 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 计算 smc 偏移"><span class="aw-cap-name">SMC 偏移编码</span><span class="aw-cap-meta">binary-mask · 2 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 注入风扇故障"><span class="aw-cap-name">风扇故障注入</span><span class="aw-cap-meta">sim · 2 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 调整调速曲线"><span class="aw-cap-name">调速曲线</span><span class="aw-cap-meta">cooling · 1 工具</span></button>
             </div>
           </div>
         </div>
@@ -500,6 +499,12 @@
         if (!chip) return;
         if (chip.dataset.view) openView(chip.dataset.view);
         else if (chip.dataset.cmd) runAgent(chip.dataset.cmd);
+      });
+      // MCP 能力（按场景）：点击直接派发到 agent 终端运行
+      document.getElementById('aw-mcp-grid').addEventListener('click', function (e) {
+        var cap = e.target.closest('.aw-cap');
+        if (!cap || !cap.dataset.cmd) return;
+        runAgent(cap.dataset.cmd);
       });
 
       // ── 最近 agent 对话（localStorage: bmcAiChatSessions，ai-assist 写入）──

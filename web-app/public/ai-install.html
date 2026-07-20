@@ -565,7 +565,7 @@ async function step2DoVerify() {
   const row = await aiMsg('<p>代码仓与 SDK 就绪，最后自动运行配置检测，确认环境全部通过。</p>', { delay: 400 });
   const bubble = row.querySelector('.bubble');
 
-  runCmd('agent 诊断安装环境');
+  runCmd('agent 运行配置检测');
   setStatus('检测中…');
 
   await termBlock(bubble, [

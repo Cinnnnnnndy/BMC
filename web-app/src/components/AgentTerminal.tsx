@@ -78,6 +78,17 @@ const AGENT_TASKS: AgentTask[] = [
     ok: 'WSL 安装命令已在终端列出，按序执行完成后回向导点「WSL 安装完成，继续」',
   },
   {
+    // AI 向导专用：环境准备配置检测——不带 view，不打开安装引导视图，
+    // 由 AI 向导自身流转到「选择机型」（避免 setup 任务的 installGuide 分屏抢焦点）
+    keys: ['配置检测'],
+    title: '环境准备配置检测',
+    tools: [['setup_verify_all', 143], ['setup_check_ssh', 120], ['setup_check_toolchain', 96]],
+    out: [
+      'GitCode SSH · manifest 代码仓 · bmc_sdk · Conan remote — 全部通过',
+    ],
+    ok: '环境准备 6/6 项通过',
+  },
+  {
     keys: ['安装', '诊断', '部署', 'setup'],
     title: '开发环境诊断（安装引导）',
     tools: [['setup_verify_all', 143], ['setup_configure_conan_remote', 310], ['setup_run_init', 1240]],
