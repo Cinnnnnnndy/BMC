@@ -553,7 +553,7 @@
       function renderRecent() {
         var sessions = [];
         try { sessions = JSON.parse(localStorage.getItem('bmcAiChatSessions')) || []; } catch (_) {}
-        var rows = sessions.slice(0, 4).map(function (ss) {
+        var rows = sessions.slice(0, 3).map(function (ss) {
           var firstUser = (ss.messages || []).find(function (m) { return m.role === 'user'; });
           return {
             title: ss.title || (firstUser ? firstUser.text : '(空会话)'),
@@ -562,15 +562,15 @@
             detail: ss.summary || (firstUser ? firstUser.text : '')
           };
         });
-        // 不足 4 条时用示例场景补齐（演示数据兜底）
-        for (var i = 0; rows.length < 4 && i < DEMO_SESSIONS.length; i++) rows.push(DEMO_SESSIONS[i]);
-        rows = rows.slice(0, 4);
+        // 不足 3 条时用示例场景补齐（演示数据兜底）
+        for (var i = 0; rows.length < 3 && i < DEMO_SESSIONS.length; i++) rows.push(DEMO_SESSIONS[i]);
+        rows = rows.slice(0, 3);
         // 有运行中的任务时置顶，实时反映状态
         var live = null;
         try { live = JSON.parse(localStorage.getItem('bmcAgentTaskStatus')); } catch (_) {}
         if (live && live.state === 'running') {
           rows.unshift({ title: live.title, timeText: '进行中', state: 'running', detail: '正在执行…' });
-          rows = rows.slice(0, 4);
+          rows = rows.slice(0, 3);
         }
         recentList.innerHTML = '';
         rows.forEach(function (r) { recentList.appendChild(mkRecentItem(r)); });
