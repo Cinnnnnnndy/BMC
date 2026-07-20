@@ -37,51 +37,6 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 
 .layout { display:flex; height:100vh; overflow:hidden; }
 
-/* ── Step Rail ─────────────────────────────────── */
-.rail {
-  width:190px; flex-shrink:0;
-  background:var(--sf1);
-  display:flex; flex-direction:column; padding:0;
-}
-.rail-head {
-  padding:16px 16px 10px;
-  font-size:11px; font-weight:600; color:var(--fg3);
-  text-transform:uppercase; letter-spacing:.06em;
-}
-.rail-steps { padding:4px 0; display:flex; flex-direction:column; gap:0; }
-
-.s-item {
-  display:flex; align-items:center; gap:10px;
-  padding:9px 16px; cursor:default;
-  position:relative;
-}
-.s-item::before {
-  content:'';
-  position:absolute; left:26px; top:32px; width:1.5px; height:16px;
-  background:var(--divider);
-}
-.s-item:last-child::before { display:none; }
-
-.s-num {
-  width:22px; height:22px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:700;
-  color:var(--fg3); background:var(--sf3);
-  transition:all .25s; position:relative; z-index:1;
-}
-.s-label { font-size:12.5px; color:var(--fg3); transition:color .2s; }
-
-.s-item.active  .s-num  { background:var(--blue); color:#fff; }
-.s-item.active  .s-label { color:var(--fg); font-weight:500; }
-.s-item.done    .s-num  { background:rgba(4,215,147,.14); color:var(--green); }
-.s-item.done    .s-label { color:var(--fg2); }
-.s-item.done::before { background:var(--green); opacity:.35; }
-
-.rail-footer {
-  margin-top:auto; padding:14px 16px;
-  font-size:11.5px; color:var(--fg3); line-height:1.5;
-}
-
 /* ── Chat Main ────────────────────────────────── */
 .chat-main { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
 
@@ -99,6 +54,35 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .ch-name { font-size:13px; font-weight:600; }
 .ch-badge { font-size:10px; font-weight:600; padding:1px 7px; border-radius:100px; background:var(--purple-dim); color:var(--purple); letter-spacing:.04em; }
 .ch-status { margin-left:auto; font-size:11.5px; color:var(--fg3); }
+
+/* ── 任务分解卡（融入对话顶部，替代独立步骤栏，节省横向空间）── */
+.task-card {
+  flex-shrink:0;
+  margin:10px 16px 0;
+  padding:10px 12px;
+  background:var(--sf1);
+  border-radius:10px;
+}
+.tk-head {
+  font-size:11px; font-weight:600; color:var(--fg3);
+  letter-spacing:.04em; margin-bottom:8px;
+}
+.tk-item {
+  display:flex; align-items:center; gap:9px;
+  padding:3px 0; font-size:12.5px; color:var(--fg3);
+  transition:color .2s;
+}
+.tk-mark {
+  width:18px; height:18px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700;
+  background:var(--sf3); color:var(--fg3);
+  transition:all .2s;
+}
+.tk-item.active { color:var(--fg); font-weight:500; }
+.tk-item.active .tk-mark { background:var(--blue); color:#fff; }
+.tk-item.done { color:var(--fg2); }
+.tk-item.done .tk-mark { background:rgba(4,215,147,.14); color:var(--green); }
 
 .messages { flex:1; overflow-y:auto; padding:20px 20px 12px; display:flex; flex-direction:column; gap:14px; }
 
@@ -213,27 +197,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 </head>
 <body>
 <div class="layout">
-  <!-- Step Rail -->
-  <aside class="rail">
-    <div class="rail-head">安装向导</div>
-    <div class="rail-steps">
-      <div class="s-item active" id="si1">
-        <div class="s-num" id="sn1">1</div>
-        <div class="s-label">登录官网</div>
-      </div>
-      <div class="s-item" id="si2">
-        <div class="s-num" id="sn2">2</div>
-        <div class="s-label">环境准备</div>
-      </div>
-      <div class="s-item" id="si3">
-        <div class="s-num" id="sn3">3</div>
-        <div class="s-label">选择开发机型</div>
-      </div>
-    </div>
-    <div class="rail-footer">AI 全程引导，关键步骤确认后自动执行</div>
-  </aside>
-
-  <!-- Chat -->
+  <!-- Chat（步骤栏已融入对话顶部的任务分解卡）-->
   <main class="chat-main">
     <div class="chat-head">
       <div class="ch-avatar">
@@ -242,6 +206,12 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
       <span class="ch-name">安装助手</span>
       <span class="ch-badge">AI</span>
       <span class="ch-status" id="ch-status">待机中</span>
+    </div>
+    <div class="task-card" id="task-card">
+      <div class="tk-head">安装部署引导 · 3 步</div>
+      <div class="tk-item active" id="tk1"><span class="tk-mark">1</span><span>登录官网</span></div>
+      <div class="tk-item" id="tk2"><span class="tk-mark">2</span><span>环境准备</span></div>
+      <div class="tk-item" id="tk3"><span class="tk-mark">3</span><span>选择开发机型</span></div>
     </div>
     <div class="messages" id="messages"></div>
     <div class="input-bar" style="display:none">
@@ -274,12 +244,15 @@ function setStatus(t) { status.textContent = t; }
 
 function setStep(n) {
   for (let i = 1; i <= 3; i++) {
-    const si = document.getElementById('si' + i);
-    const sn = document.getElementById('sn' + i);
-    si.classList.remove('active','done');
-    if (i < n) { si.classList.add('done'); sn.textContent = '✓'; }
-    if (i === n) { si.classList.add('active'); }
+    const it = document.getElementById('tk' + i);
+    const mk = it.querySelector('.tk-mark');
+    it.classList.remove('active','done');
+    if (i < n) { it.classList.add('done'); mk.textContent = '✓'; }
+    else if (i === n) { it.classList.add('active'); mk.textContent = String(i); }
+    else { mk.textContent = String(i); }
   }
+  // 写入全局引导进度，供 AI 助手历史区的跨对话 checklist 读取
+  try { localStorage.setItem('bmcInstallProgress', JSON.stringify({ step: n })); } catch (_) {}
 }
 
 let thinkRow = null;
@@ -628,11 +601,11 @@ async function step3ApplyModel(name) {
     { t: '  ✓ 机型配置就绪，开发辅助已启用', c: 'tok', d: 600 },
   ]);
 
-  const si3 = document.getElementById('si3');
-  const sn3 = document.getElementById('sn3');
-  si3.classList.remove('active');
-  si3.classList.add('done');
-  sn3.textContent = '✓';
+  const tk3 = document.getElementById('tk3');
+  tk3.classList.remove('active');
+  tk3.classList.add('done');
+  tk3.querySelector('.tk-mark').textContent = '✓';
+  try { localStorage.setItem('bmcInstallProgress', JSON.stringify({ step: 4 })); } catch (_) {}
 
   await aiMsg('<p>机型「' + name + '」配置完成 ✓ 正在打开硬件适配视图…</p>', { delay: 400 });
   await sleep(700);
@@ -644,6 +617,7 @@ async function step3ApplyModel(name) {
 
 // ── Start ──────────────────────────────────────────────────────────────
 (async () => {
+  setStep(1);           // 初始化任务分解卡 + 写入全局引导进度
   await sleep(500);
   step1Welcome();
 })();
