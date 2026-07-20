@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>webview</title>
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
+    <!-- PTO override layer — 必须位于 bundle CSS 之后（同特异性靠顺序取胜） -->
+    <link rel="stylesheet" href="./pto-overrides.css">
+    <style>
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+      * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+    </style>
+    <script>
+      window.acquireVsCodeApi = function() {
+        return {
+          postMessage: function() {},
+          getState: function() { return null; },
+          setState: function() {}
+        };
+      };
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

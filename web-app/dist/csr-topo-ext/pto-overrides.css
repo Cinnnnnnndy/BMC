@@ -1,0 +1,341 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PTO override layer for csr-topo-ext (bundle untouched)
+   规格来源：docs/csr-topo-pto-optimize-demo-prompt.md（§C/§D/§E/§F）
+   Token 值逐字取自 pto-design-system-main/tokens/{foundation,semantic,components}.css
+   约束：仅在 assets/index.css 之后加载，靠同特异性 + 后置顺序取胜；
+        !important 只用于对抗源码 .action-btn-disabled 的 !important。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── ⓪ PTO tokens（verbatim） ─────────────────────────────────────── */
+:root {
+  --background: #101010;              /* --ark-neutral-1 */
+  --background-elevated: #141414;     /* --ark-neutral-2 */
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --surface-4: #313131;
+
+  --foreground: rgba(255, 255, 255, 0.90);
+  --foreground-secondary: rgba(255, 255, 255, 0.60);
+  --foreground-muted: rgba(255, 255, 255, 0.40);
+  --foreground-disabled: rgba(255, 255, 255, 0.25);
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --primary: #4369ef;                 /* --ark-blue-500 */
+  --primary-hover: #5a92e6;           /* --ark-blue-600 */
+  --success: #04d793;
+  --warning: #ffaa3b;
+  --danger: #ff4b7b;
+
+  --focus-ring: rgba(67, 105, 239, 0.42);
+  --state-hover: rgba(255, 255, 255, 0.06);
+  --state-selected: rgba(67, 105, 239, 0.14);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.42);
+
+  --button-height-sm: 30px;
+  --button-radius: var(--radius-lg);
+  --button-disabled-opacity: 0.42;
+  --button-solid-bg: var(--foreground);
+  --button-solid-bg-hover: color-mix(in srgb, var(--foreground) 88%, transparent);
+  --button-solid-fg: var(--background);
+  --button-secondary-bg: color-mix(in srgb, var(--surface-2) 92%, white 3%);
+  --button-secondary-bg-hover: var(--surface-3);
+  --button-secondary-border: var(--border-subtle);
+
+  --table-header-height: 36px;
+  --table-row-height: 36px;
+  --table-border: var(--border-subtle);
+}
+
+/* ── ① Element Plus 变量桥接（C1/C8：EP 默认蓝 → PTO 蓝） ─────────── */
+html.dark {
+  --el-color-primary: var(--primary);
+  --el-color-primary-light-3: color-mix(in srgb, #4369ef 70%, #141414);
+  --el-color-primary-light-5: color-mix(in srgb, #4369ef 50%, #141414);
+  --el-color-primary-light-7: color-mix(in srgb, #4369ef 30%, #141414);
+  --el-color-primary-light-8: color-mix(in srgb, #4369ef 20%, #141414);
+  --el-color-primary-light-9: color-mix(in srgb, #4369ef 10%, #141414);
+  --el-color-primary-dark-2: var(--primary-hover);
+  --el-color-success: var(--success);
+  --el-color-warning: var(--warning);
+  --el-color-danger: var(--danger);
+  --el-border-color: var(--border-default);
+  --el-border-color-light: var(--border-subtle);
+  --el-fill-color-blank: var(--surface-1);
+}
+
+/* ── ② 弹窗容器与标题栏（C7 · 填充优先修订：去描边，靠海拔面+阴影分层） ── */
+.modal-content[data-v-896f735b] {
+  width: min(1080px, 92vw);
+  background: var(--background-elevated);
+  border: none;
+  box-shadow: var(--shadow-lg);
+}
+.card-header[data-v-896f735b] {
+  height: 48px;
+  padding: 0 16px 0 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: none;
+}
+.card-title[data-v-896f735b] {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.card-close-btn[data-v-896f735b] {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--foreground-secondary);
+}
+.card-close-btn[data-v-896f735b]:hover {
+  color: var(--foreground);
+  background-color: var(--state-hover);
+}
+
+/* ── ③ 按钮三级体系（C2/C3）────────────────────────────────────────
+   secondary：配置导入 / 新增仓库 / 一键导入代码仓 / 新增配置 / 取消
+   solid（唯一）：确定
+   ghost：表格行内操作                                                */
+
+/* header 入口按钮（配置导入）：蓝透明底 → PTO secondary（填充，无描边） */
+.card-header-btn[data-v-896f735b] {
+  color: var(--foreground);
+  background: var(--surface-3);
+  border: none;
+  border-radius: var(--button-radius);
+  height: var(--button-height-sm);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.card-header-btn[data-v-896f735b]:hover {
+  background: var(--surface-4);
+  border-color: transparent;
+}
+.card-header-btn-active[data-v-896f735b] {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+/* 行内操作按钮 → ghost */
+.config-action-btn[data-v-896f735b] {
+  color: var(--foreground-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.config-action-btn[data-v-896f735b]:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--state-hover);
+  border-color: transparent;
+}
+.config-action-btn[data-v-896f735b]:disabled {
+  opacity: var(--button-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* 区块入口按钮（新增仓库 / 一键导入代码仓 / 新增配置）→ PTO secondary（填充，无描边） */
+.config-add-btn[data-v-896f735b] {
+  color: var(--foreground);
+  background: var(--surface-3);
+  border: none;
+  border-radius: var(--button-radius);
+  height: var(--button-height-sm);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.config-add-btn[data-v-896f735b]:hover:not(:disabled) {
+  background: var(--surface-4);
+  border-color: transparent;
+}
+
+/* 底部动作（取消 = secondary，确定 = solid 白底深字） */
+.action-btn[data-v-896f735b] {
+  width: auto;
+  min-width: 72px;
+  height: var(--button-height-sm);
+  padding: 0 12px;
+  border-radius: var(--button-radius);
+  font-size: 12px;
+  font-weight: 500;
+}
+.action-btn-secondary[data-v-896f735b] {
+  color: var(--foreground);
+  background: var(--surface-3);
+  border: none;
+}
+.action-btn-secondary[data-v-896f735b]:hover {
+  color: var(--foreground);
+  background: var(--surface-4);
+}
+.action-btn-primary[data-v-896f735b] {
+  color: var(--button-solid-fg);
+  background: var(--button-solid-bg);
+  border: none;
+}
+.action-btn-primary[data-v-896f735b]:hover {
+  background: var(--button-solid-bg-hover);
+}
+/* 禁用 = 本体 × 0.42 透明度，不换色（对抗源码 #005a9e!important） */
+.action-btn-disabled[data-v-896f735b],
+.action-btn-disabled[data-v-896f735b]:hover {
+  opacity: var(--button-disabled-opacity) !important;
+  color: var(--button-solid-fg) !important;
+  background: var(--button-solid-bg) !important;
+  cursor: not-allowed !important;
+}
+
+/* ── ④ 区块标题与表格（C5） ───────────────────────────────────────── */
+.config-section-title[data-v-896f735b] {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+.config-count[data-v-896f735b] {
+  color: var(--foreground-muted);
+  font-size: 12px;
+}
+/* 表格：描边容器 → surface 填充分层（容器 surface-1，表头 surface-2） */
+.config-list-container[data-v-896f735b] {
+  border: none;
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+}
+.config-table th[data-v-896f735b],
+.folder-table th[data-v-896f735b] {
+  height: var(--table-header-height);
+  padding: 0 12px;
+  background: var(--surface-2);
+  color: var(--foreground-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: none;
+  white-space: nowrap;
+}
+.config-table td[data-v-896f735b],
+.folder-table td[data-v-896f735b] {
+  height: var(--table-row-height);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--table-border);
+}
+.folder-table td.col-repo-name[data-v-896f735b],
+.folder-table td.col-repo-url[data-v-896f735b],
+.folder-table td.col-branch[data-v-896f735b],
+.folder-table td.col-description[data-v-896f735b],
+.folder-table td.col-folder-path[data-v-896f735b] {
+  color: var(--foreground);
+}
+.folder-table tbody tr[data-v-896f735b]:hover {
+  background: var(--state-hover);
+}
+/* 列 min-width 合计（源码 1324px 含内边距）远超 1080px 弹窗，必然横向滚动；
+   全面收紧下限（内容有 ellipsis 兜底），合计 934px < 弹窗内宽 1048px，不再滚动 */
+.folder-table th.col-repo-name[data-v-896f735b] {
+  min-width: 110px;
+}
+.folder-table th.col-repo-url[data-v-896f735b] {
+  min-width: 180px;
+}
+.folder-table th.col-branch[data-v-896f735b] {
+  min-width: 110px;
+}
+.folder-table th.col-description[data-v-896f735b] {
+  min-width: 130px;
+}
+.folder-table th.col-folder-path[data-v-896f735b] {
+  min-width: 180px;
+}
+/* 激活配置行：文字主色 + 选中叠加 */
+.config-active-row .config-name-text[data-v-896f735b] {
+  color: var(--primary);
+  font-weight: 600;
+}
+.config-active-row[data-v-896f735b] {
+  background: var(--state-selected);
+}
+.config-name-text[data-v-896f735b] {
+  color: var(--foreground);
+}
+.config-name-text[data-v-896f735b]:hover {
+  background: var(--state-hover);
+}
+
+/* ── ⑤ 空状态（C4，纯 CSS，不注入 DOM；无 emoji） ─────────────────── */
+.config-list-container.repo-list-container[data-v-896f735b]:has(tbody:empty)::after {
+  content: '暂无仓库 — 点击右上角「新增仓库」添加';
+  display: block;
+  padding: 24px 0 28px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+.config-list-container[data-v-896f735b]:not(.repo-list-container):has(tbody:empty)::after {
+  content: '暂无配置 — 点击「新增配置」创建第一份整机配置';
+  display: block;
+  padding: 24px 0 28px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+
+/* ── ⑥ 输入框：描边 → 填充（EP 用 inset box-shadow 画边框，置空改 surface 填充） */
+.modal-content[data-v-896f735b] .el-input__wrapper {
+  background: var(--surface-3);
+  box-shadow: none;
+  border-radius: var(--radius-md);
+}
+.modal-content[data-v-896f735b] .el-input__wrapper:hover {
+  box-shadow: none;
+  background: var(--surface-4);
+}
+.modal-content[data-v-896f735b] .el-input__wrapper.is-focus {
+  background: var(--surface-3);
+  box-shadow: 0 0 0 1px var(--primary) inset;
+}
+.modal-content[data-v-896f735b] .el-input__inner {
+  color: var(--foreground);
+}
+/* 表格行内自定义输入框（仓库地址/分支/描述/文件夹路径）：同样填充化 */
+.table-input[data-v-896f735b],
+.modal-content[data-v-896f735b] .table-input {
+  background: var(--surface-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+}
+.table-input[data-v-896f735b]:hover,
+.modal-content[data-v-896f735b] .table-input:hover {
+  background: var(--surface-4);
+  border-color: transparent;
+}
+.table-input[data-v-896f735b]:focus,
+.modal-content[data-v-896f735b] .table-input:focus {
+  background: var(--surface-3);
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* ── ⑦ 焦点可见（C6） ─────────────────────────────────────────────── */
+.modal-overlay button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* ── ⑧ 跨视图归色（C8：#4a90e2 / #007acc 残留清理） ──────────────── */
+.toolbar-icon.active[data-v-c1bca8f3] {
+  color: var(--primary);
+  background: var(--state-selected);
+}

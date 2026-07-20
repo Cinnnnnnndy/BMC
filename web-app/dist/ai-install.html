@@ -11,7 +11,7 @@
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
 
-/* ═══ PTO design tokens（与 ai-assist.html 一致，见 CLAUDE.md 欢迎系页面视觉规范）═══ */
+/* ═══ PTO design tokens ═══ */
 :root {
   --bg:        #101010;
   --sf1:       #161616;
@@ -21,8 +21,8 @@
   --fg2:       rgba(255,255,255,.60);
   --fg3:       rgba(255,255,255,.40);
   --divider:   rgba(255,255,255,.06);
-  --blue:      #4369ef;
-  --blue-dim:  rgba(67,105,239,.14);
+  --blue:      #0077FF;
+  --blue-dim:  rgba(0,119,255,.14);
   --purple:    #a78bfa;
   --purple-dim:rgba(167,139,250,.14);
   --green:     #04d793;
@@ -37,7 +37,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 
 .layout { display:flex; height:100vh; overflow:hidden; }
 
-/* ── Step Rail（填充分层，无描边）──────────────── */
+/* ── Step Rail ─────────────────────────────────── */
 .rail {
   width:190px; flex-shrink:0;
   background:var(--sf1);
@@ -111,7 +111,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
   font-size:11px; font-weight:700; margin-top:1px;
   background:var(--sf3);
 }
-.av-ai   { color:var(--blue); }
+.av-ai   { color:var(--purple); }
 .av-user { color:var(--green); }
 
 .body-wrap { flex:1; min-width:0; }
@@ -127,7 +127,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .bubble strong { color:var(--fg); }
 .bubble code { font-family:var(--mono); font-size:11.5px; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:3px; color:#86d9fa; }
 
-/* 用户消息右对齐（AI 左 / 人右） */
+/* 用户消息右对齐 */
 .row.user { flex-direction:row-reverse; }
 .row.user .body-wrap { display:flex; flex-direction:column; align-items:flex-end; }
 .row.user .bubble { background:var(--blue-dim); border-radius:10px 0 10px 10px; }
@@ -139,7 +139,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .td:nth-child(3) { animation-delay:.4s; }
 @keyframes tp { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
 
-/* Actions（填充胶囊，无描边）*/
+/* Actions */
 .actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
 .abtn {
   height:30px; padding:0 16px; border-radius:100px;
@@ -149,22 +149,10 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 }
 .abtn:hover { background:rgba(255,255,255,.14); color:var(--fg); }
 .abtn.primary { background:var(--blue); color:#fff; }
-.abtn.primary:hover { background:#3457d5; }
+.abtn.primary:hover { background:rgba(50,145,254,1); }
 .abtn:disabled { opacity:.35; cursor:default; pointer-events:none; }
 
-/* Inline input */
-.input-group { display:flex; flex-direction:column; gap:8px; margin-top:10px; max-width:340px; }
-.irow { display:flex; flex-direction:column; gap:4px; }
-.ilabel { font-size:11.5px; font-weight:600; color:var(--fg3); }
-.ifield {
-  height:34px; padding:0 14px; border-radius:100px;
-  border:none; background:var(--sf3);
-  color:var(--fg); font-size:13px; font-family:inherit; outline:none;
-  transition:background .15s;
-}
-.ifield:focus { background:rgba(255,255,255,.12); }
-
-/* Check list（填充块 + 细分隔线）*/
+/* Check list */
 .checks { margin-top:10px; background:var(--sf3); border-radius:10px; padding:8px 12px; }
 .chk { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--divider); font-size:12.5px; }
 .chk:last-child { border-bottom:none; }
@@ -172,7 +160,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .chk-label { flex:1; }
 .chk-note { font-size:11.5px; color:var(--fg3); }
 
-/* Terminal（同步展示，完整执行在底栏 agent 终端）*/
+/* Terminal */
 .term {
   margin-top:10px;
   background:#060609;
@@ -206,7 +194,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
   display:flex; align-items:center; justify-content:center;
   transition:background .12s;
 }
-.ibar-send:hover { background:#3457d5; }
+.ibar-send:hover { background:rgba(50,145,254,1); }
 .ibar-send svg { width:16px; height:16px; fill:currentColor; }
 
 /* Done overlay */
@@ -231,22 +219,18 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
     <div class="rail-steps">
       <div class="s-item active" id="si1">
         <div class="s-num" id="sn1">1</div>
-        <div class="s-label">账号准备</div>
+        <div class="s-label">登录官网</div>
       </div>
       <div class="s-item" id="si2">
         <div class="s-num" id="sn2">2</div>
-        <div class="s-label">环境检测</div>
+        <div class="s-label">环境准备</div>
       </div>
       <div class="s-item" id="si3">
         <div class="s-num" id="sn3">3</div>
-        <div class="s-label">资源下载</div>
-      </div>
-      <div class="s-item" id="si4">
-        <div class="s-num" id="sn4">4</div>
-        <div class="s-label">机型配置</div>
+        <div class="s-label">选择开发机型</div>
       </div>
     </div>
-    <div class="rail-footer">大部分步骤由 AI 自动完成<br>你只需回答关键问题</div>
+    <div class="rail-footer">AI 全程引导，关键步骤确认后自动执行</div>
   </aside>
 
   <!-- Chat -->
@@ -260,7 +244,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
       <span class="ch-status" id="ch-status">待机中</span>
     </div>
     <div class="messages" id="messages"></div>
-    <div class="input-bar" id="input-bar" style="display:none">
+    <div class="input-bar" style="display:none">
       <input class="ibar-field" id="ibar-field" placeholder="输入消息，按 Enter 发送…" />
       <button class="ibar-send" id="ibar-send">
         <svg viewBox="0 0 24 24"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
@@ -278,7 +262,6 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 </div>
 
 <script>
-// ── Utils ──────────────────────────────────────────────────────────────
 const msgs   = document.getElementById('messages');
 const status = document.getElementById('ch-status');
 
@@ -289,9 +272,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function scrollEnd() { msgs.scrollTop = msgs.scrollHeight; }
 function setStatus(t) { status.textContent = t; }
 
-// ── Step rail ──────────────────────────────────────────────────────────
 function setStep(n) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 3; i++) {
     const si = document.getElementById('si' + i);
     const sn = document.getElementById('sn' + i);
     si.classList.remove('active','done');
@@ -300,21 +282,20 @@ function setStep(n) {
   }
 }
 
-// ── Message primitives ─────────────────────────────────────────────────
 let thinkRow = null;
-
 function showThinking() {
   thinkRow = document.createElement('div');
   thinkRow.className = 'row';
   thinkRow.innerHTML =
-    `<div class="av av-ai">AI</div>
+    `<div class="av av-ai">
+       <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+     </div>
      <div class="body-wrap">
        <div class="thinking"><div class="td"></div><div class="td"></div><div class="td"></div></div>
      </div>`;
   msgs.appendChild(thinkRow);
   scrollEnd();
 }
-
 function hideThinking() {
   if (thinkRow) { thinkRow.remove(); thinkRow = null; }
 }
@@ -335,7 +316,9 @@ async function aiMsg(html, { delay = 700, actions = [] } = {}) {
     ).join('')}</div>`;
   }
   row.innerHTML =
-    `<div class="av av-ai">AI</div>
+    `<div class="av av-ai">
+       <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+     </div>
      <div class="body-wrap">
        <div class="msg-name">安装助手</div>
        <div class="bubble">${html}</div>
@@ -364,7 +347,6 @@ function disableActions(row) {
   row.querySelectorAll('.abtn').forEach(b => b.disabled = true);
 }
 
-// ── Terminal block ─────────────────────────────────────────────────────
 async function termBlock(bubble, lines) {
   const block = document.createElement('div');
   block.className = 'term';
@@ -381,9 +363,6 @@ async function termBlock(bubble, lines) {
   return block;
 }
 
-// ── 派发任务到底栏 agent 终端（联动展示真实执行过程）────────────────
-// 必须用 `agent <任务描述>` 格式——终端按关键词匹配任务词表执行；
-// 页内 .term 块只做同步摘要，完整过程以底栏终端为准。
 function runCmd(cmd) {
   toParent({ type: 'ai-run-agent', cmd });
 }
@@ -394,20 +373,18 @@ function termNote(bubble) {
   bubble.appendChild(n);
 }
 
-// ── Wizard Flow ────────────────────────────────────────────────────────
+// ── Step 1: 登录官网 ──────────────────────────────────────────────────
 
-// Step 1 – Account check
 async function step1Welcome() {
   const row = await aiMsg(
-    `<p>你好！我是 openUBMC <strong>安装助手</strong>。</p>
-     <p>我来帮你完成开发环境的全部配置——绝大部分步骤我会自动执行，你只需要在关键处回答我几个问题。</p>
-     <p>整个过程分 4 步，预计 5–10 分钟。开始吧！</p>
-     <p style="margin-top:8px">你目前有 openUBMC 开发者账号了吗？</p>`,
+    `<p>你好！我是 openUBMC <strong>安装助手</strong>，将带你完成开发环境的全部配置。</p>
+     <p>共三步：登录官网 → 环境准备 → 选择开发机型。</p>
+     <p style="margin-top:8px">首先——你有 openUBMC 开发者账号了吗？</p>`,
     {
       delay: 900,
       actions: [
-        { act: 'has-acct',   label: '已有账号，跳过注册' },
-        { act: 'need-acct',  label: '还没有账号' },
+        { act: 'has-acct',  label: '已有账号' },
+        { act: 'need-acct', label: '还没有账号' },
       ]
     }
   );
@@ -416,8 +393,8 @@ async function step1Welcome() {
     if (!btn) return;
     disableActions(row);
     if (btn.dataset.act === 'has-acct') {
-      userMsg('已有账号，跳过注册');
-      step1GitCheck();
+      userMsg('已有账号');
+      step1Login();
     } else {
       userMsg('还没有账号');
       step1Register();
@@ -427,15 +404,11 @@ async function step1Welcome() {
 
 async function step1Register() {
   const row = await aiMsg(
-    `<p>没关系！先完成账号注册再继续，只需要几分钟。</p>
-     <div class="checks">
-       <div class="chk"><span class="chk-icon">1</span><span class="chk-label">前往 openUBMC 开发者社区，注册并激活账号</span></div>
-       <div class="chk"><span class="chk-icon">2</span><span class="chk-label">在 GitCode 上传 SSH 公钥（用于仓库访问）</span></div>
-     </div>`,
+    `<p>请先前往 openUBMC 开发者社区注册账号，完成后回来继续。</p>`,
     {
       actions: [
-        { act: 'open-reg',   label: '打开注册页面' },
-        { act: 'reg-done',   label: '已注册完成，继续' },
+        { act: 'open-reg',  label: '前往注册', primary: true },
+        { act: 'reg-done',  label: '注册完成，继续' },
       ]
     }
   );
@@ -443,29 +416,112 @@ async function step1Register() {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     if (btn.dataset.act === 'open-reg') {
-      window.open('https://www.openubmc.com/', '_blank');
+      window.open('https://www.openubmc.cn/', '_blank');
       userMsg('已打开注册页面');
     } else {
       disableActions(row);
-      userMsg('已注册完成，继续');
-      step1GitCheck();
+      userMsg('注册完成，继续');
+      step1Login();
     }
   });
 }
 
-async function step1GitCheck() {
+async function step1Login() {
   const row = await aiMsg(
-    `<p>好！请确认你已上传 SSH 公钥到 GitCode，否则后续克隆代码仓库会失败。</p>
+    `<p>好，请登录你的 openUBMC 账号。登录完成后点击「已登录，继续」。</p>`,
+    {
+      actions: [
+        { act: 'open-login', label: '前往登录 openUBMC 账号', primary: true },
+        { act: 'login-done', label: '已登录，继续' },
+      ]
+    }
+  );
+  row.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    if (btn.dataset.act === 'open-login') {
+      window.open('https://www.openubmc.cn/', '_blank');
+      userMsg('已前往登录');
+    } else {
+      disableActions(row);
+      userMsg('已登录，继续');
+      step2LinuxEnv();
+    }
+  });
+}
+
+// ── Step 2: 环境准备 ──────────────────────────────────────────────────
+
+async function step2LinuxEnv() {
+  setStep(2);
+  const row = await aiMsg(
+    `<p>登录成功 ✓</p>
+     <p>openUBMC 的编译构建需要在 <strong>Linux 环境</strong>中进行。你目前有可用的 Linux 环境吗？</p>`,
+    {
+      delay: 600,
+      actions: [
+        { act: 'has-linux', label: '有，已可以 SSH 连接', primary: true },
+        { act: 'need-wsl',  label: '没有，需要安装 WSL' },
+      ]
+    }
+  );
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    if (btn.dataset.act === 'has-linux') {
+      userMsg('有，已可以 SSH 连接');
+      step2GitCode();
+    } else {
+      userMsg('没有，需要安装 WSL');
+      step2InstallWSL();
+    }
+  });
+}
+
+async function step2InstallWSL() {
+  const row = await aiMsg(
+    `<p>请根据社区文档完成 WSL 安装，再连接到对应的 WSL 实例：</p>
      <div class="checks">
-       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">①</span>
-         <span class="chk-label">打开终端，运行 <code>cat ~/.ssh/id_rsa.pub</code> 复制公钥</span></div>
-       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">②</span>
-         <span class="chk-label">GitCode 设置 → SSH 密钥 → 添加密钥</span></div>
+       <div class="chk"><span class="chk-icon">①</span>
+         <span class="chk-label">按文档安装 WSL，配置 Linux 用户环境</span></div>
+       <div class="chk"><span class="chk-icon">②</span>
+         <span class="chk-label">在 VS Code 中连接到 WSL（Remote-WSL）</span></div>
+     </div>`,
+    {
+      actions: [
+        { act: 'open-doc', label: '查看 Windows 环境搭建文档' },
+        { act: 'wsl-done', label: 'WSL 安装完成，继续', primary: true },
+      ]
+    }
+  );
+  row.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    if (btn.dataset.act === 'open-doc') {
+      window.open('https://www.openubmc.cn/docs/zh/development/quick_start/prepare_environment/windows_env.html', '_blank');
+      userMsg('已打开文档');
+    } else {
+      disableActions(row);
+      userMsg('WSL 安装完成，继续');
+      step2GitCode();
+    }
+  });
+}
+
+async function step2GitCode() {
+  const row = await aiMsg(
+    `<p>下面配置 <strong>GitCode SSH 密钥</strong>，用于拉取代码仓库。</p>
+     <div class="checks">
+       <div class="chk"><span class="chk-icon">①</span>
+         <span class="chk-label">Linux 终端运行 <code>cat ~/.ssh/id_rsa.pub</code>，复制公钥内容</span></div>
+       <div class="chk"><span class="chk-icon">②</span>
+         <span class="chk-label">在 GitCode 个人设置 → SSH 密钥 → 添加公钥</span></div>
      </div>`,
     {
       actions: [
         { act: 'open-git', label: '打开 GitCode 密钥设置' },
-        { act: 'git-done', label: '已上传，继续' },
+        { act: 'git-done', label: '已上传密钥，继续', primary: true },
       ]
     }
   );
@@ -477,107 +533,27 @@ async function step1GitCheck() {
       userMsg('已打开 GitCode 密钥设置');
     } else {
       disableActions(row);
-      userMsg('已上传，继续');
-      step2EnvCheck();
+      userMsg('已上传密钥，继续');
+      step2Deploy();
     }
   });
 }
 
-// Step 2 – Environment detection
-async function step2EnvCheck() {
-  setStep(2);
+async function step2Deploy() {
   const row = await aiMsg(
-    `<p>账号准备完毕 ✓　下面自动检测你的本机开发环境…</p>`,
-    { delay: 500 }
-  );
-  const bubble = row.querySelector('.bubble');
-
-  runCmd('agent 诊断安装环境');
-  setStatus('检测中…');
-
-  await termBlock(bubble, [
-    { t: 'setup_verify_all', c: 'tc', d: 300 },
-    { t: '正在检测开发环境...', c: 'tdm', d: 500 },
-    { t: '  ✓  VS Code 1.107.2 — 通过', c: 'tok', d: 600 },
-    { t: '  ✓  Node.js v20.11.0 — 通过', c: 'tok', d: 400 },
-    { t: '  ✓  Git 2.43.0 — 通过', c: 'tok', d: 350 },
-    { t: '  ✗  Conan remote 未配置', c: 'ter', d: 500 },
-    { t: '  ✗  openubmc-cli 未安装', c: 'ter', d: 400 },
-    { t: '检测完成：3/5 通过，2 项待修复', c: 'twa', d: 400 },
-  ]);
-  termNote(bubble);
-
-  setStatus('待机中');
-  await sleep(500);
-  step2AutoFix();
-}
-
-async function step2AutoFix() {
-  const row = await aiMsg(
-    `<p>VS Code、Node.js、Git 已就绪。发现 2 项需要配置，我来自动修复：</p>
+    `<p>下面部署 openUBMC 开发环境，我来自动完成以下步骤：</p>
      <div class="checks">
-       <div class="chk"><span class="chk-icon" style="color:var(--red)">✗</span>
-         <span class="chk-label">Conan 工具链 remote 未配置</span>
-         <span class="chk-note">自动修复</span></div>
-       <div class="chk"><span class="chk-icon" style="color:var(--red)">✗</span>
-         <span class="chk-label">openubmc-cli 未安装</span>
-         <span class="chk-note">自动安装</span></div>
+       <div class="chk"><span class="chk-icon">①</span>
+         <span class="chk-label">拉取 manifest 代码仓（openubmc-24.03）</span></div>
+       <div class="chk"><span class="chk-icon">②</span>
+         <span class="chk-label">下载 bmc_sdk 并上传到 Linux 环境</span></div>
+       <div class="chk"><span class="chk-icon">③</span>
+         <span class="chk-label">执行初始化脚本 init.py</span></div>
      </div>`,
     {
-      delay: 500,
-      actions: [{ act: 'do-fix', label: '开始自动修复', primary: true }]
-    }
-  );
-  row.addEventListener('click', async e => {
-    const btn = e.target.closest('[data-act]');
-    if (!btn) return;
-    disableActions(row);
-    userMsg('开始自动修复');
-    step2Fix();
-  });
-}
-
-async function step2Fix() {
-  const row = await aiMsg('<p>正在自动修复，请稍候…</p>', { delay: 400 });
-  const bubble = row.querySelector('.bubble');
-
-  setStatus('修复中…');
-
-  await termBlock(bubble, [
-    { t: 'setup_configure_conan_remote', c: 'tc', d: 300 },
-    { t: '  添加 conan remote "openubmc"...', c: 'tdm', d: 800 },
-    { t: '  ✓  remote 配置成功', c: 'tok', d: 600 },
-    { t: 'setup_install_openubmc_cli', c: 'tc', d: 400 },
-    { t: '  下载 openubmc-cli v1.4.2...', c: 'tdm', d: 1100 },
-    { t: '  ✓  openubmc-cli 安装成功', c: 'tok', d: 700 },
-    { t: '重新验证全部检测项...', c: 'tdm', d: 500 },
-    { t: '  ✓  5/5 全部通过', c: 'tok', d: 600 },
-  ]);
-
-  setStatus('待机中');
-  await sleep(500);
-  step3Resources();
-}
-
-// Step 3 – Resource download（Studio/工具链已装好——此处拉取代码仓与 SDK）
-async function step3Resources() {
-  setStep(3);
-  const row = await aiMsg(
-    `<p>环境全部就绪 ✓　下面拉取 openUBMC 开发资源——这一步我全自动完成：</p>
-     <div class="checks">
-       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">①</span>
-         <span class="chk-label">克隆 manifest 代码仓（openubmc-24.03）</span></div>
-       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">②</span>
-         <span class="chk-label">下载并校验 bmc_sdk</span></div>
-       <div class="chk"><span class="chk-icon" style="color:var(--fg3)">③</span>
-         <span class="chk-label">执行 init.py 初始化工程</span></div>
-     </div>
-     <p style="margin-top:10px">涉及写操作，需要你确认一下：</p>`,
-    {
-      delay: 600,
       actions: [
-        { act: 'pull', label: '开始拉取资源', primary: true },
-        { act: 'skip', label: '跳过（本地已有代码仓）' },
+        { act: 'deploy',    label: '开始部署', primary: true },
+        { act: 'skip-dep',  label: '跳过（本地已有代码仓）' },
       ]
     }
   );
@@ -585,22 +561,22 @@ async function step3Resources() {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     disableActions(row);
-    if (btn.dataset.act === 'pull') {
-      userMsg('开始拉取资源');
-      step3Pull();
+    if (btn.dataset.act === 'deploy') {
+      userMsg('开始部署');
+      step2DoDeploy();
     } else {
       userMsg('跳过，本地已有代码仓');
-      step4ModelSelect();
+      step2Verify();
     }
   });
 }
 
-async function step3Pull() {
-  const row = await aiMsg('<p>正在拉取资源并初始化工程，稍候…</p>', { delay: 500 });
+async function step2DoDeploy() {
+  const row = await aiMsg('<p>正在部署开发环境，稍候…</p>', { delay: 400 });
   const bubble = row.querySelector('.bubble');
 
   runCmd('agent 下载开发资源 拉取 manifest');
-  setStatus('拉取中…');
+  setStatus('部署中…');
 
   await termBlock(bubble, [
     { t: 'setup_clone_manifest', c: 'tc', d: 300 },
@@ -617,15 +593,60 @@ async function step3Pull() {
 
   setStatus('待机中');
   await sleep(500);
-  step4ModelSelect();
+  step2Verify();
 }
 
-// Step 4 – Model configuration
-async function step4ModelSelect() {
-  setStep(4);
+async function step2Verify() {
   const row = await aiMsg(
-    `<p>开发资源全部就绪 🎉</p>
-     <p>最后一步——选择你要开发的主要机型，我会为你打开对应的硬件适配视图：</p>`,
+    `<p>代码仓与 SDK 准备完毕。下面运行配置检测，确认开发环境全部就绪。</p>`,
+    {
+      actions: [
+        { act: 'run-check', label: '配置检测', primary: true },
+      ]
+    }
+  );
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    disableActions(row);
+    userMsg('配置检测');
+    step2DoVerify();
+  });
+}
+
+async function step2DoVerify() {
+  const row = await aiMsg('<p>正在检测环境配置…</p>', { delay: 400 });
+  const bubble = row.querySelector('.bubble');
+
+  runCmd('agent 诊断安装环境');
+  setStatus('检测中…');
+
+  await termBlock(bubble, [
+    { t: 'setup_verify_all', c: 'tc', d: 300 },
+    { t: '  检查 GitCode SSH 连通性...', c: 'tdm', d: 600 },
+    { t: '  ✓  SSH 连接 gitcode.com — 通过', c: 'tok', d: 500 },
+    { t: '  检查 manifest 代码仓...', c: 'tdm', d: 500 },
+    { t: '  ✓  openubmc-24.03 manifest — 通过', c: 'tok', d: 400 },
+    { t: '  检查 bmc_sdk...', c: 'tdm', d: 400 },
+    { t: '  ✓  bmc_sdk 完整性校验 — 通过', c: 'tok', d: 400 },
+    { t: '  检查 Conan 工具链...', c: 'tdm', d: 500 },
+    { t: '  ✓  Conan remote openubmc — 通过', c: 'tok', d: 400 },
+    { t: '环境准备配置检测通过，所有配置项验证成功', c: 'tok', d: 600 },
+  ]);
+  termNote(bubble);
+
+  setStatus('待机中');
+  await sleep(600);
+  step3ModelSelect();
+}
+
+// ── Step 3: 选择开发机型 ──────────────────────────────────────────────
+
+async function step3ModelSelect() {
+  setStep(3);
+  const row = await aiMsg(
+    `<p>环境准备配置检测通过 ✓</p>
+     <p>最后一步——选择你要开发的主要机型。配置完成后可在 IDE 右下角状态栏随时切换。</p>`,
     {
       delay: 700,
       actions: [
@@ -639,28 +660,30 @@ async function step4ModelSelect() {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     disableActions(row);
-    const map = { kunlun:'昆仑（KunLun）', tianchi:'天池（TianChi）', skip:'暂不配置' };
+    const map = { kunlun: '昆仑（KunLun）', tianchi: '天池（TianChi）', skip: '暂不配置' };
     userMsg(map[btn.dataset.act]);
-    step4Complete(btn.dataset.act);
+    step3Complete(btn.dataset.act);
   });
 }
 
-async function step4Complete(model) {
-  const names   = { kunlun:'昆仑', tianchi:'天池', skip:'' };
-  const viewIds = { kunlun:'topology', tianchi:'boardTopology', skip:'home' };
-  const name   = names[model];
-  const viewId = viewIds[model];
+async function step3Complete(model) {
+  const names   = { kunlun: '昆仑', tianchi: '天池', skip: '' };
+  const viewIds = { kunlun: 'topology', tianchi: 'boardTopology', skip: 'home' };
+  const name    = names[model];
+  const viewId  = viewIds[model];
 
   const txt = name
-    ? `<p>完成！正在为你打开 <strong>${name}</strong> 硬件适配视图…</p>`
-    : `<p>好的！你可以随时从左侧导航栏进入对应功能视图。</p><p>开发环境部署全部完成 ✓</p>`;
+    ? `<p>已选择 <strong>${name}</strong> 机型 ✓　正在打开硬件适配视图…</p>`
+    : `<p>好的！可随时从左侧导航栏选择对应功能视图。</p><p>开发环境部署全部完成 ✓</p>`;
 
   await aiMsg(txt, { delay: 600 });
 
-  // Mark step 4 done
-  document.getElementById('si4').classList.remove('active');
-  document.getElementById('si4').classList.add('done');
-  document.getElementById('sn4').textContent = '✓';
+  // 标记 step 3 完成
+  const si3 = document.getElementById('si3');
+  const sn3 = document.getElementById('sn3');
+  si3.classList.remove('active');
+  si3.classList.add('done');
+  sn3.textContent = '✓';
 
   await sleep(1200);
   document.getElementById('done-sub').textContent = name

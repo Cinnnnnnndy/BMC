@@ -47,7 +47,7 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
-  | 'home' | 'installGuide' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
+  | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig'
@@ -78,6 +78,7 @@ const ICONS: Record<string, React.ReactNode> = {
   home:         <SI d={['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10']} />,
   explorer:     <SI d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
   installGuide: <SI d={['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z','M9 7h7M9 11h5']} />,
+  aiInstall:    <SI d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z" />,
   bmcEnv:       <SI d={['M4 4h16a2 2 0 0 1 2 2v4H2V6a2 2 0 0 1 2-2z','M2 10h20v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8z','M8 7v3M12 7v3M16 7v3']} />,
   aiAssist:     <SI d={['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z','M8 10h8M8 14h5']} />,
   aiHistory:    <SI d={['M12 8v4l3 3','M3.05 11a9 9 0 1 0 .5-3','M3 4v4h4']} />,
@@ -188,7 +189,7 @@ function lSetRatio(n: PaneNode, paneId: PaneId, r: number): PaneNode {
 // ── View labels for tab bar ────────────────────────────────────────────────
 
 const VIEW_LABELS: Partial<Record<ViewId, string>> = {
-  home: '欢迎页', installGuide: '安装引导', explorer: '资源管理器', jsonNorth: 'JSON 北向接口',
+  home: '欢迎页', installGuide: '安装引导', aiInstall: 'AI 引导安装', explorer: '资源管理器', jsonNorth: 'JSON 北向接口',
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
@@ -918,6 +919,8 @@ export default function App() {
         return <ExplorerView />;
       case 'installGuide':
         return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
+      case 'aiInstall':
+        return <iframe src={withBase('ai-install.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 引导安装" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':
