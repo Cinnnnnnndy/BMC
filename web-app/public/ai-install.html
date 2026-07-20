@@ -481,31 +481,38 @@ async function step2LinuxEnv() {
 
 async function step2InstallWSL() {
   const row = await aiMsg(
-    `<p>请根据社区文档完成 WSL 安装，再连接到对应的 WSL 实例：</p>
-     <div class="checks">
-       <div class="chk"><span class="chk-icon">①</span>
-         <span class="chk-label">按文档安装 WSL，配置 Linux 用户环境</span></div>
-       <div class="chk"><span class="chk-icon">②</span>
-         <span class="chk-label">在 VS Code 中连接到 WSL（Remote-WSL）</span></div>
-     </div>`,
-    {
-      actions: [
-        { act: 'open-doc', label: '查看 Windows 环境搭建文档' },
-        { act: 'wsl-done', label: 'WSL 安装完成，继续', primary: true },
-      ]
-    }
+    `<p>没问题，WSL 安装步骤我直接放在这里，照着终端里的命令做即可，不用另外翻文档。</p>
+     <p style="margin-top:8px">在 <strong>管理员 PowerShell</strong> 中依次执行——每一步我都标注好了：</p>`,
+    { delay: 800 }
   );
-  row.addEventListener('click', async e => {
+  const bubble = row.querySelector('.bubble');
+
+  await termBlock(bubble, [
+    { t: '# ① 安装 WSL 内核与 Ubuntu-22.04（完成后重启一次）', c: 'tdm', d: 260 },
+    { t: 'wsl --install -d Ubuntu-22.04', c: 'tc', d: 320 },
+    { t: '# ② 重启后首次启动 Ubuntu，按提示设置 Linux 用户名 / 密码', c: 'tdm', d: 260 },
+    { t: '# ③ 进入 Ubuntu 后更新软件源', c: 'tdm', d: 220 },
+    { t: 'sudo apt update && sudo apt upgrade -y', c: 'tc', d: 320 },
+    { t: '# ④ VS Code 装 Remote-WSL 扩展，点左下角 >< → Connect to WSL', c: 'tdm', d: 260 },
+  ]);
+
+  const hint = document.createElement('div');
+  hint.className = 'term-note';
+  hint.textContent = '照着命令做即可；连接进 WSL 后点下方按钮继续。';
+  bubble.appendChild(hint);
+
+  const acts = document.createElement('div');
+  acts.className = 'actions';
+  acts.innerHTML = '<button class="abtn primary" data-act="wsl-done">WSL 安装完成，继续</button>';
+  row.querySelector('.body-wrap').appendChild(acts);
+  scrollEnd();
+
+  row.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
-    if (btn.dataset.act === 'open-doc') {
-      window.open('https://www.openubmc.cn/docs/zh/development/quick_start/prepare_environment/windows_env.html', '_blank');
-      userMsg('已打开文档');
-    } else {
-      disableActions(row);
-      userMsg('WSL 安装完成，继续');
-      step2GitCode();
-    }
+    disableActions(row);
+    userMsg('WSL 安装完成，继续');
+    step2GitCode();
   });
 }
 
