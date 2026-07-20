@@ -1175,6 +1175,19 @@
   background: transparent;
   position: relative;
 }
+/* 更宽的隐形抓取区（视觉间隙不变），避免与相邻滚动条抢焦点导致拖拽难触发 */
+.ide-split-handle--h::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -5px; right: -5px;
+  z-index: 1; cursor: col-resize;
+}
+.ide-split-handle--v::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -5px; bottom: -5px;
+  z-index: 1; cursor: row-resize;
+}
 .ide-split-handle--h::after {
   content: '';
   position: absolute;
