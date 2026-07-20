@@ -670,6 +670,12 @@ export default function App() {
   // 场景打开（分屏）— AI 助手 iframe 消息与 agent 终端共用同一入口，
   // CSR 依赖视图自动兜底加载默认样例工程
   const openScenario = useCallback((viewId: string) => {
+    // 「AI 引导安装」统一并入 AI 助手：打开同一个 aiAssist 视图并置一个标记，
+    // 由 ai-assist 页面读取后在其中新建「安装引导」对话（不再单开 aiInstall 面板）
+    if (viewId === 'aiInstall') {
+      try { localStorage.setItem('bmcStartInstallFlow', String(Date.now())); } catch { /* noop */ }
+      viewId = 'aiAssist';
+    }
     const id = viewId as ViewId;
     if (CSR_REQUIRED.has(id)) {
       void ensureCsrLoaded().then(ok => { if (ok) openViewInSplit(id); });

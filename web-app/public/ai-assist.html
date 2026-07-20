@@ -756,6 +756,7 @@ function openScenarioView(viewId) {
 
 function loadScenario(sc) {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = sc;
   session = freshSession(sc.messages);
   session.title = sc.title + '（续）';
@@ -771,6 +772,7 @@ function loadScenario(sc) {
 
 function loadSession(ss) {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = null;
   session = { id: ss.id, title: ss.title, time: ss.time, messages: ss.messages.slice(), hasNew: false };
   setConvTitle();
@@ -792,6 +794,7 @@ function setConvTitle() {
 // ── 会话操作 ─────────────────────────────────────────────────
 function newChat() {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = null;
   session = freshSession();
   setConvTitle();
@@ -1013,6 +1016,31 @@ async function step3ApplyModel(name) {
 }
 function startInstallFlow() { setStep(1); sleep(400).then(step1Welcome); }
 
+// 在当前 AI 助手里新建一个「安装引导」对话（统一入口，不再单开面板）
+function startInstallConversation() {
+  currentScenario = null;
+  session = freshSession();
+  session.title = 'AI 引导安装部署';
+  setConvTitle();
+  const sb = document.getElementById('scenario-banner'); if (sb) sb.style.display = 'none';
+  const fm = document.getElementById('flow-messages'); if (fm) fm.innerHTML = '';
+  const tc = document.getElementById('task-card'); if (tc) tc.classList.remove('collapsed');
+  document.body.classList.add('flow-mode');
+  toggleHistory(false);
+  startInstallFlow();
+}
+// 读取「打开安装引导」标记（App 在点 AI 引导安装时置位），命中则起流程
+function maybeStartInstallFromFlag() {
+  let ts = 0;
+  try { ts = +(localStorage.getItem('bmcStartInstallFlow') || 0); } catch (_) {}
+  if (ts && Date.now() - ts < 10000) {
+    try { localStorage.removeItem('bmcStartInstallFlow'); } catch (_) {}
+    startInstallConversation();
+    return true;
+  }
+  return false;
+}
+
 // ── 初始化 ───────────────────────────────────────────────────
 const IS_HISTORY_TAB = new URLSearchParams(location.search).get('view') === 'history';
 const IS_FLOW_INSTALL = new URLSearchParams(location.search).get('flow') === 'install';
@@ -1028,15 +1056,15 @@ if (IS_HISTORY_TAB) {
   document.getElementById('panel-title').textContent = 'AI 历史';
   renderHistory();
 } else if (IS_FLOW_INSTALL) {
-  document.body.classList.add('flow-mode');
-  session.title = 'AI 引导安装部署';
-  setConvTitle();
-  startInstallFlow();
+  startInstallConversation();
+} else if (maybeStartInstallFromFlag()) {
+  /* 通过标记进入安装引导对话 */
 } else {
   appendMsg('ai', INIT);
 }
 window.addEventListener('storage', function (e) {
   if (e.key === 'bmcInstallProgress') renderGlobalChecklist();
+  if (e.key === 'bmcStartInstallFlow') maybeStartInstallFromFlag();
 });
 window.addEventListener('beforeunload', persistSession);
 </script>
