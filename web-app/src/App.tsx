@@ -1055,6 +1055,7 @@ export default function App() {
 
   const railItems: RailItem[] = [
     { id: 'home',         tooltip: '欢迎页' },
+    { id: 'aiAssist',     tooltip: 'AI 助手' },
     { id: 'explorer',     tooltip: '资源管理器' },
     { id: 'installGuide', tooltip: '安装部署引导' },
     { id: 'pipeExpr',     tooltip: '管道表达式计算器' },
