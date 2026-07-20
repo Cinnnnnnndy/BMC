@@ -178,34 +178,18 @@
       transition: background 0.15s;
     }
     .aw-recent-item:hover { background: rgba(255,255,255,0.07); }
-    .aw-recent-ico {
-      position: relative;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: rgba(167,139,250,0.12);
-      color: #a78bfa;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .aw-recent-ico svg { display: block; }
-    /* 任务状态点（叠在 ✦ 图标右下角，颜色即状态；细节走 hover title）*/
+    /* 任务状态灯：不再用图标，仅用颜色点表示状态；细节走 hover title */
     .aw-recent-dot {
-      position: absolute;
-      right: -1px;
-      bottom: -1px;
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      border: 2px solid #111113;
-      box-sizing: content-box;
+      flex-shrink: 0;
+      margin-left: 3px;
       background: rgba(255,255,255,0.28);
     }
-    .aw-recent-dot.done    { background: #04d793; }
-    .aw-recent-dot.running { background: #0077ff; animation: aw-pulse 1s ease-in-out infinite; }
-    .aw-recent-dot.failed  { background: #f59e0b; }
+    .aw-recent-dot.done    { background: #04d793; box-shadow: 0 0 0 3px rgba(4,215,147,0.14); }
+    .aw-recent-dot.running { background: #0077ff; box-shadow: 0 0 0 3px rgba(0,119,255,0.16); animation: aw-pulse 1s ease-in-out infinite; }
+    .aw-recent-dot.failed  { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.16); }
     .aw-recent-main { flex: 1 1 auto; min-width: 0; }
     .aw-recent-name {
       font-size: 12px;
@@ -528,7 +512,6 @@
         if (d < 86400e3) return Math.floor(d / 3600e3) + ' 小时前';
         return Math.floor(d / 86400e3) + ' 天前';
       }
-      var SPARK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>';
       var STATE_LABEL = { running: '进行中', done: '已完成', failed: '未通过' };
       // 演示数据兜底（状态点 + hover 细节；列表本身只显示标题与时间）
       var DEMO_SESSIONS = [
@@ -548,9 +531,8 @@
         item.className = 'aw-recent-item';
         // hover 显示任务状态 + 细节
         item.title = (STATE_LABEL[state] || '') + (r.detail ? ' · ' + r.detail : '');
-        var ico = document.createElement('div');
-        ico.className = 'aw-recent-ico';
-        ico.innerHTML = SPARK + '<span class="aw-recent-dot ' + state + '"></span>';
+        var dot = document.createElement('span');
+        dot.className = 'aw-recent-dot ' + state;
         var main = document.createElement('div');
         main.className = 'aw-recent-main';
         var name = document.createElement('div');
@@ -561,7 +543,7 @@
         time.textContent = r.timeText;
         main.appendChild(name);
         main.appendChild(time);
-        item.appendChild(ico);
+        item.appendChild(dot);
         item.appendChild(main);
         item.addEventListener('click', function () { openView('aiHistory'); });
         return item;
