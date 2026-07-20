@@ -90,7 +90,7 @@ html, body {
   flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
 }
 
-.chat-view { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.chat-view { flex: 1 1 0; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 .scenario-banner {
   display: flex; align-items: center; gap: 8px;
@@ -229,8 +229,13 @@ html, body {
 }
 .history-view::-webkit-scrollbar { width: 5px; }
 .history-view::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
-body.show-history .history-view { display: flex; }
-body.show-history .chat-view { display: none; }
+/* 历史与聊天左右并排（同一卡片内），互不覆盖 */
+body.show-history .panel-body { flex-direction: row; }
+body.show-history .history-view {
+  display: flex;
+  flex: 0 0 200px;
+  border-right: 1px solid var(--border-subtle);
+}
 
 /* history-tab-mode: opened as a full pane tab via ?view=history */
 body.history-tab-mode #history-btn,
@@ -317,7 +322,7 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
     </div>
 
     <div class="history-view" id="history-view">
-      <div class="hv-section-title">示例场景 · 点击载入会话并分屏打开对应功能</div>
+      <div class="hv-section-title">示例场景</div>
       <div id="scenario-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div class="hv-section-title">我的会话</div>
       <div id="session-list" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -623,8 +628,7 @@ function toggleHistory(force) {
   if (show) renderHistory();
   document.body.classList.toggle('show-history', show);
   document.getElementById('history-btn').classList.toggle('is-active', show);
-  document.getElementById('history-btn').textContent = show ? '返回' : '历史';
-  document.getElementById('panel-title').textContent = show ? '聊天历史' : 'AI 助手';
+  document.getElementById('history-btn').textContent = show ? '收起历史' : '历史';
 }
 
 // ── 载入历史 / 场景 ──────────────────────────────────────────
@@ -649,7 +653,7 @@ function loadScenario(sc) {
   banner.style.display = 'flex';
   document.getElementById('scenario-banner-text').innerHTML =
     '关联视图：<b>' + escapeHtml(VIEW_LABELS[sc.view] || sc.view) + '</b>';
-  toggleHistory(false);
+  // 历史保持在左侧展开，对话在右侧刷新（左右并排，不收起）
   openScenarioView(sc.view);
 }
 
@@ -659,7 +663,7 @@ function loadSession(ss) {
   session = { id: ss.id, title: ss.title, time: ss.time, messages: ss.messages.slice(), hasNew: false };
   setChatLog(ss.messages, '已载入历史会话');
   document.getElementById('scenario-banner').style.display = 'none';
-  toggleHistory(false);
+  // 历史保持在左侧展开，对话在右侧刷新（左右并排，不收起）
 }
 
 function reopenScenarioView() {
