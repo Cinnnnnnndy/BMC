@@ -36,7 +36,7 @@ const AGENT_TASKS: AgentTask[] = [
   // 注意：数组顺序即匹配优先级（find 首个 keys 命中者）。
   // VSIX 任务必须排在「诊断安装」之前——其触发词「扩展安装包」含「安装」。
   {
-    keys: ['vsix', '出包', '安装包', '扩展安装'],
+    keys: ['vsix', '安装包', '扩展安装'],
     title: 'BMC Studio CodeX 扩展构建安装（VSIX）',
     tools: [['setup_clone_codex', 1240], ['setup_build_vsix', 2180], ['setup_install_vsix', 860]],
     out: [
@@ -45,6 +45,17 @@ const AGENT_TASKS: AgentTask[] = [
       'openubmcstudio-codex-0.0.34.vsix 已生成并安装（code --install-extension exit 0）',
     ],
     ok: '扩展安装完成，code --list-extensions 已验证 openubmcstudio-codex',
+  },
+  {
+    keys: ['资源', 'manifest', '下载', 'sdk'],
+    title: '开发资源下载与工程初始化',
+    tools: [['setup_clone_manifest', 1300], ['setup_install_sdk', 1400], ['setup_run_init', 1500]],
+    out: [
+      'manifest openubmc-24.03 克隆完成（172 repos synced）',
+      'bmc_sdk 下载完成，校验和一致',
+      'init.py --profile openubmc-24.03 执行完成 (exit 0 · 4.2s)',
+    ],
+    ok: '开发资源就绪，工程已初始化，可开始机型配置',
   },
   {
     keys: ['校验', 'validate'],
