@@ -66,6 +66,18 @@ const AGENT_TASKS: AgentTask[] = [
     view: 'topology', viewLabel: '拓扑视图',
   },
   {
+    // WSL 引导：必须排在「诊断安装」之前——派发词「安装 wsl」含「安装」
+    keys: ['wsl', '子系统'],
+    title: 'WSL 环境安装引导',
+    tools: [['setup_check_platform', 180]],
+    out: [
+      'wsl --install -d Ubuntu-22.04        # 安装 WSL2 内核 + Ubuntu-22.04，完成后重启',
+      'sudo apt update && sudo apt upgrade -y   # 重启并设置用户名/密码后更新软件源',
+      'code --install-extension ms-vscode-remote.remote-wsl   # 装 Remote-WSL，>< → Connect to WSL',
+    ],
+    ok: 'WSL 安装命令已在终端列出，按序执行完成后回向导点「WSL 安装完成，继续」',
+  },
+  {
     keys: ['安装', '诊断', '部署', 'setup'],
     title: '开发环境诊断（安装引导）',
     tools: [['setup_verify_all', 143], ['setup_configure_conan_remote', 310], ['setup_run_init', 1240]],

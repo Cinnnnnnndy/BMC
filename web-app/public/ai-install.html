@@ -481,25 +481,22 @@ async function step2LinuxEnv() {
 
 async function step2InstallWSL() {
   const row = await aiMsg(
-    `<p>没问题，WSL 安装步骤我直接放在这里，照着终端里的命令做即可，不用另外翻文档。</p>
-     <p style="margin-top:8px">在 <strong>管理员 PowerShell</strong> 中依次执行——每一步我都标注好了：</p>`,
+    `<p>没问题，WSL 安装命令我直接推到下方 agent 终端里运行，你照着终端执行即可，不用另外翻文档。</p>`,
     { delay: 800 }
   );
   const bubble = row.querySelector('.bubble');
 
-  await termBlock(bubble, [
-    { t: '# ① 安装 WSL 内核与 Ubuntu-22.04（完成后重启一次）', c: 'tdm', d: 260 },
-    { t: 'wsl --install -d Ubuntu-22.04', c: 'tc', d: 320 },
-    { t: '# ② 重启后首次启动 Ubuntu，按提示设置 Linux 用户名 / 密码', c: 'tdm', d: 260 },
-    { t: '# ③ 进入 Ubuntu 后更新软件源', c: 'tdm', d: 220 },
-    { t: 'sudo apt update && sudo apt upgrade -y', c: 'tc', d: 320 },
-    { t: '# ④ VS Code 装 Remote-WSL 扩展，点左下角 >< → Connect to WSL', c: 'tdm', d: 260 },
-  ]);
+  // 直接打开底部 agent 终端并运行 WSL 安装引导
+  runCmd('agent 安装 wsl 子系统');
 
-  const hint = document.createElement('div');
-  hint.className = 'term-note';
-  hint.textContent = '照着命令做即可；连接进 WSL 后点下方按钮继续。';
-  bubble.appendChild(hint);
+  await termBlock(bubble, [
+    { t: 'setup_check_platform', c: 'tc', d: 300 },
+    { t: '  检测到 Windows 主机，未安装 WSL', c: 'tdm', d: 700 },
+    { t: '  ① wsl --install -d Ubuntu-22.04（WSL2 内核 + Ubuntu-22.04，装好重启）', c: 'tdm', d: 900 },
+    { t: '  ② 重启后设置 Linux 用户名/密码 → sudo apt update && upgrade -y', c: 'tdm', d: 900 },
+    { t: '  ③ VS Code 装 Remote-WSL，左下角 >< → Connect to WSL', c: 'tdm', d: 800 },
+  ]);
+  termNote(bubble);
 
   const acts = document.createElement('div');
   acts.className = 'actions';
