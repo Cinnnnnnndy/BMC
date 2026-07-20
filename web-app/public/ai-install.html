@@ -55,7 +55,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .ch-badge { font-size:10px; font-weight:600; padding:1px 7px; border-radius:100px; background:var(--purple-dim); color:var(--purple); letter-spacing:.04em; }
 .ch-status { margin-left:auto; font-size:11.5px; color:var(--fg3); }
 
-/* ── 任务分解卡（融入对话顶部，替代独立步骤栏，节省横向空间）── */
+/* ── 任务分解卡（融入对话顶部，横向排布，省纵向空间）── */
 .task-card {
   flex-shrink:0;
   margin:10px 16px 0;
@@ -64,14 +64,29 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
   border-radius:10px;
 }
 .tk-head {
-  font-size:11px; font-weight:600; color:var(--fg3);
-  letter-spacing:.04em; margin-bottom:8px;
+  display:flex; align-items:center; gap:8px;
+  font-size:11px; font-weight:600; color:var(--fg2);
+  letter-spacing:.04em; margin-bottom:8px; cursor:pointer; user-select:none;
 }
+.tk-progress {
+  font-size:10.5px; font-weight:700; color:var(--fg2);
+  background:var(--sf3); border-radius:100px; padding:1px 8px;
+}
+.tk-chevron { margin-left:auto; color:var(--fg3); transition:transform .2s; }
+.task-card.collapsed .tk-head { margin-bottom:0; }
+.task-card.collapsed .tk-steps { display:none; }
+.task-card.collapsed .tk-chevron { transform:rotate(-90deg); }
+.tk-steps { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
 .tk-item {
-  display:flex; align-items:center; gap:9px;
-  padding:3px 0; font-size:12.5px; color:var(--fg3);
+  display:flex; align-items:center; gap:7px;
+  font-size:12px; color:var(--fg3);
   transition:color .2s;
 }
+.tk-item::after {
+  content:''; width:14px; height:1.5px; margin-left:3px;
+  background:var(--divider); border-radius:1px;
+}
+.tk-item:last-child::after { display:none; }
 .tk-mark {
   width:18px; height:18px; border-radius:50%; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
@@ -83,6 +98,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
 .tk-item.active .tk-mark { background:var(--blue); color:#fff; }
 .tk-item.done { color:var(--fg2); }
 .tk-item.done .tk-mark { background:rgba(4,215,147,.14); color:var(--green); }
+.tk-item.done::after { background:rgba(4,215,147,.3); }
 
 .messages { flex:1; overflow-y:auto; padding:20px 20px 12px; display:flex; flex-direction:column; gap:14px; }
 
@@ -208,10 +224,16 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
       <span class="ch-status" id="ch-status">待机中</span>
     </div>
     <div class="task-card" id="task-card">
-      <div class="tk-head">安装部署引导 · 3 步</div>
-      <div class="tk-item active" id="tk1"><span class="tk-mark">1</span><span>登录官网</span></div>
-      <div class="tk-item" id="tk2"><span class="tk-mark">2</span><span>环境准备</span></div>
-      <div class="tk-item" id="tk3"><span class="tk-mark">3</span><span>选择开发机型</span></div>
+      <div class="tk-head" onclick="toggleTask()">
+        <span>安装部署引导</span>
+        <span class="tk-progress" id="tk-progress">0/3</span>
+        <svg class="tk-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="tk-steps" id="tk-steps">
+        <div class="tk-item active" id="tk1"><span class="tk-mark">1</span><span>登录官网</span></div>
+        <div class="tk-item" id="tk2"><span class="tk-mark">2</span><span>环境准备</span></div>
+        <div class="tk-item" id="tk3"><span class="tk-mark">3</span><span>选择开发机型</span></div>
+      </div>
     </div>
     <div class="messages" id="messages"></div>
     <div class="input-bar" style="display:none">
@@ -251,8 +273,15 @@ function setStep(n) {
     else if (i === n) { it.classList.add('active'); mk.textContent = String(i); }
     else { mk.textContent = String(i); }
   }
+  const prog = document.getElementById('tk-progress');
+  if (prog) prog.textContent = Math.max(0, Math.min(3, n - 1)) + '/3';
   // 写入全局引导进度，供 AI 助手历史区的跨对话 checklist 读取
   try { localStorage.setItem('bmcInstallProgress', JSON.stringify({ step: n })); } catch (_) {}
+}
+
+// 任务分解卡收起/展开（收起后仅看到完成情况）
+function toggleTask() {
+  document.getElementById('task-card').classList.toggle('collapsed');
 }
 
 let thinkRow = null;

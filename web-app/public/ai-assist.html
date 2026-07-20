@@ -59,35 +59,47 @@ html, body {
   overflow: hidden;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  height: 42px;
-  flex-shrink: 0;
-}
-.hist-icon svg, .tool-chip svg, .ph-icon-btn svg { display: block; }
-.ph-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; margin: 0 4px 0 2px; }
-.ph-title {
-  font-size: 13px; font-weight: 600; color: var(--text-primary);
-  flex: 1 1 auto; min-width: 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.ph-icon-btn {
-  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: none; color: var(--text-secondary);
-  cursor: pointer; transition: .15s;
-}
-.ph-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.ph-icon-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
+.tool-chip svg, .side-iconbtn svg { display: block; }
 
 .panel-body {
-  flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; overflow: hidden;
 }
 
+/* ── 左侧边栏卡片（按钮常驻左侧；历史/全局任务在卡片内） ── */
+.side-card {
+  flex-shrink: 0; width: 46px;
+  display: flex; flex-direction: column;
+  margin: 8px 0 8px 8px; padding: 7px;
+  background: var(--surface-1); border-radius: 12px;
+  overflow: hidden; transition: width .18s ease;
+}
+body.show-history .side-card { width: 212px; }
+.side-top { display: flex; flex-direction: column; gap: 6px; }
+body.show-history .side-top { flex-direction: row; }
+.side-iconbtn {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-active); border: none; color: var(--text-secondary);
+  cursor: pointer; transition: .15s;
+}
+.side-iconbtn:hover { background: var(--bg-selected); color: var(--text-primary); }
+.side-iconbtn.is-active { color: var(--accent-blue); }
+.side-body { display: none; margin-top: 10px; min-height: 0; overflow-y: auto; }
+body.show-history .side-body { display: block; }
+.side-body::-webkit-scrollbar { width: 5px; }
+.side-body::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+
+/* ── 对话区（右）：名称在上方 ── */
 .chat-view { flex: 1 1 0; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.conv-head {
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; flex-shrink: 0; padding: 0 14px;
+}
+.ph-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.ph-title {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .scenario-banner {
   display: flex; align-items: center; gap: 8px;
@@ -214,33 +226,13 @@ html, body {
   30% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* ── History view ─────────────────────────────────────── */
-.history-view {
-  flex: 1 1 0; min-height: 0;
-  overflow-y: auto; padding: 12px;
-  display: none; flex-direction: column; gap: 6px;
-}
-.history-view::-webkit-scrollbar { width: 5px; }
-.history-view::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
-/* 历史与聊天左右并排（同一卡片内），互不覆盖 */
-body.show-history .panel-body { flex-direction: row; }
-body.show-history .history-view {
-  display: flex;
-  order: -1;                 /* 历史在左，对话在右（Claude 布局） */
-  flex: 0 0 210px;
-  margin: 8px 0 8px 8px;
-  padding: 10px;
-  background: var(--surface-1);
-  border-radius: 12px;       /* 历史作为独立卡片 */
-}
-
 /* history-tab-mode: opened as a full pane tab via ?view=history */
-body.history-tab-mode #history-btn,
-body.history-tab-mode #new-chat-btn { display: none; }
-body.history-tab-mode .history-view { padding: 16px 20px; }
-body.history-tab-mode .hist-item { background: var(--bg-active); }
+body.history-tab-mode .chat-view { display: none; }
+body.history-tab-mode .side-top { display: none; }
+body.history-tab-mode .side-card { width: 100%; margin: 8px; }
+body.history-tab-mode .side-body { display: block; margin-top: 0; }
 
-/* 全局任务 checklist（跨对话，位于历史区顶部；随历史一起展开/收起） */
+/* 全局任务 checklist（跨对话，位于侧栏卡片顶部；随历史一起展开/收起） */
 .global-checklist {
   background: var(--bg-base);
   border-radius: 10px;
@@ -265,36 +257,21 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
   color: var(--text-muted); text-transform: uppercase;
   padding: 8px 2px 4px;
 }
+/* 对话历史项：仅状态灯 + 对话名称 */
 .hist-item {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 9px 10px; border-radius: 8px;
-  background: var(--bg-base);
+  display: flex; gap: 9px; align-items: center;
+  padding: 7px 8px; border-radius: 8px;
   cursor: pointer; transition: .15s;
 }
 .hist-item:hover { background: var(--bg-active); }
-.hist-icon {
-  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
-  background: var(--bg-active); color: var(--text-secondary);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+.hist-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-muted); }
+.hist-dot.done { background: var(--success); }
+.hist-dot.running { background: var(--accent-blue); }
+.hist-name {
+  font-size: 12.5px; color: var(--text-secondary);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.hist-main { flex: 1 1 auto; min-width: 0; }
-.hist-title {
-  font-size: 12.5px; font-weight: 600; color: var(--text-primary);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.hist-preview {
-  font-size: 11px; color: var(--text-muted); margin-top: 2px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.hist-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
-.hist-time { font-size: 10px; color: var(--text-muted); }
-.hist-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 10px; padding: 1px 7px; border-radius: 9px;
-  background: var(--bg-active);
-  color: var(--text-secondary); white-space: nowrap;
-}
+.hist-item:hover .hist-name { color: var(--text-primary); }
 .hist-empty {
   font-size: 11.5px; color: var(--text-muted);
   padding: 10px 2px;
@@ -303,19 +280,31 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
 </head>
 <body>
 <div class="panel">
-  <div class="panel-header">
-    <span class="ph-status" id="ph-status" title="就绪"></span>
-    <span class="ph-title" id="panel-title">新对话</span>
-    <button class="ph-icon-btn" id="new-chat-btn" onclick="newChat()" title="新对话">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-    </button>
-    <button class="ph-icon-btn" id="history-btn" onclick="onHistoryBtn()" title="历史">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-    </button>
-  </div>
-
   <div class="panel-body">
-    <div class="chat-view" id="chat-view">
+    <!-- 左侧边栏卡片：新对话/历史按钮 + 全局任务 + 对话列表 -->
+    <aside class="side-card" id="side-card">
+      <div class="side-top">
+        <button class="side-iconbtn" onclick="newChat()" title="新对话">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
+        <button class="side-iconbtn" id="history-btn" onclick="onHistoryBtn()" title="历史">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        </button>
+      </div>
+      <div class="side-body" id="history-view">
+        <div class="global-checklist" id="global-checklist"></div>
+        <div class="hv-section-title">最近对话</div>
+        <div id="scenario-list" style="display:flex;flex-direction:column;gap:2px"></div>
+        <div id="session-list" style="display:flex;flex-direction:column;gap:2px"></div>
+      </div>
+    </aside>
+
+    <!-- 对话区：对话名称在上方 -->
+    <main class="chat-view" id="chat-view">
+      <div class="conv-head">
+        <span class="ph-status" id="ph-status" title="就绪"></span>
+        <span class="ph-title" id="panel-title">新对话</span>
+      </div>
       <div class="scenario-banner" id="scenario-banner" style="display:none">
         <span id="scenario-banner-text"></span>
         <button onclick="reopenScenarioView()">分屏查看 ↗</button>
@@ -336,20 +325,12 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
           onkeydown="handleKey(event)"></textarea>
         <button class="chat-send" id="send-btn" onclick="sendMsg()">↑</button>
       </div>
-    </div>
-
-    <div class="history-view" id="history-view">
-      <div class="global-checklist" id="global-checklist"></div>
-      <div class="hv-section-title">最近对话</div>
-      <div id="scenario-list" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div class="hv-section-title">我的会话</div>
-      <div id="session-list" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
+    </main>
   </div>
 </div>
 
 <script>
-const INIT = '你好！我是 openUBMC Studio 助手。\n点击右上角「历史」查看示例场景会话——点开任意一条，会自动分屏打开对应的功能视图。';
+const INIT = '你好！我是 openUBMC Studio 助手。\n点击左上角「历史」查看最近对话——点开任意一条即可载入，并自动分屏打开关联的功能视图。';
 let thinking = false;
 
 // ── 单色 SVG 图标（不使用 emoji） ──────────────────────────────
@@ -593,19 +574,12 @@ function hideTyping() {
 }
 
 // ── 历史视图 ─────────────────────────────────────────────────
-function histItem({ icon, title, preview, time, viewLabel }, onClick) {
+function histItem({ title, state }, onClick) {
   const div = document.createElement('div');
   div.className = 'hist-item';
   div.innerHTML =
-    '<div class="hist-icon">' + ICON(icon) + '</div>' +
-    '<div class="hist-main">' +
-      '<div class="hist-title">' + escapeHtml(title) + '</div>' +
-      '<div class="hist-preview">' + escapeHtml(preview) + '</div>' +
-      '<div class="hist-meta">' +
-        '<span class="hist-time">' + escapeHtml(time) + '</span>' +
-        (viewLabel ? '<span class="hist-chip">↗ ' + escapeHtml(viewLabel) + '</span>' : '') +
-      '</div>' +
-    '</div>';
+    '<span class="hist-dot ' + (state || 'done') + '"></span>' +
+    '<span class="hist-name">' + escapeHtml(title) + '</span>';
   div.onclick = onClick;
   return div;
 }
@@ -634,11 +608,7 @@ function renderHistory() {
   const scList = document.getElementById('scenario-list');
   scList.innerHTML = '';
   for (const sc of SCENARIOS) {
-    scList.appendChild(histItem({
-      icon: sc.icon, title: sc.title,
-      preview: sc.messages[0].text, time: sc.time,
-      viewLabel: VIEW_LABELS[sc.view],
-    }, () => loadScenario(sc)));
+    scList.appendChild(histItem({ title: sc.title, state: 'done' }, () => loadScenario(sc)));
   }
 
   const ssList = document.getElementById('session-list');
@@ -651,12 +621,7 @@ function renderHistory() {
     ssList.appendChild(empty);
   } else {
     for (const ss of sessions) {
-      ssList.appendChild(histItem({
-        icon: 'chat', title: ss.title || '未命名会话',
-        preview: (ss.messages.find(m => m.role === 'user') || ss.messages[0] || { text: '' }).text,
-        time: fmtTime(ss.time),
-        viewLabel: null,
-      }, () => loadSession(ss)));
+      ssList.appendChild(histItem({ title: ss.title || '未命名会话', state: 'done' }, () => loadSession(ss)));
     }
   }
 }
