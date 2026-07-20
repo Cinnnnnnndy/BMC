@@ -721,8 +721,8 @@ const IS_HISTORY_TAB = new URLSearchParams(location.search).get('view') === 'his
 
 function onHistoryBtn() {
   if (IS_HISTORY_TAB) return;
-  // In the right-side AI panel: open history as a proper tab in the main pane
-  window.parent.postMessage({ type: 'ai-open-history' }, '*');
+  // 在 AI 助手侧面板内就地展开历史（同一卡片切换列表↔对话），不再单开一个 tab
+  toggleHistory();
 }
 
 if (IS_HISTORY_TAB) {
