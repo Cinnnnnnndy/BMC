@@ -59,47 +59,47 @@ html, body {
   overflow: hidden;
 }
 
-.tool-chip svg, .side-iconbtn svg { display: block; }
+.tool-chip svg, .ph-icon-btn svg { display: block; }
 
 .panel-body {
   flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; overflow: hidden;
 }
 
-/* ── 左侧边栏卡片（按钮常驻左侧；历史/全局任务在卡片内） ── */
+/* ── 左侧历史卡片（默认收起；点历史滑出为独立卡片） ── */
 .side-card {
-  flex-shrink: 0; width: 46px;
+  flex-shrink: 0; width: 0; overflow: hidden;
   display: flex; flex-direction: column;
-  margin: 8px 0 8px 8px; padding: 7px;
-  background: var(--surface-1); border-radius: 12px;
-  overflow: hidden; transition: width .18s ease;
+  margin: 8px 0; padding: 0;
+  background: transparent; border-radius: 12px;
+  transition: width .18s ease;
 }
-body.show-history .side-card { width: 212px; }
-.side-top { display: flex; flex-direction: column; gap: 6px; }
-body.show-history .side-top { flex-direction: row; }
-.side-iconbtn {
-  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--bg-active); border: none; color: var(--text-secondary);
-  cursor: pointer; transition: .15s;
+body.show-history .side-card {
+  width: 212px; margin: 8px 0 8px 8px; padding: 10px;
+  background: var(--surface-1);
 }
-.side-iconbtn:hover { background: var(--bg-selected); color: var(--text-primary); }
-.side-iconbtn.is-active { color: var(--accent-blue); }
-.side-body { display: none; margin-top: 10px; min-height: 0; overflow-y: auto; }
-body.show-history .side-body { display: block; }
+.side-body { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; width: 192px; }
 .side-body::-webkit-scrollbar { width: 5px; }
 .side-body::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
 
-/* ── 对话区（右）：名称在上方 ── */
+/* ── 对话区（右）：名称在上方，按钮在名称边上 ── */
 .chat-view { flex: 1 1 0; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .conv-head {
-  display: flex; align-items: center; gap: 8px;
-  height: 40px; flex-shrink: 0; padding: 0 14px;
+  display: flex; align-items: center; gap: 6px;
+  height: 40px; flex-shrink: 0; padding: 0 8px 0 14px;
 }
 .ph-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
 .ph-title {
   font-size: 13px; font-weight: 600; color: var(--text-primary);
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.ph-icon-btn {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-secondary);
+  cursor: pointer; transition: .15s;
+}
+.ph-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ph-icon-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
 
 .scenario-banner {
   display: flex; align-items: center; gap: 8px;
@@ -228,9 +228,8 @@ body.show-history .side-body { display: block; }
 
 /* history-tab-mode: opened as a full pane tab via ?view=history */
 body.history-tab-mode .chat-view { display: none; }
-body.history-tab-mode .side-top { display: none; }
-body.history-tab-mode .side-card { width: 100%; margin: 8px; }
-body.history-tab-mode .side-body { display: block; margin-top: 0; }
+body.history-tab-mode .side-card { width: 100%; margin: 8px; padding: 12px; background: var(--surface-1); }
+body.history-tab-mode .side-body { width: auto; }
 
 /* 全局任务 checklist（跨对话，位于侧栏卡片顶部；随历史一起展开/收起） */
 .global-checklist {
@@ -239,18 +238,13 @@ body.history-tab-mode .side-body { display: block; margin-top: 0; }
   padding: 10px 11px;
   margin-bottom: 8px;
 }
-.gc-head { font-size: 11.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-.gc-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; color: var(--text-muted); }
-.gc-mark {
-  width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700;
-  background: var(--bg-active); color: transparent;
-}
-.gc-item.current { color: var(--text-primary); }
-.gc-item.current .gc-mark { background: color-mix(in srgb, var(--accent-blue) 32%, transparent); }
-.gc-item.done { color: var(--text-secondary); }
-.gc-item.done .gc-mark { background: var(--accent-blue); color: #fff; }
+.gc-head { font-size: 11.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.gtask { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 12px; color: var(--text-secondary); }
+.gtask-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-muted); }
+.gtask-dot.running { background: var(--accent-blue); }
+.gtask-dot.done { background: var(--success); }
+.gtask-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gtask-meta { font-size: 10.5px; color: var(--text-muted); flex-shrink: 0; }
 
 .hv-section-title {
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
@@ -283,14 +277,6 @@ body.history-tab-mode .side-body { display: block; margin-top: 0; }
   <div class="panel-body">
     <!-- 左侧边栏卡片：新对话/历史按钮 + 全局任务 + 对话列表 -->
     <aside class="side-card" id="side-card">
-      <div class="side-top">
-        <button class="side-iconbtn" onclick="newChat()" title="新对话">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-        </button>
-        <button class="side-iconbtn" id="history-btn" onclick="onHistoryBtn()" title="历史">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-        </button>
-      </div>
       <div class="side-body" id="history-view">
         <div class="global-checklist" id="global-checklist"></div>
         <div class="hv-section-title">最近对话</div>
@@ -304,6 +290,12 @@ body.history-tab-mode .side-body { display: block; margin-top: 0; }
       <div class="conv-head">
         <span class="ph-status" id="ph-status" title="就绪"></span>
         <span class="ph-title" id="panel-title">新对话</span>
+        <button class="ph-icon-btn" onclick="newChat()" title="新对话">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
+        <button class="ph-icon-btn" id="history-btn" onclick="onHistoryBtn()" title="历史">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        </button>
       </div>
       <div class="scenario-banner" id="scenario-banner" style="display:none">
         <span id="scenario-banner-text"></span>
@@ -586,20 +578,31 @@ function histItem({ title, state }, onClick) {
 
 // 全局任务 checklist（跨对话）：读取安装引导进度（bmcInstallProgress，ai-install 写入），
 // 无数据时用演示态兜底。位于历史区，随历史收起而收起（沉浸式单对话）。
-const GC_STEPS = ['登录官网', '环境准备', '选择开发机型'];
+const GLOBAL_TASKS = [
+  { key: 'install', name: '安装部署', steps: 3 },
+  { key: 'topo',    name: '配置拓扑' },
+  { key: 'sensor',  name: '配置传感器时间' },
+  { key: 'cooling', name: '散热策略' },
+  { key: 'build',   name: '构建' },
+  { key: 'debug',   name: '调试验证' },
+];
 function renderGlobalChecklist() {
   const el = document.getElementById('global-checklist');
   if (!el) return;
   let prog = null;
   try { prog = JSON.parse(localStorage.getItem('bmcInstallProgress')); } catch (_) {}
-  const step = (prog && prog.step) ? prog.step : 3; // 演示兜底：登录/环境已过，待选机型
-  let html = '<div class="gc-head">安装部署引导</div>';
-  GC_STEPS.forEach((label, i) => {
-    const done = step >= 4 || i < step - 1;
-    const cur = step < 4 && i === step - 1;
-    html += '<div class="gc-item ' + (done ? 'done' : (cur ? 'current' : '')) + '">'
-      + '<span class="gc-mark">' + (done ? '✓' : '') + '</span>' + escapeHtml(label) + '</div>';
-  });
+  const step = (prog && prog.step) ? prog.step : 1;
+  let html = '<div class="gc-head">全局任务</div>';
+  for (const t of GLOBAL_TASKS) {
+    let dot = '', meta = '未开始';
+    if (t.key === 'install') {
+      if (step >= 4) { dot = 'done'; meta = '已完成'; }
+      else { dot = 'running'; meta = Math.max(0, Math.min(t.steps, step - 1)) + '/' + t.steps; }
+    }
+    html += '<div class="gtask"><span class="gtask-dot ' + dot + '"></span>'
+      + '<span class="gtask-name">' + escapeHtml(t.name) + '</span>'
+      + '<span class="gtask-meta">' + meta + '</span></div>';
+  }
   el.innerHTML = html;
 }
 
