@@ -58,27 +58,24 @@
       margin-bottom: 8px;
     }
     .aw-mcp-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
-    /* 场景能力卡：点击直接派发到 agent 运行（背后是对应 MCP Server 的工具） */
+    /* 场景能力按钮：点击直接派发到 agent 运行（背后是对应 MCP Server 的工具） */
     .aw-cap {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      padding: 9px 12px;
-      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 100px;
       border: none;
       background: rgba(255,255,255,0.06);
       cursor: pointer;
-      text-align: left;
       font-family: inherit;
       transition: background 0.15s;
     }
     .aw-cap:hover { background: rgba(255,255,255,0.12); }
     .aw-cap-name { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.90); }
-    .aw-cap-meta { font-size: 10.5px; color: rgba(255,255,255,0.42); }
     .aw-body {
       display: flex;
       gap: 20px;
@@ -308,13 +305,13 @@
           <div class="aw-mcp">
             <div class="aw-mcp-title">MCP 能力</div>
             <div class="aw-mcp-grid" id="aw-mcp-grid">
-              <button class="aw-cap" data-cmd="agent 诊断安装环境"><span class="aw-cap-name">环境诊断</span><span class="aw-cap-meta">setup · 8 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 巡检在线 BMC"><span class="aw-cap-name">BMC 巡检</span><span class="aw-cap-meta">bmc-remote · 6 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 校验当前 CSR"><span class="aw-cap-name">CSR 校验</span><span class="aw-cap-meta">csr · 4 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 反查运行时路径"><span class="aw-cap-name">路径反查</span><span class="aw-cap-meta">localview · 3 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 计算 smc 偏移"><span class="aw-cap-name">SMC 偏移编码</span><span class="aw-cap-meta">binary-mask · 2 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 注入风扇故障"><span class="aw-cap-name">风扇故障注入</span><span class="aw-cap-meta">sim · 2 工具</span></button>
-              <button class="aw-cap" data-cmd="agent 调整调速曲线"><span class="aw-cap-name">调速曲线</span><span class="aw-cap-meta">cooling · 1 工具</span></button>
+              <button class="aw-cap" data-cmd="agent 诊断安装环境"><span class="aw-cap-name">环境诊断</span></button>
+              <button class="aw-cap" data-cmd="agent 巡检在线 BMC"><span class="aw-cap-name">BMC 巡检</span></button>
+              <button class="aw-cap" data-cmd="agent 校验当前 CSR"><span class="aw-cap-name">CSR 校验</span></button>
+              <button class="aw-cap" data-cmd="agent 反查运行时路径"><span class="aw-cap-name">路径反查</span></button>
+              <button class="aw-cap" data-cmd="agent 计算 smc 偏移"><span class="aw-cap-name">SMC 偏移编码</span></button>
+              <button class="aw-cap" data-cmd="agent 注入风扇故障"><span class="aw-cap-name">风扇故障注入</span></button>
+              <button class="aw-cap" data-cmd="agent 调整调速曲线"><span class="aw-cap-name">调速曲线</span></button>
             </div>
           </div>
         </div>
