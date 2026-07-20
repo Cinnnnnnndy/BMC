@@ -233,6 +233,7 @@ html, body {
 body.show-history .panel-body { flex-direction: row; }
 body.show-history .history-view {
   display: flex;
+  order: -1;                 /* 历史在左，对话在右（Claude 布局） */
   flex: 0 0 200px;
   border-right: 1px solid var(--border-subtle);
 }
