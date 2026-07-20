@@ -7,6 +7,8 @@
     <title>webview</title>
     <script type="module" crossorigin src="./assets/index.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index.css">
+    <!-- PTO override layer — 必须位于 bundle CSS 之后（同特异性靠顺序取胜） -->
+    <link rel="stylesheet" href="./pto-overrides.css">
     <style>
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
