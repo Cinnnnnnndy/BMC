@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>安装部署引导</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══
+   任何新页面/新样式文件必须包含本段全局规则，不得只写局部选择器版本 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+:root {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.38);
+  --border-default: rgba(255,255,255,.10);
+  --border-subtle: rgba(255,255,255,.06);
+  --primary: #4369ef;
+  --primary-light: #6080f5;
+  --success: #04d793;
+  --warning: #f59e0b;
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html,body {
+  height: 100%; background: var(--background);
+  color: var(--foreground); font-family: var(--font-sans);
+  font-size: 13px; line-height: 1.6;
+}
+
+.page {
+  max-width: 740px; margin: 0 auto;
+  padding: 32px 24px 60px;
+  overflow-y: auto; height: 100vh;
+}
+
+/* ── scrollbar ── */
+.page::-webkit-scrollbar { width: 5px; }
+.page::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+
+/* ── header ── */
+.page-header { margin-bottom: 36px; }
+.page-header h1 {
+  font-size: 22px; font-weight: 700;
+  color: var(--foreground); letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+.page-header .subtitle {
+  font-size: 13px; color: var(--foreground-secondary);
+}
+.version-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary-light);
+  font-size: 11px; font-weight: 600; letter-spacing: .03em;
+  margin-left: 8px; vertical-align: middle;
+}
+
+/* ── section ── */
+.section { margin-bottom: 32px; }
+.section-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--foreground); letter-spacing: .04em;
+  text-transform: uppercase; opacity: .5;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ── step cards ── */
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: var(--surface-1); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.step-body { flex: 1 1 0; min-width: 0; }
+.step-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.step-desc { font-size: 12.5px; color: var(--foreground-secondary); }
+
+/* ── code block ── */
+.code-block {
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: rgba(255,255,255,.78); line-height: 1.7;
+  margin-top: 8px; overflow-x: auto; white-space: pre;
+}
+code {
+  font-family: var(--font-mono); font-size: 11.5px;
+  background: var(--surface-2); padding: 1px 5px;
+  border-radius: 3px; color: #86d9fa;
+}
+
+/* ── feature grid ── */
+.feature-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.feature-card {
+  background: var(--surface-1); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.feature-card-title {
+  font-size: 12.5px; font-weight: 600; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 7px;
+}
+.feature-icon { font-size: 16px; line-height: 1; }
+.feature-card-desc { font-size: 12px; color: var(--foreground-secondary); }
+
+/* ── req table ── */
+.req-table { width: 100%; border-collapse: collapse; }
+.req-table th, .req-table td {
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+}
+.req-table th { color: var(--foreground-secondary); font-weight: 600; font-size: 11.5px; }
+.req-table tr:last-child td { border-bottom: none; }
+.tag {
+  display: inline-block; padding: 1px 7px; border-radius: 10px;
+  font-size: 10.5px; font-weight: 600;
+}
+.tag-required { background: color-mix(in srgb,#ef4444 16%,transparent); color: #f87171; }
+.tag-optional { background: color-mix(in srgb,var(--foreground-muted) 12%,transparent); color: var(--foreground-muted); }
+
+/* ── path tip ── */
+.path-tip {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 14px; border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  font-size: 12.5px; margin-top: 10px;
+}
+.path-tip-icon { flex-shrink: 0; font-size: 15px; line-height: 1.5; }
+.path-tip-body { color: var(--foreground-secondary); }
+.path-tip-body strong { color: var(--foreground); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>安装部署引导 <span class="version-badge">v0.0.34</span></h1>
+    <div class="subtitle">BMC Studio CodeX — openUBMC 开发者 VS Code 扩展</div>
+  </div>
+
+  <!-- ── 环境要求 ── -->
+  <div class="section">
+    <div class="section-title">环境要求</div>
+    <table class="req-table">
+      <thead><tr><th>依赖项</th><th>最低版本</th><th>必要性</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>VS Code</td><td>1.107.0</td><td><span class="tag tag-required">必须</span></td><td>扩展运行环境</td></tr>
+        <tr><td>Node.js</td><td>18.x</td><td><span class="tag tag-optional">本地构建</span></td><td>仅手动构建 VSIX 时需要</td></tr>
+        <tr><td>openUBMC 工具链</td><td>—</td><td><span class="tag tag-optional">推荐</span></td><td>生成 MDB 缓存以启用 SR 语言补全</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 方式一 ── -->
+  <div class="section">
+    <div class="section-title">方式一 · VS Code 扩展市场安装（推荐）</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">打开扩展面板</div>
+          <div class="step-desc">在 VS Code 中按 <code>Ctrl+Shift+X</code>（macOS：<code>⌘+Shift+X</code>）</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">搜索扩展</div>
+          <div class="step-desc">在搜索框中输入 <code>BMC Studio CodeX</code> 或 <code>openubmcstudio-codex</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">安装并重载</div>
+          <div class="step-desc">点击「安装」按钮，安装完成后点击「重新加载窗口」即可生效</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 方式二 ── -->
+  <div class="section">
+    <div class="section-title">方式二 · 手动安装 VSIX</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">克隆仓库并安装依赖</div>
+          <div class="code-block">git clone &lt;repo-url&gt; bmcstudio_codex
+cd bmcstudio_codex
+npm install</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">构建 VSIX 包</div>
+          <div class="code-block">npm run plugin-package
+# 生成：openubmcstudio-codex-0.0.34.vsix</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">安装到 VS Code</div>
+          <div class="code-block">code --install-extension openubmcstudio-codex-*.vsix</div>
+          <div class="step-desc" style="margin-top:8px">或在扩展面板点击「···」→「从 VSIX 安装」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MDB 缓存 ── -->
+  <div class="section">
+    <div class="section-title">配置 MDB 缓存（SR 语言服务器）</div>
+    <div class="step-desc">SR 语言服务器从以下路径读取 openUBMC MDB 类定义，用于 .sr 文件自动补全。</div>
+    <div class="code-block">~/.cache/openubmc/mdb_cache/</div>
+    <div class="path-tip">
+      <div class="path-tip-icon">💡</div>
+      <div class="path-tip-body">
+        使用 <strong>openUBMC 工具链</strong> 构建项目后，运行 <code>ubmc export-mdb</code> 将 MDB 导出至该目录。
+        导出完成后 SR 语言服务器会在下次启动时自动加载新定义。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 功能速览 ── -->
+  <div class="section">
+    <div class="section-title">功能速览</div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">🔍</span>JSON 北向接口辅助</div>
+        <div class="feature-card-desc">定义跳转、悬停提示、自动补全、实时错误检测，适用于北向 API .json 配置文件</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">📄</span>SR 文件预览</div>
+        <div class="feature-card-desc">类似 Markdown 的实时预览，自动检测并合并多个 .sr 文件（主文件 + 扩展构型）</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">🧮</span>管道表达式计算</div>
+        <div class="feature-card-desc">CodeLens 触发，支持调试模式（实时计算）和用例模式（批量测试验证 + 导出）</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">⚙️</span>SMC 偏移量计算</div>
+        <div class="feature-card-desc">可视化分解 32 位 SMC 命令字，实时水印解码，支持多进制输入格式</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">🌐</span>SR 语言服务器</div>
+        <div class="feature-card-desc">基于 LSP 的 .sr 文件补全、诊断与悬停提示，实时扫描 MDB 类定义</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title"><span class="feature-icon">📋</span>MIB 文件支持</div>
+        <div class="feature-card-desc">ASN.1 MIB 文件语法高亮与自定义图标，MIB 对象重复配置校验</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

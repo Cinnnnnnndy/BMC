@@ -646,13 +646,13 @@ async function step3ModelSelect() {
   setStep(3);
   const row = await aiMsg(
     `<p>环境准备配置检测通过 ✓</p>
-     <p>最后一步——选择你要开发的主要机型。配置完成后可在 IDE 右下角状态栏随时切换。</p>`,
+     <p>最后一步——配置开发机型。从本地构建缓存或任意数据源获取机型配置，搜索并选择机型和型号，即可开启对应版本的开发辅助。</p>
+     <p>首次配置后可在 IDE 右下角状态栏随时切换。</p>`,
     {
       delay: 700,
       actions: [
-        { act: 'kunlun',  label: '昆仑（KunLun）', primary: true },
-        { act: 'tianchi', label: '天池（TianChi）' },
-        { act: 'skip',    label: '暂不配置，进入主界面' },
+        { act: 'config', label: '前往配置', primary: true },
+        { act: 'skip',   label: '暂不配置，进入主界面' },
       ]
     }
   );
@@ -660,25 +660,43 @@ async function step3ModelSelect() {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     disableActions(row);
-    const map = { kunlun: '昆仑（KunLun）', tianchi: '天池（TianChi）', skip: '暂不配置' };
-    userMsg(map[btn.dataset.act]);
-    step3Complete(btn.dataset.act);
+    if (btn.dataset.act === 'config') {
+      userMsg('前往配置');
+      step3OpenConfig();
+    } else {
+      userMsg('暂不配置，进入主界面');
+      step3Complete('home');
+    }
   });
 }
 
-async function step3Complete(model) {
-  const names   = { kunlun: '昆仑', tianchi: '天池', skip: '' };
-  const viewIds = { kunlun: 'topology', tianchi: 'boardTopology', skip: 'home' };
-  const name    = names[model];
-  const viewId  = viewIds[model];
+async function step3OpenConfig() {
+  await aiMsg(
+    `<p>已打开硬件适配视图，在搜索框中输入机型名称即可选择并应用配置。</p>
+     <p>配置完成后开发环境全部就绪 ✓</p>`,
+    { delay: 500 }
+  );
 
-  const txt = name
-    ? `<p>已选择 <strong>${name}</strong> 机型 ✓　正在打开硬件适配视图…</p>`
-    : `<p>好的！可随时从左侧导航栏选择对应功能视图。</p><p>开发环境部署全部完成 ✓</p>`;
+  const si3 = document.getElementById('si3');
+  const sn3 = document.getElementById('sn3');
+  si3.classList.remove('active');
+  si3.classList.add('done');
+  sn3.textContent = '✓';
 
-  await aiMsg(txt, { delay: 600 });
+  await sleep(800);
+  document.getElementById('done-sub').textContent = '正在打开硬件适配视图…';
+  document.getElementById('done-overlay').classList.add('show');
+  await sleep(800);
+  toParent({ type: 'ai-open-scenario', viewId: 'vueTopo' });
+}
 
-  // 标记 step 3 完成
+async function step3Complete(viewId) {
+  await aiMsg(
+    `<p>好的！可随时从左侧导航栏进入硬件适配视图完成机型配置。</p>
+     <p>开发环境部署全部完成 ✓</p>`,
+    { delay: 500 }
+  );
+
   const si3 = document.getElementById('si3');
   const sn3 = document.getElementById('sn3');
   si3.classList.remove('active');
@@ -686,11 +704,8 @@ async function step3Complete(model) {
   sn3.textContent = '✓';
 
   await sleep(1200);
-  document.getElementById('done-sub').textContent = name
-    ? `正在打开 ${name} 硬件适配视图…`
-    : '安装部署全部完成。';
+  document.getElementById('done-sub').textContent = '安装部署全部完成。';
   document.getElementById('done-overlay').classList.add('show');
-
   await sleep(1000);
   toParent({ type: 'ai-open-scenario', viewId });
 }
