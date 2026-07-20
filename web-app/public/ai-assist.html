@@ -292,7 +292,7 @@ body.history-tab-mode .side-body { width: auto; }
 .chat-view { position: relative; }
 #flow-wrap { display:none; flex-direction:column; flex:1 1 0; min-height:0; }
 body.flow-mode #flow-wrap { display:flex; }
-body.flow-mode #chat-log, body.flow-mode .suggestions, body.flow-mode .chat-input-area, body.flow-mode #scenario-banner { display:none !important; }
+body.flow-mode #chat-log, body.flow-mode .suggestions, body.flow-mode #scenario-banner { display:none !important; }
 #flow-messages { flex:1 1 0; min-height:0; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .row { display:flex; gap:10px; align-items:flex-start; }
 .av { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; margin-top:1px; background:var(--flow-sf3); }
@@ -824,6 +824,12 @@ function sendMsg() {
   const text = el.value.trim();
   if (!text) return;
   el.value = '';
+  // 安装引导对话里也可自由提问：渲染进 flow-messages（保持流程消息风格）
+  if (document.body.classList.contains('flow-mode')) {
+    userMsg(text);
+    aiMsg('<p>' + escapeHtml(respond(text)) + '</p>', { delay: 400 });
+    return;
+  }
   appendMsg('user', text);
   recordMsg('user', text);
   thinking = true;
