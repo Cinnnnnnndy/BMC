@@ -670,12 +670,14 @@ export default function App() {
   // 场景打开（分屏）— AI 助手 iframe 消息与 agent 终端共用同一入口，
   // CSR 依赖视图自动兜底加载默认样例工程
   const openScenario = useCallback((viewId: string) => {
-    // 「AI 引导安装」统一并入 AI 助手：打开同一个 aiAssist 视图并置一个标记，
-    // 由 ai-assist 页面读取后在其中新建「安装引导」对话（不再单开 aiInstall 面板）
+    // AI 助手是唯一的专用 dock（区别于功能视图 tab）：AI 助手 / AI 引导安装
+    // 都打开这个 dock，不再作为分屏 tab 打开，避免出现多个 AI 助手对话面板
     if (viewId === 'aiInstall') {
       try { localStorage.setItem('bmcStartInstallFlow', String(Date.now())); } catch { /* noop */ }
-      viewId = 'aiAssist';
+      setAiPanelOpen(true);
+      return;
     }
+    if (viewId === 'aiAssist') { setAiPanelOpen(true); return; }
     const id = viewId as ViewId;
     if (CSR_REQUIRED.has(id)) {
       void ensureCsrLoaded().then(ok => { if (ok) openViewInSplit(id); });
@@ -685,6 +687,8 @@ export default function App() {
   }, [ensureCsrLoaded, openViewInSplit]);
 
   const handleNavTo = useCallback((viewId: ViewId) => {
+    // AI 助手走专用 dock，不作为功能视图 tab 打开
+    if (viewId === 'aiAssist') { setAiPanelOpen(true); return; }
     if (CSR_REQUIRED.has(viewId) && !csrRef.current) return;
     openView(viewId);
   }, [openView]);
@@ -711,6 +715,8 @@ export default function App() {
         runQuickAction(msg.cmd);
       } else if (msg?.type === 'ai-open-history') {
         handleNavTo('aiHistory');
+      } else if (msg?.type === 'ai-close-panel') {
+        setAiPanelOpen(false);
       }
     }
     window.addEventListener('message', onScenarioMsg);
@@ -1263,17 +1269,7 @@ export default function App() {
           <>
           <div className="ai-assist-panel__resize-handle" onMouseDown={handleResizeMouseDown} />
           <aside className="ai-assist-panel" style={{ width: aiPanelWidth }}>
-            <div className="ai-assist-panel__header">
-              <span className="ai-assist-panel__title">AI 助手</span>
-              <button
-                className="pto-ide-frame__rail-button"
-                onClick={() => setAiPanelOpen(false)}
-                title="关闭"
-                style={{ width: 24, height: 24, minWidth: 24, minHeight: 24 }}
-              >
-                <SI d="M18 6L6 18M6 6l12 12" />
-              </button>
-            </div>
+            {/* 头部由 ai-assist 页面自身提供（AI 助手 + 新对话/历史/关闭），避免双重抬头 */}
             <div className="ai-assist-panel__body">
               <Suspense fallback={<ViewLoader />}>
                 <AiAssistView />

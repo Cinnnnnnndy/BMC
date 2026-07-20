@@ -361,6 +361,9 @@ body.flow-mode #chat-log, body.flow-mode .suggestions, body.flow-mode #scenario-
     <button class="ph-icon-btn" id="history-btn" onclick="onHistoryBtn()" title="历史">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
     </button>
+    <button class="ph-icon-btn" onclick="parent.postMessage({type:'ai-close-panel'},'*')" title="关闭">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
   </div>
   <div class="panel-body">
     <!-- 左侧边栏卡片：新对话/历史按钮 + 全局任务 + 对话列表 -->
