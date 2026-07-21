@@ -363,6 +363,14 @@ function Tooltip({ tip }: { tip: TooltipState }) {
   const left = Math.min(tip.x + 14, window.innerWidth - 330);
   const top = tip.y + 18;
 
+  // Shared popover surface: neutral fill + elevation shadow, no stroke border
+  // (design system = neutral gray ramp, layer with fills, not 1px lines).
+  const popoverStyle: React.CSSProperties = {
+    position: 'fixed', left, top, zIndex: 9999, pointerEvents: 'none',
+    background: 'var(--surface-2)', borderRadius: 12,
+    boxShadow: 'var(--shadow-lg)',
+  };
+
   if (tip.kind === 'diag') {
     const { entry } = tip;
     const sevColor =
@@ -374,43 +382,41 @@ function Tooltip({ tip }: { tip: TooltipState }) {
       : entry.severity === 'warn' ? 'WARN'
       : 'INFO';
     return (
-      <div style={{
-        position: 'fixed', left, top, zIndex: 9999, pointerEvents: 'none',
-        maxWidth: 320, padding: '8px 12px',
-        background: '#1a1a2e', border: `1px solid ${sevColor}55`,
-        borderRadius: 6, boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+      <div style={{ ...popoverStyle, maxWidth: 320, padding: '9px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-            background: sevColor + '22', color: sevColor,
+            fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+            background: sevColor + '26', color: sevColor,
           }}>{sevLabel}</span>
-          <span style={{ fontSize: 10.5, color: '#64748b' }}>sr-language-server · 0.9.4</span>
+          <span style={{ fontSize: 10.5, color: 'var(--foreground-muted)' }}>sr-language-server · 0.9.4</span>
         </div>
-        <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.55 }}>{entry.msg}</div>
+        <div style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.55 }}>{entry.msg}</div>
       </div>
     );
   }
 
   const { key, nb } = tip;
   return (
-    <div style={{
-      position: 'fixed', left, top, zIndex: 9999, pointerEvents: 'none',
-      width: 310, padding: '8px 12px',
-      background: '#1a1a2e', border: '1px solid rgba(79,110,247,0.35)',
-      borderRadius: 6, boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
-    }}>
-      <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 7 }}>
-        北向接口映射 · <span style={{ color: '#9cdcfe', fontFamily: 'ui-monospace, monospace' }}>{key}</span>
+    <div style={{ ...popoverStyle, width: 310, padding: '9px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: 'var(--foreground-muted)', marginBottom: 8 }}>
+        <span>北向接口映射</span>
+        <span style={{
+          fontFamily: 'ui-monospace, monospace', fontSize: 10, color: '#9cdcfe',
+          background: 'var(--state-hover)', padding: '1px 6px', borderRadius: 999,
+        }}>{key}</span>
       </div>
       {([
         ['Redfish', nb.redfish, '#60a5fa'],
         ['SNMP', nb.snmp, '#a78bfa'],
         ['IPMI', nb.ipmi, '#34d399'],
       ] as const).map(([label, value, color]) => (
-        <div key={label} style={{ display: 'flex', gap: 8, marginBottom: 4, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 10, color, fontWeight: 700, width: 42, flexShrink: 0, paddingTop: 1 }}>{label}</span>
-          <span style={{ fontSize: 10.5, color: '#94a3b8', fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all', lineHeight: 1.4 }}>{value}</span>
+        <div key={label} style={{ display: 'flex', gap: 8, marginBottom: 5, alignItems: 'flex-start' }}>
+          <span style={{
+            fontSize: 9.5, fontWeight: 700, color, background: color + '24',
+            padding: '2px 6px', borderRadius: 999, width: 54, flexShrink: 0,
+            textAlign: 'center', boxSizing: 'border-box',
+          }}>{label}</span>
+          <span style={{ fontSize: 10.5, color: 'var(--foreground-secondary)', fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all', lineHeight: 1.5, paddingTop: 1 }}>{value}</span>
         </div>
       ))}
     </div>
