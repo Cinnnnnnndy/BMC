@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react
 import { ProjectList } from './components/ProjectList';
 import { AgentTerminal, type TermRunRequest } from './components/AgentTerminal';
 import { RepoHintPopover } from './components/RepoHintPopover';
-import { STAR } from './components/RepoCapabilityList';
 import { withBase } from './base';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
@@ -1207,17 +1206,6 @@ export default function App() {
       <div className="pto-ide-frame__body">
         <nav className="pto-ide-frame__activity-rail ide-activity-rail">
           <div className="ide-rail-section">
-            {/* ✦ 仓识别提示按钮（切仓即弹）*/}
-            <button
-              ref={repoRailBtnRef}
-              className={`pto-ide-frame__rail-button ${repoHintOpen ? 'is-selected' : ''}`}
-              onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
-              title="仓识别 · 这个仓能做什么"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" style={{ display: 'block' }}>
-                <path d={STAR} fill={repoHintOpen || repoPinned ? '#a78bfa' : 'var(--ide-frame-icon-stroke, rgba(255,255,255,0.6))'} />
-              </svg>
-            </button>
             {railItems.map((item) => (
               <button
                 key={item.id}
@@ -1246,6 +1234,30 @@ export default function App() {
             >
               <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24" style={{ fill: 'currentColor', stroke: 'none' }}>
                 <circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* 左下角：罗盘（仓识别）+ 头像 + 设置 */}
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <button
+              ref={repoRailBtnRef}
+              className={`pto-ide-frame__rail-button ${repoHintOpen || repoPinned ? 'is-selected' : ''}`}
+              onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
+              title="仓识别 · 这个仓能做什么"
+            >
+              <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <polygon points="15.6 8.4 13.4 13.4 8.4 15.6 10.6 10.6" />
+              </svg>
+            </button>
+            <button className="pto-ide-frame__rail-button" title="整机开发者">
+              <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.14)', display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>开</span>
+            </button>
+            <button className="pto-ide-frame__rail-button" title="设置">
+              <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
             </button>
           </div>

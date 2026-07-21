@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RepoCapabilityList, STAR } from './RepoCapabilityList';
+import { RepoCapabilityList } from './RepoCapabilityList';
 
 // ── File content ───────────────────────────────────────────────────────────
 
@@ -748,110 +748,6 @@ function CodePane({
   );
 }
 
-// ── SR file preview panel ──────────────────────────────────────────────────
-
-function PanelSrPreview() {
-  const nodes = [
-    { id: 'Anchor',   x: 120, y: 10,  label: 'Anchor',       kind: 'anchor' },
-    { id: 'H0',       x: 120, y: 72,  label: 'Hisport_0',    kind: 'bus' },
-    { id: 'Pca',      x: 120, y: 134, label: 'Pca9545',      kind: 'chip' },
-    { id: 'Mux4',     x: 20,  y: 200, label: 'Mux_4',        kind: 'bus' },
-    { id: 'Mux1',     x: 120, y: 200, label: 'Mux_1',        kind: 'bus' },
-    { id: 'Mux2',     x: 220, y: 200, label: 'Mux_2',        kind: 'bus' },
-    { id: 'Io',       x: 0,   y: 266, label: 'Pca9555\nIO',  kind: 'chip' },
-    { id: 'MCU',      x: 60,  y: 266, label: 'Chip\nMCU1',   kind: 'chip' },
-    { id: 'P1',       x: 120, y: 266, label: 'Conn\nPCIE1',  kind: 'connector' },
-    { id: 'P2',       x: 220, y: 266, label: 'Conn\nPCIE2',  kind: 'connector' },
-    { id: 'Sw',       x: 60,  y: 332, label: 'McuSw',        kind: 'bus' },
-    { id: 'Eeprom',   x: 60,  y: 398, label: 'Eeprom\nIEU',  kind: 'chip' },
-  ];
-  const edges = [['Anchor','H0'],['H0','Pca'],['Pca','Mux4'],['Pca','Mux1'],['Pca','Mux2'],
-    ['Mux4','Io'],['Mux4','MCU'],['Mux1','P1'],['Mux2','P2'],['MCU','Sw'],['Sw','Eeprom']];
-  const kindColor: Record<string, string> = { anchor:'#64748b', bus:'#4f6ef7', chip:'#22c55e', connector:'#f59e0b' };
-  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--background)' }}>
-      <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--foreground-muted)', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--surface-1)' }}>SR 文件预览 — 14100513_...023947.sr</div>
-      <div style={{ padding: '6px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, display: 'flex', gap: 14 }}>
-        {Object.entries(kindColor).map(([k, c]) => (
-          <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: 'var(--foreground-muted)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: c, display: 'inline-block' }} />{k}
-          </span>
-        ))}
-      </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-        <svg width="300" height="450" style={{ display: 'block' }}>
-          {edges.map(([a, b], i) => {
-            const na = byId[a], nb = byId[b];
-            if (!na || !nb) return null;
-            return <line key={i} x1={na.x+30} y1={na.y+28} x2={nb.x+30} y2={nb.y} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />;
-          })}
-          {nodes.map(n => (
-            <g key={n.id}>
-              <rect x={n.x} y={n.y} width={60} height={28} rx={4} fill={kindColor[n.kind]+'22'} stroke={kindColor[n.kind]} strokeWidth="1" />
-              {n.label.split('\n').map((l, li) => (
-                <text key={li} x={n.x+30} y={n.y+11+li*11} textAnchor="middle" fontSize="8.5" fill={kindColor[n.kind]}>{l}</text>
-              ))}
-            </g>
-          ))}
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-// ── MIB browser panel ──────────────────────────────────────────────────────
-
-function PanelMib() {
-  const [query, setQuery] = useState('');
-  const oids = [
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.1.1', name: 'bmcProductName',     type: 'String',  desc: '产品型号' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.1.2', name: 'bmcFirmwareVersion', type: 'String',  desc: '固件版本' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.2.1', name: 'bmcBoardCount',      type: 'Integer', desc: '在线板卡总数' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.3.1', name: 'bmcSensorValue',     type: 'Gauge32', desc: '传感器当前读数' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.4.1', name: 'bmcHealthStatus',    type: 'Integer', desc: '0=OK, 1=Warn, 2=Crit' },
-    { oid: '1.3.6.1.4.1.2011.2.235.2.1.1',   name: 'bmcHardwareTrap',    type: 'Trap',    desc: '硬件故障告警' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.5.1', name: 'bmcWriteTimeout',    type: 'Integer', desc: '写超时时间 (ms)' },
-    { oid: '1.3.6.1.4.1.2011.2.235.1.1.5.2', name: 'bmcReadTimeout',     type: 'Integer', desc: '读超时时间 (ms)' },
-  ];
-  const q = query.toLowerCase();
-  const filtered = q ? oids.filter(o => o.name.toLowerCase().includes(q) || o.oid.includes(q) || o.desc.includes(q)) : oids;
-  const thStyle: React.CSSProperties = { padding: '5px 12px', fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--foreground-muted)', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' };
-  const tdStyle: React.CSSProperties = { padding: '5px 12px', fontSize: 11.5, color: 'var(--foreground-secondary)', borderBottom: '1px solid var(--border-subtle)', verticalAlign: 'top' };
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--background)' }}>
-      <div style={{ padding: '8px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--foreground-muted)', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--surface-1)' }}>HUAWEI-BMC-MIB v2</div>
-      <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--surface-1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-2)', borderRadius: 6, padding: '4px 8px', border: '1px solid var(--border-subtle)' }}>
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--foreground-muted)', flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索 OID / 名称..."
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--foreground)', padding: 0 }} />
-        </div>
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={thStyle}>名称</th><th style={thStyle}>类型</th><th style={thStyle}>说明</th></tr></thead>
-          <tbody>
-            {filtered.map((o, i) => (
-              <tr key={i}>
-                <td style={tdStyle}>
-                  <div style={{ fontSize: 11.5, color: 'var(--foreground)' }}>{o.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--foreground-muted)', fontFamily: 'ui-monospace, monospace', marginTop: 1 }}>{o.oid}</div>
-                </td>
-                <td style={{ ...tdStyle, whiteSpace: 'nowrap' as const }}>{o.type}</td>
-                <td style={tdStyle}>{o.desc}</td>
-              </tr>
-            ))}
-            {!filtered.length && <tr><td colSpan={3} style={{ ...tdStyle, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配结果</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ── Extension buttons config ───────────────────────────────────────────────
 
 const EXT_BUTTONS = [
@@ -873,24 +769,6 @@ const EXT_BUTTONS = [
       </svg>
     ),
   },
-  {
-    id: 'sr-preview' as const,
-    title: 'SR 文件预览',
-    icon: (
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'mib' as const,
-    title: 'MIB 支持',
-    icon: (
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-      </svg>
-    ),
-  },
 ];
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -906,29 +784,93 @@ interface ExplorerViewProps {
   onRunAgent?: (cmd: string) => void;
 }
 
-// 固定后停靠在左栏底部的「仓概览」区（可折叠 + 取消固定）
+// ── 左栏可折叠区（仓概览 / 模版浏览器 / Timeline 共用，交互一致）───────────────
+function ExplorerSection({ title, defaultOpen = true, action, children }: {
+  title: string; defaultOpen?: boolean; action?: React.ReactNode; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)', background: 'var(--surface-2)', display: 'flex', flexDirection: 'column', maxHeight: '42%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 6px 0 12px', flexShrink: 0, userSelect: 'none', cursor: 'pointer' }}
+        onClick={() => setOpen(o => !o)}>
+        <svg viewBox="0 0 24 24" width="10" height="10" style={{ transform: open ? 'rotate(90deg)' : 'none', flexShrink: 0, opacity: 0.55 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6" /></svg>
+        <span style={{ flex: 1, font: '600 11px/1.2 var(--font-sans)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--foreground-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        {action}
+      </div>
+      {open && <div style={{ overflowY: 'auto', padding: '2px 12px 12px' }}>{children}</div>}
+    </div>
+  );
+}
+
+// 小圆角胶囊（模版项与功能项一致样式）
+function ChipButton({ label, onClick, title }: { label: string; onClick: () => void; title?: string }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{ padding: '5px 11px', borderRadius: 100, border: 'none', background: 'rgba(255,255,255,0.06)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.82)', transition: 'background .15s' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.12)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; }}>
+      {label}
+    </button>
+  );
+}
+
+// 仓概览（固定后停靠）
 function RepoDock({ onOpenView, onRunAgent, onUnpin }: {
   onOpenView: (v: string) => void; onRunAgent: (c: string) => void; onUnpin: () => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
   return (
-    <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)', background: 'var(--surface-2)', maxHeight: '46%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 6px 0 12px', flexShrink: 0, userSelect: 'none', cursor: 'pointer' }}
-        onClick={() => setCollapsed(c => !c)}>
-        <svg viewBox="0 0 24 24" width="10" height="10" style={{ transform: collapsed ? 'none' : 'rotate(90deg)', flexShrink: 0, opacity: 0.6 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6" /></svg>
-        <svg viewBox="0 0 24 24" width="12" height="12" style={{ flexShrink: 0 }}><path d={STAR} fill="#a78bfa" /></svg>
-        <span style={{ flex: 1, font: '600 11px/1.2 var(--font-sans)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--foreground-secondary)' }}>仓概览</span>
-        <button title="取消固定" onClick={e => { e.stopPropagation(); onUnpin(); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground-muted)', padding: 4, borderRadius: 6, display: 'flex' }}>
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-        </button>
-      </div>
-      {!collapsed && (
-        <div style={{ overflowY: 'auto', padding: '4px 12px 12px' }}>
-          <RepoCapabilityList variant="dock" onOpenView={onOpenView} onRunAgent={onRunAgent} />
+    <ExplorerSection title="仓概览" action={
+      <button title="取消固定" onClick={e => { e.stopPropagation(); onUnpin(); }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground-muted)', padding: 4, borderRadius: 6, display: 'flex' }}>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    }>
+      <RepoCapabilityList onOpenView={onOpenView} onRunAgent={onRunAgent} />
+    </ExplorerSection>
+  );
+}
+
+// 模版浏览器（与仓能力清单同场景：按类别列可用模版，点击进入对应配置视图）
+const TEMPLATE_GROUPS: { group: string; items: { name: string; open: string }[] }[] = [
+  { group: '传感器', items: [{ name: 'TMP112 温度 Scanner', open: 'sensor' }, { name: 'ADC 电压采样', open: 'sensor' }] },
+  { group: '事件', items: [{ name: 'CPU 过温事件', open: 'event' }, { name: '电源掉电告警', open: 'event' }] },
+  { group: '拓扑', items: [{ name: 'I2C Mux · PCA9545', open: 'topology' }, { name: 'Riser Card', open: 'topology' }] },
+];
+function TemplateBrowser({ onOpenView }: { onOpenView: (v: string) => void }) {
+  return (
+    <ExplorerSection title="模版浏览器" defaultOpen={false}>
+      {TEMPLATE_GROUPS.map(g => (
+        <section key={g.group} style={{ marginBottom: 9 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>{g.group}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {g.items.map(t => <ChipButton key={t.name} label={t.name} title="从模版新建" onClick={() => onOpenView(t.open)} />)}
+          </div>
+        </section>
+      ))}
+    </ExplorerSection>
+  );
+}
+
+// Timeline（近期变更，演示数据兜底）
+const TIMELINE: { time: string; text: string }[] = [
+  { time: '14:32', text: '修改 RiserCard I2C 拓扑' },
+  { time: '11:08', text: 'CSR 全量校验通过 · 0 error' },
+  { time: '昨天', text: '新增 CPU0 过温事件' },
+  { time: '3 天前', text: '修复 PCA9545 地址冲突' },
+];
+function Timeline() {
+  return (
+    <ExplorerSection title="Timeline" defaultOpen={false}>
+      {TIMELINE.map((t, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: i < TIMELINE.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.28)', flexShrink: 0, marginTop: 5 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.35 }}>{t.text}</div>
+            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{t.time}</div>
+          </div>
         </div>
-      )}
-    </div>
+      ))}
+    </ExplorerSection>
   );
 }
 
@@ -936,10 +878,6 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
   const [selectedId, setSelectedId] = useState<string | null>('readme');
   const [lspActive, setLspActive] = useState(false);
   const [nbActive, setNbActive] = useState(false);
-  const [panelExt, setPanelExt] = useState<'sr-preview' | 'mib' | null>(null);
-
-  const togglePanel = (id: 'sr-preview' | 'mib') =>
-    setPanelExt(p => p === id ? null : id);
 
   const ibStyle = (active: boolean): React.CSSProperties => ({
     background: active ? 'rgba(255,255,255,0.10)' : 'none',
@@ -950,15 +888,11 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
     transition: 'color 0.1s, background 0.1s',
   });
 
-  const isActive = (id: typeof EXT_BUTTONS[number]['id']) =>
-    id === 'lsp' ? lspActive
-    : id === 'nb' ? nbActive
-    : panelExt === id;
+  const isActive = (id: typeof EXT_BUTTONS[number]['id']) => id === 'lsp' ? lspActive : nbActive;
 
   const handleExtClick = (id: typeof EXT_BUTTONS[number]['id']) => {
-    if (id === 'lsp') { setLspActive(v => !v); }
-    else if (id === 'nb') { setNbActive(v => !v); }
-    else { togglePanel(id); }
+    if (id === 'lsp') setLspActive(v => !v);
+    else setNbActive(v => !v);
   };
 
   return (
@@ -969,7 +903,7 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 0 16px', height: 44, font: '500 11px/1.2 var(--font-sans)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--foreground-secondary)', userSelect: 'none' as const, flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
           <span>资源管理器</span>
           <div style={{ display: 'flex', gap: 2 }}>
-            {/* ✦ 仓概览固定开关（常驻入口）*/}
+            {/* 罗盘：仓概览固定开关（常驻入口）*/}
             <button
               style={ibStyle(repoPinned)}
               title={repoPinned ? '仓概览已固定 · 点击取消' : '固定仓概览到此'}
@@ -977,7 +911,9 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
               onMouseEnter={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
               onMouseLeave={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-muted)'; }}
             >
-              <svg viewBox="0 0 24 24" width="13" height="13"><path d={STAR} fill={repoPinned ? '#a78bfa' : 'currentColor'} /></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><polygon points="15.6 8.4 13.4 13.4 8.4 15.6 10.6 10.6" />
+              </svg>
             </button>
             {EXT_BUTTONS.map(btn => (
               <button key={btn.id} style={ibStyle(isActive(btn.id))} title={btn.title} onClick={() => handleExtClick(btn.id)}
@@ -994,14 +930,14 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
           vpd-main
         </div>
         {/* Tree */}
-        <div style={{ flex: 1, overflowY: 'auto' as const }}>
+        <div style={{ flex: 1, overflowY: 'auto' as const, minHeight: 60 }}>
           {TREE.map((node, i) => (
             <TreeItem key={i} node={node} depth={0} selectedId={selectedId}
-              onSelect={(id) => { setSelectedId(id); setPanelExt(null); }} />
+              onSelect={setSelectedId} />
           ))}
         </div>
 
-        {/* 固定的仓概览停靠区（两者结合方案的「固定」端）*/}
+        {/* 可折叠分区（交互一致）：仓概览（固定后）· 模版浏览器 · Timeline */}
         {repoPinned && (
           <RepoDock
             onOpenView={(v) => onOpenView?.(v)}
@@ -1009,12 +945,12 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
             onUnpin={() => onTogglePin?.()}
           />
         )}
+        <TemplateBrowser onOpenView={(v) => onOpenView?.(v)} />
+        <Timeline />
       </div>
 
       {/* Right area */}
-      {panelExt === 'sr-preview' ? <PanelSrPreview /> :
-       panelExt === 'mib'        ? <PanelMib /> :
-       <CodePane fileId={selectedId} lspActive={lspActive} nbActive={nbActive} />}
+      <CodePane fileId={selectedId} lspActive={lspActive} nbActive={nbActive} />
     </div>
   );
 }
