@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RepoCapabilityList, STAR } from './RepoCapabilityList';
 
 // ── File content ───────────────────────────────────────────────────────────
 
@@ -894,7 +895,44 @@ const EXT_BUTTONS = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export function ExplorerView() {
+interface ExplorerViewProps {
+  /** 仓能力清单是否已固定到资源管理器（两者结合方案的「固定」端）*/
+  repoPinned?: boolean;
+  /** 头部 ✦ 按钮：切换固定态（常驻入口）*/
+  onTogglePin?: () => void;
+  /** 功能卡派发：打开视图 */
+  onOpenView?: (viewId: string) => void;
+  /** 功能卡派发：agent 终端 */
+  onRunAgent?: (cmd: string) => void;
+}
+
+// 固定后停靠在左栏底部的「仓概览」区（可折叠 + 取消固定）
+function RepoDock({ onOpenView, onRunAgent, onUnpin }: {
+  onOpenView: (v: string) => void; onRunAgent: (c: string) => void; onUnpin: () => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)', background: 'var(--surface-2)', maxHeight: '46%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 6px 0 12px', flexShrink: 0, userSelect: 'none', cursor: 'pointer' }}
+        onClick={() => setCollapsed(c => !c)}>
+        <svg viewBox="0 0 24 24" width="10" height="10" style={{ transform: collapsed ? 'none' : 'rotate(90deg)', flexShrink: 0, opacity: 0.6 }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6" /></svg>
+        <svg viewBox="0 0 24 24" width="12" height="12" style={{ flexShrink: 0 }}><path d={STAR} fill="#a78bfa" /></svg>
+        <span style={{ flex: 1, font: '600 11px/1.2 var(--font-sans)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--foreground-secondary)' }}>仓概览</span>
+        <button title="取消固定" onClick={e => { e.stopPropagation(); onUnpin(); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground-muted)', padding: 4, borderRadius: 6, display: 'flex' }}>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      {!collapsed && (
+        <div style={{ overflowY: 'auto', padding: '4px 12px 12px' }}>
+          <RepoCapabilityList variant="dock" onOpenView={onOpenView} onRunAgent={onRunAgent} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRunAgent }: ExplorerViewProps = {}) {
   const [selectedId, setSelectedId] = useState<string | null>('readme');
   const [lspActive, setLspActive] = useState(false);
   const [nbActive, setNbActive] = useState(false);
@@ -931,6 +969,16 @@ export function ExplorerView() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 0 16px', height: 44, font: '500 11px/1.2 var(--font-sans)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--foreground-secondary)', userSelect: 'none' as const, flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
           <span>资源管理器</span>
           <div style={{ display: 'flex', gap: 2 }}>
+            {/* ✦ 仓概览固定开关（常驻入口）*/}
+            <button
+              style={ibStyle(repoPinned)}
+              title={repoPinned ? '仓概览已固定 · 点击取消' : '固定仓概览到此'}
+              onClick={() => onTogglePin?.()}
+              onMouseEnter={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
+              onMouseLeave={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-muted)'; }}
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13"><path d={STAR} fill={repoPinned ? '#a78bfa' : 'currentColor'} /></svg>
+            </button>
             {EXT_BUTTONS.map(btn => (
               <button key={btn.id} style={ibStyle(isActive(btn.id))} title={btn.title} onClick={() => handleExtClick(btn.id)}
                 onMouseEnter={e => { if (!isActive(btn.id)) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
@@ -952,6 +1000,15 @@ export function ExplorerView() {
               onSelect={(id) => { setSelectedId(id); setPanelExt(null); }} />
           ))}
         </div>
+
+        {/* 固定的仓概览停靠区（两者结合方案的「固定」端）*/}
+        {repoPinned && (
+          <RepoDock
+            onOpenView={(v) => onOpenView?.(v)}
+            onRunAgent={(c) => onRunAgent?.(c)}
+            onUnpin={() => onTogglePin?.()}
+          />
+        )}
       </div>
 
       {/* Right area */}
