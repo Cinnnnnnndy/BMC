@@ -1229,7 +1229,7 @@ export default function App() {
               data-repo-toggle
               className={`pto-ide-frame__rail-button ${repoHintOpen ? 'is-selected' : ''}`}
               onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
-              title="代码仓识别 · 可用能力"
+              title="功能提示 · 当前工程可用能力"
             >
               <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="9" />

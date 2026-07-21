@@ -55,7 +55,7 @@ export function RepoHintPopover({ anchorLeft, anchorBottom, onOpenView, onRunAge
     >
       {/* 标题 + 关闭 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>代码仓识别</span>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>功能提示</span>
         <button
           onClick={onClose}
           title="关闭"
