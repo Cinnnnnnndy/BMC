@@ -22,6 +22,7 @@ const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopol
 const BmcEnvView                 = lazy(() => import('./components/BmcEnvView'),                 'BmcEnvView');
 const AiAssistView               = lazy(() => import('./components/AiAssistView'),               'AiAssistView');
 const ExplorerView               = lazy(() => import('./components/ExplorerView'),               'ExplorerView');
+const RepoOverview               = lazy(() => import('./components/RepoOverview'),               'RepoOverview');
 
 /** VSCode webview API bridge */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -47,7 +48,7 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
-  | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
+  | 'home' | 'repoOverview' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig'
@@ -77,6 +78,7 @@ function WI({ d }: { d: string | string[] }) {
 
 const ICONS: Record<string, React.ReactNode> = {
   home:         <SI d={['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10']} />,
+  repoOverview: <SI d={['M3 3h18v18H3z', 'M3 9h18', 'M9 21V9']} />,
   explorer:     <SI d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
   installGuide: <SI d={['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z','M9 7h7M9 11h5']} />,
   aiInstall:    <SI d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z" />,
@@ -192,7 +194,7 @@ function lSetRatio(n: PaneNode, paneId: PaneId, r: number): PaneNode {
 // ── View labels for tab bar ────────────────────────────────────────────────
 
 const VIEW_LABELS: Partial<Record<ViewId, string>> = {
-  home: '欢迎页', installGuide: '安装引导', aiInstall: 'AI 引导安装', explorer: '资源管理器', jsonNorth: 'JSON 北向接口',
+  home: '欢迎页', repoOverview: '仓概览', installGuide: '安装引导', aiInstall: 'AI 引导安装', explorer: '资源管理器', jsonNorth: 'JSON 北向接口',
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
@@ -984,6 +986,8 @@ export default function App() {
         return csr ? <Simulator csr={csr} /> : null;
       case 'explorer':
         return <ExplorerView />;
+      case 'repoOverview':
+        return <RepoOverview onOpenView={openScenario} onRunAgent={runQuickAction} />;
       case 'installGuide':
         return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'aiInstall':
@@ -1082,6 +1086,7 @@ export default function App() {
 
   const railItems: RailItem[] = [
     { id: 'home',         tooltip: '欢迎页' },
+    { id: 'repoOverview', tooltip: '仓概览' },
     { id: 'aiAssist',     tooltip: 'AI 助手' },
     { id: 'explorer',     tooltip: '资源管理器' },
     { id: 'installGuide', tooltip: '安装部署引导' },
