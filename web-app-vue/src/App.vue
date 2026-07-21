@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import TopologyView      from './TopologyView.vue';
 import CodeView          from './CodeView.vue';
 import SmcOffsetView     from './views/SmcOffsetView.vue';
 import ExprCalcView      from './views/ExprCalcView.vue';
 import CoolingConfigView from './views/CoolingConfigView.vue';
+import AlarmConfigView   from './views/AlarmConfigView.vue';
 import { useLinkage, type ToolId } from './composables/useLinkage';
 
 const { state: link, setAnchor, closeDock } = useLinkage();
@@ -13,6 +14,7 @@ const toolMeta: Record<ToolId, { label: string; icon: string }> = {
   smc:     { label: 'SMC 偏移量计算器', icon: '🧮' },
   expr:    { label: '批量表达式计算器', icon: '⚙' },
   cooling: { label: '能效调速配置模板', icon: '❄' },
+  alarm:   { label: '板卡告警配置', icon: '◈' },
 };
 
 // Hash / query entry (#smc, ?tab=expr …): dock that tool beside topology.
@@ -27,8 +29,12 @@ const toolMeta: Record<ToolId, { label: string; icon: string }> = {
 // Activated via ?solo=true (used when embedded in the IDE rail as standalone views).
 const soloMode = new URLSearchParams(location.search).get('solo') === 'true';
 
-// ── Split-pane resizer ───────────────────────────────────────────────────
-const dockWidth = ref(46); // dock pane width, % of viewport
+// 告警配置是横向流水线 → 停靠在「底部」（宽而矮）；其余工具停靠在右侧（窄而高）。
+const bottomDock = computed(() => link.dockTool === 'alarm');
+
+// ── Split-pane resizer（右侧按宽度、底部按高度）─────────────────────────────
+const dockWidth  = ref(46); // right dock width, % of viewport
+const dockHeight = ref(50); // bottom dock height, % of viewport
 let dragging = false;
 function startDrag(e: MouseEvent) {
   dragging = true;
@@ -38,8 +44,13 @@ function startDrag(e: MouseEvent) {
 }
 function onDrag(e: MouseEvent) {
   if (!dragging) return;
-  const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
-  dockWidth.value = Math.min(70, Math.max(26, pct));
+  if (bottomDock.value) {
+    const pct = ((window.innerHeight - e.clientY) / window.innerHeight) * 100;
+    dockHeight.value = Math.min(78, Math.max(22, pct));
+  } else {
+    const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+    dockWidth.value = Math.min(70, Math.max(26, pct));
+  }
 }
 function stopDrag() {
   dragging = false;
@@ -48,7 +59,7 @@ function stopDrag() {
 }
 
 // Nudge the topology canvas (VueFlow) to re-measure when the split changes.
-watch(() => [link.dockTool, dockWidth.value], () => {
+watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
   nextTick(() => window.dispatchEvent(new Event('resize')));
 });
 </script>
@@ -56,7 +67,7 @@ watch(() => [link.dockTool, dockWidth.value], () => {
 <template>
   <div class="app-root">
     <!-- View area: anchor (left) + optional docked tool (right) -->
-    <div class="view-area" :class="{ split: link.dockTool && !soloMode }">
+    <div class="view-area" :class="{ split: link.dockTool && !soloMode, bottom: bottomDock && !soloMode }">
       <!-- Topology / code pane — hidden in solo mode -->
       <div v-if="!soloMode" class="pane pane-main">
         <TopologyView v-show="link.anchor === 'topology'" />
@@ -68,17 +79,18 @@ watch(() => [link.dockTool, dockWidth.value], () => {
         <div
           class="pane pane-dock"
           :class="{ 'pane-solo': soloMode }"
-          :style="soloMode ? {} : { width: dockWidth + '%' }"
+          :style="soloMode ? {} : (bottomDock ? { height: dockHeight + '%' } : { width: dockWidth + '%' })"
         >
           <div v-if="!soloMode" class="dock-head">
             <span class="dock-title">{{ toolMeta[link.dockTool].icon }} {{ toolMeta[link.dockTool].label }}</span>
-            <span class="dock-hint">分屏联动 · 与拓扑实时同步</span>
+            <span class="dock-hint">{{ bottomDock ? '底部停靠 · 与拓扑实时同步' : '分屏联动 · 与拓扑实时同步' }}</span>
             <button class="dock-close" aria-label="关闭分屏" @click="closeDock">✕</button>
           </div>
           <div class="dock-body">
             <SmcOffsetView     v-if="link.dockTool === 'smc'" />
             <ExprCalcView      v-else-if="link.dockTool === 'expr'" />
             <CoolingConfigView v-else-if="link.dockTool === 'cooling'" />
+            <AlarmConfigView   v-else-if="link.dockTool === 'alarm'" />
           </div>
         </div>
       </template>
@@ -123,6 +135,20 @@ watch(() => [link.dockTool, dockWidth.value], () => {
   transition: background 0.15s;
 }
 .splitter:hover { background: var(--primary, #4f6ef7); }
+
+/* ── Bottom dock（告警横向流水线：宽而矮，从底部升起）── */
+.view-area.bottom { flex-direction: column; }
+.view-area.bottom .pane-main { height: auto; flex: 1; min-height: 0; }
+.view-area.bottom .pane-dock {
+  width: 100% !important;
+  border-left: none;
+  border-top: 1px solid var(--border-subtle, #1e2240);
+}
+.view-area.bottom .splitter {
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+}
 
 .dock-head {
   display: flex;

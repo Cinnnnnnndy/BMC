@@ -186,7 +186,7 @@ function onNodeClick(ev: { node: AnyNode }) {
   activeNode.value = ev.node;
   activeEdgeId.value = null;
 }
-function onEdgeClick(ev: { edge: AnyEdge; event: MouseEvent }) {
+function onEdgeClick(ev: { edge: AnyEdge }) {
   const eid = ev.edge.id as string;
   activeEdgeId.value = activeEdgeId.value === eid ? null : eid;
 }
@@ -263,6 +263,12 @@ function wakeCooling() {
   const ent = b ? coolingEntities(b)
                 : { fans: g.type === 'CLU' ? [`${g.name} 风扇组`] : [], tempZones: [] };
   invoke('cooling', { ...ctxSource(), fans: ent.fans, tempZones: ent.tempZones });
+}
+// 板卡告警：按板型推断可监控器件 → 可视化配门限 → 自动产生 CSR 对象
+function wakeAlarm() {
+  const g = activeGroup.value;
+  if (!g) return;
+  invoke('alarm', { ...ctxSource(), boardType: g.type, boardName: g.name });
 }
 
 // ── MiniMap colours ────────────────────────────────────────────────────
@@ -443,6 +449,10 @@ function catStateClass(cat: CatNode): string {
         <button class="wake-btn" @click="wakeExpr">
           <span class="wake-ic-wrap wake-ic-expr" aria-hidden="true">⚙</span>
           在表达式计算器中调试 sensor
+        </button>
+        <button class="wake-btn" @click="wakeAlarm">
+          <span class="wake-ic-wrap wake-ic-alarm" aria-hidden="true">◈</span>
+          配置板卡告警（自动产生 CSR 对象）
         </button>
 
       </div>
@@ -770,6 +780,7 @@ function catStateClass(cat: CatNode): string {
 /* tight accent region — icon pill only, per PTO fill principle */
 .wake-ic-smc  { background: color-mix(in srgb, var(--primary) 20%, transparent); }
 .wake-ic-expr { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.wake-ic-alarm { background: color-mix(in srgb, var(--warning, #f59e0b) 22%, transparent); }
 
 /* chk-chip styles are now defined in topology.css via .chk-ok / .chk-warn / .chk-err */
 

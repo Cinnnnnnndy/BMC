@@ -10,7 +10,7 @@
 // The tool calls writeBack(...) to push a snippet toward the code view.
 import { reactive } from 'vue';
 
-export type ToolId = 'smc' | 'expr' | 'cooling';
+export type ToolId = 'smc' | 'expr' | 'cooling' | 'alarm';
 export type TabId = 'topology' | ToolId;
 
 /** Context pushed from the topology into a tool (left linkage). */
@@ -27,6 +27,10 @@ export interface InboundContext {
   fans?: string[];
   /** Cooling: temperature zones / sensors resolved from the topology. */
   tempZones?: string[];
+  /** Alarm: 选中板卡类型（BCU/CLU/EXU/IEU/SEU/NICCard…），用于推断可监控器件。 */
+  boardType?: string;
+  /** Alarm: 板卡显示名，用于 SensorName / 生成对象命名。 */
+  boardName?: string;
   ts: number;
 }
 
@@ -60,7 +64,7 @@ const state = reactive<LinkageState>({
   anchor: 'topology',
   dockTool: null,
   selectedBoardId: null,
-  inbound: { smc: null, expr: null, cooling: null },
+  inbound: { smc: null, expr: null, cooling: null, alarm: null },
   lastWriteback: null,
 });
 
