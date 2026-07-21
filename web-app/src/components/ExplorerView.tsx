@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { RepoCapabilityList } from './RepoCapabilityList';
 
 // ── File content ───────────────────────────────────────────────────────────
 
@@ -774,13 +773,9 @@ const EXT_BUTTONS = [
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface ExplorerViewProps {
-  /** 仓能力清单是否已固定到资源管理器（两者结合方案的「固定」端）*/
-  repoPinned?: boolean;
-  /** 头部 ✦ 按钮：切换固定态（常驻入口）*/
-  onTogglePin?: () => void;
-  /** 功能卡派发：打开视图 */
+  /** 模版项派发：打开视图 */
   onOpenView?: (viewId: string) => void;
-  /** 功能卡派发：agent 终端 */
+  /** 模版项派发：agent 终端 */
   onRunAgent?: (cmd: string) => void;
 }
 
@@ -811,22 +806,6 @@ function ChipButton({ label, onClick, title }: { label: string; onClick: () => v
       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; }}>
       {label}
     </button>
-  );
-}
-
-// 仓概览（固定后停靠）
-function RepoDock({ onOpenView, onRunAgent, onUnpin }: {
-  onOpenView: (v: string) => void; onRunAgent: (c: string) => void; onUnpin: () => void;
-}) {
-  return (
-    <ExplorerSection title="仓概览" action={
-      <button title="取消固定" onClick={e => { e.stopPropagation(); onUnpin(); }}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground-muted)', padding: 4, borderRadius: 6, display: 'flex' }}>
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-      </button>
-    }>
-      <RepoCapabilityList onOpenView={onOpenView} onRunAgent={onRunAgent} />
-    </ExplorerSection>
   );
 }
 
@@ -874,7 +853,7 @@ function Timeline() {
   );
 }
 
-export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRunAgent }: ExplorerViewProps = {}) {
+export function ExplorerView({ onOpenView, onRunAgent }: ExplorerViewProps = {}) {
   const [selectedId, setSelectedId] = useState<string | null>('readme');
   const [lspActive, setLspActive] = useState(false);
   const [nbActive, setNbActive] = useState(false);
@@ -903,18 +882,6 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 0 16px', height: 44, font: '500 11px/1.2 var(--font-sans)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--foreground-secondary)', userSelect: 'none' as const, flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
           <span>资源管理器</span>
           <div style={{ display: 'flex', gap: 2 }}>
-            {/* 罗盘：仓概览固定开关（常驻入口）*/}
-            <button
-              style={ibStyle(repoPinned)}
-              title={repoPinned ? '仓概览已固定 · 点击取消' : '固定仓概览到此'}
-              onClick={() => onTogglePin?.()}
-              onMouseEnter={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
-              onMouseLeave={e => { if (!repoPinned) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-muted)'; }}
-            >
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" /><polygon points="15.6 8.4 13.4 13.4 8.4 15.6 10.6 10.6" />
-              </svg>
-            </button>
             {EXT_BUTTONS.map(btn => (
               <button key={btn.id} style={ibStyle(isActive(btn.id))} title={btn.title} onClick={() => handleExtClick(btn.id)}
                 onMouseEnter={e => { if (!isActive(btn.id)) (e.currentTarget as HTMLButtonElement).style.color = 'var(--foreground-secondary)'; }}
@@ -937,14 +904,7 @@ export function ExplorerView({ repoPinned = false, onTogglePin, onOpenView, onRu
           ))}
         </div>
 
-        {/* 可折叠分区（交互一致）：仓概览（固定后）· 模版浏览器 · Timeline */}
-        {repoPinned && (
-          <RepoDock
-            onOpenView={(v) => onOpenView?.(v)}
-            onRunAgent={(c) => onRunAgent?.(c)}
-            onUnpin={() => onTogglePin?.()}
-          />
-        )}
+        {/* 可折叠分区（交互一致）：模版浏览器 · Timeline */}
         <TemplateBrowser onOpenView={(v) => onOpenView?.(v)} />
         <Timeline />
       </div>

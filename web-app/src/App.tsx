@@ -477,11 +477,8 @@ export default function App() {
   const [termHeight, setTermHeight] = useState(240);
   const [termResizing, setTermResizing] = useState(false);
   const [termCmd, setTermCmd] = useState<TermRunRequest | null>(null);
-  // 仓识别提示：rail ✦ 按钮弹窗（切仓即弹）+ 固定态（停靠资源管理器）
+  // 仓识别提示：左下角罗盘按钮弹窗（切仓即弹）
   const [repoHintOpen, setRepoHintOpen] = useState(false);
-  const [repoPinned, setRepoPinned] = useState<boolean>(() => {
-    try { return localStorage.getItem('bmcRepoPinned') === '1'; } catch { return false; }
-  });
   const [repoAnchorTop, setRepoAnchorTop] = useState(120);
   const repoRailBtnRef = useRef<HTMLButtonElement>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -771,27 +768,21 @@ export default function App() {
     document.addEventListener('mouseup', onMouseUp);
   }, [termHeight]);
 
-  // 固定态持久化
-  useEffect(() => {
-    try { localStorage.setItem('bmcRepoPinned', repoPinned ? '1' : '0'); } catch { /* noop */ }
-  }, [repoPinned]);
-
-  // 打开仓识别弹窗（锚点贴 rail ✦ 按钮）
+  // 打开仓识别弹窗（锚点贴左下角罗盘按钮）
   const openRepoHint = useCallback(() => {
     const r = repoRailBtnRef.current?.getBoundingClientRect();
     if (r) setRepoAnchorTop(r.top);
     setRepoHintOpen(true);
   }, []);
 
-  // 切仓即弹：当前仓（currentProjectId）切到新的一个 → 未固定则弹识别卡，
-  // 已固定则由 Explorer 停靠区自动呈现（这里不打扰）。
+  // 切仓即弹：当前仓（currentProjectId）切到新的一个 → 从罗盘弹出识别卡
   const prevRepoRef = useRef<string | null>(null);
   useEffect(() => {
     if (currentProjectId && currentProjectId !== prevRepoRef.current) {
       prevRepoRef.current = currentProjectId;
-      if (!repoPinned) openRepoHint();
+      openRepoHint();
     }
-  }, [currentProjectId, repoPinned, openRepoHint]);
+  }, [currentProjectId, openRepoHint]);
 
   const handleProjectSelect = useCallback(
     async (project: { id: string; manufacturer: string; model: string; rootSrPath?: string }) => {
@@ -1013,14 +1004,7 @@ export default function App() {
       case 'simulator':
         return csr ? <Simulator csr={csr} /> : null;
       case 'explorer':
-        return (
-          <ExplorerView
-            repoPinned={repoPinned}
-            onTogglePin={() => setRepoPinned(v => !v)}
-            onOpenView={openScenario}
-            onRunAgent={runQuickAction}
-          />
-        );
+        return <ExplorerView onOpenView={openScenario} onRunAgent={runQuickAction} />;
       case 'installGuide':
         return <iframe src={withBase('install-entry.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="安装部署引导" />;
       case 'aiInstall':
@@ -1242,7 +1226,7 @@ export default function App() {
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <button
               ref={repoRailBtnRef}
-              className={`pto-ide-frame__rail-button ${repoHintOpen || repoPinned ? 'is-selected' : ''}`}
+              className={`pto-ide-frame__rail-button ${repoHintOpen ? 'is-selected' : ''}`}
               onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
               title="仓识别 · 这个仓能做什么"
             >
@@ -1351,13 +1335,12 @@ export default function App() {
         )}
       </div>
 
-      {/* 仓识别提示弹窗（从 rail ✦ 按钮弹出）*/}
+      {/* 仓识别提示弹窗（从左下角罗盘按钮弹出）*/}
       {repoHintOpen && (
         <RepoHintPopover
           anchorTop={repoAnchorTop}
           onOpenView={openScenario}
           onRunAgent={runQuickAction}
-          onPin={() => { setRepoPinned(true); setRepoHintOpen(false); openView('explorer'); }}
           onClose={() => setRepoHintOpen(false)}
         />
       )}
