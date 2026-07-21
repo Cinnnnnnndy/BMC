@@ -1226,9 +1226,10 @@ export default function App() {
           {/* 左下角：罗盘（仓识别）+ 头像 + 设置 */}
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <button
+              data-repo-toggle
               className={`pto-ide-frame__rail-button ${repoHintOpen ? 'is-selected' : ''}`}
               onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
-              title="仓识别 · 这个仓能做什么"
+              title="代码仓识别 · 可用能力"
             >
               <svg className="pto-ide-frame__rail-icon" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="9" />

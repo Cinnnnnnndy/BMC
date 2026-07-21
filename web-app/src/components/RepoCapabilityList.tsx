@@ -44,11 +44,8 @@ export function RepoCapabilityList({ onOpenView, onRunAgent }: Props) {
           </svg>
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.92)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{repo.name}</span>
-            <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.40)', flexShrink: 0 }}>已识别</span>
-          </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{repo.title}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.92)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{repo.name}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.42)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{repo.title}</div>
         </div>
       </div>
 
