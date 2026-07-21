@@ -479,8 +479,9 @@ export default function App() {
   const [termCmd, setTermCmd] = useState<TermRunRequest | null>(null);
   // 仓识别提示：左下角罗盘按钮弹窗（切仓即弹）
   const [repoHintOpen, setRepoHintOpen] = useState(false);
-  const [repoAnchorTop, setRepoAnchorTop] = useState(120);
-  const repoRailBtnRef = useRef<HTMLButtonElement>(null);
+  // 弹窗贴内容区（工作区）左下角，尽量少遮挡内容
+  const [repoAnchor, setRepoAnchor] = useState<{ left: number; bottom: number }>({ left: 48, bottom: 30 });
+  const workareaRef = useRef<HTMLDivElement>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuPos, setMoreMenuPos] = useState<{ top: number; left: number } | null>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
@@ -770,8 +771,8 @@ export default function App() {
 
   // 打开仓识别弹窗（锚点贴左下角罗盘按钮）
   const openRepoHint = useCallback(() => {
-    const r = repoRailBtnRef.current?.getBoundingClientRect();
-    if (r) setRepoAnchorTop(r.top);
+    const r = workareaRef.current?.getBoundingClientRect();
+    if (r) setRepoAnchor({ left: r.left, bottom: window.innerHeight - r.bottom });
     setRepoHintOpen(true);
   }, []);
 
@@ -1225,7 +1226,6 @@ export default function App() {
           {/* 左下角：罗盘（仓识别）+ 头像 + 设置 */}
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <button
-              ref={repoRailBtnRef}
               className={`pto-ide-frame__rail-button ${repoHintOpen ? 'is-selected' : ''}`}
               onClick={() => (repoHintOpen ? setRepoHintOpen(false) : openRepoHint())}
               title="仓识别 · 这个仓能做什么"
@@ -1285,7 +1285,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="pto-ide-frame__workarea">
+        <div className="pto-ide-frame__workarea" ref={workareaRef}>
           <div className="ide-workarea-main">
             <PaneView
               node={layout}
@@ -1338,7 +1338,8 @@ export default function App() {
       {/* 仓识别提示弹窗（从左下角罗盘按钮弹出）*/}
       {repoHintOpen && (
         <RepoHintPopover
-          anchorTop={repoAnchorTop}
+          anchorLeft={repoAnchor.left}
+          anchorBottom={repoAnchor.bottom}
           onOpenView={openScenario}
           onRunAgent={runQuickAction}
           onClose={() => setRepoHintOpen(false)}

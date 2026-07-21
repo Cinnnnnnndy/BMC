@@ -7,14 +7,15 @@ import { RepoCapabilityList } from './RepoCapabilityList';
    ═══════════════════════════════════════════════════════════════════════ */
 
 interface Props {
-  /** 锚点（罗盘按钮）垂直位置 */
-  anchorTop: number;
+  /** 内容区（工作区）左下角：距视口左、距视口底 */
+  anchorLeft: number;
+  anchorBottom: number;
   onOpenView: (viewId: string) => void;
   onRunAgent: (cmd: string) => void;
   onClose: () => void;
 }
 
-export function RepoHintPopover({ anchorTop, onOpenView, onRunAgent, onClose }: Props) {
+export function RepoHintPopover({ anchorLeft, anchorBottom, onOpenView, onRunAgent, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,15 +32,15 @@ export function RepoHintPopover({ anchorTop, onOpenView, onRunAgent, onClose }: 
     };
   }, [onClose]);
 
-  // 弹窗底部对齐锚点上方（罗盘在左下角），不足则夹取
-  const bottom = Math.max(52, window.innerHeight - anchorTop + 8);
+  // 紧贴内容区左下角，向上/右展开，尽量少遮挡内容
+  const INSET = 6;
 
   return (
     <div
       ref={ref}
       style={{
-        position: 'fixed', left: 52, bottom: Math.min(bottom, window.innerHeight - 90), zIndex: 1000,
-        width: 288, maxHeight: 'calc(100vh - 130px)', overflow: 'auto',
+        position: 'fixed', left: anchorLeft + INSET, bottom: anchorBottom + INSET, zIndex: 1000,
+        width: 288, maxHeight: `calc(100vh - ${anchorBottom + 96}px)`, overflow: 'auto',
         background: '#161616', borderRadius: 12, padding: '13px 13px 10px',
         boxShadow: '0 10px 34px rgba(0,0,0,0.5)',
       }}
