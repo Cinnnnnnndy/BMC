@@ -1031,7 +1031,19 @@ export default function App() {
             title="CSR拓扑编辑器"
             onLoad={e => {
               const win = (e.currentTarget as HTMLIFrameElement).contentWindow;
-              if (win) win.postMessage({ command: 'showAddNodeView' }, '*');
+              if (!win) return;
+              // 默认帮用户加载内置示例工程（一对 EXU .sr 文件），直接进入
+              // “已选择工程文件”的拓扑状态作为示例，而不是空的“选择工程文件”界面。
+              import('./data/csrSampleProject').then(({ buildCsrSampleRootSr, CSR_SAMPLE_ROOT_PATH }) => {
+                const msg = {
+                  command: 'showTopologyView',
+                  data: { rootSrData: buildCsrSampleRootSr(), rootSrPath: CSR_SAMPLE_ROOT_PATH },
+                };
+                // webview 的消息监听在挂载后才就绪：onLoad 后重试几次，避免竞态丢消息。
+                win.postMessage(msg, '*');
+                setTimeout(() => win.postMessage(msg, '*'), 300);
+                setTimeout(() => win.postMessage(msg, '*'), 800);
+              });
             }}
           />
         );
