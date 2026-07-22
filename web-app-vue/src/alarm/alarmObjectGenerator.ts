@@ -27,8 +27,21 @@ export interface AlarmSpec {
   hysteresis?: number;
   condition?: number;        // 离散量触发值
   eventKeyId?: string;       // 离散量：告警字典条目
+  // 统一事件列表（UI 主路径）：一个传感器可挂多条事件，threshold/discrete 同构。
+  // 存在时优先于 events/condition/eventKeyId；levelField 有值→Condition 引用传感器门限，否则用字面 condition。
+  eventList?: NormalizedEvent[];
   dataSource: DataSourceSpec;
   readingOverride?: string;
+}
+
+export interface NormalizedEvent {
+  suffix: string;            // 事件对象名后缀 & cfg 内去重 key（''=主事件）
+  eventKeyId: string;        // 告警字典条目
+  operatorId: number;        // 触发方向：4=≥ 1=≤ 5=状态命中
+  label: string;             // 档位/状态中文名
+  severity?: string;         // Minor/Major/Critical（写入 DescArg 供文案分级）
+  levelField?: 'UpperNoncritical' | 'UpperCritical' | 'UpperNonrecoverable' | 'LowerNoncritical' | 'LowerCritical';
+  condition?: number;        // 无 levelField 时的字面触发值
 }
 
 const ZH_LEVEL: Record<string, string> = {
@@ -160,56 +173,57 @@ export function generateAlarmObjects(csr: CSRLike, spec: AlarmSpec): GenerateRes
   }
   created.push(sensorKey);
 
-  // ── 事件（多条）：门限量按每个「已设门限的档位」产出一条；离散量产出一条 ──
+  // ── 事件（多条）：统一走 NormalizedEvent 列表。levelField 有值→引用传感器门限档；
+  //    否则用字面触发值。UI 未传 eventList 时，从旧 spec 字段兜底成同构列表。 ──
+  const evList: NormalizedEvent[] = spec.eventList && spec.eventList.length
+    ? spec.eventList
+    : q.kind === 'threshold'
+      ? (spec.events && spec.events.length ? spec.events : (q.recommend.events || []))
+          .map((t) => ({ suffix: t.suffix, eventKeyId: t.eventKeyId, operatorId: t.operatorId, label: t.label, severity: t.severity, levelField: t.levelField }))
+      : [{ suffix: '', eventKeyId: spec.eventKeyId || q.recommend.eventKeyIds[0] || '', operatorId: spec.operatorId, label: '状态命中', condition: spec.condition ?? 1 }];
+
   const genEvents: GeneratedEvent[] = [];
-  if (q.kind === 'threshold') {
-    const templates = spec.events && spec.events.length ? spec.events : (q.recommend.events || []);
-    for (const ev of templates) {
+  const usedSuffix = new Set<string>();
+  for (const ev of evList) {
+    let condition: string | number;
+    let conditionLabel: string;
+    if (ev.levelField) {
       const thr = spec.thresholds?.[ev.levelField];
-      if (thr == null) continue;                 // 未设该档门限 → 不产出该事件
-      const eventKey = `Event_${base}${ev.suffix}`;
-      patch[eventKey] = {
-        EventKeyId: ev.eventKeyId,
-        Reading: readingRef,
-        Condition: SUB(sensorKey, ev.levelField),   // 引用传感器门限：改门限只改一处
-        OperatorId: ev.operatorId,
-        Component: `#/${componentKey}`,
-        Enabled: spec.enabled,
-        ...(spec.hysteresis != null ? { Hysteresis: spec.hysteresis } : {}),
-        DescArg2: REF(componentKey, 'Name'),
-        DescArg3: railName || dev?.typeLabel || spec.deviceKey,
-        DescArg4: REF(eventKey, 'Reading'),
-        DescArg5: REF(eventKey, 'Condition'),
-      };
-      created.push(eventKey);
-      genEvents.push({
-        key: eventKey, eventKeyId: ev.eventKeyId, label: ev.label,
-        operator: operatorById(ev.operatorId)?.symbol || '', severity: ev.severity,
-        conditionLabel: `${ZH_LEVEL[ev.levelField]} = ${thr}`,
-      });
+      if (thr == null) continue;                 // 引用的门限档未设 → 不产出该事件
+      condition = SUB(sensorKey, ev.levelField);  // 引用传感器门限：改门限只改一处
+      conditionLabel = `${ZH_LEVEL[ev.levelField]} = ${thr}`;
+    } else {
+      condition = ev.condition ?? 1;
+      conditionLabel = `命中值 = ${ev.condition ?? 1}`;
     }
-    if (!genEvents.length) warnings.push(`未设置任何门限档位，未产出告警事件——请至少填一档门限。`);
-  } else {
-    const eventKey = `Event_${base}`;
-    const cond = spec.condition ?? 1;
+    let suffix = ev.suffix || '';
+    while (usedSuffix.has(suffix)) suffix = `${suffix}_x`;   // cfg 内去重，避免覆盖
+    usedSuffix.add(suffix);
+    const eventKey = `Event_${base}${suffix}`;
     patch[eventKey] = {
-      EventKeyId: spec.eventKeyId || q.recommend.eventKeyIds[0] || '',
+      EventKeyId: ev.eventKeyId,
       Reading: readingRef,
-      Condition: cond,
-      OperatorId: spec.operatorId,
+      Condition: condition,
+      OperatorId: ev.operatorId,
       Component: `#/${componentKey}`,
       Enabled: spec.enabled,
+      ...(ev.levelField && spec.hysteresis != null ? { Hysteresis: spec.hysteresis } : {}),
       DescArg2: REF(componentKey, 'Name'),
-      DescArg3: dev?.typeLabel || spec.deviceKey,
+      DescArg3: railName || dev?.typeLabel || spec.deviceKey,
       DescArg4: REF(eventKey, 'Reading'),
       DescArg5: REF(eventKey, 'Condition'),
     };
     created.push(eventKey);
     genEvents.push({
-      key: eventKey, eventKeyId: spec.eventKeyId || q.recommend.eventKeyIds[0] || '',
-      label: '状态命中', operator: operatorById(spec.operatorId)?.symbol || '=',
-      conditionLabel: `命中值 = ${cond}`,
+      key: eventKey, eventKeyId: ev.eventKeyId, label: ev.label,
+      operator: operatorById(ev.operatorId)?.symbol || '', severity: ev.severity,
+      conditionLabel,
     });
+  }
+  if (!genEvents.length) {
+    warnings.push(q.kind === 'threshold'
+      ? '未设置任何门限档位，未产出告警事件——请至少填一档门限。'
+      : '未配置任何事件——请至少添加一条事件。');
   }
 
   const sensor: GeneratedSensor = {
