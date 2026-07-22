@@ -234,6 +234,18 @@ function copyAll(): void {
 }
 const showJson = ref(false);
 
+/* 快速新增：把「监控对象 + 添加区」收进「＋ 新增」浮窗（teleport 到 body，避开面板 overflow 裁剪）*/
+const showAdd = ref(false);
+const addBtnRef = ref<HTMLElement | null>(null);
+const addPopStyle = ref<Record<string, string>>({});
+function toggleAdd(): void {
+  showAdd.value = !showAdd.value;
+  if (showAdd.value) nextTick(() => {
+    const r = addBtnRef.value?.getBoundingClientRect();
+    if (r) addPopStyle.value = { top: `${r.bottom + 6}px`, right: `${Math.max(8, window.innerWidth - r.right)}px` };
+  });
+}
+
 /* ── 上下游连线（监控对象 → 传感器 → 事件）+ hover 高亮整条链路 ──
    连线用实测节点位置画 SVG 贝塞尔，随布局/展开/缩放重算；hover 传感器点亮其上下游。*/
 const blockEls = new Map<string, HTMLElement>();
@@ -244,9 +256,20 @@ interface Conn { id: string; d: string; sensorId: string; }
 const connByBlock = reactive<Record<string, Conn[]>>({});
 const hoverSensor = ref<string | null>(null);
 
-function curvePath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.max(14, (x2 - x1) * 0.5);
-  return `M${x1.toFixed(1)},${y1.toFixed(1)} C${(x1 + dx).toFixed(1)},${y1.toFixed(1)} ${(x2 - dx).toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+// 自适应连线：按两节点相对位置选「水平(右→左)」或「竖直(下→上)」锚点，横/竖布局都成立
+function linkPath(a: DOMRect, b: DOMRect, R0: DOMRect): string {
+  const ax = a.left - R0.left, ay = a.top - R0.top, acx = ax + a.width / 2, acy = ay + a.height / 2;
+  const bx = b.left - R0.left, by = b.top - R0.top, bcx = bx + b.width / 2, bcy = by + b.height / 2;
+  if (Math.abs(bcx - acx) >= Math.abs(bcy - acy)) {
+    const x1 = bcx >= acx ? ax + a.width : ax;
+    const x2 = bcx >= acx ? bx : bx + b.width;
+    const dx = (x2 - x1) * 0.5;
+    return `M${x1.toFixed(1)},${acy.toFixed(1)} C${(x1 + dx).toFixed(1)},${acy.toFixed(1)} ${(x2 - dx).toFixed(1)},${bcy.toFixed(1)} ${x2.toFixed(1)},${bcy.toFixed(1)}`;
+  }
+  const y1 = bcy >= acy ? ay + a.height : ay;
+  const y2 = bcy >= acy ? by : by + b.height;
+  const dy = (y2 - y1) * 0.5;
+  return `M${acx.toFixed(1)},${y1.toFixed(1)} C${acx.toFixed(1)},${(y1 + dy).toFixed(1)} ${bcx.toFixed(1)},${(y2 - dy).toFixed(1)} ${bcx.toFixed(1)},${y2.toFixed(1)}`;
 }
 function recomputeConnectors(): void {
   for (const g of objGroups.value) {
@@ -261,12 +284,9 @@ function recomputeConnectors(): void {
       const s = sEl as HTMLElement;
       const sid = s.getAttribute('data-sensor-card') || '';
       const Rs = s.getBoundingClientRect();
-      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid,
-        d: curvePath(Ro.right - R0.left, Ro.top + Ro.height / 2 - R0.top, Rs.left - R0.left, Rs.top + Rs.height / 2 - R0.top) });
+      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid, d: linkPath(Ro, Rs, R0) });
       evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
-        const Re = eEl.getBoundingClientRect();
-        conns.push({ id: `se-${sid}-${i}`, sensorId: sid,
-          d: curvePath(Rs.right - R0.left, Rs.top + Rs.height / 2 - R0.top, Re.left - R0.left, Re.top + Re.height / 2 - R0.top) });
+        conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPath(Rs, eEl.getBoundingClientRect(), R0) });
       });
     });
     connByBlock[g.componentKey] = conns;
@@ -289,58 +309,50 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 
 <template>
   <div class="alarm-view">
-    <div class="ctx-banner">
-      <span class="ctx-tag">来自拓扑</span>
-      <span class="ctx-src">{{ source || boardName }}</span>
-      <span class="ctx-sub">选监控对象 → 定门限；折叠看全貌，点传感器卡展开配置。数据源 / 扫描 / 掩码自动生成并隐藏</span>
+    <!-- 顶部工具条：上下文 + 快速新增（原「监控对象 + 添加区」收进浮窗） -->
+    <div class="alarm-toolbar">
+      <span class="tb-tag">来自拓扑</span>
+      <span class="tb-src">{{ source || boardName }}</span>
+      <button ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
     </div>
 
-    <div class="rel-legend">
-      <span class="rl-node">监控对象<i>Entity + Component</i></span>
-      <span class="rl-arrow">→</span>
-      <span class="rl-node">传感器<i>量 + 门限</i></span>
-      <span class="rl-arrow">→</span>
-      <span class="rl-node">事件<i>告警 · 可多条</i></span>
-      <span class="rl-hide">同一对象只画一次，向右扇出多条传感器</span>
-    </div>
-
-    <!-- 监控对象（器件） -->
-    <div class="dev-row">
-      <button
-        v-for="d in devices" :key="d.key"
-        class="dev-chip" :class="{ active: selDevice?.key === d.key }"
-        @click="selDeviceKey = d.key"
-      >
-        <span class="dev-type">{{ d.typeLabel }}</span>
-        <span class="dev-key">{{ d.key }}</span>
-      </button>
-    </div>
-
-    <!-- 添加区 -->
-    <div v-if="selDevice" class="add-panel">
-      <div class="add-title">
-        为 <b>{{ selDevice.key }}</b> 添加传感器
-        <span class="i" :title="isVolt ? '一个电压域含多条电压轨，每条轨=一个电压传感器，各自产出过压/欠压多条告警。' : '一个监控量=一个传感器；门限量按档位产出多条告警。'">i</span>
-      </div>
-      <template v-if="isVolt">
-        <div class="rail-palette">
-          <button v-for="r in railPalette" :key="r.key" class="add-chip" :class="{ used: railAdded(r.key) }" :disabled="railAdded(r.key)" @click="addRail(r)">
-            <span>{{ r.label }}</span><span class="rail-nom">{{ r.nominal }}V</span>
+    <!-- 快速新增浮窗（teleport 到 body，避开面板 overflow 裁剪） -->
+    <teleport to="body">
+      <div v-if="showAdd" class="add-backdrop" @click="showAdd = false"></div>
+      <div v-if="showAdd" class="add-pop" :style="addPopStyle" @click.stop>
+        <div class="ap-title">选监控对象</div>
+        <div class="dev-row">
+          <button v-for="d in devices" :key="d.key" class="dev-chip" :class="{ active: selDevice?.key === d.key }" @click="selDeviceKey = d.key">
+            <span class="dev-type">{{ d.typeLabel }}</span>
+            <span class="dev-key">{{ d.key }}</span>
           </button>
-          <button class="add-chip all" @click="addAllRails">＋ 全部添加</button>
         </div>
-        <div class="rail-custom">
-          <input v-model="customRail" class="num wide" placeholder="自定义轨名，如 PVDDQ_ABCD" @keyup.enter="addCustomRail" />
-          <button class="btn" @click="addCustomRail">添加</button>
+        <div v-if="selDevice" class="add-panel">
+          <div class="add-title">
+            为 <b>{{ selDevice.key }}</b> 添加传感器
+            <span class="i" :title="isVolt ? '一个电压域含多条电压轨，每条轨=一个电压传感器，各自产出过压/欠压多条告警。' : '一个监控量=一个传感器；门限量按档位产出多条告警。'">i</span>
+          </div>
+          <template v-if="isVolt">
+            <div class="rail-palette">
+              <button v-for="r in railPalette" :key="r.key" class="add-chip" :class="{ used: railAdded(r.key) }" :disabled="railAdded(r.key)" @click="addRail(r)">
+                <span>{{ r.label }}</span><span class="rail-nom">{{ r.nominal }}V</span>
+              </button>
+              <button class="add-chip all" @click="addAllRails">＋ 全部添加</button>
+            </div>
+            <div class="rail-custom">
+              <input v-model="customRail" class="num wide" placeholder="自定义轨名，如 PVDDQ_ABCD" @keyup.enter="addCustomRail" />
+              <button class="btn" @click="addCustomRail">添加</button>
+            </div>
+          </template>
+          <div v-else class="rail-palette">
+            <button v-for="qk in selDevice.quantities" :key="qk" class="add-chip" :class="{ used: quantityAdded(qk) }" :disabled="quantityAdded(qk)" @click="addQuantity(qk)">
+              <span>{{ QUANTITIES[qk].label }}</span>
+              <span class="rail-nom">{{ QUANTITIES[qk].kind === 'threshold' ? '门限量' : '状态量' }}</span>
+            </button>
+          </div>
         </div>
-      </template>
-      <div v-else class="rail-palette">
-        <button v-for="qk in selDevice.quantities" :key="qk" class="add-chip" :class="{ used: quantityAdded(qk) }" :disabled="quantityAdded(qk)" @click="addQuantity(qk)">
-          <span>{{ QUANTITIES[qk].label }}</span>
-          <span class="rail-nom">{{ QUANTITIES[qk].kind === 'threshold' ? '门限量' : '状态量' }}</span>
-        </button>
       </div>
-    </div>
+    </teleport>
 
     <!-- 流：监控对象 → 扇出传感器 → 事件 -->
     <div class="flow-list">
@@ -368,15 +380,18 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
                @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
             <!-- 一条链路：传感器节点卡 —实线→ 事件节点卡扇出（hover 高亮整条链路） -->
             <div class="chain">
-              <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="toggleExpand(entry.sensor.configId)">
-                <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
-                <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
-                <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
-                <i class="dot sc-dsdot" :class="dsResolved(entry.cfg) ? 'ok' : 'warn'" :title="dsResolved(entry.cfg) ? '数据源已接' : '数据源未接'"></i>
-                <span class="sc-chev" :class="{ open: expandedId === entry.sensor.configId }"><svg viewBox="0 0 24 24"><path d="M8.5 5l7 7-7 7z"/></svg></span>
-              </button>
+              <div class="chain-head">
+                <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="toggleExpand(entry.sensor.configId)">
+                  <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
+                  <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
+                  <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
+                  <i class="dot sc-dsdot" :class="dsResolved(entry.cfg) ? 'ok' : 'warn'" :title="dsResolved(entry.cfg) ? '数据源已接' : '数据源未接'"></i>
+                  <span class="sc-chev" :class="{ open: expandedId === entry.sensor.configId }"><svg viewBox="0 0 24 24"><path d="M8.5 5l7 7-7 7z"/></svg></span>
+                </button>
+                <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
+              </div>
 
-              <!-- 事件节点卡：每条告警一张小卡，向右竖向扇出；铃铛图标按严重度着色 -->
+              <!-- 事件节点卡：每条告警一张小卡，在传感器下方换行扇出；铃铛图标按严重度着色 -->
               <div class="event-fan">
                 <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
                 <div v-for="ev in entry.sensor.events" :key="ev.key" class="event-node" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
@@ -384,8 +399,6 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
                   <span class="en-label">{{ ev.label }}</span>
                 </div>
               </div>
-
-              <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
             </div>
 
             <!-- 展开的配置（圆角卡，默认折叠）-->
@@ -512,17 +525,18 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 <style scoped>
 .alarm-view { padding: 12px 14px; color: var(--foreground); font-size: 13px; }
 
-/* 顶部：中性填充卡，去彩底 */
-.ctx-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 11px; margin-bottom: 10px; border-radius: 12px; background: var(--surface-2); }
-.ctx-tag { font-size: 11px; padding: 1px 9px; border-radius: 999px; background: var(--surface-3); color: var(--foreground-secondary); }
-.ctx-src { font-weight: 600; }
-.ctx-sub { font-size: 11px; color: var(--foreground-muted); }
+/* 顶部工具条 + 快速新增浮窗 */
+.alarm-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tb-tag { flex: none; font-size: 11px; padding: 1px 9px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--foreground-secondary); }
+.tb-src { min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-open { margin-left: auto; flex: none; }
+.add-open.on { box-shadow: 0 0 0 2px var(--focus-ring); }
 
-.rel-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 11px; margin-bottom: 12px; border-radius: 12px; background: var(--surface-1); font-size: 11px; }
-.rl-node { display: inline-flex; flex-direction: column; line-height: 1.25; padding: 4px 10px; border-radius: 8px; background: var(--surface-3); color: var(--foreground); }
-.rl-node i { font-style: normal; font-size: 11px; color: var(--foreground-muted); }
-.rl-arrow { color: var(--foreground-muted); }
-.rl-hide { font-size: 11px; color: var(--foreground-muted); margin-left: auto; }
+.add-backdrop { position: fixed; inset: 0; z-index: 299; }
+.add-pop { position: fixed; z-index: 300; width: min(440px, 92vw); max-height: 72vh; overflow: auto; padding: 12px; border-radius: var(--radius-lg); background: var(--background-elevated); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 10px; }
+.ap-title { font-size: 11px; color: var(--foreground-muted); }
+.add-pop .dev-row { margin-bottom: 0; }
+.add-pop .add-panel { margin-bottom: 0; padding: 0; background: transparent; }
 
 .dev-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .dev-chip { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--surface-2); }
@@ -579,8 +593,10 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .branch.open { box-shadow: inset 0 0 0 1px var(--primary); }
 .branch.hot { background: var(--surface-3); }
 
-.chain { display: flex; align-items: center; gap: 20px; }
-.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: none; width: 204px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
+/* 竖向一条链路：传感器头(卡+删除) 在上，事件在下换行扇出（适配窄面板） */
+.chain { display: flex; flex-direction: column; gap: 8px; }
+.chain-head { display: flex; align-items: center; gap: 6px; }
+.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
 .sensor-card:hover { background: var(--surface-4); }
 .branch.hot .sensor-card, .branch.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
 .sc-ic { display: inline-flex; flex: none; }
@@ -599,8 +615,8 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .dot.Major { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .dot.Critical { background: var(--danger); }
 
-/* 事件节点卡：竖向扇出，铃铛图标按严重度着色 */
-.event-fan { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+/* 事件节点卡：传感器下方换行扇出，铃铛图标按严重度着色 */
+.event-fan { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 6px; padding-left: 4px; }
 .event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
 .event-node.none { color: var(--foreground-muted); }
 .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }

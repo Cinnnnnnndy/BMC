@@ -11,6 +11,7 @@ import { MiniMap } from '@vue-flow/minimap';
 import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
+import AlarmConfigView from './views/AlarmConfigView.vue';
 
 import { buildMindmap } from './data/mindmap';
 import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
@@ -230,6 +231,16 @@ const activeBoard = computed<BoardRecord | null>(() => {
 // Keep the code anchor in sync with the topology selection (two-way highlight).
 watch(activeBoard, (b) => { link.selectedBoardId = b?.id ?? null; });
 
+// 板卡配置面板 tab：详情 / 告警。告警+传感器是板卡级配置 → 作 tab 常驻；
+// SMC 偏移量 / 表达式是「配置项辅助」→ 跟随对应配置项，不作 tab。
+const panelTab = ref<'detail' | 'alarm'>('detail');
+watch([activeGroup, panelTab], () => {
+  if (panelTab.value === 'alarm' && activeGroup.value) {
+    const g = activeGroup.value;
+    link.inbound.alarm = { source: `${g.name} · ${g.type}`, boardType: g.type, boardName: g.name, ts: Date.now() };
+  }
+}, { immediate: true });
+
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
   const b = activeBoard.value;
@@ -433,15 +444,23 @@ function catStateClass(cat: CatNode): string {
     </div>
 
     <!-- ── Property panel ────────────────────────────────────────── -->
-    <div v-if="activeGroup" class="topo-property-panel" @click.stop>
+    <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' }" @click.stop>
       <div class="pp-header">
-        <span>板卡详情</span>
+        <span>板卡配置</span>
         <button class="pp-close" @click="activeNode = null">✕</button>
       </div>
 
-      <!-- ── 唤醒联动工具（左联动入口）── -->
+      <!-- 板卡级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
+      <div class="pp-tabs" role="tablist">
+        <button class="pp-tab" :class="{ active: panelTab === 'detail' }" @click="panelTab = 'detail'">详情</button>
+        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器</button>
+      </div>
+
+      <!-- ══ 详情 tab ══ -->
+      <template v-if="panelTab === 'detail'">
+      <!-- ── 配置项辅助（跟随配置项的计算器入口）── -->
       <div class="pp-wake">
-        <div class="pp-wake-title">联动工具</div>
+        <div class="pp-wake-title">配置项辅助</div>
         <button class="wake-btn" @click="wakeSmc">
           <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg></span>
           在 SMC 偏移量计算器中解析
@@ -449,10 +468,6 @@ function catStateClass(cat: CatNode): string {
         <button class="wake-btn" @click="wakeExpr">
           <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg></span>
           在表达式计算器中调试 sensor
-        </button>
-        <button class="wake-btn" @click="wakeAlarm">
-          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
-          配置板卡告警（自动产生 CSR 对象）
         </button>
       </div>
 
@@ -515,6 +530,12 @@ function catStateClass(cat: CatNode): string {
           </div>
         </div>
         </div>
+      </div>
+      </template>
+
+      <!-- ══ 告警 / 传感器 tab（板卡级配置，内嵌告警配置视图）══ -->
+      <div v-else class="pp-alarm">
+        <AlarmConfigView />
       </div>
     </div>
   </div>

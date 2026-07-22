@@ -165,7 +165,8 @@
 .topo-property-panel {
   position: absolute;
   right: 8px; top: 8px; bottom: 8px;
-  width: 248px;
+  width: 300px;
+  transition: width var(--duration-base, 200ms) var(--easing-default, ease);
   background: var(--panel-shell-bg);
   border: 1px solid var(--panel-shell-border);
   border-radius: var(--panel-shell-radius);
@@ -196,6 +197,19 @@
   border-radius: var(--radius-sm);
 }
 .pp-close:hover { background: var(--state-hover); color: var(--text-main); }
+
+/* 告警/传感器是板卡级配置 → 宽面板容纳竖向配置流 */
+.topo-property-panel.wide { width: 480px; }
+
+/* 配置面板 tab 条 */
+.pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
+.pp-tab { all: unset; box-sizing: border-box; cursor: pointer; flex: 1; text-align: center; padding: 6px 10px; border-radius: var(--radius-md); font-size: 12px; color: var(--text-dim); background: var(--surface-1); transition: background .12s, color .12s; }
+.pp-tab:hover { color: var(--text-main); }
+.pp-tab.active { background: var(--surface-3); color: var(--text-main); font-weight: 600; }
+.pp-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+
+/* 告警 tab 容器：内嵌 AlarmConfigView，自身滚动 */
+.pp-alarm { flex: 1; min-height: 0; overflow-y: auto; }
 .pp-body {
   flex: 1;
   padding: 0 10px 10px;
