@@ -34,27 +34,42 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
     const cfgs: SensorCfg[] = [];
     let skipped = 0; let n = 0; let ev = 0;
     for (const ch of chains) {
-      // 只导入有门限的传感器（温度/门限类），映射干净
-      if (ch.kind !== 'threshold' || Object.keys(ch.thresholds).length === 0) { skipped++; continue; }
-      const name = ch.name.replace(/^ThresholdSensor_/, '');
-      const events: EvItem[] = ch.events.map((e) => {
-        const lf = e.level && (VALID_LEVELS as string[]).includes(e.level) ? e.level as ThrKey : undefined;
-        return {
-          id: `e${++ev}`, suffix: '', label: lf ? ZH[lf] : (e.eventKeyId.split('.').pop() || '事件'),
-          severity: severityOf(e.eventKeyId),
-          operatorId: lf ? (lf.startsWith('Upper') ? 4 : 1) : 4,
-          levelField: lf, condition: e.condition ?? 1,
-          eventKeyId: e.eventKeyId, enabled: true,
-        };
-      });
-      cfgs.push({
-        // railKey=传感器名 → 区分同板多个温度传感器（Inlet/Outlet），并作显示标签
-        id: `sr:${name}`, deviceKey: 'Temp_Board', deviceLabel: '单板温度',
-        quantityKey: 'temperature', railKey: name, railLabel: name,
-        dsMode: 'device-field', dsChip: '', dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 1000,
-        thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true,
-      });
-      n++;
+      // 只导入真实传感器对象（排除因事件引用产生的占位链路）
+      if (!/^(ThresholdSensor|DiscreteSensor)_/.test(ch.name)) { skipped++; continue; }
+      const name = ch.name.replace(/^(ThresholdSensor|DiscreteSensor)_/, '');
+      if (ch.kind === 'threshold' && Object.keys(ch.thresholds).length > 0) {
+        const events: EvItem[] = ch.events.map((e) => {
+          const lf = e.level && (VALID_LEVELS as string[]).includes(e.level) ? e.level as ThrKey : undefined;
+          return {
+            id: `e${++ev}`, suffix: '', label: lf ? ZH[lf] : (e.eventKeyId.split('.').pop() || '事件'),
+            severity: severityOf(e.eventKeyId),
+            operatorId: lf ? (lf.startsWith('Upper') ? 4 : 1) : 4,
+            levelField: lf, condition: e.condition ?? 1, eventKeyId: e.eventKeyId, enabled: true,
+          };
+        });
+        cfgs.push({
+          // railKey=传感器名 → 区分同板多个门限传感器（Inlet/Outlet），并作显示标签
+          id: `sr:${name}`, deviceKey: 'Temp_Board', deviceLabel: '单板温度',
+          quantityKey: 'temperature', railKey: name, railLabel: name,
+          dsMode: 'device-field', dsChip: '', dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 1000,
+          thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true,
+        });
+        n++;
+      } else if (ch.kind === 'discrete') {
+        // 离散状态传感器：归到「系统状态」器件，用通用 sr_state 量
+        const events: EvItem[] = ch.events.map((e) => ({
+          id: `e${++ev}`, suffix: '', label: e.eventKeyId.split('.').pop() || '状态命中',
+          severity: severityOf(e.eventKeyId), operatorId: 5,
+          levelField: undefined, condition: e.condition ?? 1, eventKeyId: e.eventKeyId, enabled: true,
+        }));
+        cfgs.push({
+          id: `sr:${name}`, deviceKey: 'System', deviceLabel: '系统状态',
+          quantityKey: 'sr_state', railKey: name, railLabel: name,
+          dsMode: 'device-field', dsChip: '', dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 8000,
+          thresholds: {}, hysteresis: 0, events, enabled: true,
+        });
+        n++;
+      } else { skipped++; }
     }
     return { cfgs, skipped };
   }

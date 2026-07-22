@@ -14,6 +14,8 @@ import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
 import { devicesForBoardType, type BoardDevice } from './alarm/alarmKnowledge';
 import ChassisOverview from './components/ChassisOverview.vue';
+import { boardAlarm } from './alarm/alarmStore';
+import { seedCfgsForBoard } from './alarm/srSeed';
 
 import { buildMindmap } from './data/mindmap';
 import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
@@ -245,8 +247,26 @@ watch([activeGroup, panelTab], () => {
 
 // 器件级配置：板卡 → 本板器件列表；点器件进入器件配置（同一面板，scope 收窄到该器件）
 const activeDevice = ref<BoardDevice | null>(null);
-const boardDevices = computed<BoardDevice[]>(() => activeGroup.value ? devicesForBoardType(activeGroup.value.type) : []);
-watch(activeGroup, () => { activeDevice.value = null; });
+// 器件列表 = mock 可添加器件 ∪ .sr 派生器件（已配置传感器的器件，含「系统状态」等）
+const boardDevices = computed<BoardDevice[]>(() => {
+  const g = activeGroup.value;
+  if (!g) return [];
+  const mock = devicesForBoardType(g.type);
+  const seen = new Set(mock.map((d) => d.key));
+  const derived: BoardDevice[] = [];
+  for (const c of boardAlarm(g.name).cfgs) {
+    if (!seen.has(c.deviceKey)) { seen.add(c.deviceKey); derived.push({ key: c.deviceKey, typeLabel: c.deviceLabel, quantities: [] }); }
+  }
+  return [...mock, ...derived];
+});
+// 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
+watch(activeGroup, (g) => {
+  activeDevice.value = null;
+  if (g) {
+    const st = boardAlarm(g.name);
+    if (!st.loaded) { st.loaded = true; const s = seedCfgsForBoard(g.name); if (s.cfgs.length) st.cfgs.push(...s.cfgs); }
+  }
+}, { immediate: true });
 
 // 整机（Chassis）告警总览：跨板聚合 + 机箱级 + 一致性
 const showChassis = ref(false);

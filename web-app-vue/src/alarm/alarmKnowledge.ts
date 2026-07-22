@@ -181,6 +181,13 @@ export const QUANTITIES: Record<string, QuantityDef> = {
     },
     explain: '光模块温度，扫描周期较长（10s，连续 12 次失败判异常）。',
   },
+  // 通用离散状态：承载从 .sr 导入的、无专用量对应的离散传感器（SysFwProgress/AcpiState/PowerButton…）
+  sr_state: {
+    key: 'sr_state', label: '离散状态', kind: 'discrete', readingField: 'Reading',
+    sensor: { SensorType: 15, ReadingType: 111, AssertMask: 1, DeassertMask: 1, DiscreteMask: 1 },
+    recommend: { operatorId: 5, condition: 1, periodKey: 'presence', eventKeyIds: [] },
+    explain: '来自 .sr 的离散状态传感器；读数命中触发值即告警。',
+  },
 };
 
 /* ── 电压域 → 多条电压轨(rail)预置。名称/标称取自 vpd 真实 BCU/EXU/CPU 样例 ──── */
