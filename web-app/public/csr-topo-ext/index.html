@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>webview</title>
+    <title>CSR 拓扑编辑器</title>
     <script type="module" crossorigin src="./assets/index.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index.css">
     <!-- PTO override layer — 必须位于 bundle CSS 之后（同特异性靠顺序取胜） -->
@@ -17,6 +17,12 @@
       * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
     </style>
     <script>
+      // 左树/画布图标资源（与扩展 resources/ 同构，见 ./resources/）
+      // 供 SrFileTreePanel（硬件管理器左树）与芯片/总线图片使用
+      window.CSR_RESOURCES_BASE_URI = './resources';
+      window.CHIP_IMAGES_BASE_URI = './resources/chip';
+      window.BUS_IMAGES_BASE_URI = './resources/buses';
+
       // Standalone (web) shim for the VS Code webview API. In the extension the
       // host answers the webview's requests (sr files, file content, …); on the
       // web we let the embedding page play that role by forwarding the webview's

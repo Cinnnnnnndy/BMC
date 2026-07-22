@@ -994,7 +994,7 @@ export default function App() {
           </>
         );
       case 'topology':
-        return csr ? <TopologyView csr={csr} onChange={handleCsrChange} projectId={currentProjectId} /> : null;
+        return csr ? <TopologyView csr={csr} onChange={handleCsrChange} projectId={currentProjectId} eventDef={eventDef} /> : null;
       case 'boardTopology':
         return (currentProjectId === 'huawei-tianchi' && csr) ? <TianChiBoardTopologyView /> : null;
       case 'association':
