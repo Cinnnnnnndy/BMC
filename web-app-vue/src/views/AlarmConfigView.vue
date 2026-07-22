@@ -12,6 +12,7 @@ import {
 // 共享 per-board store（板卡级/器件级同源）+ 真实 .sr 播种
 import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCfg, type LooseEvent } from '../alarm/alarmStore';
 import { loadBoardOnce } from '../alarm/srSeed';
+import { chipTypeLabel } from '../data/srParser';
 
 const { state: link, openCodeDoc } = useLinkage();
 // scopeChipKey：器件（物理芯片）级告警——只显示数据源=该芯片的传感器；'__firmware'=固件推送(无芯片)。
@@ -197,17 +198,24 @@ const generated = computed(() => {
   return { objects: acc, cards };
 });
 
-/* 按监控对象(Component) 归组 → 一个对象节点扇出多条传感器分支，不再重复对象 */
-interface ObjGroup { componentKey: string; entityName: string; entityId: number; sensors: Entry[]; }
-const objGroups = computed<ObjGroup[]>(() => {
-  const map = new Map<string, ObjGroup>();
-  for (const e of generated.value.cards) {
-    let g = map.get(e.sensor.componentKey);
-    if (!g) { g = { componentKey: e.sensor.componentKey, entityName: e.sensor.entityName, entityId: e.sensor.entityId, sensors: [] }; map.set(e.sensor.componentKey, g); }
-    g.sensors.push(e);
-  }
-  return [...map.values()];
-});
+/* 告警分类（独立事件按类归拢，去掉扁平堆叠）*/
+const CAT_LABEL: Record<string, string> = {
+  voltage: '电压', temp: '温度', presence: '在位', chassis: '机箱',
+  power: '电源 / 时序', system: '系统状态', other: '其他',
+};
+function eventCategory(e: LooseEvent): string {
+  const s = e.eventKeyId + ' ' + e.label;
+  if (/Chassis/i.test(e.eventKeyId)) return 'chassis';
+  if (/Temp/i.test(s)) return 'temp';
+  if (/_V_|Voltage|OverVolt|UnderVolt|(^|[^A-Za-z0-9])\d+(\.\d+)?V([^A-Za-z]|$)/i.test(s)) return 'voltage';
+  if (/Install|Removed|Present|Insert|Missing|Disconnect/i.test(s)) return 'presence';
+  if (/ACPI|System/i.test(s)) return 'system';
+  if (/Power|Reset|OnTime|Boot|StartUp|PSU|Ok|Drop/i.test(s)) return 'power';
+  return 'other';
+}
+function chipTypeLabelOf(chipKey: string): string {
+  return chipKey === '__fw' ? '非物理芯片 · 固件推送' : chipTypeLabel(chipKey.split('_')[0]);
+}
 
 const boardObjects = computed(() => generated.value.objects);
 const objectsJson = computed(() => JSON.stringify(boardObjects.value, null, 2));
@@ -228,21 +236,35 @@ const scopedLoose = computed<LooseEvent[]>(() => {
   if (props.scopeDeviceKey) return [];
   return looseAll.value;
 });
-interface LooseGroup { key: string; label: string; events: LooseEvent[]; }
-const looseGroups = computed<LooseGroup[]>(() => {
-  const map = new Map<string, LooseEvent[]>();
-  for (const e of scopedLoose.value) {
-    const k = e.dsChip || '__fw';
-    let arr = map.get(k); if (!arr) { arr = []; map.set(k, arr); }
-    arr.push(e);
-  }
-  return [...map.entries()].map(([key, events]) => ({
-    key, label: key === '__fw' ? '固件 / BIOS 推送 · 无数据源芯片' : `数据源器件 ${key}`, events,
-  }));
-});
 const looseCount = computed(() => scopedLoose.value.length);
 const openLooseId = ref<string | null>(null);
 function toggleLoose(id: string): void { openLooseId.value = openLooseId.value === id ? null : id; }
+
+/* 统一流：按数据源「器件(芯片)」归组 → 器件 → 传感器 → 事件；无传感器的事件按告警分类直接挂器件（不显示传感器）*/
+interface CatRow { cat: string; label: string; events: LooseEvent[]; }
+interface ChipFlow { chipKey: string; chipLabel: string; subLabel: string; sensors: Entry[]; cats: CatRow[]; sensorCount: number; eventCount: number; }
+const chipFlows = computed<ChipFlow[]>(() => {
+  const keyOf = (c: string) => c || '__fw';
+  const map = new Map<string, { sensors: Entry[]; loose: LooseEvent[] }>();
+  const bucket = (k: string) => { let b = map.get(k); if (!b) { b = { sensors: [], loose: [] }; map.set(k, b); } return b; };
+  for (const e of generated.value.cards) bucket(keyOf(e.cfg.dsChip)).sensors.push(e);
+  for (const le of scopedLoose.value) bucket(keyOf(le.dsChip)).loose.push(le);
+  const flows: ChipFlow[] = [];
+  for (const [k, v] of map) {
+    const catMap = new Map<string, LooseEvent[]>();
+    for (const le of v.loose) { const c = eventCategory(le); let a = catMap.get(c); if (!a) { a = []; catMap.set(c, a); } a.push(le); }
+    const catOrder = Object.keys(CAT_LABEL);
+    const cats: CatRow[] = [...catMap.entries()]
+      .sort((a, b) => catOrder.indexOf(a[0]) - catOrder.indexOf(b[0]))
+      .map(([cat, events]) => ({ cat, label: CAT_LABEL[cat] || cat, events }));
+    flows.push({
+      chipKey: k, chipLabel: k === '__fw' ? '固件 / BIOS 推送' : k, subLabel: chipTypeLabelOf(k),
+      sensors: v.sensors, cats, sensorCount: v.sensors.length, eventCount: v.loose.length,
+    });
+  }
+  return flows.sort((a, b) => (b.sensorCount * 1000 + b.eventCount) - (a.sensorCount * 1000 + a.eventCount));
+});
+const flowCount = computed(() => chipFlows.value.length);
 
 function isThreshold(c: SensorCfg): boolean { return QUANTITIES[c.quantityKey].kind === 'threshold'; }
 function unitOf(c: SensorCfg): string { return QUANTITIES[c.quantityKey].unitLabel || ''; }
@@ -254,9 +276,10 @@ function operatorDesc(id: number): string { return OPERATORS.find((o) => o.id ==
 function dsResolved(c: SensorCfg): boolean { return c.dsMode === 'device-field' || !!c.dsChip.trim(); }
 function sensorLabel(e: Entry): string { return e.cfg.railLabel || QUANTITIES[e.cfg.quantityKey].label; }
 function thrValue(c: SensorCfg, lf?: ThrKey): number | undefined { return lf ? c.thresholds[lf] : undefined; }
-function objTip(g: ObjGroup): string {
-  return `自动创建 Entity_${g.entityName}(Id #${g.entityId}) 与 Component_${g.entityName}；`
-    + `Component.Instance⟵器件.SlotID、Component.Name⟵器件.DeviceName、Sensor.EntityId⟵Entity.Id、Event.Component⟶Component，均自动引用。`;
+function chipTip(cf: ChipFlow): string {
+  return cf.chipKey === '__fw'
+    ? `固件 / BIOS 推送：Reading=0 或无 Scanner，数据不经物理芯片，由固件直接上报。`
+    : `数据源器件 ${cf.chipLabel}：其上的传感器与事件都从该芯片经 Scanner 取数（Reading ⟵ Scanner.Value ⟵ ${cf.chipLabel}）。`;
 }
 
 const copied = ref(false);
@@ -307,13 +330,13 @@ function linkPath(a: DOMRect, b: DOMRect, R0: DOMRect): string {
   return `M${acx.toFixed(1)},${y1.toFixed(1)} C${acx.toFixed(1)},${(y1 + dy).toFixed(1)} ${bcx.toFixed(1)},${(y2 - dy).toFixed(1)} ${bcx.toFixed(1)},${y2.toFixed(1)}`;
 }
 function recomputeConnectors(): void {
-  for (const g of objGroups.value) {
-    const block = blockEls.get(g.componentKey);
-    if (!block) { connByBlock[g.componentKey] = []; continue; }
+  for (const g of chipFlows.value) {
+    const block = blockEls.get(g.chipKey);
+    if (!block) { connByBlock[g.chipKey] = []; continue; }
     const R0 = block.getBoundingClientRect();
     const conns: Conn[] = [];
     const evAll = Array.from(block.querySelectorAll('[data-event-of]')) as HTMLElement[];
-    // 两列松耦合：只画「传感器 → 事件」这一有意义的关联（对象分组由分组头卡体现，不再重复画对象→传感器线）
+    // 中间节点(传感器/分类) → 其事件；hover 高亮整条链路
     block.querySelectorAll('[data-sensor-card]').forEach((sEl) => {
       const s = sEl as HTMLElement;
       const sid = s.getAttribute('data-sensor-card') || '';
@@ -322,7 +345,7 @@ function recomputeConnectors(): void {
         conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPath(Rs, eEl.getBoundingClientRect(), R0) });
       });
     });
-    connByBlock[g.componentKey] = conns;
+    connByBlock[g.chipKey] = conns;
   }
 }
 let connRO: ResizeObserver | null = null;
@@ -337,7 +360,7 @@ onBeforeUnmount(() => {
   connRO?.disconnect();
   window.removeEventListener('resize', recomputeConnectors);
 });
-watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
+watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors));
 </script>
 
 <template>
@@ -389,30 +412,30 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
       </div>
     </teleport>
 
-    <!-- 流：监控对象 → 扇出传感器 → 事件 -->
+    <!-- 统一流：数据源器件(芯片) → 传感器 / 分类 → 事件（无传感器的事件按分类直接挂器件） -->
     <div class="flow-list">
-      <div v-if="!objGroups.length && !looseGroups.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器，也无独立事件。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
+      <div v-if="!chipFlows.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器或事件。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器，也无独立事件。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
 
-      <div v-for="g in objGroups" :key="g.componentKey" class="obj-block" :ref="(el) => setBlockRef(g.componentKey, el)">
-        <!-- 上下游连线层（对象→传感器→事件，随布局重算，hover 高亮链路） -->
+      <div v-for="cf in chipFlows" :key="cf.chipKey" class="obj-block" :ref="(el) => setBlockRef(cf.chipKey, el)">
+        <!-- 上下游连线层（器件→中间节点→事件，随布局重算，hover 高亮链路） -->
         <svg class="conn-layer" preserveAspectRatio="none" aria-hidden="true">
-          <path v-for="c in (connByBlock[g.componentKey] || [])" :key="c.id" :d="c.d" class="conn"
+          <path v-for="c in (connByBlock[cf.chipKey] || [])" :key="c.id" :d="c.d" class="conn"
                 :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId }" />
         </svg>
-        <!-- 监控对象作为分组头横铺；其传感器/事件两列在下方用满面板宽度（窄面板可读） -->
-        <div class="obj-head" data-role="obj" :title="objTip(g)">
-          <span class="on-ic"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
-          <span class="on-title">{{ g.entityName }}</span>
-          <span class="on-sub">Entity #{{ g.entityId }} · {{ g.sensors.length }} 传感器</span>
+        <!-- 数据源器件(芯片) 作为分组头横铺；其传感器/事件在下方两列 -->
+        <div class="obj-head" data-role="obj" :title="chipTip(cf)">
+          <span class="on-ic" :class="{ fw: cf.chipKey === '__fw' }"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
+          <span class="on-txt"><span class="on-title">{{ cf.chipLabel }}</span><span class="on-type">{{ cf.subLabel }}</span></span>
+          <span class="on-sub">{{ cf.sensorCount ? cf.sensorCount + ' 传感器 · ' : '' }}{{ cf.eventCount }} 事件</span>
         </div>
 
-        <!-- 传感器(左列) ⟶ 事件(右列)：两列松耦合；无门限的传感器右列空态，事件不强绑传感器 -->
+        <!-- 传感器 / 分类(左列) ⟶ 事件(右列) -->
         <div class="se-cols">
           <div class="se-colhead">
-            <span class="sch sch-s">传感器 · {{ g.sensors.length }}</span>
+            <span class="sch sch-s">传感器 / 分类</span>
             <span class="sch sch-e">事件 / 告警</span>
           </div>
-          <template v-for="entry in g.sensors" :key="entry.sensor.configId">
+          <template v-for="entry in cf.sensors" :key="entry.sensor.configId">
             <div class="se-row"
                  :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId, hot: hoverSensor === entry.sensor.configId }]"
                  @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
@@ -539,43 +562,51 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
               <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
             </div>
           </template>
-        </div>
-      </div>
-    </div>
 
-    <!-- 独立事件：不经传感器（真实 .sr 中占绝大多数：电压/在位/PMBus 状态等）；按数据源器件分组，逐条可点击配置 -->
-    <div v-if="looseGroups.length" class="loose-wrap">
-      <div class="loose-head">
-        <span class="lh-t">独立事件 · 不经传感器</span>
-        <span class="lh-sub">直连数据源 / 固件推送 · Condition 为字面触发值，与传感器松耦合</span>
-        <span class="lh-n">{{ looseCount }}</span>
-      </div>
-      <div v-for="g in looseGroups" :key="g.key" class="loose-group">
-        <div class="lg-cap">{{ g.label }}<span class="lg-n">{{ g.events.length }}</span></div>
-        <div class="lg-events">
-          <template v-for="e in g.events" :key="e.id">
-            <button class="levt" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]" :title="e.eventKeyId" @click="toggleLoose(e.id)">
-              <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
-              <span class="levt-l">{{ e.label }}</span>
-              <span class="levt-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
-            </button>
-            <div v-if="openLooseId === e.id" class="levt-edit">
-              <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" />启用</label>
-              <label class="ef"><span class="ef-k">分级</span>
-                <select v-model="e.severity" class="disc-sel">
-                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                </select>
-              </label>
-              <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
-                <input v-model.number="e.condition" type="number" class="thr-in w" />
-              </label>
-              <label class="ef"><span class="ef-k">方向</span>
-                <select v-model.number="e.operatorId" class="disc-sel">
-                  <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
-                </select>
-              </label>
-              <div class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></div>
+          <!-- 分类行：无传感器的独立事件按告警分类直接挂在器件下（不显示传感器节点）-->
+          <template v-for="row in cf.cats" :key="cf.chipKey + ':' + row.cat">
+            <div class="se-row cat" :class="{ hot: hoverSensor === cf.chipKey + ':' + row.cat }"
+                 @mouseenter="hoverSensor = cf.chipKey + ':' + row.cat" @mouseleave="hoverSensor = null">
+              <div class="se-sensor">
+                <div class="cat-card" :class="row.cat" :data-sensor-card="cf.chipKey + ':' + row.cat">
+                  <span class="cat-dot"></span>
+                  <span class="cat-name">{{ row.label }}</span>
+                  <span class="cat-n">{{ row.events.length }}</span>
+                  <span class="cat-nos" title="这些事件不经传感器，直连器件数据源">无传感器</span>
+                </div>
+              </div>
+              <div class="se-events">
+                <button v-for="e in row.events" :key="e.id" class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
+                        :data-event-of="cf.chipKey + ':' + row.cat" :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
+                  <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+                  <span class="en-label">{{ e.label }}</span>
+                  <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
+                </button>
+              </div>
             </div>
+            <!-- 展开：逐条独立事件编辑（整列宽度）-->
+            <template v-for="e in row.events" :key="e.id + ':ed'">
+              <div v-if="openLooseId === e.id" class="sensor-config">
+                <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
+                <div class="ev-edit">
+                  <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
+                  <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+                    <input v-model.number="e.condition" type="number" class="thr-in w" />
+                  </label>
+                  <label class="ef"><span class="ef-k">方向</span>
+                    <select v-model.number="e.operatorId" class="disc-sel">
+                      <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+                    </select>
+                  </label>
+                  <label class="ef"><span class="ef-k">分级</span>
+                    <select v-model="e.severity" class="disc-sel">
+                      <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                    </select>
+                  </label>
+                  <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
+                </div>
+              </div>
+            </template>
           </template>
         </div>
       </div>
@@ -584,7 +615,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
     <!-- 板卡级汇总 -->
     <div v-if="sensorCount || looseCount" class="board-summary">
       <div class="bs-head">
-        <span>{{ objGroups.length }} 个监控对象 · {{ sensorCount }} 个传感器 · {{ eventCount }} 条告警<template v-if="looseCount"> · {{ looseCount }} 条独立事件</template> → 将写入 <b>{{ boardName }}.sr</b></span>
+        <span>{{ flowCount }} 个数据源器件 · {{ sensorCount }} 个传感器 · {{ eventCount }} 条告警<template v-if="looseCount"> · {{ looseCount }} 条独立事件</template> → 将写入 <b>{{ boardName }}.sr</b></span>
         <div class="bs-actions">
           <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
             <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
@@ -657,12 +688,15 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
 
-/* 对象分组头：横铺一条，图标+名+实体元信息 */
-.obj-head { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius-lg); background: var(--surface-3); }
+/* 数据源器件分组头：横铺一条，芯片图标 + 芯片名/类型 + 计数 */
+.obj-head { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-radius: var(--radius-lg); background: var(--surface-3); }
 .on-ic { display: inline-flex; flex: none; }
 .on-ic svg { width: 18px; height: 18px; fill: var(--foreground-secondary); }
-.on-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.on-sub { font-size: 11px; color: var(--foreground-muted); margin-left: auto; flex: none; }
+.on-ic.fw svg { fill: var(--foreground-muted); }
+.on-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.on-title { font-size: 13px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.on-type { font-size: 10px; color: var(--foreground-muted); }
+.on-sub { font-size: 11px; color: var(--foreground-secondary); margin-left: auto; flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-1); }
 
 /* ── 传感器(左列) ⟶ 事件(右列)：两列松耦合，用满面板宽度平分 ── */
 .se-cols { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -705,6 +739,23 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .event-node.Minor .en-ic { color: var(--warning); }
 .event-node.Major .en-ic { color: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .event-node.Critical .en-ic { color: var(--danger); }
+.event-node.open { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--primary); }
+.event-node.off { opacity: .5; }
+.en-op { flex: none; font-family: ui-monospace, monospace; font-size: 10px; color: var(--foreground-muted); }
+
+/* 分类行：无传感器的独立事件按告警分类挂在器件下（左列=分类节点，代替传感器） */
+.cat-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); }
+.se-row.cat.hot .cat-card { box-shadow: inset 0 0 0 1px var(--primary); }
+.cat-dot { flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--foreground-muted); }
+.cat-card.voltage  .cat-dot { background: var(--warning); }
+.cat-card.temp     .cat-dot { background: var(--danger); }
+.cat-card.presence .cat-dot { background: var(--primary); }
+.cat-card.chassis  .cat-dot { background: var(--success); }
+.cat-card.power    .cat-dot { background: var(--purple, #a78bfa); }
+.cat-card.system   .cat-dot { background: color-mix(in srgb, var(--primary) 60%, var(--success)); }
+.cat-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-n { flex: none; font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-1); color: var(--foreground-secondary); }
+.cat-nos { flex: none; font-size: 10px; color: var(--foreground-muted); }
 
 .branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
