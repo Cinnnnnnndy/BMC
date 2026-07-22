@@ -1,28 +1,78 @@
 // ── 整机（Chassis）层聚合 ──────────────────────────────────────────────────
-// 整机层 = 跨板总览 + 机箱级传感器 + 一致性，不做逐条编辑。
-//   机箱级传感器：事件 EventKeyId 命名空间以 `Chassis.` 开头（天然不属某一块板）。
-//   数据来自所有样例 .sr（?raw 打包），按 Unit.Name 标注来源板。
-import { parseSr, sensorChains } from '../data/srParser';
-import expBoard1Sr from '../data/samples/ExpBoard_1_920s.sr?raw';
+// 整机层 = 跨板总览 + 机箱级事件 + 一致性，不做逐条编辑。
+//   机箱级事件：EventKeyId 命名空间以 `Chassis.` 开头（天然不属某一块板，由机箱主板 EXU 承载）。
+//   数据来自多板演示集样例 .sr（硬件+_soft 合并），按 Unit.Name 标注来源板。
+import { allParsedBoards, type ParsedBoard } from './srSeed';
+import { sensorChains, objectType } from '../data/srParser';
 
-const SAMPLES: string[] = [expBoard1Sr as unknown as string];
+// 各板数据源模型（分析结论）：温度走 LM75、其余走 SMC 扫描；SEU 走存储固件；PSU 走 PMBus 器件。
+const SOURCE_MODEL: Record<string, string> = {
+  EXU: 'SMC 扫描 + LM75', CLU: 'SMC 扫描', SEU: 'RAID / 存储固件',
+  PSU: 'PMBus 器件', BCU: 'SMC 扫描', PSR: 'PMBus 器件',
+};
 
+function severityOf(keyId: string): 'min' | 'maj' | 'crit' {
+  if (/Fail|Nonrecoverable|Fatal/i.test(keyId)) return 'crit';
+  if (/Major|Critical/i.test(keyId)) return 'maj';
+  return 'min';
+}
+
+// ── 各板明细（真实 .sr 直读）────────────────────────────────────────────────
+export interface BoardRollup {
+  name: string; type: string; chips: number;
+  thresholdSensors: number; discreteSensors: number;
+  events: number; chassisEvents: number; sourceModel: string;
+}
+function rollupOne(pb: ParsedBoard): BoardRollup {
+  let thr = 0, disc = 0, events = 0, chassisEvents = 0;
+  for (const [name, obj] of Object.entries(pb.objects)) {
+    const t = objectType(name);
+    if (t === 'ThresholdSensor') thr++;
+    else if (t === 'DiscreteSensor') disc++;
+    else if (t === 'Event') {
+      events++;
+      const kid = typeof obj.EventKeyId === 'string' ? obj.EventKeyId : '';
+      if (/^Chassis\./.test(kid)) chassisEvents++;
+    }
+  }
+  return {
+    name: pb.unitName, type: pb.unitType, chips: pb.chips.length,
+    thresholdSensors: thr, discreteSensors: disc, events, chassisEvents,
+    sourceModel: SOURCE_MODEL[pb.unitType] || '—',
+  };
+}
+export function boardRollup(): BoardRollup[] {
+  return allParsedBoards().map(rollupOne);
+}
+
+// ── 机箱级事件（Chassis.* · 跨板）───────────────────────────────────────────
+export interface ChassisEvent { board: string; keyId: string; name: string; severity: 'min' | 'maj' | 'crit'; }
+export function chassisEvents(): ChassisEvent[] {
+  const out: ChassisEvent[] = [];
+  for (const pb of allParsedBoards()) {
+    for (const [name, obj] of Object.entries(pb.objects)) {
+      if (objectType(name) !== 'Event') continue;
+      const kid = typeof obj.EventKeyId === 'string' ? obj.EventKeyId : '';
+      if (!/^Chassis\./.test(kid)) continue;
+      out.push({ board: pb.unitName, keyId: kid, name: kid.replace(/^Chassis\./, ''), severity: severityOf(kid) });
+    }
+  }
+  return out;
+}
+
+// ── 机箱级传感器（门限，带阈值 —— 供一致性核对）────────────────────────────
 export interface ChassisSensor {
   board: string; name: string; kind: 'threshold' | 'discrete';
   thresholds: Record<string, number>;
   events: { eventKeyId: string; level?: string }[];
 }
-
-/** 跨所有样例 .sr 收集机箱级（Chassis.*）传感器链路。 */
 export function chassisSensors(): ChassisSensor[] {
   const out: ChassisSensor[] = [];
-  for (const text of SAMPLES) {
-    let doc;
-    try { doc = parseSr(text); } catch { continue; }
-    for (const ch of sensorChains(doc.objects)) {
+  for (const pb of allParsedBoards()) {
+    for (const ch of sensorChains(pb.objects)) {
       if (!ch.events.some((e) => /^Chassis\./.test(e.eventKeyId))) continue;
       out.push({
-        board: doc.unit.name,
+        board: pb.unitName,
         name: ch.name.replace(/^ThresholdSensor_|^DiscreteSensor_/, ''),
         kind: ch.kind,
         thresholds: ch.thresholds,

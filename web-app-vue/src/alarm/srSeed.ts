@@ -7,13 +7,22 @@ import type { SensorCfg, EvItem, ThrKey } from './alarmStore';
 
 // 打包进构建的样例 .sr（真实数据）。硬件文件带门限/EventKeyId/Condition/Scanner.Chip；
 // _soft 带 Reading/OperatorId/Component —— 两者按对象名字段级合并后才完整。
+// 多板演示集（分析建议）：EXU(根/机箱主板) + CLU + SEU + PSU，覆盖 SMC-Scanner / RAID固件 / PMBus 三种数据源。
 import expBoard1Hw   from '../data/samples/ExpBoard_1_920s.sr?raw';
 import expBoard1Soft from '../data/samples/ExpBoard_1_920s_soft.sr?raw';
+import fanBoardHw    from '../data/samples/FanBoard_1_CLU.sr?raw';          // CLU（无 _soft，单文件）
+import hddBpHw       from '../data/samples/HddBackplane_1_SEU.sr?raw';
+import hddBpSoft     from '../data/samples/HddBackplane_1_SEU_soft.sr?raw';
+import psuHw         from '../data/samples/OnePower_0_PSU.sr?raw';
+import psuSoft       from '../data/samples/OnePower_0_PSU_soft.sr?raw';
 
 interface SrPair { hw: string; soft?: string }
 // key = Unit.Name（板卡名）
 const SR_PAIRS: SrPair[] = [
   { hw: expBoard1Hw as unknown as string, soft: expBoard1Soft as unknown as string },
+  { hw: fanBoardHw  as unknown as string },
+  { hw: hddBpHw     as unknown as string, soft: hddBpSoft as unknown as string },
+  { hw: psuHw       as unknown as string, soft: psuSoft   as unknown as string },
 ];
 
 const VALID_LEVELS: ThrKey[] = ['UpperNonrecoverable', 'UpperCritical', 'UpperNoncritical', 'LowerNoncritical', 'LowerCritical'];
@@ -54,6 +63,16 @@ export function parsedBoard(boardName: string): ParsedBoard | null {
   }
   boardCache.set(boardName, found);
   return found;
+}
+
+/** 解析全部已打包样例板（多板演示集），用于整机总览/跨板一致性。带缓存。 */
+let allBoardsCache: ParsedBoard[] | null = null;
+export function allParsedBoards(): ParsedBoard[] {
+  if (allBoardsCache) return allBoardsCache;
+  const out: ParsedBoard[] = [];
+  for (const p of SR_PAIRS) { const pb = parsePair(p); if (pb) out.push(pb); }
+  allBoardsCache = out;
+  return out;
 }
 
 /** 该板真实物理器件（芯片）列表 + 每个芯片承载的传感器数（供本板器件列表）。 */
