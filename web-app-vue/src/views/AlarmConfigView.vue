@@ -307,29 +307,24 @@ const showJson = ref(false);
         <!-- 分支：每条传感器从对象扇出 -->
         <div class="branches">
           <div v-for="entry in g.sensors" :key="entry.sensor.configId" class="branch" :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId }]">
-            <div class="branch-row">
-              <span class="stub" aria-hidden="true"></span>
-
-              <!-- 传感器卡（折叠摘要 / 点击展开） -->
+            <!-- 传感器节点卡头（折叠摘要 / 点击展开） -->
+            <div class="branch-head">
               <button class="sensor-card" @click="toggleExpand(entry.sensor.configId)">
                 <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
-                <span class="sc-name">{{ sensorLabel(entry) }}</span>
+                <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
                 <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
-                <span class="sc-ds"><i class="dot" :class="dsResolved(entry.cfg) ? 'ok' : 'warn'"></i>{{ dsResolved(entry.cfg) ? '数据源已接' : '数据源未接' }}</span>
+                <i class="dot sc-dsdot" :class="dsResolved(entry.cfg) ? 'ok' : 'warn'" :title="dsResolved(entry.cfg) ? '数据源已接' : '数据源未接'"></i>
                 <span class="sc-chev" :class="{ open: expandedId === entry.sensor.configId }"><svg viewBox="0 0 24 24"><path d="M8.5 5l7 7-7 7z"/></svg></span>
               </button>
-
-              <span class="mini-conn" aria-hidden="true"><svg viewBox="0 0 24 12"><path d="M0 6h18M14 2l6 4-6 4z"/></svg></span>
-
-              <!-- 事件（多条，摘要）-->
-              <div class="event-col">
-                <div v-if="!entry.sensor.events.length" class="ev-mini none">未设门限 · 暂无</div>
-                <div v-for="ev in entry.sensor.events" :key="ev.key" class="ev-mini" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
-                  <i class="dot" :class="ev.severity"></i>{{ ev.label }}
-                </div>
-              </div>
-
               <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
+            </div>
+
+            <!-- 事件摘要：内联小 chip，一屏看清整条链路的全部告警 -->
+            <div class="event-strip">
+              <span v-if="!entry.sensor.events.length" class="ev-chip none">未设门限</span>
+              <span v-for="ev in entry.sensor.events" :key="ev.key" class="ev-chip" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
+                <i class="dot" :class="ev.severity"></i>{{ ev.label }}
+              </span>
             </div>
 
             <!-- 展开的配置（圆角卡，默认折叠）-->
@@ -500,57 +495,51 @@ const showJson = ref(false);
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：对象块 = 圆角卡，内含对象节点 + 扇出分支 ── */
-.flow-list { display: flex; flex-direction: column; gap: 12px; }
-.obj-block { display: flex; align-items: stretch; gap: 6px; padding: 12px; border-radius: 14px; background: var(--surface-1); }
+/* ── 流：对象块 = 圆角卡（对象节点 · 左） + 紧凑传感器节点卡横向流排（右） ── */
+.flow-list { display: flex; flex-direction: column; gap: 10px; }
+.obj-block { display: flex; align-items: stretch; gap: 10px; padding: 10px; border-radius: var(--radius-xl); background: var(--surface-1); }
 
-.obj-node { flex: none; width: 158px; align-self: center; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: var(--surface-3); }
+.obj-node { flex: none; width: 140px; align-self: stretch; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
 .on-ic { display: inline-flex; }
-.on-ic svg { width: 22px; height: 22px; fill: var(--foreground-secondary); }
+.on-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
 .on-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.on-title { font-size: 13px; font-weight: 600; }
+.on-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .on-sub { font-size: 11px; color: var(--foreground-muted); }
 
-/* 扇出：左侧脊线 + 每支横向短线 */
-.branches { flex: 1; position: relative; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.branches::before { content: ''; position: absolute; left: 8px; top: 18px; bottom: 18px; width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--foreground-muted) 40%, transparent); }
-.branch { position: relative; border-radius: 12px; }
-.branch.open { background: var(--surface-2); }
-.branch-row { display: flex; align-items: center; gap: 6px; padding: 4px; }
-.stub { flex: none; width: 14px; height: 2px; border-radius: 2px; background: color-mix(in srgb, var(--foreground-muted) 40%, transparent); }
+/* 紧凑节点卡：横向 wrap 流排，一屏多卡（呼应链路配置节点图，提升显示效率） */
+.branches { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; min-width: 0; }
+.branch { flex: 1 1 250px; min-width: 224px; max-width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default); }
+/* 展开态：占满整行给配置腾空间 + 主色描边（呼应链路配置「选中节点蓝框」） */
+.branch.open { flex-basis: 100%; max-width: 100%; box-shadow: inset 0 0 0 1px var(--primary); }
 
-.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius-lg); background: var(--surface-2); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
-/* 展开态：主色描边 —— 呼应链路配置「选中节点蓝框」，让当前编辑的传感器在流中一眼可辨 */
-.branch.open .sensor-card { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--primary); }
-.sensor-card:hover { background: var(--surface-3); }
-.sc-ic { display: inline-flex; }
+.branch-head { display: flex; align-items: center; gap: 6px; }
+.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default); }
+.sensor-card:hover { background: var(--surface-4); }
+.sc-ic { display: inline-flex; flex: none; }
 .sc-ic svg { width: 15px; height: 15px; fill: var(--primary); }
 .branch.discrete .sc-ic svg { fill: var(--warning); }
-.sc-name { font-size: 13px; font-weight: 600; }
-.sc-kind { font-size: 11px; color: var(--foreground-muted); padding: 1px 7px; border-radius: 999px; background: var(--surface-1); }
-.sc-ds { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--foreground-muted); }
-.sc-chev { margin-left: auto; display: inline-flex; }
+.sc-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-kind { flex: none; font-size: 11px; color: var(--foreground-muted); padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-1); }
+.sc-dsdot { flex: none; }
+.sc-chev { flex: none; display: inline-flex; }
 .sc-chev svg { width: 12px; height: 12px; fill: var(--foreground-muted); transition: transform .15s; }
 .sc-chev.open svg { transform: rotate(90deg); }
-.dot { width: 6px; height: 6px; border-radius: 999px; flex: none; background: var(--foreground-muted); }
+.dot { width: 6px; height: 6px; border-radius: var(--radius-pill); flex: none; background: var(--foreground-muted); }
 .dot.ok { background: var(--success); }
 .dot.warn { background: var(--warning); }
 .dot.Minor { background: var(--warning); }
 .dot.Major { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .dot.Critical { background: var(--danger); }
 
-.mini-conn { flex: none; display: inline-flex; }
-.mini-conn svg { width: 22px; height: 12px; fill: color-mix(in srgb, var(--foreground-muted) 55%, transparent); }
+.event-strip { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 2px; }
+.ev-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
+.ev-chip.none { color: var(--foreground-muted); }
 
-.event-col { flex: none; width: 176px; display: flex; flex-direction: column; gap: 4px; }
-.ev-mini { display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; background: var(--surface-2); font-size: 11px; }
-.ev-mini.none { color: var(--foreground-muted); }
+.branch-del { all: unset; cursor: pointer; flex: none; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
+.branch-del:hover { color: var(--danger); background: var(--state-hover); }
 
-.branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 0 6px; }
-.branch-del:hover { color: var(--danger); }
-
-/* 展开配置：圆角卡 */
-.sensor-config { display: flex; flex-direction: column; gap: 10px; padding: 12px; margin: 2px 4px 6px 4px; border-radius: 12px; background: var(--surface-1); }
+/* 展开配置：圆角卡（嵌在展开的节点卡内） */
+.sensor-config { display: flex; flex-direction: column; gap: 10px; padding: 12px; margin: 2px 0 0; border-radius: var(--radius-md); background: var(--surface-1); }
 .sc-sec-cap { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--foreground-secondary); }
 .sc-explain { font-size: 11px; color: var(--foreground-muted); font-weight: 400; }
 
