@@ -13,6 +13,7 @@ import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
 import { devicesForBoardType, type BoardDevice } from './alarm/alarmKnowledge';
+import ChassisOverview from './components/ChassisOverview.vue';
 
 import { buildMindmap } from './data/mindmap';
 import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
@@ -247,6 +248,13 @@ const activeDevice = ref<BoardDevice | null>(null);
 const boardDevices = computed<BoardDevice[]>(() => activeGroup.value ? devicesForBoardType(activeGroup.value.type) : []);
 watch(activeGroup, () => { activeDevice.value = null; });
 
+// 整机（Chassis）告警总览：跨板聚合 + 机箱级 + 一致性
+const showChassis = ref(false);
+const allBoards = computed(() => nodes.value
+  .filter((n) => n.type === 'boardgroup')
+  .map((n) => { const g = n.data.group as BoardGroup; return { name: g.name, type: g.type }; }));
+function openChassis() { showChassis.value = true; activeNode.value = null; }
+
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
   const b = activeBoard.value;
@@ -413,6 +421,11 @@ function catStateClass(cat: CatNode): string {
 
     <!-- ── Canvas ────────────────────────────────────────────────── -->
     <div class="topo-canvas-wrap">
+      <!-- 整机总览入口 -->
+      <button class="chassis-entry" @click.stop="openChassis" title="整机告警总览（跨板 + 机箱级）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2 3v2h2V7H6zm0 6h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm2 3v2h2v-2H6z"/></svg>
+        整机总览
+      </button>
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -584,6 +597,9 @@ function catStateClass(cat: CatNode): string {
         </div>
       </template>
     </div>
+
+    <!-- ── 整机总览面板 ── -->
+    <ChassisOverview v-if="showChassis" :boards="allBoards" @close="showChassis = false" />
   </div>
 </template>
 
@@ -794,6 +810,19 @@ function catStateClass(cat: CatNode): string {
   border-radius: 2px;
   display: inline-block;
 }
+
+/* 整机总览入口按钮 */
+.chassis-entry {
+  position: absolute; top: 12px; left: 12px; z-index: 6;
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 12px; border-radius: var(--radius-lg);
+  background: var(--board-tag-bg, #1b1b21); color: var(--foreground);
+  font-size: 12px; font-weight: 500; backdrop-filter: blur(4px);
+}
+.chassis-entry:hover { background: var(--surface-3); }
+.chassis-entry svg { width: 15px; height: 15px; fill: currentColor; }
+.chassis-entry:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
 
 /* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
 :deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {

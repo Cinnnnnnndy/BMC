@@ -254,6 +254,13 @@
 - `AlarmConfigView` 的 `cfgs` 从组件本地 `reactive` 提升为 `computed(() => boardAlarm(boardKey).cfgs)`；换板不再清空（各板独立保存）。
 - `src/alarm/srSeed.ts`：首次打开某板告警 tab 时用真实 `.sr` 播种（`?raw` 打包样例，按 `Unit.Name` 匹配）。实测 ExpBoard_1 自动带出 InletTemp/OutletTemp 两个门限传感器 + 真实事件（ChassisInletOverTemp{Minor/Major}、ChassisAccessInletTempFailure、ChassisOutletTempFail）。当前只映射门限传感器，离散/电压轨的完整映射待 mock 器件模型与 .sr schema 统一。
 
+**R5（整机全局总览层，2026-07-22）已落地**：
+- `src/alarm/chassisAggregate.ts`：跨所有样例 `.sr` 收集**机箱级传感器**（事件 EventKeyId 以 `Chassis.` 开头）+ **跨板门限一致性**检查。
+- `src/components/ChassisOverview.vue`：整机总览面板——统计（板卡已配置/传感器/告警/机箱级）、机箱级传感器列表（按来源板标注）、各板告警覆盖表、一致性告警；**只总览不逐条编辑**（逐条到板卡/器件面板）。
+- `TopologyView` 左上「整机总览」入口按钮；实测 ExpBoard_1 的 Inlet/OutletTemp 作为机箱级（`Chassis.*`）呈现，各板覆盖表列全 10 块板。
+
+三层（器件 / 板卡 / 整机）配置+告警架构与数据源（.sr）已全部落地并实测。
+
 ## 待确认清单
 
 - [ ] 严重度中间档（Major）取 `warning↔danger 55%` 是否符合告警等级语义，或应引入 `--ark-orange-600` 类专用中间色（需产品/告警域确认 🔴）。
