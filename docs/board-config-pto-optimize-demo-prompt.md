@@ -232,6 +232,23 @@
 - **hover 高亮链路**：`hoverSensor` 状态 → 该传感器上下游连线转 `--primary` 加粗、其余 `opacity .22` 变淡，传感器卡加主色环、branch 底色抬升。
 - 密度取舍：较「一行多卡」略降（回到一行一条），换取参考图 3 的真节点图 + 连线可读性（用户已确认接受）。
 
+## §H 多层配置面板（器件 / 板卡 / 整机）· 数据源 .sr
+
+分析（据真实 .sr 数据模型）：配置/告警是三层，对应 .sr 的三级引用链——
+`整机 Chassis`（跨板 + 机箱级传感器，EventKeyId 命名空间 `Chassis.*`）⊃
+`板卡 Unit`（每板一份 .sr，Entity/Component）⊃
+`器件 Chip`（Scanner/Accessor 绑定 `Chip.Offset/Mask/Period`，是传感器的数据源根）。
+
+- **告警在器件与板卡都有，但是"同一份数据不同 scope 的视图"**（器件级 ⊂ 板卡级），非各存一份。
+- **整机层**做跨板总览 + 机箱级 + 一致性/批量，不做逐条细编辑。
+- **数据源**：`src/data/srParser.ts` 解析真实 `.sr`（样例见 `src/data/samples/`）→ Unit + 拓扑 + Objects + 传感器链路，供三层面板作输入。
+
+**R3（器件配置面板 + 器件级告警，2026-07-22）已落地**：
+- `TopologyView` 板卡「详情」tab 增「本板器件」列表（`devicesForBoardType`）；点器件 → 面板进入**器件模式**（`activeDevice`，头部返回箭头 + 器件名）。
+- 器件模式：详情 tab 显示器件信息 + SMC/表达式「配置项辅助」；告警 tab 内嵌 `<AlarmConfigView :scope-device-key>`。
+- `AlarmConfigView` 加 `scopeDeviceKey` prop：锁定器件、`+新增`浮窗隐藏器件切换、流按 `scopedCfgs` 只显示该器件链路。
+- 整机全局层：待建（复用同一套 scope 机制 + srParser 跨板聚合）。
+
 ## 待确认清单
 
 - [ ] 严重度中间档（Major）取 `warning↔danger 55%` 是否符合告警等级语义，或应引入 `--ark-orange-600` 类专用中间色（需产品/告警域确认 🔴）。

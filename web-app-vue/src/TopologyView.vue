@@ -12,6 +12,7 @@ import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
+import { devicesForBoardType, type BoardDevice } from './alarm/alarmKnowledge';
 
 import { buildMindmap } from './data/mindmap';
 import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
@@ -241,6 +242,11 @@ watch([activeGroup, panelTab], () => {
   }
 }, { immediate: true });
 
+// 器件级配置：板卡 → 本板器件列表；点器件进入器件配置（同一面板，scope 收窄到该器件）
+const activeDevice = ref<BoardDevice | null>(null);
+const boardDevices = computed<BoardDevice[]>(() => activeGroup.value ? devicesForBoardType(activeGroup.value.type) : []);
+watch(activeGroup, () => { activeDevice.value = null; });
+
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
   const b = activeBoard.value;
@@ -446,16 +452,19 @@ function catStateClass(cat: CatNode): string {
     <!-- ── Property panel ────────────────────────────────────────── -->
     <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' }" @click.stop>
       <div class="pp-header">
-        <span>板卡配置</span>
+        <button v-if="activeDevice" class="pp-back" title="返回板卡" @click="activeDevice = null">‹</button>
+        <span>{{ activeDevice ? activeDevice.key : '板卡配置' }}</span>
         <button class="pp-close" @click="activeNode = null">✕</button>
       </div>
 
-      <!-- 板卡级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
+      <!-- 板卡/器件级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
       <div class="pp-tabs" role="tablist">
         <button class="pp-tab" :class="{ active: panelTab === 'detail' }" @click="panelTab = 'detail'">详情</button>
         <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器</button>
       </div>
 
+      <!-- ══════ 板卡模式 ══════ -->
+      <template v-if="!activeDevice">
       <!-- ══ 详情 tab ══ -->
       <template v-if="panelTab === 'detail'">
       <!-- ── 配置项辅助（跟随配置项的计算器入口）── -->
@@ -472,6 +481,16 @@ function catStateClass(cat: CatNode): string {
       </div>
 
       <div class="pp-body">
+        <!-- 本板器件：点进入器件配置（scope 收窄到该器件） -->
+        <div class="pp-card pp-devlist">
+          <div class="pp-card-cap">本板器件 · 点进入器件配置</div>
+          <button v-for="d in boardDevices" :key="d.key" class="dev-item" @click="activeDevice = d">
+            <span class="di-type">{{ d.typeLabel }}</span>
+            <span class="di-key">{{ d.key }}</span>
+            <span class="di-arrow">›</span>
+          </button>
+          <div v-if="!boardDevices.length" class="di-empty">该板型暂无可监控器件</div>
+        </div>
         <div class="pp-card">
         <div class="pp-field">
           <div class="pp-field-label">类型</div>
@@ -537,6 +556,33 @@ function catStateClass(cat: CatNode): string {
       <div v-else class="pp-alarm">
         <AlarmConfigView />
       </div>
+      </template>
+
+      <!-- ══════ 器件模式（scope 收窄到该器件）══════ -->
+      <template v-else>
+        <div v-if="panelTab === 'detail'" class="pp-body">
+          <div class="pp-card">
+            <div class="pp-field"><div class="pp-field-label">器件</div><div class="pp-field-value mono">{{ activeDevice.key }}</div></div>
+            <div class="pp-field"><div class="pp-field-label">类型</div><div class="pp-field-value">{{ activeDevice.typeLabel }}</div></div>
+            <div class="pp-field"><div class="pp-field-label">可监控量</div><div class="pp-field-value">{{ activeDevice.quantities.join('、') }}</div></div>
+            <div class="pp-field"><div class="pp-field-label">所属板卡</div><div class="pp-field-value mono">{{ activeGroup.name }} · {{ activeGroup.type }}</div></div>
+          </div>
+          <div class="pp-wake">
+            <div class="pp-wake-title">配置项辅助</div>
+            <button class="wake-btn" @click="wakeSmc">
+              <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg></span>
+              在 SMC 偏移量计算器中解析
+            </button>
+            <button class="wake-btn" @click="wakeExpr">
+              <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg></span>
+              在表达式计算器中调试 sensor
+            </button>
+          </div>
+        </div>
+        <div v-else class="pp-alarm">
+          <AlarmConfigView :scope-device-key="activeDevice.key" />
+        </div>
+      </template>
     </div>
   </div>
 </template>

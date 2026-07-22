@@ -180,13 +180,14 @@
 .pp-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
   padding: 12px 14px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
 }
 .pp-close {
+  margin-left: auto;
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -197,6 +198,28 @@
   border-radius: var(--radius-sm);
 }
 .pp-close:hover { background: var(--state-hover); color: var(--text-main); }
+.pp-back {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 20px; line-height: 1; padding: 0 4px;
+  border-radius: var(--radius-sm);
+}
+.pp-back:hover { background: var(--state-hover); color: var(--text-main); }
+
+/* 本板器件列表（板卡详情 → 点器件进入器件配置） */
+.pp-card-cap { font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.pp-devlist { gap: 4px; }
+.dev-item {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: var(--radius-md);
+  background: var(--surface-2); transition: background .12s;
+}
+.dev-item:hover { background: var(--surface-3); }
+.dev-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+.di-type { font-size: 11px; color: var(--foreground-muted); }
+.di-key { font-size: 12px; font-weight: 600; color: var(--text-main); }
+.di-arrow { margin-left: auto; color: var(--text-dim); }
+.di-empty { font-size: 11px; color: var(--foreground-muted); padding: 6px 2px; }
 
 /* 告警/传感器是板卡级配置 → 宽面板容纳竖向配置流 */
 .topo-property-panel.wide { width: 480px; }

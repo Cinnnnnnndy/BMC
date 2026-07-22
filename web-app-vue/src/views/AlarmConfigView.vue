@@ -11,6 +11,8 @@ import {
 } from '../alarm/alarmObjectGenerator';
 
 const { state: link } = useLinkage();
+// scopeDeviceKey：器件级告警时锁定到单个监控器件（隐藏器件切换、流只显示该器件的传感器）
+const props = defineProps<{ scopeDeviceKey?: string }>();
 const inbound = computed(() => link.inbound.alarm);
 const boardType = computed(() => inbound.value?.boardType || 'Unknown');
 const boardName = computed(() => inbound.value?.boardName || '当前板卡');
@@ -35,6 +37,8 @@ interface SensorCfg {
   hysteresis: number; events: EvItem[]; enabled: boolean;
 }
 const cfgs = reactive<SensorCfg[]>([]);
+// 器件级 scope：只取该器件的链路（板卡级则全取）
+const scopedCfgs = computed(() => props.scopeDeviceKey ? cfgs.filter((c) => c.deviceKey === props.scopeDeviceKey) : cfgs);
 
 /* 默认折叠，只看流的全貌；点传感器卡展开它的配置（单展开）*/
 const expandedId = ref<string | null>(null);
@@ -45,6 +49,7 @@ const selDeviceKey = ref('');
 const selDevice = computed<BoardDevice | null>(() =>
   devices.value.find((d) => d.key === selDeviceKey.value) || devices.value[0] || null);
 watch(devices, (d) => { if (d.length && !d.some((x) => x.key === selDeviceKey.value)) selDeviceKey.value = d[0].key; }, { immediate: true });
+watch(() => props.scopeDeviceKey, (k) => { if (k) selDeviceKey.value = k; }, { immediate: true });
 
 const isVolt = computed(() => selDevice.value ? isVoltageDomain(selDevice.value.key) : false);
 const railPalette = computed<VoltageRail[]>(() => voltageRailsForBoard(boardType.value));
@@ -183,7 +188,7 @@ interface Entry { cfg: SensorCfg; sensor: GeneratedSensor; warnings: string[]; }
 const generated = computed(() => {
   const acc: Record<string, unknown> = {};
   const cards: Entry[] = [];
-  for (const c of cfgs) {
+  for (const c of scopedCfgs.value) {
     const res = generateAlarmObjects({ Objects: acc }, toSpec(c));
     Object.assign(acc, res.objects);
     if (res.sensor) cards.push({ cfg: c, sensor: res.sensor, warnings: res.warnings });
@@ -320,13 +325,15 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
     <teleport to="body">
       <div v-if="showAdd" class="add-backdrop" @click="showAdd = false"></div>
       <div v-if="showAdd" class="add-pop" :style="addPopStyle" @click.stop>
-        <div class="ap-title">选监控对象</div>
-        <div class="dev-row">
-          <button v-for="d in devices" :key="d.key" class="dev-chip" :class="{ active: selDevice?.key === d.key }" @click="selDeviceKey = d.key">
-            <span class="dev-type">{{ d.typeLabel }}</span>
-            <span class="dev-key">{{ d.key }}</span>
-          </button>
-        </div>
+        <template v-if="!scopeDeviceKey">
+          <div class="ap-title">选监控对象</div>
+          <div class="dev-row">
+            <button v-for="d in devices" :key="d.key" class="dev-chip" :class="{ active: selDevice?.key === d.key }" @click="selDeviceKey = d.key">
+              <span class="dev-type">{{ d.typeLabel }}</span>
+              <span class="dev-key">{{ d.key }}</span>
+            </button>
+          </div>
+        </template>
         <div v-if="selDevice" class="add-panel">
           <div class="add-title">
             为 <b>{{ selDevice.key }}</b> 添加传感器
