@@ -116,8 +116,9 @@ export function looseEventsOf(pb: ParsedBoard): LooseEvent[] {
     if (objectType(oname) !== 'Event' || consumed.has(oname)) continue;
     const keyId = typeof obj.EventKeyId === 'string' ? obj.EventKeyId : '';
     if (!keyId) continue; // 无告警字典条目的内部事件跳过
-    const label = (typeof obj.DescArg2 === 'string' && obj.DescArg2)
-      || (keyId.split('.').pop() || oname.replace(/^Event_/, ''));
+    // DescArg2 常是人类可读信号名（如 "12V"、"EXU_V_VCC1_12V0"）；但若是引用串(#/ <=/ 等)则弃用，回落到 EventKeyId 末段
+    const desc = typeof obj.DescArg2 === 'string' ? obj.DescArg2 : '';
+    const label = (desc && !/^(#|<=|>=|=)?\//.test(desc)) ? desc : (keyId.split('.').pop() || oname.replace(/^Event_/, ''));
     out.push({
       id: `le${++le}`, eventKeyId: keyId, label,
       condition: typeof obj.Condition === 'number' ? obj.Condition : 0,

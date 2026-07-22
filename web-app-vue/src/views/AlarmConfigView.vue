@@ -692,8 +692,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
 
-/* 第一列：数据源器件(芯片) 节点，纵向贯穿本块，扇出到中列 */
-.chip-node { position: relative; z-index: 1; flex: none; width: 158px; align-self: center; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
+/* 第一列：数据源器件(芯片) 节点，置于块顶（高块也不至于连线拉太远），扇出到中列 */
+.chip-node { position: relative; z-index: 1; flex: none; width: 158px; align-self: flex-start; margin-top: 22px; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
 .cn-ic { display: inline-flex; }
 .cn-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
 .cn-ic.fw svg { fill: var(--foreground-muted); }
