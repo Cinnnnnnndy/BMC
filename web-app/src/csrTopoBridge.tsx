@@ -13,9 +13,12 @@ import { withBase } from './base';
  *
  * webview 侧消息协议（逆向自 bundle）：
  *   入站(host→webview): showTopologyView{data:{rootSrData,rootSrPath}}、
- *     allSrMetadata{data}、srFilesData{files}、srFileContent{path,data}
+ *     allSrMetadata{data}、srFilesData{files}、srFileContent{path,data}、
+ *     configLoaded{config}、initializeBoardName{boardName}、
+ *     showSrManagementTopology{srPath,srData}、configListResponse{configs,…}
  *   出站(webview→host): webviewReady、loadAllSrMetadata、requestSrFiles、
- *     loadSrFile{path}、loadSrManagementTopology{path}
+ *     loadSrFile{path}、loadSrManagementTopology{path}、loadConfig、
+ *     configListRequest、nodeSelected{nodeId}（硬件管理器左树点击）
  */
 
 const ROOT_FILE = '14100513_920s.sr';
@@ -99,6 +102,23 @@ function mergeSoft(hw: Record<string, unknown>, soft: Record<string, unknown> | 
 }
 
 let poolPromise: Promise<Pool> | null = null;
+
+// 板卡显示配置（unit_type→node_type/尺寸/SVG 映射），来自扩展 resources/topology/。
+// webview canvas 在 mount 时发 loadConfig 请求，答以该 JSON 后板卡才按正确造型渲染。
+let boardTypesPromise: Promise<unknown | null> | null = null;
+function loadBoardTypes(): Promise<unknown | null> {
+  if (boardTypesPromise) return boardTypesPromise;
+  boardTypesPromise = (async () => {
+    try {
+      const res = await fetch(withBase('csr-topo-ext/resources/topology/board-types.json'));
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  })();
+  return boardTypesPromise;
+}
 
 /** Load the sr-samples board library once (cached across mounts). */
 function loadPool(): Promise<Pool> {
@@ -186,10 +206,13 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
   const sendInit = async () => {
     const pool = await poolReady;
     if (disposed) return;
-    // 1) provide the board-file index (both message shapes the webview accepts)
+    // 1) 机型名（硬件管理器左树信息栏）：取示例根板 Unit.Name，兜底「示例工程」
+    const rootUnit = (pool.root as { Unit?: { Name?: string } } | null)?.Unit;
+    post({ command: 'initializeBoardName', boardName: rootUnit?.Name || '示例工程' });
+    // 2) provide the board-file index (both message shapes the webview accepts)
     post({ command: 'srFilesData', files: pool.metaByType });
     post({ command: 'allSrMetadata', data: pool.metaByType });
-    // 2) load the sample project's root board -> renders the topology
+    // 3) load the sample project's root board -> renders the topology
     if (pool.root) {
       post({ command: 'showTopologyView', data: { rootSrData: pool.root, rootSrPath: ROOT_FILE } });
     }
@@ -211,15 +234,36 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
       case 'requestSrFiles':
         post({ command: 'srFilesData', files: pool.metaByType });
         break;
+      case 'loadConfig': {
+        const cfg = await loadBoardTypes();
+        if (disposed) return;
+        if (cfg) post({ command: 'configLoaded', config: cfg });
+        break;
+      }
+      case 'configListRequest':
+        // 顶栏配置下拉：单配置演示
+        post({
+          command: 'configListResponse',
+          configs: [{ id: 'config-0', name: '配置1', topologyConfig: { Root: { children: [] } }, createdAt: '2026-01-01T00:00:00.000Z' }],
+          activeConfigId: 'config-0',
+          repos: {},
+          activeTopologyConfig: { Root: { children: [] } },
+        });
+        break;
       case 'loadSrFile': {
         const p = (data.path || '').replace(/\\/g, '/');
         post({ command: 'srFileContent', path: data.path, data: pool.contentByPath.get(p) ?? null });
         break;
       }
+      // 单板卡配置视图入口 ×2：硬件管理器左树点击（nodeSelected.nodeId）、
+      // 画布双击板卡（loadSrManagementTopology.path）。standalone 传 false，
+      // 保持左树可见 + 返回按钮可回到板间拓扑。
+      case 'nodeSelected':
       case 'loadSrManagementTopology': {
-        const p = (data.path || data.srPath || '').replace(/\\/g, '/');
+        const raw = data.path || data.srPath || (data as { nodeId?: string }).nodeId || '';
+        const p = raw.replace(/\\/g, '/');
         const content = pool.contentByPath.get(p) ?? null;
-        post({ command: 'showSrManagementTopology', srPath: data.path || data.srPath, srData: content, standalone: true });
+        post({ command: 'showSrManagementTopology', srPath: raw, srData: content, standalone: false });
         break;
       }
       default:
