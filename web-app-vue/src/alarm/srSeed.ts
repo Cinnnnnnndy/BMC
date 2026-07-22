@@ -98,7 +98,8 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
     if (!/^(ThresholdSensor|DiscreteSensor)_/.test(ch.name)) { skipped++; continue; }
     const name = ch.name.replace(/^(ThresholdSensor|DiscreteSensor)_/, '');
     const dsChip = pb.chipMap[ch.name] || '';
-    if (ch.kind === 'threshold' && Object.keys(ch.thresholds).length > 0) {
+    // 门限传感器：即便 .sr 未定义 IPMI 门限值也照样导入（阈值留空由用户填），使计数与真实对象一致
+    if (ch.kind === 'threshold') {
       const events: EvItem[] = ch.events.map((e) => {
         const lf = e.level && (VALID_LEVELS as string[]).includes(e.level) ? e.level as ThrKey : undefined;
         return {
