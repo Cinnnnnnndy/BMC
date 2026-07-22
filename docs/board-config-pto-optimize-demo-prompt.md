@@ -249,6 +249,11 @@
 - `AlarmConfigView` 加 `scopeDeviceKey` prop：锁定器件、`+新增`浮窗隐藏器件切换、流按 `scopedCfgs` 只显示该器件链路。
 - 整机全局层：待建（复用同一套 scope 机制 + srParser 跨板聚合）。
 
+**R4（共享 store 同源 + .sr 真实数据驱动，2026-07-22）已落地**：
+- `src/alarm/alarmStore.ts`：per-board 共享 store（cfgs + uid/evSeq 计数器随板走）。板卡级与器件级告警读写**同一份** board cfgs（器件级只按 `deviceKey` 过滤视图）⇒ 同源不同 scope，一处改另一处即时可见。
+- `AlarmConfigView` 的 `cfgs` 从组件本地 `reactive` 提升为 `computed(() => boardAlarm(boardKey).cfgs)`；换板不再清空（各板独立保存）。
+- `src/alarm/srSeed.ts`：首次打开某板告警 tab 时用真实 `.sr` 播种（`?raw` 打包样例，按 `Unit.Name` 匹配）。实测 ExpBoard_1 自动带出 InletTemp/OutletTemp 两个门限传感器 + 真实事件（ChassisInletOverTemp{Minor/Major}、ChassisAccessInletTempFailure、ChassisOutletTempFail）。当前只映射门限传感器，离散/电压轨的完整映射待 mock 器件模型与 .sr schema 统一。
+
 ## 待确认清单
 
 - [ ] 严重度中间档（Major）取 `warning↔danger 55%` 是否符合告警等级语义，或应引入 `--ark-orange-600` 类专用中间色（需产品/告警域确认 🔴）。

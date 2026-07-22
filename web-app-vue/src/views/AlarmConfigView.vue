@@ -9,6 +9,9 @@ import {
 import {
   generateAlarmObjects, configId, type AlarmSpec, type GeneratedSensor, type NormalizedEvent,
 } from '../alarm/alarmObjectGenerator';
+// 共享 per-board store（板卡级/器件级同源）+ 真实 .sr 播种
+import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCfg } from '../alarm/alarmStore';
+import { seedCfgsForBoard } from '../alarm/srSeed';
 
 const { state: link } = useLinkage();
 // scopeDeviceKey：器件级告警时锁定到单个监控器件（隐藏器件切换、流只显示该器件的传感器）
@@ -19,31 +22,26 @@ const boardName = computed(() => inbound.value?.boardName || '当前板卡');
 const source = computed(() => inbound.value?.source || '');
 const devices = computed<BoardDevice[]>(() => devicesForBoardType(boardType.value));
 
-let uidN = 0;
-const uid = (): string => `e${++uidN}`;
-
-type ThrKey = 'UpperNoncritical' | 'UpperCritical' | 'UpperNonrecoverable' | 'LowerNoncritical' | 'LowerCritical';
-interface EvItem {
-  id: string; suffix: string; label: string;
-  severity: 'Minor' | 'Major' | 'Critical'; operatorId: number;
-  levelField?: ThrKey; condition: number; eventKeyId: string; enabled: boolean;
-}
-interface SensorCfg {
-  id: string; deviceKey: string; deviceLabel: string; quantityKey: string;
-  railKey?: string; railLabel?: string;
-  dsMode: 'device-field' | 'scanner';
-  dsChip: string; dsOffset: number; dsMask: number; dsSize: number; periodMs: number;
-  thresholds: Record<string, number>;
-  hysteresis: number; events: EvItem[]; enabled: boolean;
-}
-const cfgs = reactive<SensorCfg[]>([]);
+// 每块板一份 cfgs（存 store）；uid/evSeq 计数器也随板走
+const boardKey = computed(() => boardName.value);
+const uid = (): string => nextUid(boardKey.value);
+const cfgs = computed(() => boardAlarm(boardKey.value).cfgs);
 // 器件级 scope：只取该器件的链路（板卡级则全取）
-const scopedCfgs = computed(() => props.scopeDeviceKey ? cfgs.filter((c) => c.deviceKey === props.scopeDeviceKey) : cfgs);
+const scopedCfgs = computed(() => props.scopeDeviceKey ? cfgs.value.filter((c) => c.deviceKey === props.scopeDeviceKey) : cfgs.value);
 
 /* 默认折叠，只看流的全貌；点传感器卡展开它的配置（单展开）*/
 const expandedId = ref<string | null>(null);
 function toggleExpand(id: string): void { expandedId.value = expandedId.value === id ? null : id; }
-watch(boardType, () => { cfgs.splice(0, cfgs.length); expandedId.value = null; });
+// 换板卡：各板 cfgs 独立存于 store（不清空）；首次进入用真实 .sr 播种
+watch(boardKey, (key) => {
+  expandedId.value = null;
+  const st = boardAlarm(key);
+  if (!st.loaded) {
+    st.loaded = true;
+    const seed = seedCfgsForBoard(key);
+    if (seed.cfgs.length) st.cfgs.push(...seed.cfgs);
+  }
+}, { immediate: true });
 
 const selDeviceKey = ref('');
 const selDevice = computed<BoardDevice | null>(() =>
@@ -54,10 +52,10 @@ watch(() => props.scopeDeviceKey, (k) => { if (k) selDeviceKey.value = k; }, { i
 const isVolt = computed(() => selDevice.value ? isVoltageDomain(selDevice.value.key) : false);
 const railPalette = computed<VoltageRail[]>(() => voltageRailsForBoard(boardType.value));
 function railAdded(railKey: string): boolean {
-  return cfgs.some((c) => c.deviceKey === selDevice.value?.key && c.railKey === railKey);
+  return cfgs.value.some((c) => c.deviceKey === selDevice.value?.key && c.railKey === railKey);
 }
 function quantityAdded(qKey: string): boolean {
-  return cfgs.some((c) => c.deviceKey === selDevice.value?.key && c.quantityKey === qKey && !c.railKey);
+  return cfgs.value.some((c) => c.deviceKey === selDevice.value?.key && c.quantityKey === qKey && !c.railKey);
 }
 const customRail = ref('');
 
@@ -102,29 +100,28 @@ function baseCfg(deviceKey: string, deviceLabel: string, quantityKey: string, ra
 }
 function addRail(r: VoltageRail): void {
   if (!selDevice.value || railAdded(r.key)) return;
-  cfgs.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', r.key, r.label, r.nominal));
+  cfgs.value.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', r.key, r.label, r.nominal));
 }
 function addAllRails(): void { for (const r of railPalette.value) if (!railAdded(r.key)) addRail(r); }
 function addCustomRail(): void {
   const name = customRail.value.trim();
   if (!name || !selDevice.value) return;
-  cfgs.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', name, name, 12));
+  cfgs.value.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', name, name, 12));
   customRail.value = '';
 }
 function addQuantity(qKey: string): void {
   if (!selDevice.value || quantityAdded(qKey)) return;
   const c = baseCfg(selDevice.value.key, selDevice.value.typeLabel, qKey);
-  cfgs.push(c);
+  cfgs.value.push(c);
   expandedId.value = c.id;
 }
 function removeCfg(id: string): void {
-  const i = cfgs.findIndex((c) => c.id === id);
-  if (i >= 0) cfgs.splice(i, 1);
+  const i = cfgs.value.findIndex((c) => c.id === id);
+  if (i >= 0) cfgs.value.splice(i, 1);
   if (expandedId.value === id) expandedId.value = null;
 }
 
 /* 事件增删（一个器件挂多条事件）*/
-let evSeq = 0;
 function addEvent(c: SensorCfg): void {
   const q = QUANTITIES[c.quantityKey];
   if (q.kind === 'threshold') {
@@ -132,13 +129,13 @@ function addEvent(c: SensorCfg): void {
     const lf = THRESHOLD_ORDER.find((k) => c.thresholds[k] != null && !used.has(k))
       || THRESHOLD_ORDER.find((k) => !used.has(k)) || 'UpperCritical';
     c.events.push({
-      id: uid(), suffix: `X${++evSeq}`, label: ZH[lf], severity: 'Major',
+      id: uid(), suffix: `X${nextEvSeq(boardKey.value)}`, label: ZH[lf], severity: 'Major',
       operatorId: lf.startsWith('Upper') ? 4 : 1, levelField: lf, condition: 1,
       eventKeyId: keyOptions(c)[0] || '', enabled: true,
     });
   } else {
     c.events.push({
-      id: uid(), suffix: `X${++evSeq}`, label: '状态命中', severity: 'Major',
+      id: uid(), suffix: `X${nextEvSeq(boardKey.value)}`, label: '状态命中', severity: 'Major',
       operatorId: q.recommend.operatorId, condition: q.recommend.condition ?? 1,
       eventKeyId: keyOptions(c)[0] || '', enabled: true,
     });
