@@ -281,14 +281,12 @@ function recomputeConnectors(): void {
     if (!block) { connByBlock[g.componentKey] = []; continue; }
     const R0 = block.getBoundingClientRect();
     const conns: Conn[] = [];
-    const objEl = block.querySelector('[data-role="obj"]') as HTMLElement | null;
-    const Ro = objEl?.getBoundingClientRect();
     const evAll = Array.from(block.querySelectorAll('[data-event-of]')) as HTMLElement[];
+    // 两列松耦合：只画「传感器 → 事件」这一有意义的关联（对象分组由分组头卡体现，不再重复画对象→传感器线）
     block.querySelectorAll('[data-sensor-card]').forEach((sEl) => {
       const s = sEl as HTMLElement;
       const sid = s.getAttribute('data-sensor-card') || '';
       const Rs = s.getBoundingClientRect();
-      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid, d: linkPath(Ro, Rs, R0) });
       evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
         conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPath(Rs, eEl.getBoundingClientRect(), R0) });
       });
@@ -370,23 +368,25 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
           <path v-for="c in (connByBlock[g.componentKey] || [])" :key="c.id" :d="c.d" class="conn"
                 :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId }" />
         </svg>
-        <!-- 监控对象节点（同一对象只画一次） -->
-        <div class="obj-node" data-role="obj" :title="objTip(g)">
+        <!-- 监控对象作为分组头横铺；其传感器/事件两列在下方用满面板宽度（窄面板可读） -->
+        <div class="obj-head" data-role="obj" :title="objTip(g)">
           <span class="on-ic"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
-          <span class="on-txt">
-            <span class="on-title">{{ g.entityName }}</span>
-            <span class="on-sub">Entity #{{ g.entityId }} · {{ g.sensors.length }} 传感器</span>
-          </span>
+          <span class="on-title">{{ g.entityName }}</span>
+          <span class="on-sub">Entity #{{ g.entityId }} · {{ g.sensors.length }} 传感器</span>
         </div>
 
-        <!-- 分支：每条传感器从对象扇出 -->
-        <div class="branches">
-          <div v-for="entry in g.sensors" :key="entry.sensor.configId" class="branch"
-               :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId, hot: hoverSensor === entry.sensor.configId }]"
-               @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
-            <!-- 一条链路：传感器节点卡 —实线→ 事件节点卡扇出（hover 高亮整条链路） -->
-            <div class="chain">
-              <div class="chain-head">
+        <!-- 传感器(左列) ⟶ 事件(右列)：两列松耦合；无门限的传感器右列空态，事件不强绑传感器 -->
+        <div class="se-cols">
+          <div class="se-colhead">
+            <span class="sch sch-s">传感器 · {{ g.sensors.length }}</span>
+            <span class="sch sch-e">事件 / 告警</span>
+          </div>
+          <template v-for="entry in g.sensors" :key="entry.sensor.configId">
+            <div class="se-row"
+                 :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId, hot: hoverSensor === entry.sensor.configId }]"
+                 @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
+              <!-- 左列：传感器节点卡 -->
+              <div class="se-sensor">
                 <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="toggleExpand(entry.sensor.configId)">
                   <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
                   <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
@@ -396,9 +396,8 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
                 </button>
                 <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
               </div>
-
-              <!-- 事件节点卡：每条告警一张小卡，在传感器下方换行扇出；铃铛图标按严重度着色 -->
-              <div class="event-fan">
+              <!-- 右列：事件节点卡扇出（铃铛按严重度着色；无门限时该列空态） -->
+              <div class="se-events">
                 <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
                 <div v-for="ev in entry.sensor.events" :key="ev.key" class="event-node" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
                   <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
@@ -407,7 +406,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
               </div>
             </div>
 
-            <!-- 展开的配置（圆角卡，默认折叠）-->
+            <!-- 展开的配置（整列宽度铺在该行下方，默认折叠）-->
             <div v-if="expandedId === entry.sensor.configId && openCfg && openEntry" class="sensor-config">
               <div class="sc-sec-cap">传感器 · {{ sensorLabel(entry) }}<span class="sc-explain">{{ QUANTITIES[openCfg.quantityKey].explain }}</span></div>
 
@@ -508,7 +507,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
               </template>
               <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
             </div>
-          </div>
+          </template>
         </div>
       </div>
     </div>
@@ -579,9 +578,9 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：对象块 = 圆角卡；对象节点(左) —实线→ 传感器节点 —实线→ 事件节点扇出 ── */
+/* ── 流：对象块 = 圆角卡；对象分组头(横铺) → 传感器列 ⟶ 事件列 ── */
 .flow-list { display: flex; flex-direction: column; gap: 10px; }
-.obj-block { position: relative; display: flex; align-items: stretch; gap: 20px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
+.obj-block { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
 
 /* 连线层：绝对铺满对象块，画在节点之下 */
 .conn-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
@@ -589,28 +588,31 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
 
-.obj-node { position: relative; z-index: 1; flex: none; width: 140px; align-self: center; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
-.on-ic { display: inline-flex; }
-.on-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
-.on-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* 对象分组头：横铺一条，图标+名+实体元信息 */
+.obj-head { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius-lg); background: var(--surface-3); }
+.on-ic { display: inline-flex; flex: none; }
+.on-ic svg { width: 18px; height: 18px; fill: var(--foreground-secondary); }
 .on-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.on-sub { font-size: 11px; color: var(--foreground-muted); }
+.on-sub { font-size: 11px; color: var(--foreground-muted); margin-left: auto; flex: none; }
 
-/* 链路竖排；每条 = 传感器节点 —实线→ 事件节点竖向扇出 */
-.branches { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.branch { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default), background var(--duration-fast) var(--easing-default); }
-.branch.open { box-shadow: inset 0 0 0 1px var(--primary); }
-.branch.hot { background: var(--surface-3); }
+/* ── 传感器(左列) ⟶ 事件(右列)：两列松耦合，用满面板宽度平分 ── */
+.se-cols { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.se-colhead { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+.sch { font-size: 11px; color: var(--foreground-muted); }
+.sch-s { flex: 1.3 1 0; min-width: 0; }
+.sch-e { flex: 1 1 0; min-width: 0; }
+.se-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default), background var(--duration-fast) var(--easing-default); }
+.se-row.open { box-shadow: inset 0 0 0 1px var(--primary); }
+.se-row.hot { background: var(--surface-3); }
 
-/* 竖向一条链路：传感器头(卡+删除) 在上，事件在下换行扇出（适配窄面板） */
-.chain { display: flex; flex-direction: column; gap: 8px; }
-.chain-head { display: flex; align-items: center; gap: 6px; }
+/* 左列：传感器节点卡（略宽于右列，容纳完整传感器名） */
+.se-sensor { flex: 1.3 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; }
 .sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
 .sensor-card:hover { background: var(--surface-4); }
-.branch.hot .sensor-card, .branch.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
+.se-row.hot .sensor-card, .se-row.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
 .sc-ic { display: inline-flex; flex: none; }
 .sc-ic svg { width: 15px; height: 15px; fill: var(--primary); }
-.branch.discrete .sc-ic svg { fill: var(--warning); }
+.se-row.discrete .sc-ic svg { fill: var(--warning); }
 .sc-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sc-kind { flex: none; font-size: 11px; color: var(--foreground-muted); padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-1); }
 .sc-dsdot { flex: none; }
@@ -624,8 +626,8 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .dot.Major { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .dot.Critical { background: var(--danger); }
 
-/* 事件节点卡：传感器下方换行扇出，铃铛图标按严重度着色 */
-.event-fan { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 6px; padding-left: 4px; }
+/* 右列：事件节点卡换行扇出，铃铛图标按严重度着色 */
+.se-events { flex: 1; min-width: 0; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
 .event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
 .event-node.none { color: var(--foreground-muted); }
 .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
