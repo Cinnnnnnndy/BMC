@@ -191,6 +191,18 @@ function loadPool(): Promise<Pool> {
   return poolPromise;
 }
 
+/** 顶栏配置下拉：单配置演示。webview 的 configListRequest 可能早于桥接注册
+ *  发出而被漏掉，因此 sendInit 里也主动推送一次（幂等）。 */
+function postConfigList(post: (msg: unknown) => void): void {
+  post({
+    command: 'configListResponse',
+    configs: [{ id: 'config-0', name: '配置1', topologyConfig: { Root: { children: [] } }, createdAt: '2026-01-01T00:00:00.000Z' }],
+    activeConfigId: 'config-0',
+    repos: {},
+    activeTopologyConfig: { Root: { children: [] } },
+  });
+}
+
 /**
  * Attach the host-side bridge to a csr-topo-ext iframe. Returns a cleanup fn.
  */
@@ -212,6 +224,8 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
     // 2) provide the board-file index (both message shapes the webview accepts)
     post({ command: 'srFilesData', files: pool.metaByType });
     post({ command: 'allSrMetadata', data: pool.metaByType });
+    // 2.5) 配置下拉数据（webview 首次 configListRequest 可能在桥接注册前发出）
+    postConfigList(post);
     // 3) load the sample project's root board -> renders the topology
     if (pool.root) {
       post({ command: 'showTopologyView', data: { rootSrData: pool.root, rootSrPath: ROOT_FILE } });
@@ -241,14 +255,7 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
         break;
       }
       case 'configListRequest':
-        // 顶栏配置下拉：单配置演示
-        post({
-          command: 'configListResponse',
-          configs: [{ id: 'config-0', name: '配置1', topologyConfig: { Root: { children: [] } }, createdAt: '2026-01-01T00:00:00.000Z' }],
-          activeConfigId: 'config-0',
-          repos: {},
-          activeTopologyConfig: { Root: { children: [] } },
-        });
+        postConfigList(post);
         break;
       case 'loadSrFile': {
         const p = (data.path || '').replace(/\\/g, '/');
