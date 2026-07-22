@@ -3,6 +3,7 @@ import { ProjectList } from './components/ProjectList';
 import { AgentTerminal, type TermRunRequest } from './components/AgentTerminal';
 import { RepoHintPopover } from './components/RepoHintPopover';
 import { withBase } from './base';
+import { CsrTopoFrame } from './csrTopoBridge';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
 
@@ -1024,29 +1025,9 @@ export default function App() {
       case 'vueTopo':
         return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />;
       case 'csrTopo':
-        return (
-          <iframe
-            src={csrTopoSrc}
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            title="CSR拓扑编辑器"
-            onLoad={e => {
-              const win = (e.currentTarget as HTMLIFrameElement).contentWindow;
-              if (!win) return;
-              // 默认帮用户加载内置示例工程（一对 EXU .sr 文件），直接进入
-              // “已选择工程文件”的拓扑状态作为示例，而不是空的“选择工程文件”界面。
-              import('./data/csrSampleProject').then(({ buildCsrSampleRootSr, CSR_SAMPLE_ROOT_PATH }) => {
-                const msg = {
-                  command: 'showTopologyView',
-                  data: { rootSrData: buildCsrSampleRootSr(), rootSrPath: CSR_SAMPLE_ROOT_PATH },
-                };
-                // webview 的消息监听在挂载后才就绪：onLoad 后重试几次，避免竞态丢消息。
-                win.postMessage(msg, '*');
-                setTimeout(() => win.postMessage(msg, '*'), 300);
-                setTimeout(() => win.postMessage(msg, '*'), 800);
-              });
-            }}
-          />
-        );
+        // 默认加载示例工程并接入 public/sr-samples/ 板卡样例库：打开即进入
+        // “已选择工程文件”的拓扑状态，下游板卡按 Bom/Type 从样例库解析。
+        return <CsrTopoFrame src={csrTopoSrc} />;
       case 'hwTopology':
         return <HardwareTopologyCanvas />;
       case 'serverView':
