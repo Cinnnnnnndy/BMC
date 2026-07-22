@@ -2,7 +2,7 @@
 // Unified topology view.
 // Layout: BMC → EXU → board groups (left → right, mind-map style).
 // Each card shows inline: header + SN/PN dropdown + I2C bus / mux / chip tree.
-import { computed, markRaw, onMounted, provide, readonly, ref, watch } from 'vue';
+import { computed, markRaw, nextTick, onMounted, provide, readonly, ref, watch } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background, BackgroundVariant } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -248,18 +248,16 @@ watch([activeGroup, panelTab], () => {
 
 // 器件级配置：板卡 → 本板器件（物理芯片）列表；点芯片进入器件配置（按数据源芯片收窄）
 // 器件 = ManagementTopology 里的物理芯片（SMC/LM75/Eeprom/CPLD/PCA9545…），只有点击才展开其配置。
-interface PanelDevice { key: string; label: string; typeLabel: string; bus?: string; sensorCount: number; kind: 'chip' | 'firmware' }
+interface PanelDevice { key: string; label: string; typeLabel: string; chipType?: string; bus?: string; sensorCount: number; kind: 'chip' | 'firmware' }
 const activeDevice = ref<PanelDevice | null>(null);
-const boardDevices = computed<PanelDevice[]>(() => {
-  const g = activeGroup.value;
-  if (!g) return [];
+function computeDevicesFor(g: BoardGroup): PanelDevice[] {
   const real = boardChipDevices(g.name); // 来自真实 .sr（含每芯片传感器数）
   let devs: PanelDevice[];
   if (real.length) {
-    devs = real.map((c) => ({ key: c.name, label: c.name, typeLabel: c.typeLabel, bus: c.bus, sensorCount: c.sensorCount, kind: 'chip' as const }));
+    devs = real.map((c) => ({ key: c.name, label: c.name, typeLabel: c.typeLabel, chipType: c.type, bus: c.bus, sensorCount: c.sensorCount, kind: 'chip' as const }));
     // 固件/BIOS 推送的离散量（Reading=0，无物理芯片）单列一个通道设备
     const fw = boardAlarm(g.name).cfgs.filter((c) => !c.dsChip).length;
-    if (fw) devs.push({ key: '__firmware', label: '固件 / BIOS 推送', typeLabel: '固件通道（非物理芯片）', sensorCount: fw, kind: 'firmware' });
+    if (fw) devs.push({ key: '__firmware', label: '固件 / BIOS 推送', typeLabel: '固件通道（非物理芯片）', chipType: 'firmware', sensorCount: fw, kind: 'firmware' });
   } else {
     // 未载入 .sr 明细的板：从拓扑推断芯片（按类型去重，传感器数未知）
     const seen = new Set<string>();
@@ -267,13 +265,31 @@ const boardDevices = computed<PanelDevice[]>(() => {
     for (const bus of getTopology(g.type, g.name).buses) {
       for (const c of [...bus.chips, ...(bus.mux?.chips ?? [])]) {
         if (seen.has(c.chipType)) continue; seen.add(c.chipType);
-        devs.push({ key: c.chipType, label: c.label, typeLabel: chipTypeLabel(c.chipType), bus: bus.label, sensorCount: 0, kind: 'chip' });
+        devs.push({ key: c.chipType, label: c.label, typeLabel: chipTypeLabel(c.chipType), chipType: c.chipType, bus: bus.label, sensorCount: 0, kind: 'chip' });
       }
-      if (bus.mux && !seen.has('Pca9545')) { seen.add('Pca9545'); devs.push({ key: 'Pca9545', label: bus.mux.label, typeLabel: chipTypeLabel('Pca9545'), bus: bus.label, sensorCount: 0, kind: 'chip' }); }
+      if (bus.mux && !seen.has('Pca9545')) { seen.add('Pca9545'); devs.push({ key: 'Pca9545', label: bus.mux.label, typeLabel: chipTypeLabel('Pca9545'), chipType: 'Pca9545', bus: bus.label, sensorCount: 0, kind: 'chip' }); }
     }
   }
   return devs.sort((a, b) => b.sensorCount - a.sensorCount);
-});
+}
+const boardDevices = computed<PanelDevice[]>(() => activeGroup.value ? computeDevicesFor(activeGroup.value) : []);
+
+// 点击拓扑里的器件（芯片）→ 选中该板 + 打开该器件配置面板（区分板卡/器件入口）
+const CHIP_TYPE_ALIAS: Record<string, string> = { smc: 'Smc', lm75: 'Lm75', eeprom: 'Eeprom', cpld: 'Cpld', pca9545: 'Pca9545', mux: 'Pca9545' };
+function pickChip(g: BoardGroup, chip: { label: string; chipType: string }): void {
+  const node = nodes.value.find((n) => n.type === 'boardgroup' && n.id === g.id);
+  if (node) activeNode.value = node;
+  const st = boardAlarm(g.name);
+  if (!st.loaded) { st.loaded = true; const s = seedCfgsForBoard(g.name); if (s.cfgs.length) st.cfgs.push(...s.cfgs); }
+  const devs = computeDevicesFor(g);
+  const want = CHIP_TYPE_ALIAS[chip.chipType.toLowerCase()] || chip.chipType;
+  const match = devs.find((d) => d.chipType === want)
+    || devs.find((d) => d.label.toLowerCase() === chip.label.toLowerCase())
+    || null;
+  // activeGroup 变化会触发 watch 复位 activeDevice；用 nextTick 在其之后再设，避免被清掉
+  nextTick(() => { activeDevice.value = match; panelTab.value = match && match.sensorCount ? 'alarm' : 'detail'; });
+}
+provide('onChipPick', pickChip);
 // 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
 watch(activeGroup, (g) => {
   activeDevice.value = null;

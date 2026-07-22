@@ -3,7 +3,7 @@
 //   • Header: type badge + label + variant count
 //   • Searchable dropdown to switch between board variants (by SN/PN)
 //   • Inline I2C topology (buses → muxes → chips), collapsible
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, inject, ref, watch, onBeforeUnmount } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import type { NodeProps } from '@vue-flow/core';
 import type {
@@ -31,6 +31,8 @@ const props = defineProps<NodeProps<GroupData>>();
 
 const group   = computed<BoardGroup>(() => props.data.group);
 const state   = computed<ResolutionState>(() => group.value.state ?? 'resolved');
+// 点击拓扑里的器件（芯片）→ 由上层（TopologyView）打开该器件的配置面板
+const onChipPick = inject<((g: BoardGroup, c: { label: string; chipType: string }) => void) | null>('onChipPick', null);
 const topo    = computed(() => getTopology(group.value.type, group.value.name));
 
 // ── Variants source depends on resolution state ─────────────────────────
@@ -348,6 +350,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
       <MiniTopology
         v-if="!topoCollapsed"
         :buses="topo.buses"
+        @chip-click="(c) => onChipPick?.(group, c)"
       />
     </div>
 

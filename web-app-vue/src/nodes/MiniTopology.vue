@@ -20,6 +20,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { BusRow } from '../data/boardTopologies';
 
 const props = defineProps<{ buses: BusRow[] }>();
+// 点击器件（芯片/mux）→ 冒泡给上层打开该器件的配置面板（区分拖拽：位移小于阈值才算点击）
+const emit = defineEmits<{ chipClick: [{ label: string; chipType: string }] }>();
 
 const BUS_ABBR: Record<string, string> = {
   i2c: 'I2C', smbus: 'SMB', hisport: 'HSP', jtag: 'JTAG',
@@ -208,6 +210,7 @@ interface DragState {
 
 const drag    = ref<DragState | null>(null);
 const hotKey  = ref<string | null>(null);  // key of element being dragged (for z-index / cursor)
+const movedFar = ref(false);               // 本次按下是否发生了拖动（用于区分点击 vs 拖拽）
 
 function onItemDown(key: string, e: PointerEvent) {
   // stopPropagation on pointerdown blocks VueFlow's node-drag handler
@@ -218,6 +221,7 @@ function onItemDown(key: string, e: PointerEvent) {
   const p = positions.value[key];
   if (!p) return;
 
+  movedFar.value = false;
   drag.value  = { key, startX: e.clientX, startY: e.clientY, origX: p.x, origY: p.y };
   hotKey.value = key;
 }
@@ -225,6 +229,7 @@ function onItemDown(key: string, e: PointerEvent) {
 function onDocMove(e: PointerEvent) {
   const d = drag.value;
   if (!d) return;
+  if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > 4) movedFar.value = true;
   positions.value = {
     ...positions.value,
     [d.key]: {
@@ -232,6 +237,11 @@ function onDocMove(e: PointerEvent) {
       y: d.origY + e.clientY - d.startY,
     },
   };
+}
+
+// 点击器件（未拖动才算）→ 冒泡打开该器件的配置
+function clickChip(chip: { label: string; chipType: string }) {
+  if (!movedFar.value) emit('chipClick', chip);
 }
 
 function onDocUp() {
@@ -310,6 +320,7 @@ function resetLayout() {
           top:  (positions[ck(bus.id, ci)]?.y ?? 0) + 'px',
         }"
         @pointerdown="(e) => onItemDown(ck(bus.id, ci), e)"
+        @click.stop="clickChip({ label: chip.label, chipType: chip.chipType })"
       >
         <div class="chip-lbl">{{ chip.label }}</div>
       </div>
@@ -324,6 +335,7 @@ function resetLayout() {
             top:  (positions[mk(bus.id)]?.y ?? 0) + 'px',
           }"
           @pointerdown="(e) => onItemDown(mk(bus.id), e)"
+          @click.stop="clickChip({ label: bus.mux.label, chipType: 'Pca9545' })"
         >
           <div class="mux-lbl">{{ bus.mux.label }}</div>
           <div class="mux-handles">
@@ -347,6 +359,7 @@ function resetLayout() {
             top:  (positions[fck(bus.id, fi)]?.y ?? 0) + 'px',
           }"
           @pointerdown="(e) => onItemDown(fck(bus.id, fi), e)"
+          @click.stop="clickChip({ label: chip.label, chipType: chip.chipType })"
         >
           <div class="chip-lbl">{{ chip.label }}</div>
         </div>
