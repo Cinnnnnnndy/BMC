@@ -1,20 +1,14 @@
 <script setup lang="ts">
 // 整机（Chassis）告警总览：跨板明细（真实 .sr）+ 机箱级事件 + 一致性检查（不做逐条编辑）
 import { computed, onMounted } from 'vue';
-import { boardAlarm } from '../alarm/alarmStore';
 import { boardRollup, chassisEvents, thresholdInconsistencies } from '../alarm/chassisAggregate';
-import { seedCfgsForBoard } from '../alarm/srSeed';
+import { loadBoardOnce } from '../alarm/srSeed';
 
 const props = defineProps<{ boards: { name: string; type: string }[] }>();
 defineEmits<{ close: [] }>();
 
 // 打开总览时，为每块有匹配 .sr 的画布板播种（使板卡/器件面板与总览同源）
-onMounted(() => {
-  for (const b of props.boards) {
-    const st = boardAlarm(b.name);
-    if (!st.loaded) { st.loaded = true; const s = seedCfgsForBoard(b.name); if (s.cfgs.length) st.cfgs.push(...s.cfgs); }
-  }
-});
+onMounted(() => { for (const b of props.boards) loadBoardOnce(b.name); });
 
 const rows = computed(() => boardRollup());
 const cEvents = computed(() => chassisEvents());

@@ -10,8 +10,8 @@ import {
   generateAlarmObjects, configId, type AlarmSpec, type GeneratedSensor, type NormalizedEvent,
 } from '../alarm/alarmObjectGenerator';
 // 共享 per-board store（板卡级/器件级同源）+ 真实 .sr 播种
-import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCfg } from '../alarm/alarmStore';
-import { seedCfgsForBoard } from '../alarm/srSeed';
+import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCfg, type LooseEvent } from '../alarm/alarmStore';
+import { loadBoardOnce } from '../alarm/srSeed';
 
 const { state: link, openCodeDoc } = useLinkage();
 // scopeChipKey：器件（物理芯片）级告警——只显示数据源=该芯片的传感器；'__firmware'=固件推送(无芯片)。
@@ -44,12 +44,7 @@ function toggleExpand(id: string): void { expandedId.value = expandedId.value ==
 // 换板卡：各板 cfgs 独立存于 store（不清空）；首次进入用真实 .sr 播种
 watch(boardKey, (key) => {
   expandedId.value = null;
-  const st = boardAlarm(key);
-  if (!st.loaded) {
-    st.loaded = true;
-    const seed = seedCfgsForBoard(key);
-    if (seed.cfgs.length) st.cfgs.push(...seed.cfgs);
-  }
+  loadBoardOnce(key);
 }, { immediate: true });
 
 const selDeviceKey = ref('');
@@ -222,6 +217,33 @@ const sensorCount = computed(() => generated.value.cards.length);
 const openEntry = computed<Entry | null>(() => generated.value.cards.find((e) => e.sensor.configId === expandedId.value) || null);
 const openCfg = computed<SensorCfg | null>(() => openEntry.value?.cfg || null);
 
+/* 独立事件（不经传感器）——真实 .sr 里绝大多数事件属此类；按数据源器件分组、可逐条点击配置 */
+const looseAll = computed<LooseEvent[]>(() => boardAlarm(boardKey.value).looseEvents);
+const scopedLoose = computed<LooseEvent[]>(() => {
+  if (props.scopeChipKey) {
+    return props.scopeChipKey === '__firmware'
+      ? looseAll.value.filter((e) => !e.dsChip)
+      : looseAll.value.filter((e) => e.dsChip === props.scopeChipKey);
+  }
+  if (props.scopeDeviceKey) return [];
+  return looseAll.value;
+});
+interface LooseGroup { key: string; label: string; events: LooseEvent[]; }
+const looseGroups = computed<LooseGroup[]>(() => {
+  const map = new Map<string, LooseEvent[]>();
+  for (const e of scopedLoose.value) {
+    const k = e.dsChip || '__fw';
+    let arr = map.get(k); if (!arr) { arr = []; map.set(k, arr); }
+    arr.push(e);
+  }
+  return [...map.entries()].map(([key, events]) => ({
+    key, label: key === '__fw' ? '固件 / BIOS 推送 · 无数据源芯片' : `数据源器件 ${key}`, events,
+  }));
+});
+const looseCount = computed(() => scopedLoose.value.length);
+const openLooseId = ref<string | null>(null);
+function toggleLoose(id: string): void { openLooseId.value = openLooseId.value === id ? null : id; }
+
 function isThreshold(c: SensorCfg): boolean { return QUANTITIES[c.quantityKey].kind === 'threshold'; }
 function unitOf(c: SensorCfg): string { return QUANTITIES[c.quantityKey].unitLabel || ''; }
 function recoThreshold(c: SensorCfg, k: string): number | undefined {
@@ -369,7 +391,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 
     <!-- 流：监控对象 → 扇出传感器 → 事件 -->
     <div class="flow-list">
-      <div v-if="!objGroups.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器（无 Scanner 数据源）。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
+      <div v-if="!objGroups.length && !looseGroups.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器，也无独立事件。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
 
       <div v-for="g in objGroups" :key="g.componentKey" class="obj-block" :ref="(el) => setBlockRef(g.componentKey, el)">
         <!-- 上下游连线层（对象→传感器→事件，随布局重算，hover 高亮链路） -->
@@ -408,10 +430,10 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
               <!-- 右列：事件节点卡扇出（铃铛按严重度着色；无门限时该列空态） -->
               <div class="se-events">
                 <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
-                <div v-for="ev in entry.sensor.events" :key="ev.key" class="event-node" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
+                <button v-for="ev in entry.sensor.events" :key="ev.key" class="event-node click" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="'点击展开配置 · ' + ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel" @click.stop="toggleExpand(entry.sensor.configId)">
                   <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
                   <span class="en-label">{{ ev.label }}</span>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -521,10 +543,48 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
       </div>
     </div>
 
+    <!-- 独立事件：不经传感器（真实 .sr 中占绝大多数：电压/在位/PMBus 状态等）；按数据源器件分组，逐条可点击配置 -->
+    <div v-if="looseGroups.length" class="loose-wrap">
+      <div class="loose-head">
+        <span class="lh-t">独立事件 · 不经传感器</span>
+        <span class="lh-sub">直连数据源 / 固件推送 · Condition 为字面触发值，与传感器松耦合</span>
+        <span class="lh-n">{{ looseCount }}</span>
+      </div>
+      <div v-for="g in looseGroups" :key="g.key" class="loose-group">
+        <div class="lg-cap">{{ g.label }}<span class="lg-n">{{ g.events.length }}</span></div>
+        <div class="lg-events">
+          <template v-for="e in g.events" :key="e.id">
+            <button class="levt" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]" :title="e.eventKeyId" @click="toggleLoose(e.id)">
+              <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+              <span class="levt-l">{{ e.label }}</span>
+              <span class="levt-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
+            </button>
+            <div v-if="openLooseId === e.id" class="levt-edit">
+              <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" />启用</label>
+              <label class="ef"><span class="ef-k">分级</span>
+                <select v-model="e.severity" class="disc-sel">
+                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                </select>
+              </label>
+              <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+                <input v-model.number="e.condition" type="number" class="thr-in w" />
+              </label>
+              <label class="ef"><span class="ef-k">方向</span>
+                <select v-model.number="e.operatorId" class="disc-sel">
+                  <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+                </select>
+              </label>
+              <div class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- 板卡级汇总 -->
-    <div v-if="sensorCount" class="board-summary">
+    <div v-if="sensorCount || looseCount" class="board-summary">
       <div class="bs-head">
-        <span>{{ objGroups.length }} 个监控对象 · {{ sensorCount }} 个传感器 · {{ eventCount }} 条告警 → 将写入 <b>{{ boardName }}.sr</b></span>
+        <span>{{ objGroups.length }} 个监控对象 · {{ sensorCount }} 个传感器 · {{ eventCount }} 条告警<template v-if="looseCount"> · {{ looseCount }} 条独立事件</template> → 将写入 <b>{{ boardName }}.sr</b></span>
         <div class="bs-actions">
           <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
             <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
@@ -694,6 +754,36 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .bs-actions { display: flex; gap: 8px; }
 .btn-ic { width: 13px; height: 13px; fill: currentColor; }
 .bs-json { max-height: 260px; overflow: auto; font-size: 11px; background: var(--surface-1); border-radius: var(--radius-md); padding: 10px; margin: 0; }
+
+/* 事件节点卡可点击（展开其传感器配置） */
+button.event-node { border: none; font: inherit; cursor: pointer; text-align: left; }
+button.event-node:hover { background: var(--surface-2); }
+button.event-node:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+
+/* ── 独立事件（不经传感器）：按数据源器件分组，逐条点击配置 ── */
+.loose-wrap { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px; }
+.loose-head { display: flex; align-items: center; gap: 8px; }
+.lh-t { flex: none; font-size: 12px; font-weight: 600; color: var(--foreground); }
+.lh-sub { flex: 1; min-width: 0; font-size: 11px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lh-n { flex: none; font-size: 11px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--foreground-secondary); }
+.loose-group { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-lg); background: var(--surface-1); }
+.lg-cap { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--foreground-secondary); font-family: ui-monospace, monospace; }
+.lg-n { font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--foreground-muted); }
+.lg-events { display: flex; flex-wrap: wrap; gap: 6px; }
+.levt { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 11px; color: var(--foreground-secondary); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
+.levt:hover { background: var(--surface-3); }
+.levt.open { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--primary); }
+.levt.off { opacity: .5; }
+.levt:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+.levt .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
+.levt .en-ic svg { width: 12px; height: 12px; fill: currentColor; }
+.levt.Minor .en-ic { color: var(--warning); }
+.levt.Major .en-ic { color: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
+.levt.Critical .en-ic { color: var(--danger); }
+.levt-l { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.levt-op { flex: none; font-family: ui-monospace, monospace; color: var(--foreground-muted); }
+.levt-edit { flex: 1 0 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; border-radius: var(--radius-md); background: var(--surface-2); }
+.levt-key { font-family: ui-monospace, monospace; font-size: 11px; color: var(--foreground-secondary); background: var(--surface-3); padding: 2px 8px; border-radius: var(--radius-sm); word-break: break-all; }
 
 /* ── 焦点可见（键盘导航）· 所有 all:unset 的交互件显式补回焦点环 ── */
 .dev-chip:focus-visible,

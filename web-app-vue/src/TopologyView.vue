@@ -14,7 +14,7 @@ import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
 import ChassisOverview from './components/ChassisOverview.vue';
 import { boardAlarm } from './alarm/alarmStore';
-import { seedCfgsForBoard, boardChipDevices } from './alarm/srSeed';
+import { loadBoardOnce, boardChipDevices } from './alarm/srSeed';
 import { getTopology } from './data/boardTopologies';
 import { chipTypeLabel } from './data/srParser';
 
@@ -248,29 +248,31 @@ watch([activeGroup, panelTab], () => {
 
 // 器件级配置：板卡 → 本板器件（物理芯片）列表；点芯片进入器件配置（按数据源芯片收窄）
 // 器件 = ManagementTopology 里的物理芯片（SMC/LM75/Eeprom/CPLD/PCA9545…），只有点击才展开其配置。
-interface PanelDevice { key: string; label: string; typeLabel: string; chipType?: string; bus?: string; sensorCount: number; kind: 'chip' | 'firmware' }
+interface PanelDevice { key: string; label: string; typeLabel: string; chipType?: string; bus?: string; sensorCount: number; eventCount: number; kind: 'chip' | 'firmware' }
 const activeDevice = ref<PanelDevice | null>(null);
 function computeDevicesFor(g: BoardGroup): PanelDevice[] {
-  const real = boardChipDevices(g.name); // 来自真实 .sr（含每芯片传感器数）
+  const real = boardChipDevices(g.name); // 来自真实 .sr（含每芯片传感器/独立事件数）
   let devs: PanelDevice[];
   if (real.length) {
-    devs = real.map((c) => ({ key: c.name, label: c.name, typeLabel: c.typeLabel, chipType: c.type, bus: c.bus, sensorCount: c.sensorCount, kind: 'chip' as const }));
-    // 固件/BIOS 推送的离散量（Reading=0，无物理芯片）单列一个通道设备
-    const fw = boardAlarm(g.name).cfgs.filter((c) => !c.dsChip).length;
-    if (fw) devs.push({ key: '__firmware', label: '固件 / BIOS 推送', typeLabel: '固件通道（非物理芯片）', chipType: 'firmware', sensorCount: fw, kind: 'firmware' });
+    devs = real.map((c) => ({ key: c.name, label: c.name, typeLabel: c.typeLabel, chipType: c.type, bus: c.bus, sensorCount: c.sensorCount, eventCount: c.eventCount, kind: 'chip' as const }));
+    // 固件/BIOS 推送（Reading=0 传感器 + 无数据源芯片的独立事件）单列一个通道设备
+    const st = boardAlarm(g.name);
+    const fwS = st.cfgs.filter((c) => !c.dsChip).length;
+    const fwE = st.looseEvents.filter((e) => !e.dsChip).length;
+    if (fwS || fwE) devs.push({ key: '__firmware', label: '固件 / BIOS 推送', typeLabel: '固件通道（非物理芯片）', chipType: 'firmware', sensorCount: fwS, eventCount: fwE, kind: 'firmware' });
   } else {
-    // 未载入 .sr 明细的板：从拓扑推断芯片（按类型去重，传感器数未知）
+    // 未载入 .sr 明细的板：从拓扑推断芯片（按类型去重，传感器/事件数未知）
     const seen = new Set<string>();
     devs = [];
     for (const bus of getTopology(g.type, g.name).buses) {
       for (const c of [...bus.chips, ...(bus.mux?.chips ?? [])]) {
         if (seen.has(c.chipType)) continue; seen.add(c.chipType);
-        devs.push({ key: c.chipType, label: c.label, typeLabel: chipTypeLabel(c.chipType), chipType: c.chipType, bus: bus.label, sensorCount: 0, kind: 'chip' });
+        devs.push({ key: c.chipType, label: c.label, typeLabel: chipTypeLabel(c.chipType), chipType: c.chipType, bus: bus.label, sensorCount: 0, eventCount: 0, kind: 'chip' });
       }
-      if (bus.mux && !seen.has('Pca9545')) { seen.add('Pca9545'); devs.push({ key: 'Pca9545', label: bus.mux.label, typeLabel: chipTypeLabel('Pca9545'), chipType: 'Pca9545', bus: bus.label, sensorCount: 0, kind: 'chip' }); }
+      if (bus.mux && !seen.has('Pca9545')) { seen.add('Pca9545'); devs.push({ key: 'Pca9545', label: bus.mux.label, typeLabel: chipTypeLabel('Pca9545'), chipType: 'Pca9545', bus: bus.label, sensorCount: 0, eventCount: 0, kind: 'chip' }); }
     }
   }
-  return devs.sort((a, b) => b.sensorCount - a.sensorCount);
+  return devs.sort((a, b) => (b.sensorCount + b.eventCount) - (a.sensorCount + a.eventCount));
 }
 const boardDevices = computed<PanelDevice[]>(() => activeGroup.value ? computeDevicesFor(activeGroup.value) : []);
 
@@ -279,24 +281,20 @@ const CHIP_TYPE_ALIAS: Record<string, string> = { smc: 'Smc', lm75: 'Lm75', eepr
 function pickChip(g: BoardGroup, chip: { label: string; chipType: string }): void {
   const node = nodes.value.find((n) => n.type === 'boardgroup' && n.id === g.id);
   if (node) activeNode.value = node;
-  const st = boardAlarm(g.name);
-  if (!st.loaded) { st.loaded = true; const s = seedCfgsForBoard(g.name); if (s.cfgs.length) st.cfgs.push(...s.cfgs); }
+  loadBoardOnce(g.name);
   const devs = computeDevicesFor(g);
   const want = CHIP_TYPE_ALIAS[chip.chipType.toLowerCase()] || chip.chipType;
   const match = devs.find((d) => d.chipType === want)
     || devs.find((d) => d.label.toLowerCase() === chip.label.toLowerCase())
     || null;
   // activeGroup 变化会触发 watch 复位 activeDevice；用 nextTick 在其之后再设，避免被清掉
-  nextTick(() => { activeDevice.value = match; panelTab.value = match && match.sensorCount ? 'alarm' : 'detail'; });
+  nextTick(() => { activeDevice.value = match; panelTab.value = match && (match.sensorCount || match.eventCount) ? 'alarm' : 'detail'; });
 }
 provide('onChipPick', pickChip);
 // 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
 watch(activeGroup, (g) => {
   activeDevice.value = null;
-  if (g) {
-    const st = boardAlarm(g.name);
-    if (!st.loaded) { st.loaded = true; const s = seedCfgsForBoard(g.name); if (s.cfgs.length) st.cfgs.push(...s.cfgs); }
-  }
+  if (g) loadBoardOnce(g.name);
 }, { immediate: true });
 
 // 整机（Chassis）告警总览：跨板聚合 + 机箱级 + 一致性
@@ -554,6 +552,7 @@ function catStateClass(cat: CatNode): string {
               <span class="di-key">{{ d.label }}</span>
             </span>
             <span v-if="d.sensorCount" class="di-cnt">{{ d.sensorCount }} 传感器</span>
+            <span v-if="d.eventCount" class="di-cnt ev">{{ d.eventCount }} 事件</span>
             <span class="di-arrow">›</span>
           </button>
           <div v-if="!boardDevices.length" class="di-empty">该板 .sr 明细未载入，暂无器件</div>
@@ -633,11 +632,12 @@ function catStateClass(cat: CatNode): string {
             <div class="pp-field"><div class="pp-field-label">类型</div><div class="pp-field-value">{{ activeDevice.typeLabel }}</div></div>
             <div v-if="activeDevice.bus" class="pp-field"><div class="pp-field-label">所在总线</div><div class="pp-field-value mono">{{ activeDevice.bus }}</div></div>
             <div class="pp-field"><div class="pp-field-label">承载传感器</div><div class="pp-field-value">{{ activeDevice.sensorCount }} 个</div></div>
+            <div class="pp-field"><div class="pp-field-label">独立事件</div><div class="pp-field-value">{{ activeDevice.eventCount }} 条<span v-if="activeDevice.eventCount" style="color:var(--foreground-muted)"> · 不经传感器，直连本器件数据源</span></div></div>
             <div class="pp-field"><div class="pp-field-label">所属板卡</div><div class="pp-field-value mono">{{ activeGroup.name }} · {{ activeGroup.type }}</div></div>
           </div>
-          <div v-if="activeDevice.kind === 'chip' && !activeDevice.sensorCount" class="pp-card">
+          <div v-if="activeDevice.kind === 'chip' && !activeDevice.sensorCount && !activeDevice.eventCount" class="pp-card">
             <div class="pp-field-value" style="font-size:11px;line-height:1.5;background:transparent;padding:0">
-              该器件仅参与 I2C 拓扑与在位识别（EEPROM 信息 / CPLD 逻辑 / PCA9545 扩展等），未承载遥测传感器（无 Scanner 数据源），因此没有告警链路。
+              该器件仅参与 I2C 拓扑与在位识别（EEPROM 信息 / CPLD 逻辑 / PCA9545 扩展等），未承载遥测传感器或独立事件（无 Scanner 数据源），因此没有告警链路。
             </div>
           </div>
           <div class="pp-wake">

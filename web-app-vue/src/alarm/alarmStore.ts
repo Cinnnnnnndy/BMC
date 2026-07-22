@@ -20,13 +20,24 @@ export interface SensorCfg {
   hysteresis: number; events: EvItem[]; enabled: boolean;
 }
 
-export interface BoardAlarm { cfgs: SensorCfg[]; uidN: number; evSeq: number; loaded: boolean; }
+// 独立事件：不经传感器（Condition 为字面值）——真实 .sr 里绝大多数事件属此类（电压/在位/PMBus 状态等），
+// 直连数据源芯片（Reading→Scanner.Chip）或由固件推送。与传感器松耦合，单独成条可点击配置。
+export interface LooseEvent {
+  id: string; eventKeyId: string; label: string;
+  condition: number; operatorId: number;
+  severity: 'Minor' | 'Major' | 'Critical';
+  dsChip: string;              // 数据源芯片（''=固件/无）
+  scope: 'chassis' | 'board' | 'device';
+  enabled: boolean;
+}
+
+export interface BoardAlarm { cfgs: SensorCfg[]; looseEvents: LooseEvent[]; uidN: number; evSeq: number; loaded: boolean; }
 
 const store = reactive<Record<string, BoardAlarm>>({});
 
 /** 取（或建）某板卡的告警状态。boardKey 用板卡显示名。 */
 export function boardAlarm(boardKey: string): BoardAlarm {
-  if (!store[boardKey]) store[boardKey] = { cfgs: [], uidN: 0, evSeq: 0, loaded: false };
+  if (!store[boardKey]) store[boardKey] = { cfgs: [], looseEvents: [], uidN: 0, evSeq: 0, loaded: false };
   return store[boardKey];
 }
 export function nextUid(boardKey: string): string { return `e${++boardAlarm(boardKey).uidN}`; }

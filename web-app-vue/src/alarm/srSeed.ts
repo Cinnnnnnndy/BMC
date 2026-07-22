@@ -2,8 +2,8 @@
 // 把一份板卡 .sr（硬件 + _soft 软件，字段级合并）里已配置的「传感器 → 事件」链路
 // 映射成告警视图的 SensorCfg，并把每个传感器绑到它真实的数据源芯片（Reading→Scanner.Chip）。
 // ⇒ 板卡首次打开告警 tab 就带真实数据；器件面板按「数据源芯片」收窄视图。
-import { parseSr, mergeObjects, sensorChains, boardChips, sensorChipMap, type SrChip } from '../data/srParser';
-import type { SensorCfg, EvItem, ThrKey } from './alarmStore';
+import { parseSr, mergeObjects, sensorChains, boardChips, sensorChipMap, objectType, parseRef, type SrChip } from '../data/srParser';
+import { boardAlarm, type SensorCfg, type EvItem, type ThrKey, type LooseEvent } from './alarmStore';
 
 // 打包进构建的样例 .sr（真实数据）。硬件文件带门限/EventKeyId/Condition/Scanner.Chip；
 // _soft 带 Reading/OperatorId/Component —— 两者按对象名字段级合并后才完整。
@@ -75,22 +75,64 @@ export function allParsedBoards(): ParsedBoard[] {
   return out;
 }
 
-/** 该板真实物理器件（芯片）列表 + 每个芯片承载的传感器数（供本板器件列表）。 */
-export interface ChipDevice extends SrChip { sensorCount: number }
+/** 该板真实物理器件（芯片）列表 + 每芯片承载的传感器数与独立事件数（供本板器件列表）。 */
+export interface ChipDevice extends SrChip { sensorCount: number; eventCount: number }
 export function boardChipDevices(boardName: string): ChipDevice[] {
   const pb = parsedBoard(boardName);
   if (!pb) return [];
-  const cnt: Record<string, number> = {};
-  for (const chip of Object.values(pb.chipMap)) cnt[chip] = (cnt[chip] || 0) + 1;
-  return pb.chips.map((c) => ({ ...c, sensorCount: cnt[c.name] || 0 }));
+  const sCnt: Record<string, number> = {};
+  for (const chip of Object.values(pb.chipMap)) sCnt[chip] = (sCnt[chip] || 0) + 1;
+  const eCnt: Record<string, number> = {};
+  for (const e of looseEventsOf(pb)) if (e.dsChip) eCnt[e.dsChip] = (eCnt[e.dsChip] || 0) + 1;
+  return pb.chips.map((c) => ({ ...c, sensorCount: sCnt[c.name] || 0, eventCount: eCnt[c.name] || 0 }));
 }
 
-export interface SrSeedResult { cfgs: SensorCfg[]; skipped: number; }
+export interface SrSeedResult { cfgs: SensorCfg[]; looseEvents: LooseEvent[]; skipped: number; }
 
-/** 由 boardName 找到匹配 .sr 并解析出 SensorCfg（找不到则空）。每条绑定真实数据源芯片。 */
+/** 事件的 Reading → Scanner.Chip → 数据源芯片名（''=固件/无）。*/
+function readingChipOf(objects: Record<string, Record<string, unknown>>, obj: Record<string, unknown>): string {
+  const r = obj.Reading;
+  if (typeof r !== 'string') return '';
+  const m = r.match(/<=\/(Scanner_[A-Za-z0-9_]+)\.Value/);
+  if (!m) return '';
+  const sc = objects[m[1]];
+  const cr = sc ? parseRef(sc.Chip) : null;
+  return cr ? cr.target : '';
+}
+function scopeOf(keyId: string): LooseEvent['scope'] {
+  if (/^Chassis\./.test(keyId)) return 'chassis';
+  return 'board';
+}
+
+/** 独立事件：所有未被传感器归属、且带 EventKeyId 的 Event（Condition 多为字面值，直连数据源/固件）。 */
+export function looseEventsOf(pb: ParsedBoard): LooseEvent[] {
+  const consumed = new Set<string>();
+  for (const ch of sensorChains(pb.objects)) {
+    if (!/^(ThresholdSensor|DiscreteSensor)_/.test(ch.name)) continue;
+    ch.events.forEach((e) => consumed.add(e.name));
+  }
+  const out: LooseEvent[] = []; let le = 0;
+  for (const [oname, obj] of Object.entries(pb.objects)) {
+    if (objectType(oname) !== 'Event' || consumed.has(oname)) continue;
+    const keyId = typeof obj.EventKeyId === 'string' ? obj.EventKeyId : '';
+    if (!keyId) continue; // 无告警字典条目的内部事件跳过
+    const label = (typeof obj.DescArg2 === 'string' && obj.DescArg2)
+      || (keyId.split('.').pop() || oname.replace(/^Event_/, ''));
+    out.push({
+      id: `le${++le}`, eventKeyId: keyId, label,
+      condition: typeof obj.Condition === 'number' ? obj.Condition : 0,
+      operatorId: typeof obj.OperatorId === 'number' ? obj.OperatorId : 5,
+      severity: severityOf(keyId), dsChip: readingChipOf(pb.objects, obj),
+      scope: scopeOf(keyId), enabled: obj.Enabled !== false,
+    });
+  }
+  return out;
+}
+
+/** 由 boardName 找到匹配 .sr 并解析出 SensorCfg + 独立事件（找不到则空）。每条绑定真实数据源芯片。 */
 export function seedCfgsForBoard(boardName: string): SrSeedResult {
   const pb = parsedBoard(boardName);
-  if (!pb) return { cfgs: [], skipped: 0 };
+  if (!pb) return { cfgs: [], looseEvents: [], skipped: 0 };
   const chains = sensorChains(pb.objects);
   const cfgs: SensorCfg[] = [];
   let skipped = 0; let ev = 0;
@@ -129,5 +171,15 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
       });
     } else { skipped++; }
   }
-  return { cfgs, skipped };
+  return { cfgs, looseEvents: looseEventsOf(pb), skipped };
+}
+
+/** 首次进入某板时把真实 .sr 播种进 store（cfgs + 独立事件），已加载则跳过。 */
+export function loadBoardOnce(boardName: string): void {
+  const st = boardAlarm(boardName);
+  if (st.loaded) return;
+  st.loaded = true;
+  const seed = seedCfgsForBoard(boardName);
+  if (seed.cfgs.length) st.cfgs.push(...seed.cfgs);
+  if (seed.looseEvents.length) st.looseEvents.push(...seed.looseEvents);
 }
