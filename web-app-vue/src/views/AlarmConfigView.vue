@@ -14,8 +14,9 @@ import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCf
 import { seedCfgsForBoard } from '../alarm/srSeed';
 
 const { state: link, openCodeDoc } = useLinkage();
-// scopeDeviceKey：器件级告警时锁定到单个监控器件（隐藏器件切换、流只显示该器件的传感器）
-const props = defineProps<{ scopeDeviceKey?: string }>();
+// scopeChipKey：器件（物理芯片）级告警——只显示数据源=该芯片的传感器；'__firmware'=固件推送(无芯片)。
+// scopeDeviceKey：按监控设备收窄（历史入口，保留）。
+const props = defineProps<{ scopeDeviceKey?: string; scopeChipKey?: string }>();
 const inbound = computed(() => link.inbound.alarm);
 const boardType = computed(() => inbound.value?.boardType || 'Unknown');
 const boardName = computed(() => inbound.value?.boardName || '当前板卡');
@@ -26,8 +27,16 @@ const devices = computed<BoardDevice[]>(() => devicesForBoardType(boardType.valu
 const boardKey = computed(() => boardName.value);
 const uid = (): string => nextUid(boardKey.value);
 const cfgs = computed(() => boardAlarm(boardKey.value).cfgs);
-// 器件级 scope：只取该器件的链路（板卡级则全取）
-const scopedCfgs = computed(() => props.scopeDeviceKey ? cfgs.value.filter((c) => c.deviceKey === props.scopeDeviceKey) : cfgs.value);
+// 器件级 scope：芯片优先（按真实数据源芯片过滤），否则按监控设备，否则全取
+const scopedCfgs = computed(() => {
+  if (props.scopeChipKey) {
+    return props.scopeChipKey === '__firmware'
+      ? cfgs.value.filter((c) => !c.dsChip)
+      : cfgs.value.filter((c) => c.dsChip === props.scopeChipKey);
+  }
+  if (props.scopeDeviceKey) return cfgs.value.filter((c) => c.deviceKey === props.scopeDeviceKey);
+  return cfgs.value;
+});
 
 /* 默认折叠，只看流的全貌；点传感器卡展开它的配置（单展开）*/
 const expandedId = ref<string | null>(null);
@@ -313,9 +322,9 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
   <div class="alarm-view">
     <!-- 顶部工具条：上下文 + 快速新增（原「监控对象 + 添加区」收进浮窗） -->
     <div class="alarm-toolbar">
-      <span class="tb-tag">来自拓扑</span>
+      <span class="tb-tag">{{ scopeChipKey ? '数据源器件' : '来自拓扑' }}</span>
       <span class="tb-src">{{ source || boardName }}</span>
-      <button ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
+      <button v-if="!scopeChipKey" ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
     </div>
 
     <!-- 快速新增浮窗（teleport 到 body，避开面板 overflow 裁剪） -->
@@ -360,7 +369,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 
     <!-- 流：监控对象 → 扇出传感器 → 事件 -->
     <div class="flow-list">
-      <div v-if="!objGroups.length" class="empty">还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。</div>
+      <div v-if="!objGroups.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器（无 Scanner 数据源）。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
 
       <div v-for="g in objGroups" :key="g.componentKey" class="obj-block" :ref="(el) => setBlockRef(g.componentKey, el)">
         <!-- 上下游连线层（对象→传感器→事件，随布局重算，hover 高亮链路） -->

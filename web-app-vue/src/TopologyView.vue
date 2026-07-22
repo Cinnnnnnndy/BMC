@@ -12,10 +12,11 @@ import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
-import { devicesForBoardType, type BoardDevice } from './alarm/alarmKnowledge';
 import ChassisOverview from './components/ChassisOverview.vue';
 import { boardAlarm } from './alarm/alarmStore';
-import { seedCfgsForBoard } from './alarm/srSeed';
+import { seedCfgsForBoard, boardChipDevices } from './alarm/srSeed';
+import { getTopology } from './data/boardTopologies';
+import { chipTypeLabel } from './data/srParser';
 
 import { buildMindmap } from './data/mindmap';
 import { smcTarget, inferFunc, exprTemplate, coolingEntities } from './data/toolContext';
@@ -245,19 +246,33 @@ watch([activeGroup, panelTab], () => {
   }
 }, { immediate: true });
 
-// 器件级配置：板卡 → 本板器件列表；点器件进入器件配置（同一面板，scope 收窄到该器件）
-const activeDevice = ref<BoardDevice | null>(null);
-// 器件列表 = mock 可添加器件 ∪ .sr 派生器件（已配置传感器的器件，含「系统状态」等）
-const boardDevices = computed<BoardDevice[]>(() => {
+// 器件级配置：板卡 → 本板器件（物理芯片）列表；点芯片进入器件配置（按数据源芯片收窄）
+// 器件 = ManagementTopology 里的物理芯片（SMC/LM75/Eeprom/CPLD/PCA9545…），只有点击才展开其配置。
+interface PanelDevice { key: string; label: string; typeLabel: string; bus?: string; sensorCount: number; kind: 'chip' | 'firmware' }
+const activeDevice = ref<PanelDevice | null>(null);
+const boardDevices = computed<PanelDevice[]>(() => {
   const g = activeGroup.value;
   if (!g) return [];
-  const mock = devicesForBoardType(g.type);
-  const seen = new Set(mock.map((d) => d.key));
-  const derived: BoardDevice[] = [];
-  for (const c of boardAlarm(g.name).cfgs) {
-    if (!seen.has(c.deviceKey)) { seen.add(c.deviceKey); derived.push({ key: c.deviceKey, typeLabel: c.deviceLabel, quantities: [] }); }
+  const real = boardChipDevices(g.name); // 来自真实 .sr（含每芯片传感器数）
+  let devs: PanelDevice[];
+  if (real.length) {
+    devs = real.map((c) => ({ key: c.name, label: c.name, typeLabel: c.typeLabel, bus: c.bus, sensorCount: c.sensorCount, kind: 'chip' as const }));
+    // 固件/BIOS 推送的离散量（Reading=0，无物理芯片）单列一个通道设备
+    const fw = boardAlarm(g.name).cfgs.filter((c) => !c.dsChip).length;
+    if (fw) devs.push({ key: '__firmware', label: '固件 / BIOS 推送', typeLabel: '固件通道（非物理芯片）', sensorCount: fw, kind: 'firmware' });
+  } else {
+    // 未载入 .sr 明细的板：从拓扑推断芯片（按类型去重，传感器数未知）
+    const seen = new Set<string>();
+    devs = [];
+    for (const bus of getTopology(g.type, g.name).buses) {
+      for (const c of [...bus.chips, ...(bus.mux?.chips ?? [])]) {
+        if (seen.has(c.chipType)) continue; seen.add(c.chipType);
+        devs.push({ key: c.chipType, label: c.label, typeLabel: chipTypeLabel(c.chipType), bus: bus.label, sensorCount: 0, kind: 'chip' });
+      }
+      if (bus.mux && !seen.has('Pca9545')) { seen.add('Pca9545'); devs.push({ key: 'Pca9545', label: bus.mux.label, typeLabel: chipTypeLabel('Pca9545'), bus: bus.label, sensorCount: 0, kind: 'chip' }); }
+    }
   }
-  return [...mock, ...derived];
+  return devs.sort((a, b) => b.sensorCount - a.sensorCount);
 });
 // 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
 watch(activeGroup, (g) => {
@@ -486,7 +501,7 @@ function catStateClass(cat: CatNode): string {
     <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' }" @click.stop>
       <div class="pp-header">
         <button v-if="activeDevice" class="pp-back" title="返回板卡" @click="activeDevice = null">‹</button>
-        <span>{{ activeDevice ? activeDevice.key : '板卡配置' }}</span>
+        <span>{{ activeDevice ? activeDevice.label : '板卡配置' }}</span>
         <button class="pp-close" @click="activeNode = null">✕</button>
       </div>
 
@@ -514,15 +529,18 @@ function catStateClass(cat: CatNode): string {
       </div>
 
       <div class="pp-body">
-        <!-- 本板器件：点进入器件配置（scope 收窄到该器件） -->
+        <!-- 本板器件（物理芯片）：点进入器件配置（按数据源芯片收窄），与板卡配置分开 -->
         <div class="pp-card pp-devlist">
-          <div class="pp-card-cap">本板器件 · 点进入器件配置</div>
+          <div class="pp-card-cap">本板器件 · 点芯片进入其配置</div>
           <button v-for="d in boardDevices" :key="d.key" class="dev-item" @click="activeDevice = d">
-            <span class="di-type">{{ d.typeLabel }}</span>
-            <span class="di-key">{{ d.key }}</span>
+            <span class="di-main">
+              <span class="di-type">{{ d.typeLabel }}</span>
+              <span class="di-key">{{ d.label }}</span>
+            </span>
+            <span v-if="d.sensorCount" class="di-cnt">{{ d.sensorCount }} 传感器</span>
             <span class="di-arrow">›</span>
           </button>
-          <div v-if="!boardDevices.length" class="di-empty">该板型暂无可监控器件</div>
+          <div v-if="!boardDevices.length" class="di-empty">该板 .sr 明细未载入，暂无器件</div>
         </div>
         <div class="pp-card">
         <div class="pp-field">
@@ -595,10 +613,16 @@ function catStateClass(cat: CatNode): string {
       <template v-else>
         <div v-if="panelTab === 'detail'" class="pp-body">
           <div class="pp-card">
-            <div class="pp-field"><div class="pp-field-label">器件</div><div class="pp-field-value mono">{{ activeDevice.key }}</div></div>
+            <div class="pp-field"><div class="pp-field-label">器件</div><div class="pp-field-value mono">{{ activeDevice.label }}</div></div>
             <div class="pp-field"><div class="pp-field-label">类型</div><div class="pp-field-value">{{ activeDevice.typeLabel }}</div></div>
-            <div class="pp-field"><div class="pp-field-label">可监控量</div><div class="pp-field-value">{{ activeDevice.quantities.join('、') }}</div></div>
+            <div v-if="activeDevice.bus" class="pp-field"><div class="pp-field-label">所在总线</div><div class="pp-field-value mono">{{ activeDevice.bus }}</div></div>
+            <div class="pp-field"><div class="pp-field-label">承载传感器</div><div class="pp-field-value">{{ activeDevice.sensorCount }} 个</div></div>
             <div class="pp-field"><div class="pp-field-label">所属板卡</div><div class="pp-field-value mono">{{ activeGroup.name }} · {{ activeGroup.type }}</div></div>
+          </div>
+          <div v-if="activeDevice.kind === 'chip' && !activeDevice.sensorCount" class="pp-card">
+            <div class="pp-field-value" style="font-size:11px;line-height:1.5;background:transparent;padding:0">
+              该器件仅参与 I2C 拓扑与在位识别（EEPROM 信息 / CPLD 逻辑 / PCA9545 扩展等），未承载遥测传感器（无 Scanner 数据源），因此没有告警链路。
+            </div>
           </div>
           <div class="pp-wake">
             <div class="pp-wake-title">配置项辅助</div>
@@ -613,7 +637,7 @@ function catStateClass(cat: CatNode): string {
           </div>
         </div>
         <div v-else class="pp-alarm">
-          <AlarmConfigView :scope-device-key="activeDevice.key" />
+          <AlarmConfigView :scope-chip-key="activeDevice.key" />
         </div>
       </template>
     </div>

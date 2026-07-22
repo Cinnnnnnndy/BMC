@@ -81,6 +81,63 @@ export function objectType(name: string): string {
   return i < 0 ? name : name.slice(0, i);
 }
 
+/**
+ * 字段级合并硬件 .sr 与软件 _soft.sr 的 Objects。
+ * 二者对同名对象各写一半字段：硬件侧带 EventKeyId/Condition/门限/Scanner.Chip，
+ * 软件侧带 Reading/OperatorId/Component。必须逐对象浅合并，整体 Object.assign 会丢字段。
+ */
+export function mergeObjects(
+  hw: Record<string, SrObject>, soft: Record<string, SrObject>,
+): Record<string, SrObject> {
+  const out: Record<string, SrObject> = {};
+  for (const [k, v] of Object.entries(hw)) out[k] = { ...v };
+  for (const [k, v] of Object.entries(soft)) out[k] = { ...(out[k] || {}), ...v };
+  return out;
+}
+
+// ── 物理器件（芯片）──────────────────────────────────────────────────────
+export interface SrChip { name: string; type: string; typeLabel: string; bus: string }
+const CHIP_TYPE_LABEL: Record<string, string> = {
+  Smc: 'SMC 管理芯片', Lm75: 'LM75 温度芯片', Eeprom: 'EEPROM 信息器件',
+  Pca9545: 'PCA9545 I2C 扩展', Cpld: 'CPLD 逻辑器件', Chip: '板载器件',
+};
+export function chipTypeLabel(type: string): string { return CHIP_TYPE_LABEL[type] || `${type} 器件`; }
+
+/** 从 ManagementTopology 各总线取物理芯片（器件），按名前缀判型。 */
+export function boardChips(doc: SrDocument): SrChip[] {
+  const chips: SrChip[] = [];
+  const seen = new Set<string>();
+  for (const [bus, b] of Object.entries(doc.topology.buses)) {
+    for (const name of b.chips) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const type = objectType(name);
+      chips.push({ name, type, typeLabel: chipTypeLabel(type), bus });
+    }
+  }
+  return chips;
+}
+
+/**
+ * 传感器 → 数据源芯片 映射：顺着 Sensor.Reading 里的第一个 "<=/Scanner_X.Value"
+ * 找到 Scanner_X.Chip = "#/<chip>"。Reading 为 0/数字（固件推送）→ 无芯片。
+ */
+export function sensorChipMap(objects: Record<string, SrObject>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [name, obj] of Object.entries(objects)) {
+    const t = objectType(name);
+    if (t !== 'ThresholdSensor' && t !== 'DiscreteSensor') continue;
+    const reading = obj.Reading;
+    if (typeof reading !== 'string') continue; // 数字 = 固件推送，无芯片
+    const m = reading.match(/<=\/(Scanner_[A-Za-z0-9_]+)\.Value/);
+    if (!m) continue;
+    const scanner = objects[m[1]];
+    const chipRef = scanner ? parseRef(scanner.Chip) : null;
+    if (chipRef) map[name] = chipRef.target;
+  }
+  return map;
+}
+
 /** 按类型前缀把 Objects 的 key 归桶。*/
 export function bucketObjects(objects: Record<string, SrObject>): Record<string, string[]> {
   const out: Record<string, string[]> = {};
