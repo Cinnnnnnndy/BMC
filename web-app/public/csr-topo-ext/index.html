@@ -17,9 +17,16 @@
       * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
     </style>
     <script>
+      // Standalone (web) shim for the VS Code webview API. In the extension the
+      // host answers the webview's requests (sr files, file content, …); on the
+      // web we let the embedding page play that role by forwarding the webview's
+      // outgoing messages to the parent window. The parent (React app) replies
+      // with the sr-sample board library so the topology can resolve boards.
       window.acquireVsCodeApi = function() {
         return {
-          postMessage: function() {},
+          postMessage: function(msg) {
+            try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*'); } catch (e) {}
+          },
           getState: function() { return null; },
           setState: function() {}
         };

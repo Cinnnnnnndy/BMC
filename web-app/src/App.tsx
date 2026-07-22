@@ -3,6 +3,7 @@ import { ProjectList } from './components/ProjectList';
 import { AgentTerminal, type TermRunRequest } from './components/AgentTerminal';
 import { RepoHintPopover } from './components/RepoHintPopover';
 import { withBase } from './base';
+import { CsrTopoFrame } from './csrTopoBridge';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
 
@@ -1024,17 +1025,9 @@ export default function App() {
       case 'vueTopo':
         return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />;
       case 'csrTopo':
-        return (
-          <iframe
-            src={csrTopoSrc}
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            title="CSR拓扑编辑器"
-            onLoad={e => {
-              const win = (e.currentTarget as HTMLIFrameElement).contentWindow;
-              if (win) win.postMessage({ command: 'showAddNodeView' }, '*');
-            }}
-          />
-        );
+        // 默认加载示例工程并接入 public/sr-samples/ 板卡样例库：打开即进入
+        // “已选择工程文件”的拓扑状态，下游板卡按 Bom/Type 从样例库解析。
+        return <CsrTopoFrame src={csrTopoSrc} />;
       case 'hwTopology':
         return <HardwareTopologyCanvas />;
       case 'serverView':
