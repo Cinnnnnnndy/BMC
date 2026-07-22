@@ -226,6 +226,12 @@
 - `TopologyView.vue` + `topology.css`：`.topo-property-panel` 改浮动圆角壳（`--panel-shell-*`）；字段按语义分为 `.pp-card` 圆角卡片；`.pp-field-value` 底改 `--surface-2` 可辨；`.pp-delete` 裸红 → `--danger`/`--tone-critical-bg`；`缺失文件` 裸粉 → `--danger`；联动工具三钮 emoji → 单色面型 SVG，图标 pill 收敛为中性色。
 - `App.vue`：`toolMeta` emoji → 面型 SVG path（dock 标题内联渲染）；`.dock-hint` 裸绿 `#34d399` → `--success`；清全部蓝调 fallback。
 
+**R2（告警流改真节点图 + 连线 + hover 高亮，2026-07-22）**：按用户「事件也做成节点卡 / 上下游要有连线且可 hover 高亮链路」定稿告警流为**节点图**：
+- 事件由内联 chip → **独立事件节点卡**（铃铛面型图标按严重度着色），每条传感器竖向扇出其多条事件（链路竖排、一行一条）。
+- 新增 **SVG 连线层**：`onMounted`/`ResizeObserver(.flow-list)`/`resize`/`watch([objGroups,expandedId])` 实测节点 `getBoundingClientRect` 画贝塞尔——对象节点→各传感器、传感器→各事件；连线 `pointer-events:none` 铺在节点之下。
+- **hover 高亮链路**：`hoverSensor` 状态 → 该传感器上下游连线转 `--primary` 加粗、其余 `opacity .22` 变淡，传感器卡加主色环、branch 底色抬升。
+- 密度取舍：较「一行多卡」略降（回到一行一条），换取参考图 3 的真节点图 + 连线可读性（用户已确认接受）。
+
 ## 待确认清单
 
 - [ ] 严重度中间档（Major）取 `warning↔danger 55%` 是否符合告警等级语义，或应引入 `--ark-orange-600` 类专用中间色（需产品/告警域确认 🔴）。

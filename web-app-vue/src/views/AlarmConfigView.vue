@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useLinkage } from '../composables/useLinkage';
 import {
   QUANTITIES, OPERATORS, PERIOD_CATEGORIES, recommendedPeriod,
@@ -233,6 +233,58 @@ function copyAll(): void {
   });
 }
 const showJson = ref(false);
+
+/* ── 上下游连线（监控对象 → 传感器 → 事件）+ hover 高亮整条链路 ──
+   连线用实测节点位置画 SVG 贝塞尔，随布局/展开/缩放重算；hover 传感器点亮其上下游。*/
+const blockEls = new Map<string, HTMLElement>();
+function setBlockRef(key: string, el: unknown): void {
+  if (el) blockEls.set(key, el as HTMLElement); else blockEls.delete(key);
+}
+interface Conn { id: string; d: string; sensorId: string; }
+const connByBlock = reactive<Record<string, Conn[]>>({});
+const hoverSensor = ref<string | null>(null);
+
+function curvePath(x1: number, y1: number, x2: number, y2: number): string {
+  const dx = Math.max(14, (x2 - x1) * 0.5);
+  return `M${x1.toFixed(1)},${y1.toFixed(1)} C${(x1 + dx).toFixed(1)},${y1.toFixed(1)} ${(x2 - dx).toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+}
+function recomputeConnectors(): void {
+  for (const g of objGroups.value) {
+    const block = blockEls.get(g.componentKey);
+    if (!block) { connByBlock[g.componentKey] = []; continue; }
+    const R0 = block.getBoundingClientRect();
+    const conns: Conn[] = [];
+    const objEl = block.querySelector('[data-role="obj"]') as HTMLElement | null;
+    const Ro = objEl?.getBoundingClientRect();
+    const evAll = Array.from(block.querySelectorAll('[data-event-of]')) as HTMLElement[];
+    block.querySelectorAll('[data-sensor-card]').forEach((sEl) => {
+      const s = sEl as HTMLElement;
+      const sid = s.getAttribute('data-sensor-card') || '';
+      const Rs = s.getBoundingClientRect();
+      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid,
+        d: curvePath(Ro.right - R0.left, Ro.top + Ro.height / 2 - R0.top, Rs.left - R0.left, Rs.top + Rs.height / 2 - R0.top) });
+      evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
+        const Re = eEl.getBoundingClientRect();
+        conns.push({ id: `se-${sid}-${i}`, sensorId: sid,
+          d: curvePath(Rs.right - R0.left, Rs.top + Rs.height / 2 - R0.top, Re.left - R0.left, Re.top + Re.height / 2 - R0.top) });
+      });
+    });
+    connByBlock[g.componentKey] = conns;
+  }
+}
+let connRO: ResizeObserver | null = null;
+onMounted(() => {
+  nextTick(recomputeConnectors);
+  connRO = new ResizeObserver(() => recomputeConnectors());
+  const fl = document.querySelector('.flow-list');
+  if (fl) connRO.observe(fl);
+  window.addEventListener('resize', recomputeConnectors);
+});
+onBeforeUnmount(() => {
+  connRO?.disconnect();
+  window.removeEventListener('resize', recomputeConnectors);
+});
+watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 </script>
 
 <template>
@@ -294,9 +346,14 @@ const showJson = ref(false);
     <div class="flow-list">
       <div v-if="!objGroups.length" class="empty">还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。</div>
 
-      <div v-for="g in objGroups" :key="g.componentKey" class="obj-block">
+      <div v-for="g in objGroups" :key="g.componentKey" class="obj-block" :ref="(el) => setBlockRef(g.componentKey, el)">
+        <!-- 上下游连线层（对象→传感器→事件，随布局重算，hover 高亮链路） -->
+        <svg class="conn-layer" preserveAspectRatio="none" aria-hidden="true">
+          <path v-for="c in (connByBlock[g.componentKey] || [])" :key="c.id" :d="c.d" class="conn"
+                :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId }" />
+        </svg>
         <!-- 监控对象节点（同一对象只画一次） -->
-        <div class="obj-node" :title="objTip(g)">
+        <div class="obj-node" data-role="obj" :title="objTip(g)">
           <span class="on-ic"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
           <span class="on-txt">
             <span class="on-title">{{ g.entityName }}</span>
@@ -306,25 +363,29 @@ const showJson = ref(false);
 
         <!-- 分支：每条传感器从对象扇出 -->
         <div class="branches">
-          <div v-for="entry in g.sensors" :key="entry.sensor.configId" class="branch" :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId }]">
-            <!-- 传感器节点卡头（折叠摘要 / 点击展开） -->
-            <div class="branch-head">
-              <button class="sensor-card" @click="toggleExpand(entry.sensor.configId)">
+          <div v-for="entry in g.sensors" :key="entry.sensor.configId" class="branch"
+               :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId, hot: hoverSensor === entry.sensor.configId }]"
+               @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
+            <!-- 一条链路：传感器节点卡 —实线→ 事件节点卡扇出（hover 高亮整条链路） -->
+            <div class="chain">
+              <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="toggleExpand(entry.sensor.configId)">
                 <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
                 <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
                 <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
                 <i class="dot sc-dsdot" :class="dsResolved(entry.cfg) ? 'ok' : 'warn'" :title="dsResolved(entry.cfg) ? '数据源已接' : '数据源未接'"></i>
                 <span class="sc-chev" :class="{ open: expandedId === entry.sensor.configId }"><svg viewBox="0 0 24 24"><path d="M8.5 5l7 7-7 7z"/></svg></span>
               </button>
-              <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
-            </div>
 
-            <!-- 事件摘要：内联小 chip，一屏看清整条链路的全部告警 -->
-            <div class="event-strip">
-              <span v-if="!entry.sensor.events.length" class="ev-chip none">未设门限</span>
-              <span v-for="ev in entry.sensor.events" :key="ev.key" class="ev-chip" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
-                <i class="dot" :class="ev.severity"></i>{{ ev.label }}
-              </span>
+              <!-- 事件节点卡：每条告警一张小卡，向右竖向扇出；铃铛图标按严重度着色 -->
+              <div class="event-fan">
+                <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
+                <div v-for="ev in entry.sensor.events" :key="ev.key" class="event-node" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel">
+                  <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+                  <span class="en-label">{{ ev.label }}</span>
+                </div>
+              </div>
+
+              <button class="branch-del" title="删除该链路及其告警" @click.stop="removeCfg(entry.cfg.id)">✕</button>
             </div>
 
             <!-- 展开的配置（圆角卡，默认折叠）-->
@@ -495,26 +556,33 @@ const showJson = ref(false);
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：对象块 = 圆角卡（对象节点 · 左） + 紧凑传感器节点卡横向流排（右） ── */
+/* ── 流：对象块 = 圆角卡；对象节点(左) —实线→ 传感器节点 —实线→ 事件节点扇出 ── */
 .flow-list { display: flex; flex-direction: column; gap: 10px; }
-.obj-block { display: flex; align-items: stretch; gap: 10px; padding: 10px; border-radius: var(--radius-xl); background: var(--surface-1); }
+.obj-block { position: relative; display: flex; align-items: stretch; gap: 20px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
 
-.obj-node { flex: none; width: 140px; align-self: stretch; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
+/* 连线层：绝对铺满对象块，画在节点之下 */
+.conn-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+.conn { fill: none; stroke: color-mix(in srgb, var(--foreground-muted) 42%, transparent); stroke-width: 1.5; transition: stroke .12s, stroke-width .12s, opacity .12s; }
+.conn.active { stroke: var(--primary); stroke-width: 2; }
+.conn.dim { opacity: .22; }
+
+.obj-node { position: relative; z-index: 1; flex: none; width: 140px; align-self: center; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
 .on-ic { display: inline-flex; }
 .on-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
 .on-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .on-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .on-sub { font-size: 11px; color: var(--foreground-muted); }
 
-/* 紧凑节点卡：横向 wrap 流排，一屏多卡（呼应链路配置节点图，提升显示效率） */
-.branches { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; min-width: 0; }
-.branch { flex: 1 1 250px; min-width: 224px; max-width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default); }
-/* 展开态：占满整行给配置腾空间 + 主色描边（呼应链路配置「选中节点蓝框」） */
-.branch.open { flex-basis: 100%; max-width: 100%; box-shadow: inset 0 0 0 1px var(--primary); }
+/* 链路竖排；每条 = 传感器节点 —实线→ 事件节点竖向扇出 */
+.branches { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.branch { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default), background var(--duration-fast) var(--easing-default); }
+.branch.open { box-shadow: inset 0 0 0 1px var(--primary); }
+.branch.hot { background: var(--surface-3); }
 
-.branch-head { display: flex; align-items: center; gap: 6px; }
-.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default); }
+.chain { display: flex; align-items: center; gap: 20px; }
+.sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: none; width: 204px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
 .sensor-card:hover { background: var(--surface-4); }
+.branch.hot .sensor-card, .branch.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
 .sc-ic { display: inline-flex; flex: none; }
 .sc-ic svg { width: 15px; height: 15px; fill: var(--primary); }
 .branch.discrete .sc-ic svg { fill: var(--warning); }
@@ -531,11 +599,18 @@ const showJson = ref(false);
 .dot.Major { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .dot.Critical { background: var(--danger); }
 
-.event-strip { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 2px; }
-.ev-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
-.ev-chip.none { color: var(--foreground-muted); }
+/* 事件节点卡：竖向扇出，铃铛图标按严重度着色 */
+.event-fan { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
+.event-node.none { color: var(--foreground-muted); }
+.en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
+.en-ic svg { width: 12px; height: 12px; fill: currentColor; }
+.en-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-node.Minor .en-ic { color: var(--warning); }
+.event-node.Major .en-ic { color: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
+.event-node.Critical .en-ic { color: var(--danger); }
 
-.branch-del { all: unset; cursor: pointer; flex: none; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
+.branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
 
 /* 展开配置：圆角卡（嵌在展开的节点卡内） */
