@@ -224,8 +224,8 @@
 .di-arrow { flex: none; color: var(--text-dim); }
 .di-empty { font-size: 11px; color: var(--foreground-muted); padding: 6px 2px; }
 
-/* 告警/传感器是板卡级配置 → 宽面板容纳竖向配置流 */
-.topo-property-panel.wide { width: 480px; }
+/* 告警/传感器是板卡级配置 → 宽面板容纳三列流（器件 → 传感器/分类 → 事件） */
+.topo-property-panel.wide { width: min(660px, calc(100vw - 340px)); }
 
 /* 配置面板 tab 条 */
 .pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }

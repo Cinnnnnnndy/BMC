@@ -335,12 +335,15 @@ function recomputeConnectors(): void {
     if (!block) { connByBlock[g.chipKey] = []; continue; }
     const R0 = block.getBoundingClientRect();
     const conns: Conn[] = [];
+    const objEl = block.querySelector('[data-role="obj"]') as HTMLElement | null;
+    const Ro = objEl?.getBoundingClientRect();
     const evAll = Array.from(block.querySelectorAll('[data-event-of]')) as HTMLElement[];
-    // 中间节点(传感器/分类) → 其事件；hover 高亮整条链路
+    // 三列流：器件 → 中间节点(传感器/分类) → 事件；hover 高亮整条链路
     block.querySelectorAll('[data-sensor-card]').forEach((sEl) => {
       const s = sEl as HTMLElement;
       const sid = s.getAttribute('data-sensor-card') || '';
       const Rs = s.getBoundingClientRect();
+      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid, d: linkPath(Ro, Rs, R0) });
       evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
         conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPath(Rs, eEl.getBoundingClientRect(), R0) });
       });
@@ -422,14 +425,15 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <path v-for="c in (connByBlock[cf.chipKey] || [])" :key="c.id" :d="c.d" class="conn"
                 :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId }" />
         </svg>
-        <!-- 数据源器件(芯片) 作为分组头横铺；其传感器/事件在下方两列 -->
-        <div class="obj-head" data-role="obj" :title="chipTip(cf)">
-          <span class="on-ic" :class="{ fw: cf.chipKey === '__fw' }"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
-          <span class="on-txt"><span class="on-title">{{ cf.chipLabel }}</span><span class="on-type">{{ cf.subLabel }}</span></span>
-          <span class="on-sub">{{ cf.sensorCount ? cf.sensorCount + ' 传感器 · ' : '' }}{{ cf.eventCount }} 事件</span>
+        <!-- 第一列：数据源器件(芯片) 节点，纵向贯穿；其传感器/分类扇出到中列、事件到右列 -->
+        <div class="chip-node" data-role="obj" :title="chipTip(cf)">
+          <span class="cn-ic" :class="{ fw: cf.chipKey === '__fw' }"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
+          <span class="cn-name">{{ cf.chipLabel }}</span>
+          <span class="cn-type">{{ cf.subLabel }}</span>
+          <span class="cn-cnt">{{ cf.sensorCount ? cf.sensorCount + ' 传感器 · ' : '' }}{{ cf.eventCount }} 事件</span>
         </div>
 
-        <!-- 传感器 / 分类(左列) ⟶ 事件(右列) -->
+        <!-- 第二列：传感器 / 分类 ⟶ 第三列：事件 -->
         <div class="se-cols">
           <div class="se-colhead">
             <span class="sch sch-s">传感器 / 分类</span>
@@ -576,37 +580,37 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 </div>
               </div>
               <div class="se-events">
-                <button v-for="e in row.events" :key="e.id" class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
-                        :data-event-of="cf.chipKey + ':' + row.cat" :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
-                  <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
-                  <span class="en-label">{{ e.label }}</span>
-                  <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
-                </button>
+                <template v-for="e in row.events" :key="e.id">
+                  <button class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
+                          :data-event-of="cf.chipKey + ':' + row.cat" :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
+                    <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+                    <span class="en-label">{{ e.label }}</span>
+                    <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
+                  </button>
+                  <!-- 逐条编辑跟随事件（就地换行展开，不再沉底）-->
+                  <div v-if="openLooseId === e.id" class="ev-inline">
+                    <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
+                    <div class="ev-edit">
+                      <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
+                      <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+                        <input v-model.number="e.condition" type="number" class="thr-in w" />
+                      </label>
+                      <label class="ef"><span class="ef-k">方向</span>
+                        <select v-model.number="e.operatorId" class="disc-sel">
+                          <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+                        </select>
+                      </label>
+                      <label class="ef"><span class="ef-k">分级</span>
+                        <select v-model="e.severity" class="disc-sel">
+                          <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                        </select>
+                      </label>
+                      <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
-            <!-- 展开：逐条独立事件编辑（整列宽度）-->
-            <template v-for="e in row.events" :key="e.id + ':ed'">
-              <div v-if="openLooseId === e.id" class="sensor-config">
-                <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
-                <div class="ev-edit">
-                  <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
-                  <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
-                    <input v-model.number="e.condition" type="number" class="thr-in w" />
-                  </label>
-                  <label class="ef"><span class="ef-k">方向</span>
-                    <select v-model.number="e.operatorId" class="disc-sel">
-                      <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
-                    </select>
-                  </label>
-                  <label class="ef"><span class="ef-k">分级</span>
-                    <select v-model="e.severity" class="disc-sel">
-                      <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                    </select>
-                  </label>
-                  <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
-                </div>
-              </div>
-            </template>
           </template>
         </div>
       </div>
@@ -678,9 +682,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：对象块 = 圆角卡；对象分组头(横铺) → 传感器列 ⟶ 事件列 ── */
+/* ── 流：对象块 = 圆角卡；三列 器件 → 传感器/分类 → 事件 ── */
 .flow-list { display: flex; flex-direction: column; gap: 10px; }
-.obj-block { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
+.obj-block { position: relative; display: flex; flex-direction: row; align-items: stretch; gap: 14px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
 
 /* 连线层：绝对铺满对象块，画在节点之下 */
 .conn-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
@@ -688,18 +692,17 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
 
-/* 数据源器件分组头：横铺一条，芯片图标 + 芯片名/类型 + 计数 */
-.obj-head { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-radius: var(--radius-lg); background: var(--surface-3); }
-.on-ic { display: inline-flex; flex: none; }
-.on-ic svg { width: 18px; height: 18px; fill: var(--foreground-secondary); }
-.on-ic.fw svg { fill: var(--foreground-muted); }
-.on-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.on-title { font-size: 13px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.on-type { font-size: 10px; color: var(--foreground-muted); }
-.on-sub { font-size: 11px; color: var(--foreground-secondary); margin-left: auto; flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-1); }
+/* 第一列：数据源器件(芯片) 节点，纵向贯穿本块，扇出到中列 */
+.chip-node { position: relative; z-index: 1; flex: none; width: 158px; align-self: center; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
+.cn-ic { display: inline-flex; }
+.cn-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
+.cn-ic.fw svg { fill: var(--foreground-muted); }
+.cn-name { font-size: 12px; font-weight: 600; font-family: ui-monospace, monospace; color: var(--foreground); word-break: break-all; line-height: 1.3; }
+.cn-type { font-size: 10px; color: var(--foreground-muted); }
+.cn-cnt { margin-top: 3px; align-self: flex-start; font-size: 10px; color: var(--foreground-secondary); padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-1); }
 
-/* ── 传感器(左列) ⟶ 事件(右列)：两列松耦合，用满面板宽度平分 ── */
-.se-cols { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* ── 中列：传感器/分类 ⟶ 右列：事件 ── */
+.se-cols { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .se-colhead { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
 .sch { font-size: 11px; color: var(--foreground-muted); }
 .sch-s { flex: 1.3 1 0; min-width: 0; }
@@ -742,6 +745,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .event-node.open { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--primary); }
 .event-node.off { opacity: .5; }
 .en-op { flex: none; font-family: ui-monospace, monospace; font-size: 10px; color: var(--foreground-muted); }
+
+/* 逐条事件的就地编辑：在该事件下换行铺满，紧跟被点对象（不沉底） */
+.ev-inline { flex: 1 0 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px; margin: 2px 0; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--primary); }
 
 /* 分类行：无传感器的独立事件按告警分类挂在器件下（左列=分类节点，代替传感器） */
 .cat-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); }
