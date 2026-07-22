@@ -314,6 +314,13 @@ interface Conn { id: string; d: string; sensorId: string; }
 const connByBlock = reactive<Record<string, Conn[]>>({});
 const hoverSensor = ref<string | null>(null);
 
+// 三列严格左→右：从 a 右缘中点 贝塞尔到 b 左缘中点（器件→中间→事件都成立）
+function linkPathH(a: DOMRect, b: DOMRect, R0: DOMRect): string {
+  const x1 = a.right - R0.left, y1 = a.top - R0.top + a.height / 2;
+  const x2 = b.left - R0.left, y2 = b.top - R0.top + b.height / 2;
+  const dx = Math.max(18, (x2 - x1) * 0.45);
+  return `M${x1.toFixed(1)},${y1.toFixed(1)} C${(x1 + dx).toFixed(1)},${y1.toFixed(1)} ${(x2 - dx).toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+}
 // 自适应连线：按两节点相对位置选「水平(右→左)」或「竖直(下→上)」锚点，横/竖布局都成立
 function linkPath(a: DOMRect, b: DOMRect, R0: DOMRect): string {
   const ax = a.left - R0.left, ay = a.top - R0.top, acx = ax + a.width / 2, acy = ay + a.height / 2;
@@ -343,9 +350,9 @@ function recomputeConnectors(): void {
       const s = sEl as HTMLElement;
       const sid = s.getAttribute('data-sensor-card') || '';
       const Rs = s.getBoundingClientRect();
-      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid, d: linkPath(Ro, Rs, R0) });
+      if (Ro) conns.push({ id: `os-${sid}`, sensorId: sid, d: linkPathH(Ro, Rs, R0) });
       evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
-        conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPath(Rs, eEl.getBoundingClientRect(), R0) });
+        conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPathH(Rs, eEl.getBoundingClientRect(), R0) });
       });
     });
     connByBlock[g.chipKey] = conns;
@@ -436,8 +443,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
         <!-- 第二列：传感器 / 分类 ⟶ 第三列：事件 -->
         <div class="se-cols">
           <div class="se-colhead">
-            <span class="sch sch-s">传感器 / 分类</span>
-            <span class="sch sch-e">事件 / 告警</span>
+            <span class="sch sch-s">传感器</span>
+            <span class="sch sch-e">事件 / 告警（按类）</span>
           </div>
           <template v-for="entry in cf.sensors" :key="entry.sensor.configId">
             <div class="se-row"
@@ -567,51 +574,47 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
             </div>
           </template>
 
-          <!-- 分类行：无传感器的独立事件按告警分类直接挂在器件下（不显示传感器节点）-->
-          <template v-for="row in cf.cats" :key="cf.chipKey + ':' + row.cat">
-            <div class="se-row cat" :class="{ hot: hoverSensor === cf.chipKey + ':' + row.cat }"
-                 @mouseenter="hoverSensor = cf.chipKey + ':' + row.cat" @mouseleave="hoverSensor = null">
-              <div class="se-sensor">
-                <div class="cat-card" :class="row.cat" :data-sensor-card="cf.chipKey + ':' + row.cat">
+          <!-- 独立事件：无传感器 → 第二列(传感器)留空；事件按告警分类归拢（分类只是事件的分组头，不作节点）-->
+          <div v-if="cf.cats.length" class="loose-block">
+              <div v-for="row in cf.cats" :key="cf.chipKey + ':' + row.cat" class="cat-grp">
+                <div class="cat-head" :class="row.cat">
                   <span class="cat-dot"></span>
                   <span class="cat-name">{{ row.label }}</span>
                   <span class="cat-n">{{ row.events.length }}</span>
-                  <span class="cat-nos" title="这些事件不经传感器，直连器件数据源">无传感器</span>
+                  <span class="cat-nos">无传感器 · 直连器件数据源</span>
+                </div>
+                <div class="cat-chips">
+                  <template v-for="e in row.events" :key="e.id">
+                    <button class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
+                            :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
+                      <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+                      <span class="en-label">{{ e.label }}</span>
+                      <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
+                    </button>
+                    <div v-if="openLooseId === e.id" class="ev-inline">
+                      <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
+                      <div class="ev-edit">
+                        <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
+                        <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+                          <input v-model.number="e.condition" type="number" class="thr-in w" />
+                        </label>
+                        <label class="ef"><span class="ef-k">方向</span>
+                          <select v-model.number="e.operatorId" class="disc-sel">
+                            <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+                          </select>
+                        </label>
+                        <label class="ef"><span class="ef-k">分级</span>
+                          <select v-model="e.severity" class="disc-sel">
+                            <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                          </select>
+                        </label>
+                        <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
+                      </div>
+                    </div>
+                  </template>
                 </div>
               </div>
-              <div class="se-events">
-                <template v-for="e in row.events" :key="e.id">
-                  <button class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
-                          :data-event-of="cf.chipKey + ':' + row.cat" :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
-                    <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
-                    <span class="en-label">{{ e.label }}</span>
-                    <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
-                  </button>
-                  <!-- 逐条编辑跟随事件（就地换行展开，不再沉底）-->
-                  <div v-if="openLooseId === e.id" class="ev-inline">
-                    <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
-                    <div class="ev-edit">
-                      <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
-                      <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
-                        <input v-model.number="e.condition" type="number" class="thr-in w" />
-                      </label>
-                      <label class="ef"><span class="ef-k">方向</span>
-                        <select v-model.number="e.operatorId" class="disc-sel">
-                          <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
-                        </select>
-                      </label>
-                      <label class="ef"><span class="ef-k">分级</span>
-                        <select v-model="e.severity" class="disc-sel">
-                          <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                        </select>
-                      </label>
-                      <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
+          </div>
         </div>
       </div>
     </div>
@@ -682,9 +685,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：对象块 = 圆角卡；三列 器件 → 传感器/分类 → 事件 ── */
-.flow-list { display: flex; flex-direction: column; gap: 10px; }
-.obj-block { position: relative; display: flex; flex-direction: row; align-items: stretch; gap: 14px; padding: 12px; border-radius: var(--radius-xl); background: var(--surface-1); }
+/* ── 流：节点图（不套外卡）——三列 器件 → 传感器 → 事件，用连线关联 ── */
+.flow-list { display: flex; flex-direction: column; gap: 4px; }
+.obj-block { position: relative; display: flex; flex-direction: row; align-items: stretch; gap: 18px; padding: 14px 4px; }
+.obj-block + .obj-block { border-top: 1px solid rgba(255,255,255,0.06); }
 
 /* 连线层：绝对铺满对象块，画在节点之下 */
 .conn-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
@@ -701,18 +705,16 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cn-type { font-size: 10px; color: var(--foreground-muted); }
 .cn-cnt { margin-top: 3px; align-self: flex-start; font-size: 10px; color: var(--foreground-secondary); padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-1); }
 
-/* ── 中列：传感器/分类 ⟶ 右列：事件 ── */
-.se-cols { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.se-colhead { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+/* ── 中列：传感器 ⟶ 右列：事件（不套行卡，节点间用连线关联） ── */
+.se-cols { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.se-colhead { display: flex; align-items: center; gap: 14px; padding: 0 2px; }
 .sch { font-size: 11px; color: var(--foreground-muted); }
-.sch-s { flex: 1.3 1 0; min-width: 0; }
-.sch-e { flex: 1 1 0; min-width: 0; }
-.se-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius-lg); background: var(--surface-2); transition: box-shadow var(--duration-fast) var(--easing-default), background var(--duration-fast) var(--easing-default); }
-.se-row.open { box-shadow: inset 0 0 0 1px var(--primary); }
-.se-row.hot { background: var(--surface-3); }
+.sch-s { flex: 1 1 0; min-width: 0; }
+.sch-e { flex: 1.2 1 0; min-width: 0; }
+.se-row { display: flex; align-items: center; gap: 14px; padding: 2px 0; }
 
-/* 左列：传感器节点卡（略宽于右列，容纳完整传感器名） */
-.se-sensor { flex: 1.3 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; }
+/* 中列：传感器节点卡（与事件不共卡，靠连线关联） */
+.se-sensor { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; }
 .sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
 .sensor-card:hover { background: var(--surface-4); }
 .se-row.hot .sensor-card, .se-row.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
@@ -733,7 +735,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .dot.Critical { background: var(--danger); }
 
 /* 右列：事件节点卡换行扇出，铃铛图标按严重度着色 */
-.se-events { flex: 1; min-width: 0; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+.se-events { flex: 1.2 1 0; min-width: 0; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
 .event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
 .event-node.none { color: var(--foreground-muted); }
 .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
@@ -749,19 +751,21 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 /* 逐条事件的就地编辑：在该事件下换行铺满，紧跟被点对象（不沉底） */
 .ev-inline { flex: 1 0 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px; margin: 2px 0; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--primary); }
 
-/* 分类行：无传感器的独立事件按告警分类挂在器件下（左列=分类节点，代替传感器） */
-.cat-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); }
-.se-row.cat.hot .cat-card { box-shadow: inset 0 0 0 1px var(--primary); }
+/* 独立事件区（无传感器）：第二列留空，事件按告警分类归拢——分类是事件的分组头，不作节点 */
+.loose-block { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; }
+.cat-grp { display: flex; flex-direction: column; gap: 6px; }
+.cat-head { display: flex; align-items: center; gap: 7px; padding: 3px 2px; }
 .cat-dot { flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--foreground-muted); }
-.cat-card.voltage  .cat-dot { background: var(--warning); }
-.cat-card.temp     .cat-dot { background: var(--danger); }
-.cat-card.presence .cat-dot { background: var(--primary); }
-.cat-card.chassis  .cat-dot { background: var(--success); }
-.cat-card.power    .cat-dot { background: var(--purple, #a78bfa); }
-.cat-card.system   .cat-dot { background: color-mix(in srgb, var(--primary) 60%, var(--success)); }
-.cat-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cat-n { flex: none; font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-1); color: var(--foreground-secondary); }
+.cat-head.voltage  .cat-dot { background: var(--warning); }
+.cat-head.temp     .cat-dot { background: var(--danger); }
+.cat-head.presence .cat-dot { background: var(--primary); }
+.cat-head.chassis  .cat-dot { background: var(--success); }
+.cat-head.power    .cat-dot { background: var(--purple, #a78bfa); }
+.cat-head.system   .cat-dot { background: color-mix(in srgb, var(--primary) 60%, var(--success)); }
+.cat-name { flex: none; font-size: 12px; font-weight: 600; }
+.cat-n { flex: none; font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--foreground-secondary); }
 .cat-nos { flex: none; font-size: 10px; color: var(--foreground-muted); }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 15px; }
 
 .branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
