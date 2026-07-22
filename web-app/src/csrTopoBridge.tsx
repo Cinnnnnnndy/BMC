@@ -203,10 +203,27 @@ function postConfigList(post: (msg: unknown) => void): void {
   });
 }
 
+/** 硬件管理器「设置」弹框展示的演示配置（仓库表 = sr-samples 样例库） */
+const DEMO_TOPOLOGY_CONFIG = {
+  repos: { 'sr-samples': { filePath: 'web-app/public/sr-samples' } },
+  topology_configs: [{ name: '配置1', topology_config: { Root: { children: [] } } }],
+  active_config: '配置1',
+};
+
+/** 演示环境不可用操作的统一提示（webview 内 ElMessage 错误土司，无副作用） */
+function postDemoUnsupported(post: (msg: unknown) => void, what: string): void {
+  post({ command: 'configListError', error: `演示环境暂不支持${what}，请在 bmcstudio 客户端使用` });
+}
+
+interface BridgeOptions {
+  /** 硬件管理器工具栏「调速配置」→ 打开 IDE 的能效调速配置视图 */
+  onOpenCooling?: () => void;
+}
+
 /**
  * Attach the host-side bridge to a csr-topo-ext iframe. Returns a cleanup fn.
  */
-function attachBridge(iframe: HTMLIFrameElement): () => void {
+function attachBridge(iframe: HTMLIFrameElement, options: BridgeOptions = {}): () => void {
   let disposed = false;
   const post = (msg: unknown) => {
     const win = iframe.contentWindow;
@@ -257,6 +274,43 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
       case 'configListRequest':
         postConfigList(post);
         break;
+      // ── 硬件管理器左树工具栏（4 个按钮） ──────────────────────────
+      case 'openTopologySettings':
+        // ⚙ 设置：打开 webview 内置的设置弹框（仓库表展示 sr-samples 样例库）
+        post({ command: 'openSettingsDialog', mode: 'settings', topologyConfig: DEMO_TOPOLOGY_CONFIG });
+        break;
+      case 'getCreateProjectFormContent':
+        // 设置/创建弹框打开时请求表单内容
+        post({ command: 'createProjectFormContent', topologyConfig: DEMO_TOPOLOGY_CONFIG });
+        break;
+      case 'saveTopologyConfig':
+        // 演示：不落盘，回显配置保持前端状态一致（弹框「确定」后关闭）
+        post({
+          command: 'updateTopologyConfig',
+          configData: (data as { configData?: unknown }).configData ?? DEMO_TOPOLOGY_CONFIG,
+        });
+        break;
+      case 'openCoolingConfig':
+        // 🌡 调速配置：跳转 IDE 的能效调速配置视图
+        options.onOpenCooling?.();
+        break;
+      case 'showDeleteConfirmDialog':
+        // 🗑 删除机型数据：演示里等价于重置示例工程（重载 iframe 重新自举）
+        if (window.confirm('演示环境：确定要删除机型配置数据吗？\n（将重置为内置示例工程）')) {
+          try { iframe.contentWindow?.location.reload(); } catch { /* cross-origin 不会发生（同源） */ }
+        }
+        break;
+      case 'openConanRecipeManagement':
+        // ⇄ 切换机型：演示仅内置一个示例机型
+        postDemoUnsupported(post, '机型切换（仅内置示例机型）');
+        break;
+      case 'selectSettingsFolderForEdit':
+      case 'selectFolder':
+        postDemoUnsupported(post, '文件夹选择');
+        break;
+      case 'importCodeRepository':
+        postDemoUnsupported(post, '一键导入代码仓');
+        break;
       case 'loadSrFile': {
         const p = (data.path || '').replace(/\\/g, '/');
         post({ command: 'srFileContent', path: data.path, data: pool.contentByPath.get(p) ?? null });
@@ -294,9 +348,12 @@ function attachBridge(iframe: HTMLIFrameElement): () => void {
 }
 
 /** CSR 拓扑编辑器 iframe，自带 web 端桥接（默认加载示例工程 + 板卡样例库）。 */
-export function CsrTopoFrame({ src }: { src: string }) {
+export function CsrTopoFrame({ src, onOpenCooling }: { src: string; onOpenCooling?: () => void }) {
   const ref = useRef<HTMLIFrameElement | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
+  // 回调可能随渲染变化，桥接读取 ref 保持最新，避免为此重挂桥接
+  const onOpenCoolingRef = useRef(onOpenCooling);
+  onOpenCoolingRef.current = onOpenCooling;
 
   useEffect(() => {
     return () => {
@@ -313,7 +370,9 @@ export function CsrTopoFrame({ src }: { src: string }) {
       title="CSR拓扑编辑器"
       onLoad={() => {
         cleanupRef.current?.();
-        cleanupRef.current = ref.current ? attachBridge(ref.current) : null;
+        cleanupRef.current = ref.current
+          ? attachBridge(ref.current, { onOpenCooling: () => onOpenCoolingRef.current?.() })
+          : null;
       }}
     />
   );

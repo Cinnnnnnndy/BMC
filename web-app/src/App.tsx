@@ -1027,7 +1027,8 @@ export default function App() {
       case 'csrTopo':
         // 默认加载示例工程并接入 public/sr-samples/ 板卡样例库：打开即进入
         // “已选择工程文件”的拓扑状态，下游板卡按 Bom/Type 从样例库解析。
-        return <CsrTopoFrame src={csrTopoSrc} />;
+        // 左树工具栏「调速配置」→ 跳转 IDE 的能效调速配置视图。
+        return <CsrTopoFrame src={csrTopoSrc} onOpenCooling={() => handleNavTo('coolingConfig')} />;
       case 'hwTopology':
         return <HardwareTopologyCanvas />;
       case 'serverView':
