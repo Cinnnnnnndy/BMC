@@ -8,7 +8,27 @@ import CoolingConfigView from './views/CoolingConfigView.vue';
 import AlarmConfigView   from './views/AlarmConfigView.vue';
 import { useLinkage, type ToolId } from './composables/useLinkage';
 
-const { state: link, setAnchor, closeDock } = useLinkage();
+const { state: link, setAnchor, closeDock, closeCodeDoc } = useLinkage();
+
+// 右侧「代码」分屏（IDE 风格只读代码视图）
+const codeWidth = ref(42); // % of viewport
+const codeLines = computed(() => (link.codeDoc?.content || '').split('\n'));
+let codeDragging = false;
+function startCodeDrag(e: MouseEvent) {
+  codeDragging = true; e.preventDefault();
+  window.addEventListener('mousemove', onCodeDrag);
+  window.addEventListener('mouseup', stopCodeDrag);
+}
+function onCodeDrag(e: MouseEvent) {
+  if (!codeDragging) return;
+  const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+  codeWidth.value = Math.min(70, Math.max(24, pct));
+}
+function stopCodeDrag() {
+  codeDragging = false;
+  window.removeEventListener('mousemove', onCodeDrag);
+  window.removeEventListener('mouseup', stopCodeDrag);
+}
 
 // icon = 单色面型 SVG path（去 emoji，与联动工具、链路配置节点图标语言统一）
 const toolMeta: Record<ToolId, { label: string; icon: string }> = {
@@ -60,7 +80,7 @@ function stopDrag() {
 }
 
 // Nudge the topology canvas (VueFlow) to re-measure when the split changes.
-watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
+watch(() => [link.dockTool, dockWidth.value, dockHeight.value, link.codeDoc, codeWidth.value], () => {
   nextTick(() => window.dispatchEvent(new Event('resize')));
 });
 </script>
@@ -92,6 +112,21 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
             <ExprCalcView      v-else-if="link.dockTool === 'expr'" />
             <CoolingConfigView v-else-if="link.dockTool === 'cooling'" />
             <AlarmConfigView   v-else-if="link.dockTool === 'alarm'" />
+          </div>
+        </div>
+      </template>
+
+      <!-- 右侧「代码」分屏（IDE 风格只读代码视图；从告警配置「代码」按钮打开对应 .sr） -->
+      <template v-if="link.codeDoc && !soloMode">
+        <div class="splitter" @mousedown="startCodeDrag" title="拖动调整代码分屏宽度" />
+        <div class="pane pane-code" :style="{ width: codeWidth + '%' }">
+          <div class="code-head">
+            <span class="code-file"><svg class="code-file-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5z"/></svg>{{ link.codeDoc.file }}</span>
+            <span class="code-hint">告警配置 → CSR 对象（只读预览）</span>
+            <button class="dock-close" aria-label="关闭代码" @click="closeCodeDoc">✕</button>
+          </div>
+          <div class="code-body">
+            <div v-for="(ln, i) in codeLines" :key="i" class="code-line"><span class="ln">{{ i + 1 }}</span><span class="lc">{{ ln }}</span></div>
           </div>
         </div>
       </template>
@@ -180,5 +215,27 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
 .dock-close:hover { background: rgba(255,255,255,0.08); color: var(--foreground); }
 
 .dock-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* ── 右侧「代码」分屏（IDE 风格）── */
+.pane-code {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--background);
+  min-width: 0;
+}
+.code-head {
+  display: flex; align-items: center; gap: 10px; height: 38px; flex-shrink: 0;
+  padding: 0 10px; background: var(--surface-1); border-bottom: 1px solid var(--border-subtle);
+}
+.code-file { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--foreground); white-space: nowrap; }
+.code-file-ic { width: 14px; height: 14px; fill: var(--foreground-secondary); flex-shrink: 0; }
+.code-hint { font-size: 11px; color: var(--foreground-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.code-body { flex: 1; min-height: 0; overflow: auto; padding: 8px 0; font: 500 12px/1.6 var(--font-mono, ui-monospace, monospace); }
+.code-line { display: flex; }
+.code-line .ln { flex: none; width: 46px; text-align: right; padding-right: 12px; color: var(--foreground-muted); user-select: none; }
+.code-line .lc { flex: 1; white-space: pre; padding-right: 16px; color: var(--foreground); }
+.code-line:hover { background: var(--state-hover); }
 
 </style>

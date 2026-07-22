@@ -58,6 +58,8 @@ interface LinkageState {
   selectedBoardId: string | null;
   inbound: Record<ToolId, InboundContext | null>;
   lastWriteback: WritebackEvent | null;
+  /** 右侧「代码」分屏当前打开的文件（IDE 风格只读代码视图），null = 未打开。 */
+  codeDoc: { file: string; content: string } | null;
 }
 
 const state = reactive<LinkageState>({
@@ -66,6 +68,7 @@ const state = reactive<LinkageState>({
   selectedBoardId: null,
   inbound: { smc: null, expr: null, cooling: null, alarm: null },
   lastWriteback: null,
+  codeDoc: null,
 });
 
 export function useLinkage() {
@@ -102,5 +105,13 @@ export function useLinkage() {
     state.lastWriteback = { tool, label, code, ts: Date.now() };
   }
 
-  return { state, setAnchor, selectEntity, invoke, toggleDock, closeDock, clearInbound, writeBack };
+  /** 在右侧「代码」分屏打开一个文件（IDE 风格只读视图）。 */
+  function openCodeDoc(file: string, content: string) {
+    state.codeDoc = { file, content };
+  }
+  function closeCodeDoc() {
+    state.codeDoc = null;
+  }
+
+  return { state, setAnchor, selectEntity, invoke, toggleDock, closeDock, clearInbound, writeBack, openCodeDoc, closeCodeDoc };
 }

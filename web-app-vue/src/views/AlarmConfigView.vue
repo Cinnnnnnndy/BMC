@@ -13,7 +13,7 @@ import {
 import { boardAlarm, nextUid, nextEvSeq, type ThrKey, type EvItem, type SensorCfg } from '../alarm/alarmStore';
 import { seedCfgsForBoard } from '../alarm/srSeed';
 
-const { state: link } = useLinkage();
+const { state: link, openCodeDoc } = useLinkage();
 // scopeDeviceKey：器件级告警时锁定到单个监控器件（隐藏器件切换、流只显示该器件的传感器）
 const props = defineProps<{ scopeDeviceKey?: string }>();
 const inbound = computed(() => link.inbound.alarm);
@@ -235,6 +235,8 @@ function copyAll(): void {
   });
 }
 const showJson = ref(false);
+// 在右侧代码分屏打开本板对应的 .sr（当前用生成的 CSR 对象作内容）
+function openInCode(): void { openCodeDoc(`${boardName.value}.sr`, objectsJson.value); }
 
 /* 快速新增：把「监控对象 + 添加区」收进「＋ 新增」浮窗（teleport 到 body，避开面板 overflow 裁剪）*/
 const showAdd = ref(false);
@@ -516,6 +518,9 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
       <div class="bs-head">
         <span>{{ objGroups.length }} 个监控对象 · {{ sensorCount }} 个传感器 · {{ eventCount }} 条告警 → 将写入 <b>{{ boardName }}.sr</b></span>
         <div class="bs-actions">
+          <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
+            <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
+          </button>
           <button v-if="expandedId" class="btn" @click="expandedId = null">收起全部</button>
           <button class="btn" @click="showJson = !showJson">{{ showJson ? '隐藏' : '查看' }} CSR 对象</button>
           <button class="btn-solid" @click="copyAll">{{ copied ? '已复制' : '复制全部' }}</button>
@@ -676,6 +681,7 @@ watch([objGroups, expandedId], () => nextTick(recomputeConnectors));
 .board-summary { margin-top: 14px; padding-top: 12px; }
 .bs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--foreground-secondary); margin-bottom: 8px; }
 .bs-actions { display: flex; gap: 8px; }
+.btn-ic { width: 13px; height: 13px; fill: currentColor; }
 .bs-json { max-height: 260px; overflow: auto; font-size: 11px; background: var(--surface-1); border-radius: var(--radius-md); padding: 10px; margin: 0; }
 
 /* ── 焦点可见（键盘导航）· 所有 all:unset 的交互件显式补回焦点环 ── */
