@@ -10,11 +10,12 @@ import { useLinkage, type ToolId } from './composables/useLinkage';
 
 const { state: link, setAnchor, closeDock } = useLinkage();
 
+// icon = 单色面型 SVG path（去 emoji，与联动工具、链路配置节点图标语言统一）
 const toolMeta: Record<ToolId, { label: string; icon: string }> = {
-  smc:     { label: 'SMC 偏移量计算器', icon: '🧮' },
-  expr:    { label: '批量表达式计算器', icon: '⚙' },
-  cooling: { label: '能效调速配置模板', icon: '❄' },
-  alarm:   { label: '板卡告警配置', icon: '◈' },
+  smc:     { label: 'SMC 偏移量计算器', icon: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z' },
+  expr:    { label: '批量表达式计算器', icon: 'M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z' },
+  cooling: { label: '能效调速配置模板', icon: 'M12 3a3 3 0 0 0-3 3v7.1a5 5 0 1 0 6 0V6a3 3 0 0 0-3-3zm0 2a1 1 0 0 1 1 1v8.02l.5.36a3 3 0 1 1-3 0l.5-.36V6a1 1 0 0 1 1-1z' },
+  alarm:   { label: '板卡告警配置', icon: 'M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z' },
 };
 
 // Hash / query entry (#smc, ?tab=expr …): dock that tool beside topology.
@@ -82,7 +83,7 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
           :style="soloMode ? {} : (bottomDock ? { height: dockHeight + '%' } : { width: dockWidth + '%' })"
         >
           <div v-if="!soloMode" class="dock-head">
-            <span class="dock-title">{{ toolMeta[link.dockTool].icon }} {{ toolMeta[link.dockTool].label }}</span>
+            <span class="dock-title"><svg class="dock-title-ic" viewBox="0 0 24 24" aria-hidden="true"><path :d="toolMeta[link.dockTool].icon" /></svg>{{ toolMeta[link.dockTool].label }}</span>
             <span class="dock-hint">{{ bottomDock ? '底部停靠 · 与拓扑实时同步' : '分屏联动 · 与拓扑实时同步' }}</span>
             <button class="dock-close" aria-label="关闭分屏" @click="closeDock">✕</button>
           </div>
@@ -123,18 +124,18 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border-subtle, #1e2240);
-  background: var(--background, #0a0d18);
+  border-left: 1px solid var(--border-subtle);
+  background: var(--background);
 }
 
 .splitter {
   width: 6px;
   flex-shrink: 0;
   cursor: col-resize;
-  background: var(--border-subtle, #1e2240);
+  background: var(--border-subtle);
   transition: background 0.15s;
 }
-.splitter:hover { background: var(--primary, #4f6ef7); }
+.splitter:hover { background: var(--primary); }
 
 /* ── Bottom dock（告警横向流水线：宽而矮，从底部升起）── */
 .view-area.bottom { flex-direction: column; }
@@ -142,7 +143,7 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
 .view-area.bottom .pane-dock {
   width: 100% !important;
   border-left: none;
-  border-top: 1px solid var(--border-subtle, #1e2240);
+  border-top: 1px solid var(--border-subtle);
 }
 .view-area.bottom .splitter {
   width: 100%;
@@ -157,11 +158,12 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
   height: 38px;
   flex-shrink: 0;
   padding: 0 10px;
-  background: var(--surface-1, #0e1017);
-  border-bottom: 1px solid var(--border-subtle, #1e2240);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.dock-title { font-size: 13px; font-weight: 600; color: var(--foreground, #e6e8ef); white-space: nowrap; }
-.dock-hint  { font-size: 11px; color: #34d399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dock-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--foreground); white-space: nowrap; }
+.dock-title-ic { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+.dock-hint  { font-size: 11px; color: var(--success); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dock-close {
   all: unset;
   margin-left: auto;
@@ -171,11 +173,11 @@ watch(() => [link.dockTool, dockWidth.value, dockHeight.value], () => {
   width: 24px;
   height: 24px;
   border-radius: 5px;
-  color: var(--foreground-secondary, #98a0b8);
+  color: var(--foreground-secondary);
   cursor: pointer;
   flex-shrink: 0;
 }
-.dock-close:hover { background: rgba(255,255,255,0.08); color: var(--foreground, #e6e8ef); }
+.dock-close:hover { background: rgba(255,255,255,0.08); color: var(--foreground); }
 
 .dock-body { flex: 1; min-height: 0; overflow-y: auto; }
 

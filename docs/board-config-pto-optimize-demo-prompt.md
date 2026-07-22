@@ -198,10 +198,31 @@
 - 不改文案（空状态既有文案保留）；不做可访问性深审（对比度全量审计属阶段二）。
 - 不新增 token / 不改 `pto-*.css` 基线；不引入覆盖层或 `!important` 对抗。
 
+## §G 卡片化 + 流全貌布局（R1 追加 · 依用户参考截图）
+
+用户补充方向（附三张参考图）：**板卡详情**与**下方横向展开的告警面板**都要用**圆角矩形卡片**、放在「硬件适配」中、
+对齐参考布局；**流的样式**参照参考图（链路配置 · SMC_BCUBoard 上下链路），让用户**一眼看到流的全貌**。
+
+- **参考图 1（整网架构 Dashboard）**：整体视觉标杆——多面板浮层、圆角矩形卡片、克制描边、暗色中性底。
+- **参考图 3（链路配置节点图）**：**流的样式**标杆——`数据源 Accessor → 传感器 Sensor → 事件 Event → 组件 Component`
+  首尾相接的圆角卡片节点链，**选中节点主色蓝框**，下游分支以曲线扇出，一屏可读整条链路。
+
+映射到实现：
+- **G1 板卡详情卡片化**：属性面板从「贴边描边 + 重投影 240px」改为 **8px 内缩浮动圆角壳**（`--panel-shell-*`）；
+  面板内内容按语义分为**圆角矩形卡片**（联动工具卡 / 板卡状态卡 / 板卡实例卡），层级 `#141414 壳 < #161616 卡 < #1c1c1c 值块`。
+- **G2 告警流卡片化 + 流全貌**：`监控对象 → 扇出传感器 → 事件` 已是左→右一屏可读的流；
+  展开/选中的传感器卡加**主色内描边**（呼应参考图 3「选中节点蓝框」），当前编辑项在流中一眼可辨。
+- **G3 图标语言统一**：dock 标题、联动工具、（后续）节点图标全部 emoji → 单色面型 SVG（计算器 / 代码括号 / 铃铛 …）。
+
 ## 修订记录
 
 **R0（初版，2026-07-22）**：基于 `AlarmConfigView.vue`（586 行）与 `TopologyView.vue` 板卡详情面板 + `topology.css` 实测，
 产出 9 条目标映射（C1–C9），核心是「清旧蓝调残留 + 补 PTO 三级按钮/焦点/面型图标 + 统一两面型壳语言」。
+
+**R1（实现 + 参考截图追加，2026-07-22）**：C1–C9 与 §G 已落地并通过 `vue-tsc` typecheck + `vite build`，浏览器实测两图确认。已改动：
+- `AlarmConfigView.vue`：清全部蓝调 fallback；`.dot.Major` 归 `color-mix(warning 55%, danger)`；`.dev-chip.active`/`.add-chip.all` 去蓝洗（中性填充 + 主色环/字）；汇总条落 `.btn-solid/.btn` 三级按钮；补 `:focus-visible` 焦点环 + `accent-color` 复选框；`.disc-sel/.thr-in/.num` 纳管（`--surface-1` 底、`--border-default` 边、自绘面型下拉箭头）；圆角/字号归 PTO 阶梯；展开传感器卡加主色内描边（流全貌选中语义）。
+- `TopologyView.vue` + `topology.css`：`.topo-property-panel` 改浮动圆角壳（`--panel-shell-*`）；字段按语义分为 `.pp-card` 圆角卡片；`.pp-field-value` 底改 `--surface-2` 可辨；`.pp-delete` 裸红 → `--danger`/`--tone-critical-bg`；`缺失文件` 裸粉 → `--danger`；联动工具三钮 emoji → 单色面型 SVG，图标 pill 收敛为中性色。
+- `App.vue`：`toolMeta` emoji → 面型 SVG path（dock 标题内联渲染）；`.dock-hint` 裸绿 `#34d399` → `--success`；清全部蓝调 fallback。
 
 ## 待确认清单
 

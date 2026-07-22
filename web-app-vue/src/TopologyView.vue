@@ -443,21 +443,21 @@ function catStateClass(cat: CatNode): string {
       <div class="pp-wake">
         <div class="pp-wake-title">联动工具</div>
         <button class="wake-btn" @click="wakeSmc">
-          <span class="wake-ic-wrap wake-ic-smc" aria-hidden="true">🧮</span>
+          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg></span>
           在 SMC 偏移量计算器中解析
         </button>
         <button class="wake-btn" @click="wakeExpr">
-          <span class="wake-ic-wrap wake-ic-expr" aria-hidden="true">⚙</span>
+          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg></span>
           在表达式计算器中调试 sensor
         </button>
         <button class="wake-btn" @click="wakeAlarm">
-          <span class="wake-ic-wrap wake-ic-alarm" aria-hidden="true">◈</span>
+          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
           配置板卡告警（自动产生 CSR 对象）
         </button>
-
       </div>
 
       <div class="pp-body">
+        <div class="pp-card">
         <div class="pp-field">
           <div class="pp-field-label">类型</div>
           <div class="pp-field-value">{{ activeGroup.label }}</div>
@@ -483,8 +483,10 @@ function catStateClass(cat: CatNode): string {
         </div>
         <div v-if="activeGroup.missingFile" class="pp-field">
           <div class="pp-field-label">缺失文件</div>
-          <div class="pp-field-value mono" style="color:#fca5a5">{{ activeGroup.missingFile }}</div>
+          <div class="pp-field-value mono" style="color:var(--danger)">{{ activeGroup.missingFile }}</div>
         </div>
+        </div>
+        <div class="pp-card">
         <template v-if="activeBoard">
           <div class="pp-field">
             <div class="pp-field-label">同类板数量</div>
@@ -511,6 +513,7 @@ function catStateClass(cat: CatNode): string {
             该板卡处于「{{ STATE_LABEL[activeGroup.state] }}」态，尚未选择具体板卡实例。
             请在卡片头部下拉中完成选择。
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -737,19 +740,22 @@ function catStateClass(cat: CatNode): string {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 10px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
 }
 .pp-wake-title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
-  color: var(--text-secondary, #98a0b8);
+  color: var(--foreground-muted);
   text-transform: uppercase;
   margin-bottom: 1px;
 }
 .wake-btn {
   all: unset;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -767,20 +773,24 @@ function catStateClass(cat: CatNode): string {
   background: var(--surface-3);
   color: var(--foreground);
 }
+.wake-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+/* 图标收敛为中性面型 pill（去「一钮一色」），色随文字走 currentColor */
 .wake-ic-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  background: var(--surface-3);
+  color: var(--foreground-secondary);
   flex-shrink: 0;
 }
-/* tight accent region — icon pill only, per PTO fill principle */
-.wake-ic-smc  { background: color-mix(in srgb, var(--primary) 20%, transparent); }
-.wake-ic-expr { background: color-mix(in srgb, var(--accent) 20%, transparent); }
-.wake-ic-alarm { background: color-mix(in srgb, var(--warning, #f59e0b) 22%, transparent); }
+.wake-btn:hover .wake-ic-wrap { color: var(--foreground); }
+.wake-ic-wrap svg { width: 14px; height: 14px; fill: currentColor; }
 
 /* chk-chip styles are now defined in topology.css via .chk-ok / .chk-warn / .chk-err */
 
