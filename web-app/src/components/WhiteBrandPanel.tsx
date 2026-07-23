@@ -283,7 +283,7 @@ function CfgField({ field, value, onChange }: {
   );
 }
 
-// ── QuickNav sidebar ────────────────────────────────────────────────────────
+// ── Anchor sections definition ─────────────────────────────────────────────
 const NAV_SECTIONS = [
   { id: 'sec-mode',    label: '模式' },
   { id: 'sec-version', label: '版本号' },
@@ -292,41 +292,8 @@ const NAV_SECTIONS = [
   { id: 'sec-config',  label: '配置定制' },
 ];
 
-function QuickNav({ activeId, mode, onNav }: {
-  activeId: string; mode: Mode; onNav: (id: string) => void;
-}) {
-  return (
-    <nav style={{
-      width: 192, flexShrink: 0,
-      background: 'rgba(0,0,0,.18)',
-      borderRight: `1px solid ${C.border7}`,
-      display: 'flex', flexDirection: 'column', overflowY: 'auto',
-    }}>
-      <div style={{
-        fontSize: 11, fontWeight: 600, letterSpacing: '.06em',
-        textTransform: 'uppercase', color: C.t30, padding: '12px 14px 8px',
-      }}>白牌定制</div>
-      {NAV_SECTIONS.map(s => {
-        if (s.id === 'sec-style' && mode !== 'brand') return null;
-        const active = activeId === s.id;
-        return (
-          <button key={s.id} onClick={() => onNav(s.id)} style={{
-            display: 'block', width: '100%', textAlign: 'left',
-            padding: '5px 14px 5px 12px', border: 'none', cursor: 'pointer',
-            fontSize: 12, fontFamily: 'inherit',
-            background: active ? C.prim14 : 'transparent',
-            color: active ? C.t90 : C.t60,
-            borderLeft: `2px solid ${active ? C.primary : 'transparent'}`,
-            transition: 'background .1s',
-          }}>
-            {s.label}
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
-
+// Horizontal anchor bar — scroll-to-section links, visually distinct from tab switching:
+// plain text, color-only active state, dot separators, no underline/background/border-bottom.
 // ── Clear-mode group container ─────────────────────────────────────────────
 function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupToggle }: {
   grp: typeof PATH_GROUPS[0];
@@ -384,11 +351,8 @@ export function WhiteBrandPanel() {
   const [config, setConfig] = useState<ConfigMap>({});
   const [dirty, setDirty] = useState(false);
   const [building, setBuilding] = useState(false);
-  const [activeSection, setActiveSection] = useState('sec-mode');
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingKeyRef = useRef<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const mark = useCallback(() => setDirty(true), []);
 
@@ -430,25 +394,6 @@ export function WhiteBrandPanel() {
     mark();
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────
-  function handleNavTo(id: string) {
-    const el = scrollRef.current?.querySelector<HTMLElement>(`#${id}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setActiveSection(id);
-  }
-
-  function handleScroll() {
-    const c = scrollRef.current;
-    if (!c) return;
-    for (const sec of [...NAV_SECTIONS].reverse()) {
-      const el = c.querySelector<HTMLElement>(`#${sec.id}`);
-      if (el && el.offsetTop - c.offsetTop <= c.scrollTop + 40) {
-        setActiveSection(sec.id);
-        break;
-      }
-    }
-  }
-
   // ── Footer actions ─────────────────────────────────────────────────────
   function handleCancel() {
     setImages({}); setConfig({});
@@ -475,18 +420,17 @@ export function WhiteBrandPanel() {
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
-      {/* Body */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {/* Title bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        height: 44, padding: '0 20px', flexShrink: 0,
+        borderBottom: `1px solid ${C.border7}`,
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.t90 }}>白牌定制</span>
+      </div>
 
-        {/* QuickNav */}
-        <QuickNav activeId={activeSection} mode={mode} onNav={handleNavTo} />
-
-        {/* Main scroll area */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 80px', minWidth: 0 }}
-        >
+      {/* Main scroll area */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 80px' }}>
 
           {/* ── 模式 ── */}
           <SectionTitle label="模式" id="sec-mode" tip="白牌包：定制图片/风格/配置；清白牌包：把已定制的内容恢复为默认" />
@@ -544,7 +488,6 @@ export function WhiteBrandPanel() {
             ))}
           </div>
 
-        </div>
       </div>
 
       {/* ── Footer ── */}
