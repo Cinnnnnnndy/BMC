@@ -158,7 +158,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
           </div>
 
           {/* List */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
             {profiles.length === 0 ? (
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -225,12 +225,27 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
                   }}>
                     <button
                       onClick={() => openEdit(p.id)}
+                      title="编辑"
                       style={{
-                        padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.70)',
-                        fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap',
+                        width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
+                        borderRadius: 5, cursor: 'pointer',
+                        background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.60)',
+                        transition: 'background .1s, color .1s',
                       }}
-                    >编辑</button>
+                      onMouseOver={e => {
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.14)';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.90)';
+                      }}
+                      onMouseOut={e => {
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.08)';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.60)';
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                      </svg>
+                    </button>
                     <button
                       onClick={e => handleDeleteRow(p.id, e)}
                       style={{
@@ -248,10 +263,8 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
                         (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.45)';
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        <path d="M9 6V4h6v2"/>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                       </svg>
                     </button>
                   </div>
