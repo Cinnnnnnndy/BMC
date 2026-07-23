@@ -6,6 +6,9 @@ import { withBase } from './base';
 import { CsrTopoFrame } from './csrTopoBridge';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
+import { CsrExportPanel } from './components/CsrExportPanel';
+import type { SignProfile } from './signing-types';
+import { DEMO_PROFILES } from './signing-types';
 
 // ── Lazy-loaded views ──────────────────────────────────────────────────────
 const lazy = <T extends React.ComponentType<never>>(
@@ -24,6 +27,8 @@ const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopol
 const BmcEnvView                 = lazy(() => import('./components/BmcEnvView'),                 'BmcEnvView');
 const AiAssistView               = lazy(() => import('./components/AiAssistView'),               'AiAssistView');
 const ExplorerView               = lazy(() => import('./components/ExplorerView'),               'ExplorerView');
+const SigningConfigPanel         = lazy(() => import('./components/SigningConfigPanel'),         'SigningConfigPanel');
+const WhiteBrandPanel            = lazy(() => import('./components/WhiteBrandPanel'),            'WhiteBrandPanel');
 
 /** VSCode webview API bridge */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -51,8 +56,8 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 type ViewId =
   | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
-  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
-  | 'smcOffset' | 'exprCalc' | 'coolingConfig'
+  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo' | 'signingConfig'
+  | 'smcOffset' | 'exprCalc' | 'coolingConfig' | 'whiteBrand'
   | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup'
   | 'openubmcLogin' | 'gitcodeKeys';
 
@@ -106,7 +111,9 @@ const ICONS: Record<string, React.ReactNode> = {
   smcExt:       <SI d={['M6 6h12v12H6z','M9 6V3','M15 6V3','M9 18v3','M15 18v3','M6 9H3','M6 15H3','M18 9h3','M18 15h3']} />,
   mibSup:       <SI d={['M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2','M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0H9V5z','M9 12h6','M9 16h6']} />,
   openubmcLogin:<SI d={['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z','M2 12h20','M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z']} />,
-  gitcodeKeys:  <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
+  gitcodeKeys:     <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
+  signingConfig:     <SI d={['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z','M9 12l2 2 4-4']} />,
+  whiteBrand:        <SI d={['M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z','M7 7h.01']} />,
 };
 
 // ── Pane layout system ─────────────────────────────────────────────────────
@@ -198,11 +205,12 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
-  threeD: '3D 仿真', vueTopo: '硬件适配', csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
+  threeD: '3D 仿真', vueTopo: '硬件适配', signingConfig: '签名配置',csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
   openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥',
+  whiteBrand: '白牌定制',
 };
 
 // ── Pane components ────────────────────────────────────────────────────────
@@ -486,6 +494,8 @@ export default function App() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuPos, setMoreMenuPos] = useState<{ top: number; left: number } | null>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const [csrExportOpen, setCsrExportOpen] = useState(false);
+  const [signingProfiles, setSigningProfiles] = useState<SignProfile[]>(DEMO_PROFILES);
 
   // ── Pane layout state ──────────────────────────────────────────────────
   const initPaneId = useRef(uid());
@@ -1023,7 +1033,28 @@ export default function App() {
       case 'aiHistory':
         return <iframe src={withBase('ai-assist.html') + '?view=history'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 历史" />;
       case 'vueTopo':
-        return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />;
+        return (
+          <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+            <iframe src={vueSrc} style={{ flex: 1, minWidth: 0, height: '100%', border: 'none', display: 'block' }} title="硬件适配" />
+            {csrExportOpen && (
+              <CsrExportPanel
+                onClose={() => setCsrExportOpen(false)}
+                boardName={currentProject?.model ?? '当前板卡'}
+                onExport={cfg => { console.log('[CSR出包]', cfg); }}
+                onBinBuild={cfg => { console.log('[bin构建]', cfg); }}
+              />
+            )}
+          </div>
+        );
+      case 'signingConfig':
+        return (
+          <SigningConfigPanel
+            profiles={signingProfiles}
+            onProfilesChange={setSigningProfiles}
+          />
+        );
+      case 'whiteBrand':
+        return <WhiteBrandPanel />;
       case 'csrTopo':
         // 默认加载示例工程并接入 public/sr-samples/ 板卡样例库：打开即进入
         // “已选择工程文件”的拓扑状态，下游板卡按 Bom/Type 从样例库解析。
@@ -1071,7 +1102,8 @@ export default function App() {
   function renderTabActions(viewId: ViewId): React.ReactNode {
     const agentAct = CONTEXT_AGENT[viewId];
     const canSave = csr !== null && CSR_SAVE_VIEWS.has(viewId);
-    if (!agentAct && !canSave) return null;
+    const isTopo = viewId === 'vueTopo';
+    if (!agentAct && !canSave && !isTopo) return null;
     return (
       <>
         {agentAct && (
@@ -1080,6 +1112,13 @@ export default function App() {
             title={agentAct.title}
             onClick={e => { e.stopPropagation(); runQuickAction(agentAct.cmd); }}
           >{agentAct.label}</button>
+        )}
+        {isTopo && (
+          <button
+            className={`ide-tab-action-btn${csrExportOpen ? ' ide-tab-action-btn--primary' : ''}`}
+            title="CSR 出包配置面板"
+            onClick={e => { e.stopPropagation(); setCsrExportOpen(v => !v); }}
+          >{csrExportOpen ? '关闭出包' : 'CSR 出包'}</button>
         )}
         {canSave && (
           <button
@@ -1105,8 +1144,10 @@ export default function App() {
     { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
-    { id: 'vueTopo',      tooltip: '硬件适配' },
-    { id: 'csrTopo',      tooltip: 'CSR 拓扑编辑器' },
+    { id: 'vueTopo',       tooltip: '硬件适配' },
+    { id: 'signingConfig', tooltip: 'HPM 签名配置' },
+    { id: 'whiteBrand',    tooltip: '白牌定制' },
+    { id: 'csrTopo',       tooltip: 'CSR 拓扑编辑器' },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
   ];
 
