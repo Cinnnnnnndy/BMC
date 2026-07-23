@@ -292,17 +292,43 @@ function CfgField({ field, value, onChange }: {
   );
 }
 
-// ── Anchor sections definition ─────────────────────────────────────────────
-const NAV_SECTIONS = [
-  { id: 'sec-mode',    label: '模式' },
-  { id: 'sec-version', label: '版本号' },
-  { id: 'sec-style',   label: '风格定制' },
-  { id: 'sec-image',   label: '图片定制' },
-  { id: 'sec-config',  label: '配置定制' },
-];
+// ── Collapsible card section ───────────────────────────────────────────────
+function CollapsibleCard({ title, tip, defaultOpen = true, children }: {
+  title: string; tip?: string; defaultOpen?: boolean; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{
+      marginBottom: 10, borderRadius: 10, overflow: 'hidden',
+      border: `1px solid ${C.border7}`, background: 'rgba(255,255,255,.025)',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={tip}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+          borderBottom: open ? `1px solid ${C.border}` : 'none',
+          background: 'transparent',
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.t90 }}>{title}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+          style={{
+            color: C.t30, flexShrink: 0,
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform .2s',
+          }}>
+          <path d="M7 10l5 5 5-5z"/>
+        </svg>
+      </button>
+      {open && <div style={{ padding: '14px 14px 16px' }}>{children}</div>}
+    </div>
+  );
+}
 
-// Horizontal anchor bar — scroll-to-section links, visually distinct from tab switching:
-// plain text, color-only active state, dot separators, no underline/background/border-bottom.
 // ── Clear-mode group container ─────────────────────────────────────────────
 function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupToggle }: {
   grp: typeof PATH_GROUPS[0];
@@ -439,37 +465,41 @@ export function WhiteBrandPanel() {
       </div>
 
       {/* Main scroll area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 80px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 80px' }}>
 
-          {/* ── 模式 ── */}
-          <SectionTitle label="模式" id="sec-mode" tip="白牌包：定制图片/风格/配置；清白牌包：把已定制的内容恢复为默认" />
+        {/* ── 模式 ── */}
+        <CollapsibleCard title="模式" tip="白牌包：定制图片/风格/配置；清白牌包：把已定制的内容恢复为默认">
           <SegmentedControl
             options={[{ value: 'brand', label: '白牌包' }, { value: 'clear', label: '清白牌包' }]}
             value={mode}
             onChange={v => { setMode(v as Mode); mark(); }}
           />
+        </CollapsibleCard>
 
-          {/* ── 版本号 ── */}
-          <SectionTitle label="版本号" id="sec-version" />
+        {/* ── 版本号 ── */}
+        <CollapsibleCard title="版本号">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <VersionInput label="filelist.conf" value={filelistVersion} onChange={v => { setFilelistVersion(v); mark(); }} />
             <VersionInput label="web_custom.xml" value={xmlVersion} onChange={v => { setXmlVersion(v); mark(); }} />
           </div>
+        </CollapsibleCard>
 
-          {/* ── 风格定制 (brand only) ── */}
-          {mode === 'brand' && (<>
-            <SectionTitle label="风格定制" id="sec-style" />
+        {/* ── 风格定制 (brand only) ── */}
+        {mode === 'brand' && (
+          <CollapsibleCard title="风格定制">
             <SegmentedControl
               options={[{ value: 'dark', label: '深色' }, { value: 'light', label: '浅色' }, { value: 'auto', label: '跟随系统' }]}
               value={pageStyle}
               onChange={v => { setPageStyle(v); mark(); }}
             />
-          </>)}
+          </CollapsibleCard>
+        )}
 
-          {/* ── 图片定制 ── */}
-          <SectionTitle label="图片定制" id="sec-image"
-            tip={mode === 'clear' ? '按 BMC 路径分组，勾选恢复默认会让该路径下所有图恢复默认' : '选择本地图片后显示预览，保存时图片会复制到白牌文件夹'} />
-
+        {/* ── 图片定制 ── */}
+        <CollapsibleCard
+          title="图片定制"
+          tip={mode === 'clear' ? '按 BMC 路径分组，勾选恢复默认会让该路径下所有图恢复默认' : '选择本地图片后显示预览，保存时图片会复制到白牌文件夹'}
+        >
           {mode === 'brand' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
               {IMAGE_FIELDS.map(f => (
@@ -486,16 +516,20 @@ export function WhiteBrandPanel() {
               ))}
             </div>
           )}
+        </CollapsibleCard>
 
-          {/* ── 配置定制 ── */}
-          <SectionTitle label="配置定制" id="sec-config"
-            tip={mode === 'clear' ? '填入恢复后的默认值，对应 web_custom.xml 的属性' : '对应白牌包 web_custom.xml 的属性，随白牌定制统一保存'} />
+        {/* ── 配置定制 ── */}
+        <CollapsibleCard
+          title="配置定制"
+          tip={mode === 'clear' ? '填入恢复后的默认值，对应 web_custom.xml 的属性' : '对应白牌包 web_custom.xml 的属性，随白牌定制统一保存'}
+        >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '0 16px' }}>
             {CONFIG_FIELDS.map(f => (
               <CfgField key={f.key} field={f} value={config[f.key] ?? ''}
                 onChange={v => { setConfig(prev => ({ ...prev, [f.key]: v })); mark(); }} />
             ))}
           </div>
+        </CollapsibleCard>
 
       </div>
 

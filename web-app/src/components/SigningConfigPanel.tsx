@@ -81,9 +81,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
             </svg>
             签名配置
           </button>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.20)" strokeWidth="1.5">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+          <span style={{ color: 'rgba(255,255,255,.20)', fontSize: 13 }}>/</span>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,.40)' }}>
             {profiles.find(p => p.id === editId)?.name ?? '档案编辑'}
           </span>
