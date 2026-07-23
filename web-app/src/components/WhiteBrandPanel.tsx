@@ -166,11 +166,9 @@ function VersionInput({ label, value, onChange }: {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 300, maxWidth: '100%' }}>
-      <span style={{ fontSize: 12, color: C.t60, whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'ui-monospace,monospace' }}>
-        {label}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <span style={{ fontSize: 11, color: C.t42, fontFamily: 'ui-monospace,monospace' }}>{label}</span>
+      <div>
         <input
           value={value}
           placeholder="如 2.00、2.10"
@@ -189,7 +187,7 @@ function VersionInput({ label, value, onChange }: {
   );
 }
 
-// ── Image row (compact list style) ────────────────────────────────────────
+// ── Image card (grid card for brand mode, compact row for clear mode) ─────────
 function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
   field: ImageField; state: ImgState; mode: Mode;
   onSelect: (key: string) => void;
@@ -200,56 +198,67 @@ function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
   const cleared = !!state.clear;
   const hasPath = !!state.path;
 
+  if (mode === 'clear') {
+    return (
+      <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
+          borderBottom: '1px solid rgba(255,255,255,.04)',
+          background: hover ? 'rgba(255,255,255,.025)' : 'transparent', transition: 'background .1s',
+        }}>
+        <div style={{ width: 40, height: 28, flexShrink: 0, borderRadius: 3, overflow: 'hidden',
+          background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {state.preview
+            ? <img src={state.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.18)" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+          }
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: C.t90, opacity: cleared ? 0.4 : 1 }}>{field.label}</div>
+          <div style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{field.name}</div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, color: C.t42, flexShrink: 0 }}>
+          <input type="checkbox" checked={cleared} onChange={e => onToggleClear(field.key, e.target.checked)} />
+          {cleared ? '取消' : '恢复默认'}
+        </label>
+      </div>
+    );
+  }
+
+  // Brand mode: card with large preview
   return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '8px 0',
-        borderBottom: '1px solid rgba(255,255,255,.04)',
-        background: hover ? 'rgba(255,255,255,.025)' : 'transparent',
-        transition: 'background .1s',
-      }}
-    >
-      {/* Thumbnail */}
+        borderRadius: 8, overflow: 'hidden',
+        background: hover ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.04)',
+        border: '1px solid rgba(255,255,255,.07)', transition: 'background .1s',
+      }}>
+      {/* Preview area */}
       <div style={{
-        width: 48, height: 34, flexShrink: 0, borderRadius: 4,
-        background: state.preview ? 'transparent' : 'rgba(255,255,255,.05)',
+        width: '100%', aspectRatio: '16/9',
+        background: state.preview ? 'rgba(0,0,0,.30)' : 'rgba(255,255,255,.04)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
         {state.preview
           ? <img src={state.preview} alt={field.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.20)" strokeWidth="1.5">
+          : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
         }
       </div>
-
-      {/* Label + filename */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: C.t90, fontWeight: 500, opacity: cleared ? 0.5 : 1 }}>
-          {field.label}
-        </div>
-        <div style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {/* Info + actions */}
+      <div style={{ padding: '8px 10px 10px' }}>
+        <div style={{ fontSize: 12, color: C.t90, fontWeight: 500, marginBottom: 2 }}>{field.label}</div>
+        <div style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 8 }}>
           {hasPath ? state.path : field.name}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div style={{ flexShrink: 0, display: 'flex', gap: 5, alignItems: 'center' }}>
-        {mode === 'clear' ? (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, color: C.t42 }}>
-            <input type="checkbox" checked={cleared} onChange={e => onToggleClear(field.key, e.target.checked)} />
-            {cleared ? '取消' : '恢复默认'}
-          </label>
-        ) : (
-          <>
-            <ChipBtn onClick={() => onSelect(field.key)}>{hasPath ? '更换' : '选择'}</ChipBtn>
-            {hasPath && <ChipBtn onClick={() => onClear(field.key)} danger>删除</ChipBtn>}
-          </>
-        )}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <ChipBtn onClick={() => onSelect(field.key)}>{hasPath ? '更换' : '选择'}</ChipBtn>
+          {hasPath && <ChipBtn onClick={() => onClear(field.key)} danger>删除</ChipBtn>}
+        </div>
       </div>
     </div>
   );
@@ -442,7 +451,7 @@ export function WhiteBrandPanel() {
 
           {/* ── 版本号 ── */}
           <SectionTitle label="版本号" id="sec-version" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <VersionInput label="filelist.conf" value={filelistVersion} onChange={v => { setFilelistVersion(v); mark(); }} />
             <VersionInput label="web_custom.xml" value={xmlVersion} onChange={v => { setXmlVersion(v); mark(); }} />
           </div>
@@ -462,7 +471,7 @@ export function WhiteBrandPanel() {
             tip={mode === 'clear' ? '按 BMC 路径分组，勾选恢复默认会让该路径下所有图恢复默认' : '选择本地图片后显示预览，保存时图片会复制到白牌文件夹'} />
 
           {mode === 'brand' ? (
-            <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
               {IMAGE_FIELDS.map(f => (
                 <ImageCard key={f.key} field={f} state={images[f.key] ?? {}} mode="brand"
                   onSelect={handleSelectImage} onClear={handleClearImage} onToggleClear={handleToggleClear} />
