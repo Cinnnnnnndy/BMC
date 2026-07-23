@@ -103,11 +103,12 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
 
   // ── List view ──────────────────────────────────────────────────────────
   const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: '9px 16px', border: 'none', background: 'transparent',
+    padding: '10px 18px',
+    borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+    borderBottom: `2px solid ${active ? 'var(--primary,#4369ef)' : 'transparent'}`,
+    background: 'transparent',
     fontSize: 13, fontFamily: 'inherit', cursor: 'pointer',
-    color: active ? 'rgba(255,255,255,.88)' : 'rgba(255,255,255,.38)',
-    fontWeight: active ? 500 : 400,
-    borderBottom: `1px solid ${active ? 'rgba(255,255,255,.30)' : 'transparent'}`,
+    color: active ? 'rgba(255,255,255,.90)' : 'rgba(255,255,255,.42)',
     transition: 'color .12s, border-color .12s',
   });
 
@@ -121,7 +122,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
       {/* Tab bar */}
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
         <button style={tabBtnStyle(activeTab === 'signing')} onClick={() => setActiveTab('signing')}>
-          签名配置
+          签名管理
         </button>
         <button style={tabBtnStyle(activeTab === 'certs')} onClick={() => setActiveTab('certs')}>
           证书管理

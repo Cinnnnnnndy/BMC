@@ -153,31 +153,6 @@ export function SigningConfigEditor({ profiles, onProfilesChange, editId }: Prop
             {METHOD_LABEL[profile.method]} · 签名档案编辑
           </div>
         </div>
-        <button
-          onClick={handleDelete}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '5px 11px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: 'transparent', color: 'rgba(255,80,80,.50)',
-            fontSize: 12, fontFamily: 'inherit',
-            transition: 'background .1s, color .1s',
-          }}
-          onMouseOver={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.10)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.85)';
-          }}
-          onMouseOut={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.50)';
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <path d="M9 6V4h6v2"/>
-          </svg>
-          删除档案
-        </button>
       </div>
 
       {/* Unsaved changes banner */}
@@ -288,24 +263,53 @@ export function SigningConfigEditor({ profiles, onProfilesChange, editId }: Prop
 
       {/* Footer */}
       <div style={{
-        display: 'flex', justifyContent: 'flex-end', gap: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 24px', borderTop: '1px solid rgba(255,255,255,.06)', flexShrink: 0,
       }}>
-        {dirty && (
-          <button onClick={handleDiscard} style={{
-            padding: '7px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
-            background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.60)',
+        {/* Left: delete */}
+        <button
+          onClick={handleDelete}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: 'transparent', color: 'rgba(255,80,80,.50)',
             fontSize: 12, fontFamily: 'inherit',
-          }}>取消修改</button>
-        )}
-        <button onClick={handleSave} disabled={!dirty} style={{
-          padding: '7px 22px', borderRadius: 7, border: 'none',
-          cursor: dirty ? 'pointer' : 'default',
-          background: dirty ? 'var(--primary,#4369ef)' : 'rgba(255,255,255,.07)',
-          color: dirty ? '#fff' : 'rgba(255,255,255,.30)',
-          fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-          transition: 'background .15s, color .15s',
-        }}>保存配置</button>
+            transition: 'background .1s, color .1s',
+          }}
+          onMouseOver={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.10)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.85)';
+          }}
+          onMouseOut={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.50)';
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+          删除档案
+        </button>
+        {/* Right: save */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {dirty && (
+            <button onClick={handleDiscard} style={{
+              padding: '7px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.60)',
+              fontSize: 12, fontFamily: 'inherit',
+            }}>取消修改</button>
+          )}
+          <button onClick={handleSave} disabled={!dirty} style={{
+            padding: '7px 22px', borderRadius: 7, border: 'none',
+            cursor: dirty ? 'pointer' : 'default',
+            background: dirty ? 'var(--primary,#4369ef)' : 'rgba(255,255,255,.07)',
+            color: dirty ? '#fff' : 'rgba(255,255,255,.30)',
+            fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            transition: 'background .15s, color .15s',
+          }}>保存配置</button>
+        </div>
       </div>
     </div>
   );
