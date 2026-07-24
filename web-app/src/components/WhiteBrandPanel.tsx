@@ -77,6 +77,8 @@ function useFieldStyle(focused: boolean): React.CSSProperties {
     background: focused ? C.s2h : C.s2,
     border: 'none', outline: 'none',
     color: C.t90, boxSizing: 'border-box',
+    // Strip native select appearance so custom wrapper arrow shows correctly
+    appearance: 'none', WebkitAppearance: 'none',
   };
 }
 
@@ -206,6 +208,7 @@ function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
           borderBottom: '1px solid rgba(255,255,255,.04)',
           background: hover ? 'rgba(255,255,255,.025)' : 'transparent', transition: 'background .1s',
         }}>
+        {/* Thumbnail */}
         <div style={{ width: 40, height: 28, flexShrink: 0, borderRadius: 3, overflow: 'hidden',
           background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {state.preview
@@ -215,14 +218,38 @@ function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
               </svg>
           }
         </div>
+        {/* Label */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, color: C.t90, opacity: cleared ? 0.4 : 1 }}>{field.label}</div>
           <div style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{field.name}</div>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, color: C.t42, flexShrink: 0 }}>
-          <input type="checkbox" checked={cleared} onChange={e => onToggleClear(field.key, e.target.checked)} />
-          {cleared ? '取消' : '恢复默认'}
-        </label>
+        {/* Actions — delete (only when custom file exists) + restore-default toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          {hasPath && (
+            <button onClick={() => onClear(field.key)} title="删除已上传的自定义图片" style={{
+              width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', borderRadius: 5, cursor: 'pointer',
+              background: 'transparent', color: 'rgba(255,80,80,.40)',
+              transition: 'background .1s, color .1s',
+            }}
+              onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.10)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.80)'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.40)'; }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+            </button>
+          )}
+          <button onClick={() => onToggleClear(field.key, !cleared)} style={{
+            padding: '3px 9px', borderRadius: 5, border: 'none', cursor: 'pointer',
+            fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap',
+            background: cleared ? C.amberBg : C.s2,
+            color: cleared ? C.amber : C.t42,
+            transition: 'background .1s, color .1s',
+          }}>
+            {cleared ? '已标记' : '恢复默认'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -274,13 +301,20 @@ function CfgField({ field, value, onChange }: {
     <div style={{ paddingTop: 10 }}>
       <div style={{ fontSize: 12, color: C.t60, marginBottom: 5 }}>{field.label}</div>
       {field.type === 'select' ? (
-        <select value={value} onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          style={inputStyle}
-        >
-          <option value="">请选择</option>
-          {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div style={{ position: 'relative' }}>
+          <select value={value} onChange={e => onChange(e.target.value)}
+            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+            style={{ ...inputStyle, paddingRight: 28, cursor: 'pointer' }}
+          >
+            <option value="">请选择</option>
+            {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+            style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)',
+              color: C.t42, pointerEvents: 'none', flexShrink: 0 }}>
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </div>
       ) : (
         <input type="text" value={value} placeholder={field.placeholder}
           onChange={e => onChange(e.target.value)}
@@ -292,17 +326,43 @@ function CfgField({ field, value, onChange }: {
   );
 }
 
-// ── Anchor sections definition ─────────────────────────────────────────────
-const NAV_SECTIONS = [
-  { id: 'sec-mode',    label: '模式' },
-  { id: 'sec-version', label: '版本号' },
-  { id: 'sec-style',   label: '风格定制' },
-  { id: 'sec-image',   label: '图片定制' },
-  { id: 'sec-config',  label: '配置定制' },
-];
+// ── Collapsible card section ───────────────────────────────────────────────
+function CollapsibleCard({ title, tip, defaultOpen = true, children }: {
+  title: string; tip?: string; defaultOpen?: boolean; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{
+      marginBottom: 10, borderRadius: 10, overflow: 'hidden',
+      border: `1px solid ${C.border7}`, background: 'rgba(255,255,255,.025)',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={tip}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 4,
+          padding: '10px 14px',
+          borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+          borderBottom: open ? `1px solid ${C.border}` : 'none',
+          background: 'transparent',
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.t90 }}>{title}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+          style={{
+            color: C.t30, flexShrink: 0,
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform .2s',
+          }}>
+          <path d="M7 10l5 5 5-5z"/>
+        </svg>
+      </button>
+      {open && <div style={{ padding: '14px 14px 16px' }}>{children}</div>}
+    </div>
+  );
+}
 
-// Horizontal anchor bar — scroll-to-section links, visually distinct from tab switching:
-// plain text, color-only active state, dot separators, no underline/background/border-bottom.
 // ── Clear-mode group container ─────────────────────────────────────────────
 function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupToggle }: {
   grp: typeof PATH_GROUPS[0];
@@ -331,11 +391,15 @@ function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupTogg
         <span style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {grp.path}
         </span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 12, flexShrink: 0, color: C.t42 }}>
-          <input ref={cbRef} type="checkbox" checked={allClear}
-            onChange={e => onGroupToggle(grp.keys, e.target.checked)} />
-          {allClear ? '取消' : '恢复默认'}
-        </label>
+        <button onClick={() => onGroupToggle(grp.keys, !allClear)} style={{
+          padding: '3px 9px', borderRadius: 5, border: 'none', cursor: 'pointer',
+          fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
+          background: allClear ? C.amberBg : C.s2,
+          color: allClear ? C.amber : C.t42,
+          transition: 'background .1s, color .1s',
+        }}>
+          {allClear ? '已全选' : someClear ? '全部恢复' : '恢复全部默认'}
+        </button>
       </div>
       <div>
         {grp.keys.map(k => {
@@ -439,37 +503,41 @@ export function WhiteBrandPanel() {
       </div>
 
       {/* Main scroll area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 80px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 80px' }}>
 
-          {/* ── 模式 ── */}
-          <SectionTitle label="模式" id="sec-mode" tip="白牌包：定制图片/风格/配置；清白牌包：把已定制的内容恢复为默认" />
+        {/* ── 模式 ── */}
+        <CollapsibleCard title="模式" tip="白牌包：定制图片/风格/配置；清白牌包：把已定制的内容恢复为默认">
           <SegmentedControl
             options={[{ value: 'brand', label: '白牌包' }, { value: 'clear', label: '清白牌包' }]}
             value={mode}
             onChange={v => { setMode(v as Mode); mark(); }}
           />
+        </CollapsibleCard>
 
-          {/* ── 版本号 ── */}
-          <SectionTitle label="版本号" id="sec-version" />
+        {/* ── 版本号 ── */}
+        <CollapsibleCard title="版本号">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <VersionInput label="filelist.conf" value={filelistVersion} onChange={v => { setFilelistVersion(v); mark(); }} />
             <VersionInput label="web_custom.xml" value={xmlVersion} onChange={v => { setXmlVersion(v); mark(); }} />
           </div>
+        </CollapsibleCard>
 
-          {/* ── 风格定制 (brand only) ── */}
-          {mode === 'brand' && (<>
-            <SectionTitle label="风格定制" id="sec-style" />
+        {/* ── 风格定制 (brand only) ── */}
+        {mode === 'brand' && (
+          <CollapsibleCard title="风格定制">
             <SegmentedControl
               options={[{ value: 'dark', label: '深色' }, { value: 'light', label: '浅色' }, { value: 'auto', label: '跟随系统' }]}
               value={pageStyle}
               onChange={v => { setPageStyle(v); mark(); }}
             />
-          </>)}
+          </CollapsibleCard>
+        )}
 
-          {/* ── 图片定制 ── */}
-          <SectionTitle label="图片定制" id="sec-image"
-            tip={mode === 'clear' ? '按 BMC 路径分组，勾选恢复默认会让该路径下所有图恢复默认' : '选择本地图片后显示预览，保存时图片会复制到白牌文件夹'} />
-
+        {/* ── 图片定制 ── */}
+        <CollapsibleCard
+          title="图片定制"
+          tip={mode === 'clear' ? '按 BMC 路径分组，勾选恢复默认会让该路径下所有图恢复默认' : '选择本地图片后显示预览，保存时图片会复制到白牌文件夹'}
+        >
           {mode === 'brand' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
               {IMAGE_FIELDS.map(f => (
@@ -486,16 +554,20 @@ export function WhiteBrandPanel() {
               ))}
             </div>
           )}
+        </CollapsibleCard>
 
-          {/* ── 配置定制 ── */}
-          <SectionTitle label="配置定制" id="sec-config"
-            tip={mode === 'clear' ? '填入恢复后的默认值，对应 web_custom.xml 的属性' : '对应白牌包 web_custom.xml 的属性，随白牌定制统一保存'} />
+        {/* ── 配置定制 ── */}
+        <CollapsibleCard
+          title="配置定制"
+          tip={mode === 'clear' ? '填入恢复后的默认值，对应 web_custom.xml 的属性' : '对应白牌包 web_custom.xml 的属性，随白牌定制统一保存'}
+        >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '0 16px' }}>
             {CONFIG_FIELDS.map(f => (
               <CfgField key={f.key} field={f} value={config[f.key] ?? ''}
                 onChange={v => { setConfig(prev => ({ ...prev, [f.key]: v })); mark(); }} />
             ))}
           </div>
+        </CollapsibleCard>
 
       </div>
 
@@ -528,7 +600,7 @@ export function WhiteBrandPanel() {
           fontFamily: 'inherit', fontWeight: 600,
           background: building ? 'rgba(67,105,239,.50)' : C.primary,
           color: '#fff', transition: 'background .12s',
-          minWidth: 108,
+          minWidth: 128,
         }}>
           {building ? '构建中…' : mode === 'clear' ? '清白牌包构建' : '白牌包构建'}
         </button>
