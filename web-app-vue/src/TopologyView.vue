@@ -15,6 +15,7 @@ import AlarmConfigView from './views/AlarmConfigView.vue';
 import ChassisOverview from './components/ChassisOverview.vue';
 import { boardAlarm } from './alarm/alarmStore';
 import { loadBoardOnce, boardChipDevices } from './alarm/srSeed';
+import { boardRollup, chassisEvents } from './alarm/chassisAggregate';
 import { getTopology } from './data/boardTopologies';
 import { chipTypeLabel } from './data/srParser';
 
@@ -107,6 +108,19 @@ const CAT_ORDER = ['BCU', 'CLU', 'EXU', 'IEU', 'SEU', 'NICCard', 'Unknown'];
 const expandedCats   = ref<Record<string, boolean>>(Object.fromEntries(CAT_ORDER.map((c) => [c, true])));
 const expandedGroups = ref<Record<string, boolean>>({});
 const hwSearchQuery  = ref<string>('');
+/** 硬件管理器左树可折叠为窄条（对齐 CSR 拓扑编辑器左树的交互）。 */
+const paletteCollapsed = ref(false);
+
+// ── 整机总览信息融合进左树头部（汇总统计条，数据源与 ChassisOverview 一致）──
+const chassisStats = computed(() => {
+  const rows = boardRollup();
+  return {
+    boards: rows.length,
+    sensors: rows.reduce((s, r) => s + r.thresholdSensors + r.discreteSensors, 0),
+    events: rows.reduce((s, r) => s + r.events, 0),
+    chassis: chassisEvents().length,
+  };
+});
 
 interface CatNode { type: string; label: string; groups: BoardGroup[]; boardCount: number }
 const categoryTree = computed<CatNode[]>(() => {
@@ -373,8 +387,11 @@ function catStateClass(cat: CatNode): string {
 
 <template>
   <div class="topo-root">
-    <!-- ── Left panel ────────────────────────────────────────────── -->
-    <aside class="topo-palette open">
+    <!-- ── Left panel（对齐 CSR 拓扑编辑器左树：可折叠 + 整机总览汇总条）── -->
+    <aside v-if="paletteCollapsed" class="topo-palette closed" title="展开硬件管理器" @click="paletteCollapsed = false">
+      <svg class="rail-ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.4 3.5 5.3 4.6 8.7 8l-3.4 3.4 1.1 1.1L10.9 8 6.4 3.5z"/></svg>
+    </aside>
+    <aside v-else class="topo-palette open">
       <!-- ── Panel header ── -->
       <div class="panel-hd">
         硬件管理器
@@ -384,8 +401,20 @@ function catStateClass(cat: CatNode): string {
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
             </svg>
           </button>
+          <button class="ib" title="折叠面板" @click="paletteCollapsed = true">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5 6 8l3.5 4.5"/></svg>
+          </button>
         </div>
       </div>
+
+      <!-- ── 整机总览汇总条（融合 ChassisOverview 的关键统计，点击打开完整总览）── -->
+      <button class="hw-sum-strip" title="打开整机告警总览（跨板 + 机箱级）" @click="openChassis">
+        <span class="hw-sum-label">整机总览</span>
+        <span class="chk-chip chk-ok">{{ chassisStats.boards }} 板</span>
+        <span class="chk-chip chk-ok">{{ chassisStats.sensors }} 传感器</span>
+        <span class="chk-chip" :class="chassisStats.events ? 'chk-warn' : 'chk-ok'">{{ chassisStats.events }} 事件</span>
+        <span v-if="chassisStats.chassis" class="chk-chip chk-err">{{ chassisStats.chassis }} 机箱级</span>
+      </button>
 
       <!-- ── Search ── -->
       <div class="hw-search-row">
@@ -408,7 +437,10 @@ function catStateClass(cat: CatNode): string {
       <div class="hw-tree">
         <template v-for="cat in filteredCategoryTree" :key="cat.type">
           <button class="hw-cat-row" @click="toggleCat(cat.type)">
-            <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
+            <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+            <svg class="hw-cat-ic" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4.4c.4 0 .78.16 1.06.44L10.4 6H16.5A1.5 1.5 0 0 1 18 7.5v8A1.5 1.5 0 0 1 16.5 17h-13A1.5 1.5 0 0 1 2 15.5v-10z"/></svg>
             <span class="hw-cat-label">{{ cat.label }}</span>
             <span class="hw-count">{{ cat.boardCount || cat.groups.length }}</span>
           </button>
@@ -420,7 +452,9 @@ function catStateClass(cat: CatNode): string {
                 :title="g.connectorRef ? '来源 Connector：' + g.connectorRef.parentGroupId + ' / ' + g.connectorRef.connectorName : g.label"
                 @click="clickGroup(g)"
               >
-                <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">▸</span>
+                <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </span>
                 <span v-else class="hw-caret hw-caret-empty" />
                 <span class="hw-state-dot" :style="{ background: STATE_COLOR[g.state] }" :title="STATE_LABEL[g.state]" />
                 <span class="hw-grp-name">{{ g.name }}</span>
@@ -664,6 +698,41 @@ function catStateClass(cat: CatNode): string {
 </template>
 
 <style scoped>
+/* ── 折叠态窄条（对齐 CSR 拓扑编辑器左树的折叠交互）── */
+.topo-palette.closed {
+  cursor: pointer;
+  align-items: center;
+  padding-top: 12px;
+}
+.topo-palette.closed:hover { background: var(--state-hover); }
+.rail-ic { width: 14px; height: 14px; color: var(--foreground-muted); }
+
+/* ── 整机总览汇总条（融合 ChassisOverview 统计，button 化 hw-sum-strip） ── */
+.hw-sum-strip {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0 12px;
+  height: 38px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.hw-sum-strip:hover { background: var(--state-hover); }
+
+/* ── 搜索框：胶囊造型（对齐 CSR 拓扑编辑器左树搜索框）── */
+.hw-search-row {
+  margin: 10px 12px 8px;
+  padding: 0 10px;
+  height: 32px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-3);
+  border-bottom: none;
+}
+
 /* ── 硬件管理器树（类别 → 板卡组 → 文件） ─────────────────────── */
 .hw-tree {
   display: flex;
@@ -671,20 +740,32 @@ function catStateClass(cat: CatNode): string {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  /* 小边距让 hover/选中圆角胶囊在面板内浮起，避免圆角贴边露出直角瑕疵（对齐 CSR 左树） */
+  padding: 4px 6px;
 }
 .hw-caret {
-  width: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  font-size: 9px;
   color: var(--foreground-muted);
   transition: transform 0.12s;
-  display: inline-block;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.hw-caret svg { width: 10px; height: 10px; display: block; }
 .hw-caret.open { transform: rotate(90deg); }
 .hw-caret-empty { visibility: hidden; }
 
-/* category row – matches bmc-env .g-row */
+/* 类别图标（对齐 CSR 拓扑编辑器左树的 folder 图标）*/
+.hw-cat-ic {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--foreground-muted);
+}
+
+/* category row – matches bmc-env .g-row，hover/选中改圆角胶囊（对齐 CSR 左树） */
 .hw-cat-row {
   all: unset;
   box-sizing: border-box;
@@ -699,7 +780,7 @@ function catStateClass(cat: CatNode): string {
   color: var(--foreground-secondary);
   user-select: none;
 }
-.hw-cat-row:hover { background: var(--state-hover); }
+.hw-cat-row:hover { background: var(--state-hover); border-radius: var(--radius-md, 8px); }
 .hw-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* count badge – grey, no color */
@@ -730,9 +811,10 @@ function catStateClass(cat: CatNode): string {
   color: var(--foreground-secondary);
   transition: background var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 }
-.hw-grp-row:hover { background: var(--state-hover); }
+.hw-grp-row:hover { background: var(--state-hover); border-radius: var(--radius-md, 8px); }
 .hw-grp-row.is-active {
   background: var(--state-selected, rgba(67, 105, 239, 0.14));
+  border-radius: var(--radius-md, 8px);
   color: var(--foreground);
 }
 .hw-state-dot {
