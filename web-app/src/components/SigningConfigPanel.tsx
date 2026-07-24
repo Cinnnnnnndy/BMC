@@ -226,18 +226,17 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
                       title="编辑"
                       style={{
                         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
-                        borderRadius: 5, cursor: 'pointer',
-                        background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.60)',
+                        border: 'none', borderRadius: 5, cursor: 'pointer',
+                        background: 'transparent', color: 'rgba(255,255,255,.38)',
                         transition: 'background .1s, color .1s',
                       }}
                       onMouseOver={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.14)';
-                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.90)';
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.06)';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.80)';
                       }}
                       onMouseOut={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.08)';
-                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.60)';
+                        (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.38)';
                       }}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -246,19 +245,20 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
                     </button>
                     <button
                       onClick={e => handleDeleteRow(p.id, e)}
+                      title="删除"
                       style={{
                         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: 'none', borderRadius: 5, cursor: 'pointer',
-                        background: 'transparent', color: 'rgba(255,80,80,.45)',
+                        background: 'transparent', color: 'rgba(255,255,255,.38)',
                         transition: 'background .1s, color .1s',
                       }}
                       onMouseOver={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.12)';
-                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.85)';
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.06)';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.80)';
                       }}
                       onMouseOut={e => {
                         (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.45)';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.38)';
                       }}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -283,15 +283,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
 
 // ── CertsTab ───────────────────────────────────────────────────────────────
 function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: string) => void }) {
-  const today = new Date();
-
-  function expiryColor(dateStr: string) {
-    const d = new Date(dateStr);
-    const daysLeft = (d.getTime() - today.getTime()) / 86400000;
-    if (daysLeft < 0) return 'rgba(255,80,80,.80)';
-    if (daysLeft < 90) return 'rgba(255,170,59,.80)';
-    return 'rgba(255,255,255,.38)';
-  }
+  const [showTip, setShowTip] = useState(false);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -301,7 +293,33 @@ function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: stri
         padding: '14px 24px 12px', borderBottom: '1px solid rgba(255,255,255,.06)', flexShrink: 0,
       }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,.88)' }}>证书管理</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,.88)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            证书管理
+            <div style={{ position: 'relative', display: 'flex' }}>
+              <button
+                onMouseEnter={() => setShowTip(true)}
+                onMouseLeave={() => setShowTip(false)}
+                style={{
+                  width: 15, height: 15, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', cursor: 'default',
+                  background: 'rgba(255,255,255,.10)', color: 'rgba(255,255,255,.40)',
+                  fontSize: 10, fontWeight: 700, fontFamily: 'inherit',
+                }}
+              >?</button>
+              {showTip && (
+                <div style={{
+                  position: 'absolute', left: 20, top: -6, width: 224, zIndex: 200,
+                  background: '#1a1a1a', borderRadius: 8, padding: '10px 12px',
+                  border: '1px solid rgba(255,255,255,.10)',
+                  fontSize: 12, color: 'rgba(255,255,255,.50)', lineHeight: 1.65,
+                  pointerEvents: 'none', whiteSpace: 'normal',
+                }}>
+                  证书文件由各签名档案引用，导入的证书仅记录路径，不会复制文件。
+                </div>
+              )}
+            </div>
+          </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>
             {certs.length} 个证书
           </div>
@@ -309,11 +327,11 @@ function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: stri
         <button style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-          background: 'rgba(255,255,255,.09)', color: 'rgba(255,255,255,.80)',
+          background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.75)',
           fontSize: 12, fontFamily: 'inherit',
         }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
           </svg>
           导入证书
         </button>
@@ -321,11 +339,11 @@ function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: stri
 
       {/* Column headers */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 80px 110px 32px',
+        display: 'grid', gridTemplateColumns: '1fr 76px 110px 32px',
         padding: '7px 24px', borderBottom: '1px solid rgba(255,255,255,.06)', flexShrink: 0,
       }}>
         {['文件名', '类型', '有效期至', ''].map((col, i) => (
-          <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,.30)', fontWeight: 500, letterSpacing: '.03em' }}>
+          <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,.28)', fontWeight: 500, letterSpacing: '.03em' }}>
             {col}
           </span>
         ))}
@@ -341,7 +359,7 @@ function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: stri
         {certs.map((c, idx) => (
           <div key={c.id}
             style={{
-              display: 'grid', gridTemplateColumns: '1fr 80px 110px 32px',
+              display: 'grid', gridTemplateColumns: '1fr 76px 110px 32px',
               padding: '11px 24px', alignItems: 'center',
               borderBottom: '1px solid rgba(255,255,255,.04)',
               background: idx % 2 !== 0 ? 'rgba(255,255,255,.012)' : 'transparent',
@@ -351,56 +369,45 @@ function CertsTab({ certs, onDelete }: { certs: CertEntry[]; onDelete: (id: stri
             onMouseOut={e => (e.currentTarget as HTMLDivElement).style.background = idx % 2 !== 0 ? 'rgba(255,255,255,.012)' : 'transparent'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.30)" strokeWidth="1.8" style={{ flexShrink: 0 }}>
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,255,255,.28)" style={{ flexShrink: 0 }}>
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
               </svg>
               <span style={{
                 fontFamily: 'ui-monospace,monospace', fontSize: 12,
-                color: 'rgba(255,255,255,.80)',
+                color: 'rgba(255,255,255,.78)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{c.name}</span>
             </div>
             <span style={{
-              padding: '2px 8px', borderRadius: 999, fontSize: 11,
-              background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.55)',
+              display: 'inline-block', width: 'fit-content',
+              padding: '2px 6px', borderRadius: 4, fontSize: 11,
+              background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.48)',
               whiteSpace: 'nowrap',
             }}>{CERT_TYPE_LABEL[c.type]}</span>
-            <span style={{ fontSize: 12, color: expiryColor(c.expiry), fontFamily: 'ui-monospace,monospace' }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', fontFamily: 'ui-monospace,monospace' }}>
               {c.expiry}
             </span>
-            <button onClick={() => onDelete(c.id)} style={{
+            <button onClick={() => onDelete(c.id)} title="删除" style={{
               width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: 'none', borderRadius: 5, cursor: 'pointer',
-              background: 'transparent', color: 'rgba(255,80,80,.40)',
+              background: 'transparent', color: 'rgba(255,255,255,.38)',
               transition: 'background .1s, color .1s',
             }}
               onMouseOver={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.10)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.80)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.06)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.80)';
               }}
               onMouseOut={e => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.40)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.38)';
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M9 6V4h6v2"/>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
               </svg>
             </button>
           </div>
         ))}
-      </div>
-
-      {/* Note */}
-      <div style={{
-        padding: '12px 24px', borderTop: '1px solid rgba(255,255,255,.06)',
-        fontSize: 12, color: 'rgba(255,255,255,.28)', lineHeight: 1.6, flexShrink: 0,
-      }}>
-        证书文件由各签名档案引用，导入的证书仅记录路径，不会复制文件。
-        有效期即将到期以橙色标注，已过期以红色标注。
       </div>
     </div>
   );

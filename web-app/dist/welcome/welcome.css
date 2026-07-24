@@ -961,6 +961,7 @@ body {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 /* 最近打开：自适应宽度，最小280px */
