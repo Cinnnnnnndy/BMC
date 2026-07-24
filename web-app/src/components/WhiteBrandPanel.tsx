@@ -374,8 +374,6 @@ function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupTogg
 }) {
   const allClear = grp.keys.every(k => images[k]?.clear);
   const someClear = grp.keys.some(k => images[k]?.clear);
-  const cbRef = useRef<HTMLInputElement>(null);
-  if (cbRef.current) cbRef.current.indeterminate = !allClear && someClear;
 
   return (
     <div style={{
