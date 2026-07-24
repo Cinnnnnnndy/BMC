@@ -77,6 +77,8 @@ function useFieldStyle(focused: boolean): React.CSSProperties {
     background: focused ? C.s2h : C.s2,
     border: 'none', outline: 'none',
     color: C.t90, boxSizing: 'border-box',
+    // Strip native select appearance so custom wrapper arrow shows correctly
+    appearance: 'none', WebkitAppearance: 'none',
   };
 }
 
@@ -206,6 +208,7 @@ function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
           borderBottom: '1px solid rgba(255,255,255,.04)',
           background: hover ? 'rgba(255,255,255,.025)' : 'transparent', transition: 'background .1s',
         }}>
+        {/* Thumbnail */}
         <div style={{ width: 40, height: 28, flexShrink: 0, borderRadius: 3, overflow: 'hidden',
           background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {state.preview
@@ -215,14 +218,38 @@ function ImageCard({ field, state, mode, onSelect, onClear, onToggleClear }: {
               </svg>
           }
         </div>
+        {/* Label */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, color: C.t90, opacity: cleared ? 0.4 : 1 }}>{field.label}</div>
           <div style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{field.name}</div>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, color: C.t42, flexShrink: 0 }}>
-          <input type="checkbox" checked={cleared} onChange={e => onToggleClear(field.key, e.target.checked)} />
-          {cleared ? '取消' : '恢复默认'}
-        </label>
+        {/* Actions — delete (only when custom file exists) + restore-default toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          {hasPath && (
+            <button onClick={() => onClear(field.key)} title="删除已上传的自定义图片" style={{
+              width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', borderRadius: 5, cursor: 'pointer',
+              background: 'transparent', color: 'rgba(255,80,80,.40)',
+              transition: 'background .1s, color .1s',
+            }}
+              onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,.10)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.80)'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,.40)'; }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+            </button>
+          )}
+          <button onClick={() => onToggleClear(field.key, !cleared)} style={{
+            padding: '3px 9px', borderRadius: 5, border: 'none', cursor: 'pointer',
+            fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap',
+            background: cleared ? C.amberBg : C.s2,
+            color: cleared ? C.amber : C.t42,
+            transition: 'background .1s, color .1s',
+          }}>
+            {cleared ? '已标记' : '恢复默认'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -274,13 +301,20 @@ function CfgField({ field, value, onChange }: {
     <div style={{ paddingTop: 10 }}>
       <div style={{ fontSize: 12, color: C.t60, marginBottom: 5 }}>{field.label}</div>
       {field.type === 'select' ? (
-        <select value={value} onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          style={inputStyle}
-        >
-          <option value="">请选择</option>
-          {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div style={{ position: 'relative' }}>
+          <select value={value} onChange={e => onChange(e.target.value)}
+            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+            style={{ ...inputStyle, paddingRight: 28, cursor: 'pointer' }}
+          >
+            <option value="">请选择</option>
+            {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+            style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)',
+              color: C.t42, pointerEvents: 'none', flexShrink: 0 }}>
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </div>
       ) : (
         <input type="text" value={value} placeholder={field.placeholder}
           onChange={e => onChange(e.target.value)}
@@ -306,7 +340,7 @@ function CollapsibleCard({ title, tip, defaultOpen = true, children }: {
         onClick={() => setOpen(o => !o)}
         title={tip}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', display: 'flex', alignItems: 'center', gap: 4,
           padding: '10px 14px',
           borderTop: 'none', borderLeft: 'none', borderRight: 'none',
           borderBottom: open ? `1px solid ${C.border}` : 'none',
@@ -357,11 +391,15 @@ function ClearGroup({ grp, images, onSelect, onClear, onToggleClear, onGroupTogg
         <span style={{ fontSize: 11, color: C.t28, fontFamily: 'ui-monospace,monospace', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {grp.path}
         </span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 12, flexShrink: 0, color: C.t42 }}>
-          <input ref={cbRef} type="checkbox" checked={allClear}
-            onChange={e => onGroupToggle(grp.keys, e.target.checked)} />
-          {allClear ? '取消' : '恢复默认'}
-        </label>
+        <button onClick={() => onGroupToggle(grp.keys, !allClear)} style={{
+          padding: '3px 9px', borderRadius: 5, border: 'none', cursor: 'pointer',
+          fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
+          background: allClear ? C.amberBg : C.s2,
+          color: allClear ? C.amber : C.t42,
+          transition: 'background .1s, color .1s',
+        }}>
+          {allClear ? '已全选' : someClear ? '全部恢复' : '恢复全部默认'}
+        </button>
       </div>
       <div>
         {grp.keys.map(k => {
@@ -562,7 +600,7 @@ export function WhiteBrandPanel() {
           fontFamily: 'inherit', fontWeight: 600,
           background: building ? 'rgba(67,105,239,.50)' : C.primary,
           color: '#fff', transition: 'background .12s',
-          minWidth: 108,
+          minWidth: 128,
         }}>
           {building ? '构建中…' : mode === 'clear' ? '清白牌包构建' : '白牌包构建'}
         </button>
