@@ -1035,13 +1035,29 @@ export default function App() {
       case 'vueTopo':
         return (
           <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
-            <iframe src={vueSrc} style={{ flex: 1, minWidth: 0, height: '100%', border: 'none', display: 'block' }} title="硬件适配" />
+            {/* Canvas wrapper with top-right overlay buttons */}
+            <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
+              <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />
+              <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6, zIndex: 10 }}>
+                <button
+                  className="ide-tab-action-btn"
+                  title="agent 校验当前 CSR（csr_validate）"
+                  onClick={() => runQuickAction('agent 校验当前 CSR')}
+                >校验</button>
+                <button
+                  className={`ide-tab-action-btn${csrExportOpen ? ' ide-tab-action-btn--primary' : ''}`}
+                  title="CSR 出包配置面板"
+                  onClick={() => setCsrExportOpen(v => !v)}
+                >{csrExportOpen ? '关闭出包' : 'CSR 出包'}</button>
+              </div>
+            </div>
             {csrExportOpen && (
               <CsrExportPanel
                 onClose={() => setCsrExportOpen(false)}
                 boardName={currentProject?.model ?? '当前板卡'}
                 onExport={cfg => { console.log('[CSR出包]', cfg); }}
                 onBinBuild={cfg => { console.log('[bin构建]', cfg); }}
+                onAddProfile={() => openViewInSplit('signingConfig')}
               />
             )}
           </div>
@@ -1103,7 +1119,9 @@ export default function App() {
     const agentAct = CONTEXT_AGENT[viewId];
     const canSave = csr !== null && CSR_SAVE_VIEWS.has(viewId);
     const isTopo = viewId === 'vueTopo';
-    if (!agentAct && !canSave && !isTopo) return null;
+    // vueTopo buttons are rendered as canvas overlay — skip tab bar
+    if (isTopo) return null;
+    if (!agentAct && !canSave) return null;
     return (
       <>
         {agentAct && (
