@@ -1,0 +1,23 @@
+<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="18.000000" height="18.000000" fill="none" customFrame="#000000">
+	<defs>
+		<filter id="pixso_custom_mask_type_alpha">
+			<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 " />
+		</filter>
+	</defs>
+	<mask id="mask_1" width="16.000000" height="16.000000" x="1.000000" y="1.000000" maskUnits="userSpaceOnUse">
+		<g filter="url(#pixso_custom_mask_type_alpha)">
+			<circle id="椭圆 555" cx="9" cy="9" r="8" fill="rgb(169,180,204)" />
+			<circle id="椭圆 555" cx="9" cy="9" r="7.5999999" stroke="rgb(0,0,0)" stroke-opacity="0" stroke-width="0.800000" />
+		</g>
+	</mask>
+	<rect id="12C" width="16.000000" height="16.000000" x="1.000000" y="1.000000" />
+	<circle id="椭圆 554" cx="9" cy="9" r="8" fill="rgb(114,104,225)" fill-opacity="0" />
+	<circle id="椭圆 554" cx="9" cy="9" r="8.5" stroke="rgb(225,114,234)" stroke-width="1.000000" />
+	<g id="蒙版" mask="url(#mask_1)">
+		<rect id="矩形 2891" width="16.000000" height="10.000000" x="1.000000" y="4.000000" opacity="0" fill="rgb(77,66,129)" />
+		<g id="组合 4290">
+			<path id="line(边框)" d="M3.66681 5.66687L1.00012 5.66675L1 8.33337L3.66663 8.33356L3.66681 5.66687ZM11.6668 5.66742L6.3335 5.66705L6.33331 8.33374L11.6666 8.33405L11.6668 5.66742ZM17.0001 5.66772L14.3335 5.66754L14.3333 8.33423L17 8.33441L17.0001 5.66772Z" fill="rgb(225,114,234)" fill-rule="evenodd" />
+			<path id="line(边框)" d="M17.0001 12.3322L9.88904 12.3326L9.88885 9.66602L17 9.66553L17.0001 12.3322ZM8.11127 12.3328L1.00012 12.3332L1 9.66656L8.11108 9.66608L8.11127 12.3328Z" fill="rgb(225,114,234)" fill-rule="evenodd" />
+		</g>
+	</g>
+</svg>
