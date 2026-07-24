@@ -199,8 +199,9 @@ export function CsrExportPanel({
           />
         </SectionCard>
 
-        {/* 签名配置 */}
-        <SectionCard title="签名配置">
+        {/* 签名配置 — flat, no card background */}
+        <div style={{ marginBottom: 10 }}>
+          <SectionLabel title="签名配置" />
           {/* Select + refresh */}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
             <select
@@ -281,31 +282,31 @@ export function CsrExportPanel({
               }}>在签名配置中编辑 ↗</button>
             </div>
           )}
-        </SectionCard>
+        </div>
 
       </div>
 
       {/* Footer */}
       <div style={{
         padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,.07)',
-        display: 'flex', gap: 6, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
       }}>
         <button onClick={onClose} style={{
           padding: '7px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
-          background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.60)',
+          background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)',
           fontSize: 12, fontFamily: 'inherit',
         }}>取消</button>
         <button style={{
           padding: '7px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
-          background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.60)',
+          background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)',
           fontSize: 12, fontFamily: 'inherit',
-        }}>保存</button>
+        }}>保存草稿</button>
         <div style={{ flex: 1 }} />
         <button
           onClick={() => onBinBuild?.(config())}
           style={{
             padding: '7px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
-            background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.72)',
+            background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.55)',
             fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap',
           }}>bin 文件构建</button>
         <button
