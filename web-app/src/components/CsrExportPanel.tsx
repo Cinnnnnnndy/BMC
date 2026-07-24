@@ -94,7 +94,7 @@ export function CsrExportPanel({
 
   return (
     <div style={{
-      width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%',
+      width: 380, flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%',
       background: 'var(--surface-1, #161616)',
       borderLeft: '1px solid rgba(255,255,255,.07)',
       fontFamily: 'var(--font-sans, system-ui, sans-serif)',
@@ -105,10 +105,7 @@ export function CsrExportPanel({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0,
       }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>CSR 出包配置</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.32)', marginTop: 1 }}>{boardName}</div>
-        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>CSR 出包配置</div>
         <button onClick={onClose} style={{
           width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: 'none', background: 'rgba(255,255,255,.06)', borderRadius: 6,
@@ -148,7 +145,8 @@ export function CsrExportPanel({
         </SectionCard>
 
         {/* OEM 定制消息 */}
-        <SectionCard title="OEM 定制消息">
+        <div style={{ marginBottom: 10 }}>
+          <SectionLabel title="OEM 定制消息" />
           <input ref={fileInputRef} type="file" accept=".bin,.ini" style={{ display: 'none' }}
             onChange={e => setOemFile(e.target.files?.[0] ?? null)} />
           <div
@@ -185,10 +183,11 @@ export function CsrExportPanel({
               </div>
             )}
           </div>
-        </SectionCard>
+        </div>
 
         {/* 伪装包 UID */}
-        <SectionCard title="伪装包 UID 列表">
+        <div style={{ marginBottom: 10 }}>
+          <SectionLabel title="伪装包 UID 列表" />
           <input
             style={baseInput}
             value={spoofUids}
@@ -197,7 +196,7 @@ export function CsrExportPanel({
             onFocus={e => (e.target.style.background = 'rgba(255,255,255,.11)')}
             onBlur={e => (e.target.style.background = 'rgba(255,255,255,.08)')}
           />
-        </SectionCard>
+        </div>
 
         {/* 签名配置 — flat, no card background */}
         <div style={{ marginBottom: 10 }}>
