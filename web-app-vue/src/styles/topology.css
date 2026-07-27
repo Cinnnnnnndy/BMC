@@ -227,9 +227,9 @@
 /* 告警/传感器 = 横向泳道大图（器件 → 传感器 → 事件）→ 宽面板铺开 */
 .topo-property-panel.wide { width: min(1080px, calc(100vw - 260px)); }
 
-/* 配置面板 tab 条 */
+/* 配置面板 tab 条：按字数定宽（不随面板缩放） */
 .pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
-.pp-tab { all: unset; box-sizing: border-box; cursor: pointer; flex: 1; text-align: center; padding: 6px 10px; border-radius: var(--radius-md); font-size: 12px; color: var(--text-dim); background: var(--surface-1); transition: background .12s, color .12s; }
+.pp-tab { all: unset; box-sizing: border-box; cursor: pointer; flex: none; text-align: center; padding: 6px 18px; border-radius: var(--radius-md); font-size: 12px; color: var(--text-dim); background: var(--surface-1); transition: background .12s, color .12s; }
 .pp-tab:hover { color: var(--text-main); }
 .pp-tab.active { background: var(--surface-3); color: var(--text-main); font-weight: 600; }
 .pp-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
