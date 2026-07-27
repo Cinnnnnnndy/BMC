@@ -248,6 +248,31 @@ function scrollFocusEvent(): void {
   const hit = box.querySelector('.ev-edit.focused') as HTMLElement | null;
   if (hit) hit.scrollIntoView({ block: 'nearest' });
 }
+// 配置引导：把「数据源 → 门限/触发 → 事件」当作一条链路，逐步标出待配置项，点击跳到对应步。
+const stepDsDone = computed<boolean>(() => !!openCfg.value && dsResolved(openCfg.value));
+const stepThrDone = computed<boolean>(() => {
+  const c = openCfg.value; if (!c) return true;
+  if (!isThreshold(c)) return true;                              // 状态量无门限档，本步天然完成
+  return THRESHOLD_ORDER.some((k) => c.thresholds[k] != null);   // 门限量：至少设一档
+});
+const stepEvDone = computed<boolean>(() => {
+  const c = openCfg.value; if (!c) return false;
+  return c.events.length > 0 && c.events.every((e) => !!e.eventKeyId);
+});
+interface StepTodo { key: string; label: string; }
+const pendingSteps = computed<StepTodo[]>(() => {
+  const out: StepTodo[] = [];
+  if (!stepDsDone.value) out.push({ key: 'ds', label: '数据源未接' });
+  if (!stepThrDone.value) out.push({ key: 'thr', label: '未设门限' });
+  if (!stepEvDone.value) out.push({ key: 'ev', label: openCfg.value && openCfg.value.events.length ? '事件字典条目未选' : '未加事件' });
+  return out;
+});
+function scrollToStep(key: string): void {
+  nextTick(() => {
+    const el = cfgCardEl.value?.querySelector(`[data-step="${key}"]`) as HTMLElement | null;
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+}
 
 /* 独立事件（不经传感器）——真实 .sr 里绝大多数事件属此类；按数据源器件分组、可逐条点击配置 */
 const looseAll = computed<LooseEvent[]>(() => boardAlarm(boardKey.value).looseEvents);
@@ -671,20 +696,19 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <button class="cfg-x" title="关闭 (Esc)" @click="closeFocus">✕</button>
         </div>
         <div class="cfg-body">
-          <!-- 门限档 -->
-          <div v-if="isThreshold(openCfg)" class="fn-thr">
-            <div v-for="k in THRESHOLD_ORDER" :key="k" class="thr-pill" :class="{ off: openCfg.thresholds[k] == null }" :title="ZH[k] + ' 门限'">
-              <span class="thr-l">{{ ZH[k] }}</span>
-              <input v-model.number="openCfg.thresholds[k]" type="number" class="thr-in" :placeholder="recoThreshold(openCfg, k) != null ? '关' : '—'" />
-              <span v-if="recoThreshold(openCfg, k) != null" class="thr-reco">荐{{ recoThreshold(openCfg, k) }}</span>
-            </div>
-            <span class="thr-unit">{{ unitOf(openCfg) }}</span>
+          <!-- 配置引导：链路 数据源→门限/触发→事件；未配处高亮，点「待配置」跳到该步 -->
+          <div v-if="pendingSteps.length" class="cfg-todo">
+            <span class="todo-ic">!</span><span class="todo-t">还有 {{ pendingSteps.length }} 处待配置</span>
+            <button v-for="s in pendingSteps" :key="s.key" class="todo-chip" @click="scrollToStep(s.key)">{{ s.label }}</button>
           </div>
-          <div v-else class="disc-note">本传感器为<b>离散状态量</b>：没有门限档（所以这里不显示门限），每条事件用下方的「触发值」判定命中。</div>
 
-          <!-- 数据源 -->
+          <!-- ① 数据源 -->
+          <div class="chain-step" data-step="ds" :class="{ todo: !stepDsDone }">
+            <span class="cs-n">1</span><span class="cs-t">数据源</span>
+            <span class="cs-st" :class="{ ok: stepDsDone }">{{ stepDsDone ? '已接' : '待配置' }}</span>
+          </div>
           <div class="mf">
-            <label>数据源</label>
+            <label>取数方式</label>
             <select v-model="openCfg.dsMode" class="disc-sel wide">
               <option value="device-field">器件读数 · {{ openCfg.deviceKey }}.{{ QUANTITIES[openCfg.quantityKey].readingField }}（推荐 · 已接）</option>
               <option value="scanner">从寄存器周期读（高级 · 需选硬件信号）</option>
@@ -704,20 +728,36 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <option v-for="ct in PERIOD_CATEGORIES" :key="ct.periodMs + ct.label" :value="ct.periodMs">{{ ct.label }} · {{ ct.periodMs }}ms{{ recommendedPeriod(QUANTITIES[openCfg.quantityKey].recommend.periodKey).periodMs === ct.periodMs ? '（推荐）' : '' }}</option>
               </select>
             </div>
-            <div v-if="(openCfg.debounce && openCfg.debounce !== 'None') || openCfg.scanEnabled" class="ev-assoc">
-              <span class="ea-cap">来自 .sr</span>
-              <span v-if="openCfg.debounce && openCfg.debounce !== 'None'">去抖滤波 <code>{{ openCfg.debounce }}</code>（{{ /^MidAvg/.test(openCfg.debounce) ? '滑动均值' : /^ContBin/.test(openCfg.debounce) ? 'N 连续判定' : '滤波' }}）</span>
-              <span v-if="openCfg.scanEnabled">上电门控 <code>{{ openCfg.scanEnabled }}</code>（就绪才扫描）</span>
+            <div v-if="(openCfg.debounce && openCfg.debounce !== 'None') || openCfg.scanEnabled" class="mf-desc">
+              <template v-if="openCfg.debounce && openCfg.debounce !== 'None'">去抖滤波 {{ openCfg.debounce }}（{{ /^MidAvg/.test(openCfg.debounce) ? '滑动均值' : /^ContBin/.test(openCfg.debounce) ? 'N 连续判定' : '滤波' }}）</template>
+              <template v-if="openCfg.scanEnabled"> · 上电门控 {{ openCfg.scanEnabled }}（就绪才扫描）</template>
             </div>
           </template>
+
+          <!-- ② 门限 / 触发 -->
+          <div class="chain-step" data-step="thr" :class="{ todo: !stepThrDone }">
+            <span class="cs-n">2</span><span class="cs-t">{{ isThreshold(openCfg) ? '门限' : '触发条件' }}</span>
+            <span class="cs-st" :class="{ ok: stepThrDone }">{{ stepThrDone ? (isThreshold(openCfg) ? '已设' : '离散·无需门限') : '待配置' }}</span>
+          </div>
+          <div v-if="isThreshold(openCfg)" class="fn-thr">
+            <div v-for="k in THRESHOLD_ORDER" :key="k" class="thr-pill" :class="{ off: openCfg.thresholds[k] == null }" :title="ZH[k] + ' 门限'">
+              <span class="thr-l">{{ ZH[k] }}</span>
+              <input v-model.number="openCfg.thresholds[k]" type="number" class="thr-in" :placeholder="recoThreshold(openCfg, k) != null ? '关' : '—'" />
+              <span v-if="recoThreshold(openCfg, k) != null" class="thr-reco">荐{{ recoThreshold(openCfg, k) }}</span>
+            </div>
+            <span class="thr-unit">{{ unitOf(openCfg) }}</span>
+          </div>
+          <div v-else class="disc-note">离散状态量：无门限档，命中在下方每条事件的「触发值」判定。</div>
           <div v-if="isThreshold(openCfg)" class="mf">
             <label>迟滞</label>
             <input v-model.number="openCfg.hysteresis" type="number" class="thr-in w" />
             <span class="mf-desc">推荐 {{ QUANTITIES[openCfg.quantityKey].recommend.hysteresis ?? 2 }} · 回差防抖</span>
           </div>
 
-          <!-- 事件编辑（一个传感器多条事件；点事件进入时高亮定位到对应行）-->
-          <div class="sc-sec-cap">事件 · 已配置 {{ openCfg.events.length }} · 生效 {{ openEntry.sensor.events.length }}
+          <!-- ③ 事件 / 告警（点事件进入时高亮定位到对应行）-->
+          <div class="chain-step" data-step="ev" :class="{ todo: !stepEvDone }">
+            <span class="cs-n">3</span><span class="cs-t">事件 / 告警</span>
+            <span class="cs-st" :class="{ ok: stepEvDone }">{{ stepEvDone ? openCfg.events.length + ' 条' : (openCfg.events.length ? '字典条目待选' : '待加事件') }}</span>
             <span v-if="focusEventKey" class="sc-focus-hint">← 你点的事件属于本传感器</span>
             <button class="ev-add" @click="addEvent(openCfg)">＋ 添加事件</button>
           </div>
@@ -999,6 +1039,19 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cfg-x { all: unset; flex: none; cursor: pointer; width: 26px; height: 26px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--foreground-muted); font-size: 14px; }
 .cfg-x:hover { background: var(--state-hover); color: var(--foreground); }
 .cfg-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+/* 配置引导：待配置横幅 + 链路步骤头 */
+.cfg-todo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 11px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--warning) 14%, transparent); font-size: 11px; color: var(--foreground); }
+.todo-ic { flex: none; width: 15px; height: 15px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: var(--warning); color: #1a1a1a; }
+.todo-t { font-weight: 600; margin-right: 2px; }
+.todo-chip { all: unset; cursor: pointer; font-size: 10.5px; padding: 2px 9px; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--warning) 24%, transparent); color: var(--warning); }
+.todo-chip:hover { background: color-mix(in srgb, var(--warning) 36%, transparent); }
+.chain-step { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--foreground); scroll-margin-top: 8px; }
+.cs-n { flex: none; width: 18px; height: 18px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; background: var(--surface-3); color: var(--foreground-secondary); }
+.chain-step.todo .cs-n { background: var(--warning); color: #1a1a1a; }
+.cs-t { flex: 1; }
+.cs-st { flex: none; font-size: 10px; font-weight: 500; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--foreground-muted); }
+.cs-st.ok { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+.chain-step.todo .cs-st { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
 /* 点事件进入：仅滚动定位到对应事件行（不加发光框，反馈靠勾选态即可） */
 .sc-focus-hint { font-size: 10px; color: var(--foreground-muted); }
 .ev-edit.focused .ev-en .sw { outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent); outline-offset: 2px; }
