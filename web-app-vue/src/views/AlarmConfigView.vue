@@ -119,6 +119,16 @@ function addQuantity(qKey: string): void {
   cfgs.value.push(c);
   expandedId.value = c.id;
 }
+// 告警模板说明：该监控量模板会生成哪些档/事件（新增时按模板一键落成一条完整告警链）
+function tplDesc(qKey: string): string {
+  const q = QUANTITIES[qKey];
+  if (q.kind === 'threshold') {
+    const evs = q.recommend.events || [];
+    return evs.length ? `门限模板 · ${evs.length} 档：${evs.map((e) => e.label).join(' / ')}` : '门限模板 · 越限告警';
+  }
+  return '状态模板 · 读数命中触发值即告警';
+}
+function railTplDesc(): string { return '电压模板 · 每条轨按过压/欠压四档各产一条告警'; }
 function removeCfg(id: string): void {
   const i = cfgs.value.findIndex((c) => c.id === id);
   if (i >= 0) cfgs.value.splice(i, 1);
@@ -496,7 +506,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
       <span class="tb-tag">{{ scopeChipKey ? '数据源器件' : '来自拓扑' }}</span>
       <span class="tb-src">{{ source || boardName }}</span>
       <span v-if="sensorCount || looseCount" class="tb-note">{{ showChipLane ? flowCount + ' 器件 · ' : '' }}{{ sensorCount }} 传感器 · {{ eventCount }} 告警<template v-if="looseCount"> · {{ looseCount }} 独立事件</template></span>
-      <button v-if="!scopeChipKey" ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
+      <button v-if="!scopeChipKey" ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 从模板新增告警</button>
     </div>
 
     <!-- 快速新增浮窗（teleport 到 body，避开面板 overflow 裁剪） -->
@@ -514,25 +524,27 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
         </template>
         <div v-if="selDevice" class="add-panel">
           <div class="add-title">
-            为 <b>{{ selDevice.key }}</b> 添加传感器
-            <span class="i" :title="isVolt ? '一个电压域含多条电压轨，每条轨=一个电压传感器，各自产出过压/欠压多条告警。' : '一个监控量=一个传感器；门限量按档位产出多条告警。'">i</span>
+            为 <b>{{ selDevice.key }}</b> 选告警模板
+            <span class="i" title="模板 = 一键落成一条完整告警链（传感器 + 推荐门限/触发值 + 分档事件），可再逐项微调。">i</span>
           </div>
           <template v-if="isVolt">
-            <div class="rail-palette">
-              <button v-for="r in railPalette" :key="r.key" class="add-chip" :class="{ used: railAdded(r.key) }" :disabled="railAdded(r.key)" @click="addRail(r)">
-                <span>{{ r.label }}</span><span class="rail-nom">{{ r.nominal }}V</span>
+            <div class="tpl-hint">{{ railTplDesc() }}</div>
+            <div class="tpl-list">
+              <button v-for="r in railPalette" :key="r.key" class="tpl-card" :class="{ used: railAdded(r.key) }" :disabled="railAdded(r.key)" @click="addRail(r)">
+                <span class="tpl-name">{{ r.label }} <span class="tpl-tag">{{ r.nominal }}V</span></span>
+                <span class="tpl-desc">四档过压/欠压{{ railAdded(r.key) ? ' · 已添加' : '' }}</span>
               </button>
-              <button class="add-chip all" @click="addAllRails">＋ 全部添加</button>
+              <button class="tpl-card all" @click="addAllRails"><span class="tpl-name">＋ 全部电压轨</span><span class="tpl-desc">一次加齐本板所有轨</span></button>
             </div>
             <div class="rail-custom">
               <input v-model="customRail" class="num wide" placeholder="自定义轨名，如 PVDDQ_ABCD" @keyup.enter="addCustomRail" />
               <button class="btn" @click="addCustomRail">添加</button>
             </div>
           </template>
-          <div v-else class="rail-palette">
-            <button v-for="qk in selDevice.quantities" :key="qk" class="add-chip" :class="{ used: quantityAdded(qk) }" :disabled="quantityAdded(qk)" @click="addQuantity(qk)">
-              <span>{{ QUANTITIES[qk].label }}</span>
-              <span class="rail-nom">{{ QUANTITIES[qk].kind === 'threshold' ? '门限量' : '状态量' }}</span>
+          <div v-else class="tpl-list">
+            <button v-for="qk in selDevice.quantities" :key="qk" class="tpl-card" :class="{ used: quantityAdded(qk) }" :disabled="quantityAdded(qk)" @click="addQuantity(qk)">
+              <span class="tpl-name">{{ QUANTITIES[qk].label }}<span class="tpl-tag">{{ QUANTITIES[qk].kind === 'threshold' ? '门限' : '状态' }}</span>{{ quantityAdded(qk) ? ' · 已添加' : '' }}</span>
+              <span class="tpl-desc">{{ tplDesc(qk) }}</span>
             </button>
           </div>
         </div>
@@ -869,7 +881,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .add-chip.used { opacity: 0.4; cursor: default; }
 .rail-nom { font-size: 11px; color: var(--foreground-muted); }
 .rail-custom { display: flex; gap: 8px; margin-top: 10px; }
-.num { padding: 6px 9px; background: var(--surface-1); border: 1px solid var(--border-default); color: var(--foreground); border-radius: var(--radius-md); width: 100px; }
+/* 告警模板卡：一键落成完整告警链，卡上写明模板产出什么 */
+.tpl-hint { font-size: 10.5px; color: var(--foreground-muted); margin-bottom: 8px; }
+.tpl-list { display: flex; flex-direction: column; gap: 6px; }
+.tpl-card { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 8px 11px; border-radius: var(--radius-md); background: var(--surface-3); transition: background .12s; }
+.tpl-card:hover { background: var(--surface-4); }
+.tpl-card:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
+.tpl-card.used { opacity: .45; cursor: default; }
+.tpl-card.all { background: color-mix(in srgb, var(--primary) 14%, var(--surface-3)); }
+.tpl-name { font-size: 12px; font-weight: 600; color: var(--foreground); display: flex; align-items: center; gap: 7px; }
+.tpl-tag { font-size: 9px; font-weight: 500; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-1); color: var(--foreground-muted); }
+.tpl-desc { font-size: 10.5px; color: var(--foreground-muted); }
+.num { padding: 6px 9px; background: var(--surface-1); color: var(--foreground); border-radius: var(--radius-md); width: 100px; }
 .num.wide { width: 220px; }
 .i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 999px; background: var(--surface-3); color: var(--foreground-muted); font-size: 11px; font-style: italic; cursor: help; margin-left: 3px; }
 /* PTO 三级按钮体系（solid=白底深字·唯一 / btn=次级填充 / ghost=透明行内） */
