@@ -793,7 +793,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cat-n { flex: none; font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--foreground-secondary); }
 .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
+.branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); opacity: 0; transition: opacity .12s, color .12s, background .12s; }
+.se-row:hover .branch-del, .branch-del:focus-visible { opacity: 1; }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
 
 /* 展开配置：圆角卡（嵌在展开的节点卡内） */
