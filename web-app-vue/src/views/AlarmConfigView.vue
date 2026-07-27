@@ -741,7 +741,6 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <!-- ① 数据源 -->
           <div class="chain-step" data-step="ds" :class="{ todo: !stepDsDone }">
             <span class="cs-n">1</span><span class="cs-t">数据源</span>
-            <span class="cs-st" :class="{ ok: stepDsDone }">{{ stepDsDone ? '已接' : '待配置' }}</span>
           </div>
           <div class="mf">
             <label>取数方式<i class="i" :title="openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField">i</i></label>
@@ -779,7 +778,6 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <!-- ② 门限 / 触发 -->
           <div class="chain-step" data-step="thr" :class="{ todo: !stepThrDone }">
             <span class="cs-n">2</span><span class="cs-t">{{ isThreshold(openCfg) ? '门限' : '触发条件' }}</span>
-            <span class="cs-st" :class="{ ok: stepThrDone }">{{ stepThrDone ? (isThreshold(openCfg) ? '已设' : '离散·无需门限') : '待配置' }}</span>
           </div>
           <div v-if="isThreshold(openCfg)" class="fn-thr">
             <div v-for="k in THRESHOLD_ORDER" :key="k" class="thr-pill" :class="{ off: openCfg.thresholds[k] == null }" :title="ZH[k] + ' 门限'">
@@ -798,7 +796,6 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <!-- ③ 事件 / 告警（点事件进入时高亮定位到对应行）-->
           <div class="chain-step" data-step="ev" :class="{ todo: !stepEvDone }">
             <span class="cs-n">3</span><span class="cs-t">事件 / 告警</span>
-            <span class="cs-st" :class="{ ok: stepEvDone }">{{ stepEvDone ? openCfg.events.length + ' 条' : (openCfg.events.length ? '字典条目待选' : '待加事件') }}</span>
             <span v-if="focusEventKey" class="sc-focus-hint">← 你点的事件属于本传感器</span>
             <button class="ev-add" @click="addEvent(openCfg)">＋ 添加事件</button>
           </div>
@@ -846,7 +843,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               </div>
               <div class="ev-fields">
                 <label class="ef"><span class="ef-k">触发值<i class="i" title="读数命中该值即告警；离散量一般 1=置位/故障，0=不在位。">i</i></span>
-                  <span class="ef-ctl"><input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
+                  <span class="in-reco"><input v-model.number="ev.condition" type="number" class="thr-in w rin" /><i class="reco-in">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
                 </label>
                 <label class="ef"><span class="ef-k">方向<i class="i" :title="operatorDesc(ev.operatorId)">i</i></span>
                   <select v-model.number="ev.operatorId" class="disc-sel">
@@ -1098,9 +1095,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cs-n { flex: none; width: 18px; height: 18px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; background: var(--surface-3); color: var(--foreground-secondary); }
 .chain-step.todo .cs-n { background: var(--warning); color: #1a1a1a; }
 .cs-t { flex: 1; }
-.cs-st { flex: none; font-size: 10px; font-weight: 500; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--foreground-muted); }
-.cs-st.ok { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
-.chain-step.todo .cs-st { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
+/* 每步状态不再用右侧色块标签；未配处仅由步号变橙 + 顶部「待配置」引导条 + 字段本身在位提示 */
 /* 点事件进入：仅滚动定位到对应事件行（不加发光框，反馈靠勾选态即可） */
 .sc-focus-hint { font-size: 10px; color: var(--foreground-muted); }
 .ev-edit.focused .ev-en .sw { outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent); outline-offset: 2px; }
@@ -1154,6 +1149,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .thr-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 .thr-in.w { width: 78px; text-align: left; padding: 5px 7px; }
 .thr-reco { font-size: 11px; color: var(--foreground-muted); font-style: normal; }
+/* 推荐值：右对齐显示在输入框内（与其余上下式字段等宽，不再横向外挂一截） */
+.in-reco { position: relative; display: inline-flex; align-items: center; }
+.thr-in.rin { padding-right: 30px; }
+.reco-in { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; font-style: normal; color: var(--foreground-muted); pointer-events: none; }
 .thr-unit { font-size: 11px; color: var(--foreground-muted); }
 .disc-note { font-size: 11px; color: var(--foreground-muted); }
 
@@ -1164,7 +1163,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .disc-sel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
 .disc-sel.wide { flex: 1; min-width: 120px; }
 /* 未选择态：不靠上方标签，字段本身变橙填充在位提示「待选」（v-model='' 命中 disabled 占位项） */
-.disc-sel.todo-field { color: var(--warning); font-weight: 600; background-color: color-mix(in srgb, var(--warning) 15%, rgba(255,255,255,0.04)); }
+.disc-sel.todo-field { color: var(--foreground-muted); }
 .mf-desc code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
 .scan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px 10px; }
 .scan-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--foreground-muted); }
@@ -1184,7 +1183,6 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ef-grow { flex: 1; min-width: 180px; }
 .ef-lv { min-width: 128px; }
 .ef-k { display: flex; align-items: center; gap: 3px; height: 15px; line-height: 15px; white-space: nowrap; }
-.ef-ctl { display: flex; align-items: center; gap: 6px; }
 .ev-en { display: flex; flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
 .ev-en-l { font-size: 11px; color: var(--foreground-secondary); }
 .ev-nm { flex: 1 1 160px; }

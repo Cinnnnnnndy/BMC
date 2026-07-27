@@ -635,34 +635,7 @@ function catStateClass(cat: CatNode): string {
       <template v-if="!activeDevice">
       <!-- ══ 详情 tab ══ -->
       <template v-if="panelTab === 'detail'">
-      <!-- ── 配置项辅助（跟随配置项的计算器入口）── -->
-      <div class="pp-wake">
-        <div class="pp-wake-title">配置项辅助</div>
-        <button class="wake-btn" @click="wakeSmc">
-          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg></span>
-          在 SMC 偏移量计算器中解析
-        </button>
-        <button class="wake-btn" @click="wakeExpr">
-          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg></span>
-          在表达式计算器中调试 sensor
-        </button>
-      </div>
-
       <div class="pp-body">
-        <!-- 本板器件（物理芯片）：点进入器件配置（按数据源芯片收窄），与板卡配置分开 -->
-        <div class="pp-card pp-devlist">
-          <div class="pp-card-cap">本板器件 · 点芯片进入其配置</div>
-          <button v-for="d in boardDevices" :key="d.key" class="dev-item" @click="activeDevice = d">
-            <span class="di-main">
-              <span class="di-type">{{ d.typeLabel }}</span>
-              <span class="di-key">{{ d.label }}</span>
-            </span>
-            <span v-if="d.sensorCount" class="di-cnt">{{ d.sensorCount }} 传感器</span>
-            <span v-if="d.eventCount" class="di-cnt ev">{{ d.eventCount }} 事件</span>
-            <span class="di-arrow">›</span>
-          </button>
-          <div v-if="!boardDevices.length" class="di-empty">该板 .sr 明细未载入，暂无器件</div>
-        </div>
         <div class="pp-card">
         <div class="pp-field">
           <div class="pp-field-label">类型</div>
