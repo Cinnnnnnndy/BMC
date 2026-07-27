@@ -540,23 +540,15 @@ function catStateClass(cat: CatNode): string {
         </template>
       </div>
 
-      <!-- ── 机箱级 / 整机级（跨板，不归属单块板：机箱事件 + 一致性）── -->
+      <!-- ── 整机事件（Chassis.* · 跨板，不归属单块板；含跨板一致性核对）── -->
       <div class="sec-hd">
         <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
-        机箱级 · 整机总览
+        整机事件
+        <span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载">?</span>
       </div>
       <div class="ov-body">
-        <!-- 跨板一致性 -->
-        <div v-if="ovIncons.length" class="ov-card ov-warn">
-          <div class="ov-cap">跨板一致性 · {{ ovIncons.length }} 项待核对</div>
-          <div v-for="(it, i) in ovIncons" :key="i" class="ov-incon">
-            <span class="ov-incon-name">{{ it.name }}.{{ it.field }}</span>
-            <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
-          </div>
-        </div>
-        <!-- 整机事件（Chassis.* · 跨板归属机箱）：逐条列出，样式对齐上面板卡明细 -->
+        <!-- 逐条列出机箱级事件（样式对齐上面板卡分类树的行节奏） -->
         <div class="ov-chs-list">
-          <div class="ov-sub2">整机事件<span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载">?</span></div>
           <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
           <div
             v-for="(e, i) in ovCEvents"
@@ -567,6 +559,14 @@ function catStateClass(cat: CatNode): string {
             <i class="ov-dot" :class="e.severity"></i>
             <span class="ov-chs-nm">{{ e.name }}</span>
             <span class="ov-chs-bd">{{ e.board }}</span>
+          </div>
+        </div>
+        <!-- 跨板一致性核对（自带标签的告警卡，仅有待核对项时出现） -->
+        <div v-if="ovIncons.length" class="ov-card ov-warn">
+          <div class="ov-cap">跨板一致性 · {{ ovIncons.length }} 项待核对</div>
+          <div v-for="(it, i) in ovIncons" :key="i" class="ov-incon">
+            <span class="ov-incon-name">{{ it.name }}.{{ it.field }}</span>
+            <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
           </div>
         </div>
       </div>
@@ -1067,8 +1067,7 @@ function catStateClass(cat: CatNode): string {
 
 /* 机箱级事件：逐条一行，行高/左缩进对齐上方板卡分类树（统一竖向节奏，不放卡片） */
 .ov-chs-list { display: flex; flex-direction: column; }
-.ov-sub2 { display: flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px 0 12px; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--foreground-muted); }
-.ov-help { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 999px; background: var(--surface-2); color: var(--foreground-muted); font-size: 9px; cursor: help; text-transform: none; }
+.ov-help { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 999px; background: var(--surface-2); color: var(--foreground-muted); font-size: 9px; cursor: help; text-transform: none; letter-spacing: 0; }
 .ov-help:hover { background: var(--surface-3); color: var(--foreground-secondary); }
 .ov-chs-row { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 12px; border-radius: var(--radius-md, 8px); font-size: 11px; color: var(--foreground-secondary); }
 .ov-chs-row:hover { background: var(--state-hover); }
