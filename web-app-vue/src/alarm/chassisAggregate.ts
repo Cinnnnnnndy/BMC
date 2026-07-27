@@ -5,6 +5,8 @@
 import { allParsedBoards, type ParsedBoard } from './srSeed';
 import { sensorChains, objectType } from '../data/srParser';
 
+export type Severity = 'min' | 'maj' | 'crit';
+
 // 各板数据源模型（分析结论）：温度走 LM75、其余走 SMC 扫描；SEU 走存储固件；PSU 走 PMBus 器件。
 const SOURCE_MODEL: Record<string, string> = {
   EXU: 'SMC 扫描 + LM75', CLU: 'SMC 扫描', SEU: 'RAID / 存储固件',
@@ -43,6 +45,25 @@ function rollupOne(pb: ParsedBoard): BoardRollup {
 }
 export function boardRollup(): BoardRollup[] {
   return allParsedBoards().map(rollupOne);
+}
+
+// ── 单板软件明细（传感器 → 告警事件链路，供左侧表逐板展开）───────────────────
+export interface SoftEvent { name: string; keyId: string; level?: string; severity: Severity; }
+export interface SoftSensor { name: string; kind: 'threshold' | 'discrete'; events: SoftEvent[]; }
+/** 某块板的“软件内容”：传感器及其挂载的告警事件（真实 .sr 直读）。 */
+export function boardSoftDetail(boardName: string): SoftSensor[] {
+  const pb = allParsedBoards().find((b) => b.unitName === boardName);
+  if (!pb) return [];
+  return sensorChains(pb.objects).map((ch) => ({
+    name: ch.name.replace(/^ThresholdSensor_|^DiscreteSensor_/, ''),
+    kind: ch.kind,
+    events: ch.events.map((e) => ({
+      name: e.name.replace(/^Event_/, ''),
+      keyId: e.eventKeyId,
+      level: e.level,
+      severity: severityOf(e.eventKeyId),
+    })),
+  }));
 }
 
 // ── 机箱级事件（Chassis.* · 跨板）───────────────────────────────────────────

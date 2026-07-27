@@ -59,43 +59,55 @@ html, body {
   overflow: hidden;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  height: 42px;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.ph-icon { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; }
-.hist-icon svg, .tool-chip svg, .ph-icon svg { display: block; }
-.ph-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1 1 auto; }
-.badge-beta {
-  font-size: 10px; font-weight: 600;
-  padding: 1px 6px; border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-purple) 18%, transparent);
-  color: var(--accent-purple);
-  letter-spacing: .04em;
-}
-.ph-act-btn {
-  padding: 2px 10px; background: transparent; border: none;
-  border-radius: 4px; color: var(--text-secondary);
-  font-size: 11px; font-family: inherit; cursor: pointer; transition: .15s;
-}
-.ph-act-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.ph-act-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
+.tool-chip svg, .ph-icon-btn svg { display: block; }
+
+/* 顶部「AI 助手」标题 + 新对话/历史 按钮 */
+.panel-header { display: flex; align-items: center; gap: 4px; height: 42px; flex-shrink: 0; padding: 0 8px 0 14px; }
+.ph-app-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1 1 auto; }
+body.history-tab-mode .panel-header { display: none; }
 
 .panel-body {
-  flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; overflow: hidden;
+  position: relative;
 }
 
-.chat-view { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* ── 历史抽屉：覆盖在对话上方（不挤压对话，窄面板也可用） ── */
+.side-card {
+  position: absolute; left: 8px; top: 8px; bottom: 8px; z-index: 20;
+  width: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 0; background: var(--surface-1); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  transition: width .18s ease, padding .18s ease;
+}
+body.show-history .side-card { width: min(230px, 74%); padding: 10px; }
+.side-body { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; overflow-y: auto; width: 100%; }
+.side-body::-webkit-scrollbar { width: 5px; }
+.side-body::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
+
+/* ── 对话区（右）：名称在上方，按钮在名称边上 ── */
+.chat-view { flex: 1 1 0; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.conv-head {
+  display: flex; align-items: center; gap: 6px;
+  height: 40px; flex-shrink: 0; padding: 0 8px 0 14px;
+}
+.ph-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.ph-title {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ph-icon-btn {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-secondary);
+  cursor: pointer; transition: .15s;
+}
+.ph-icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ph-icon-btn.is-active { background: var(--bg-selected); color: var(--accent-blue); }
 
 .scenario-banner {
   display: flex; align-items: center; gap: 8px;
   margin: 10px 12px 0; padding: 7px 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
   background: var(--bg-selected);
   border-radius: 8px; flex-shrink: 0;
   font-size: 11.5px; color: var(--text-secondary);
@@ -133,8 +145,7 @@ html, body {
   max-width: 85%; padding: 9px 12px;
   border-radius: 0 10px 10px 10px;
   font-size: 13px; line-height: 1.65;
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
   color: var(--text-secondary);
 }
 .chat-msg.user .cm-bubble {
@@ -149,7 +160,7 @@ html, body {
 }
 .cm-bubble pre {
   margin: 6px 0; padding: 8px 10px;
-  background: var(--bg-base); border: 1px solid var(--border-subtle);
+  background: var(--bg-base);
   border-radius: 6px; overflow-x: auto;
   font-size: 11px; line-height: 1.6;
   font-family: var(--font-mono); color: var(--text-secondary);
@@ -161,9 +172,8 @@ html, body {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; font-family: var(--font-mono);
   padding: 2px 7px; border-radius: 9px;
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
-  color: var(--success);
+  background: var(--bg-active);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -179,27 +189,26 @@ html, body {
   display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
 }
 .sug-btn {
-  font-size: 11px; height: 24px; padding: 0 10px; border-radius: 12px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-hover); color: var(--text-secondary);
+  font-size: 11px; height: 26px; padding: 0 12px; border-radius: 100px;
+  border: none;
+  background: var(--bg-active); color: var(--text-secondary);
   cursor: pointer; font-family: inherit; white-space: nowrap; transition: .15s;
 }
-.sug-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+.sug-btn:hover { background: var(--bg-selected); color: var(--text-primary); }
 
 .chat-input-area {
   display: flex; gap: 8px;
   padding: 8px 12px 12px;
   flex-shrink: 0;
-  border-top: 1px solid var(--border-subtle);
 }
 .chat-input {
-  flex: 1 1 0; background: var(--bg-base);
-  border: 1px solid var(--border-default);
+  flex: 1 1 0; background: var(--surface-2);
+  border: none;
   border-radius: 10px; padding: 8px 12px;
   color: var(--text-primary); font-size: 13px; font-family: inherit;
-  resize: none; height: 52px; line-height: 1.5; outline: none; transition: border-color .15s;
+  resize: none; height: 52px; line-height: 1.5; outline: none; transition: background .15s;
 }
-.chat-input:focus { border-color: var(--accent-blue); }
+.chat-input:focus { background: var(--surface-3); }
 .chat-send {
   width: 36px; height: 52px;
   background: var(--accent-blue); border: none; border-radius: 10px;
@@ -221,79 +230,175 @@ html, body {
   30% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* ── History view ─────────────────────────────────────── */
-.history-view {
-  flex: 1 1 0; min-height: 0;
-  overflow-y: auto; padding: 12px;
-  display: none; flex-direction: column; gap: 6px;
-}
-.history-view::-webkit-scrollbar { width: 5px; }
-.history-view::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 9px; }
-body.show-history .history-view { display: flex; }
-body.show-history .chat-view { display: none; }
-
 /* history-tab-mode: opened as a full pane tab via ?view=history */
-body.history-tab-mode #history-btn,
-body.history-tab-mode #new-chat-btn,
-body.history-tab-mode .badge-beta { display: none; }
-body.history-tab-mode .history-view { padding: 16px 20px; }
-body.history-tab-mode .hist-item { background: var(--bg-active); }
+body.history-tab-mode .chat-view { display: none; }
+body.history-tab-mode .side-card { position: static; width: 100%; margin: 8px; padding: 12px; background: var(--surface-1); box-shadow: none; }
+body.history-tab-mode .side-body { width: 100%; }
+
+/* 全局任务 checklist（跨对话，位于侧栏卡片顶部；随历史一起展开/收起） */
+.global-checklist {
+  background: var(--bg-base);
+  border-radius: 10px;
+  padding: 10px 11px;
+  margin-bottom: 8px;
+}
+.gc-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; cursor: pointer; user-select: none; }
+.gc-count { font-size: 10.5px; font-weight: 700; color: var(--text-muted); background: var(--bg-active); border-radius: 100px; padding: 1px 7px; }
+.gc-chevron { margin-left: auto; color: var(--text-muted); transition: transform .2s; }
+.global-checklist.collapsed .gc-head { margin-bottom: 0; }
+.global-checklist.collapsed .gc-list { display: none; }
+.global-checklist.collapsed .gc-chevron { transform: rotate(-90deg); }
+.gtask { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 12px; color: var(--text-secondary); }
+.gtask-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-muted); }
+.gtask-dot.running { background: var(--accent-blue); }
+.gtask-dot.done { background: var(--success); }
+.gtask-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gtask-meta { font-size: 10.5px; color: var(--text-muted); flex-shrink: 0; }
 
 .hv-section-title {
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
   color: var(--text-muted); text-transform: uppercase;
   padding: 8px 2px 4px;
 }
+/* 对话历史项：仅状态灯 + 对话名称 */
 .hist-item {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 9px 10px; border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-2);
+  display: flex; gap: 9px; align-items: center;
+  padding: 7px 8px; border-radius: 8px;
   cursor: pointer; transition: .15s;
 }
-.hist-item:hover { background: var(--bg-active); border-color: var(--border-default); }
-.hist-icon {
-  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
-  background: var(--bg-base); border: 1px solid var(--border-subtle);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+.hist-item:hover { background: var(--bg-active); }
+.hist-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-muted); }
+.hist-dot.done { background: var(--success); }
+.hist-dot.running { background: var(--accent-blue); }
+.hist-name {
+  font-size: 12.5px; color: var(--text-secondary);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.hist-main { flex: 1 1 auto; min-width: 0; }
-.hist-title {
-  font-size: 12.5px; font-weight: 600; color: var(--text-primary);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.hist-preview {
-  font-size: 11px; color: var(--text-muted); margin-top: 2px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.hist-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
-.hist-time { font-size: 10px; color: var(--text-muted); }
-.hist-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 10px; padding: 1px 7px; border-radius: 9px;
-  background: var(--bg-selected);
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
-  color: var(--accent-blue); white-space: nowrap;
-}
+.hist-item:hover .hist-name { color: var(--text-primary); }
 .hist-empty {
   font-size: 11.5px; color: var(--text-muted);
   padding: 10px 2px;
 }
+
+/* ═══ 安装引导流（?flow=install）：消息/终端/任务卡（并入自 ai-install） ═══ */
+:root {
+  --flow-sf1:#161616; --flow-sf2:#1c1c1c; --flow-sf3:#262626;
+  --flow-fg:rgba(255,255,255,.90); --flow-fg2:rgba(255,255,255,.60); --flow-fg3:rgba(255,255,255,.40);
+  --flow-divider:rgba(255,255,255,.06);
+  --flow-blue:#0077FF; --flow-blue-dim:rgba(0,119,255,.14);
+  --flow-purple:#a78bfa; --flow-green:#04d793; --flow-red:#ef4444; --flow-yellow:#f59e0b;
+}
+.chat-view { position: relative; }
+#flow-wrap { display:none; flex-direction:column; flex:1 1 0; min-height:0; }
+body.flow-mode #flow-wrap { display:flex; }
+body.flow-mode #chat-log, body.flow-mode .suggestions, body.flow-mode #scenario-banner { display:none !important; }
+#flow-messages { flex:1 1 0; min-height:0; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.row { display:flex; gap:10px; align-items:flex-start; }
+.av { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; margin-top:1px; background:var(--flow-sf3); }
+.av-ai { color:var(--flow-purple); }
+.av-user { color:var(--flow-green); }
+.body-wrap { flex:1; min-width:0; }
+.msg-name { font-size:11.5px; font-weight:600; color:var(--flow-fg3); margin-bottom:4px; }
+.bubble { display:inline-block; max-width:100%; background:var(--flow-sf2); border-radius:0 10px 10px 10px; padding:10px 13px; font-size:13px; line-height:1.65; color:var(--flow-fg); word-break:break-word; }
+.bubble p+p { margin-top:6px; }
+.bubble strong { color:var(--flow-fg); }
+.bubble code { font-family:var(--font-mono); font-size:11.5px; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:3px; color:#86d9fa; }
+.row.user { flex-direction:row-reverse; }
+.row.user .body-wrap { display:flex; flex-direction:column; align-items:flex-end; }
+.row.user .bubble { background:var(--flow-blue-dim); border-radius:10px 0 10px 10px; }
+.thinking { display:flex; align-items:center; gap:3px; padding:8px 12px; background:var(--flow-sf2); border-radius:0 10px 10px 10px; width:fit-content; }
+.td { width:6px; height:6px; border-radius:50%; background:var(--flow-fg3); animation:tp 1.2s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.2s} .td:nth-child(3){animation-delay:.4s}
+@keyframes tp { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+.actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.abtn { height:30px; padding:0 16px; border-radius:100px; border:none; background:var(--flow-sf3); color:var(--flow-fg2); font-size:12.5px; font-family:inherit; cursor:pointer; transition:background .12s,color .12s; }
+.abtn:hover { background:rgba(255,255,255,.14); color:var(--flow-fg); }
+.abtn.primary { background:var(--flow-blue); color:#fff; }
+.abtn.primary:hover { background:rgba(50,145,254,1); }
+.abtn:disabled { opacity:.35; cursor:default; pointer-events:none; }
+.checks { margin-top:10px; background:var(--flow-sf3); border-radius:10px; padding:8px 12px; }
+.chk { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--flow-divider); font-size:12.5px; }
+.chk:last-child { border-bottom:none; }
+.chk-icon { flex-shrink:0; width:18px; text-align:center; font-size:13px; }
+.chk-label { flex:1; }
+.term { margin-top:10px; background:#060609; border-radius:10px; padding:10px 13px; font-family:var(--font-mono); font-size:11.5px; line-height:1.75; color:rgba(255,255,255,.60); max-height:220px; overflow-y:auto; }
+.tc { color:#86d9fa; } .tc::before { content:'$ '; color:rgba(255,255,255,.25); }
+.tok { color:var(--flow-green); } .ter { color:var(--flow-red); } .twa { color:var(--flow-yellow); } .tdm { color:rgba(255,255,255,.35); }
+.term-note { margin-top:6px; font-size:11px; color:var(--flow-fg3); }
+.task-card { flex-shrink:0; margin:10px 16px 0; padding:12px 14px; background:#2b2c33; border-radius:12px; }
+.tk-head { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:600; color:var(--flow-fg2); letter-spacing:.04em; margin-bottom:8px; cursor:pointer; user-select:none; }
+.tk-progress { font-size:10.5px; font-weight:700; color:var(--flow-fg2); background:var(--flow-sf3); border-radius:100px; padding:1px 8px; }
+.tk-chevron { margin-left:auto; color:var(--flow-fg3); transition:transform .2s; }
+.task-card.collapsed .tk-head { margin-bottom:0; }
+.task-card.collapsed .tk-steps { display:none; }
+.task-card.collapsed .tk-chevron { transform:rotate(-90deg); }
+.tk-steps { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
+.tk-item { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--flow-fg3); transition:color .2s; }
+.tk-item::after { content:''; width:14px; height:1.5px; margin-left:3px; background:var(--flow-divider); border-radius:1px; }
+.tk-item:last-child::after { display:none; }
+.tk-mark { width:18px; height:18px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; background:var(--flow-sf3); color:var(--flow-fg3); transition:all .2s; }
+.tk-item.active { color:var(--flow-fg); font-weight:500; }
+.tk-item.active .tk-mark { background:var(--flow-blue); color:#fff; }
+.tk-item.done { color:var(--flow-fg2); }
+.tk-item.done .tk-mark { background:rgba(4,215,147,.14); color:var(--flow-green); }
+.tk-item.done::after { background:rgba(4,215,147,.3); }
+.done-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(16,16,16,.92); z-index:100; opacity:0; pointer-events:none; transition:opacity .4s; }
+.done-overlay.show { opacity:1; pointer-events:all; }
+.done-icon { font-size:56px; margin-bottom:14px; animation:pop .4s ease-out; }
+.done-title { font-size:20px; font-weight:700; margin-bottom:6px; }
+.done-sub { font-size:13px; color:var(--flow-fg2); margin-bottom:20px; }
+@keyframes pop { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
 </style>
 </head>
 <body>
 <div class="panel">
   <div class="panel-header">
-    <span class="ph-icon" style="color:#a78bfa"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></span>
-    <span class="ph-title" id="panel-title">AI 助手</span>
-    <span class="badge-beta">BETA</span>
-    <button class="ph-act-btn" id="history-btn" onclick="onHistoryBtn()">历史</button>
-    <button class="ph-act-btn" id="new-chat-btn" onclick="newChat()">新对话</button>
+    <span class="ph-app-title">AI 助手</span>
+    <button class="ph-icon-btn" onclick="newChat()" title="新对话">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+    </button>
+    <button class="ph-icon-btn" id="history-btn" onclick="onHistoryBtn()" title="历史">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.07.14L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+    </button>
+    <button class="ph-icon-btn" onclick="parent.postMessage({type:'ai-close-panel'},'*')" title="关闭">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
   </div>
-
   <div class="panel-body">
-    <div class="chat-view" id="chat-view">
+    <!-- 左侧边栏卡片：新对话/历史按钮 + 全局任务 + 对话列表 -->
+    <aside class="side-card" id="side-card">
+      <div class="side-body" id="history-view">
+        <div class="global-checklist" id="global-checklist"></div>
+        <div class="hv-section-title">最近对话</div>
+        <div id="scenario-list" style="display:flex;flex-direction:column;gap:2px"></div>
+        <div id="session-list" style="display:flex;flex-direction:column;gap:2px"></div>
+      </div>
+    </aside>
+
+    <!-- 对话区：对话名称在上方 -->
+    <main class="chat-view" id="chat-view">
+      <div class="conv-head">
+        <span class="ph-status" id="ph-status" title="就绪"></span>
+        <span class="ph-title" id="panel-title">新对话</span>
+      </div>
+
+      <!-- 安装引导流（?flow=install）：任务分解卡 + 流程消息 -->
+      <div id="flow-wrap">
+        <div class="task-card" id="task-card">
+          <div class="tk-head" onclick="toggleTask()">
+            <span>安装部署引导</span>
+            <span class="tk-progress" id="tk-progress">0/3</span>
+            <svg class="tk-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="tk-steps" id="tk-steps">
+            <div class="tk-item active" id="tk1"><span class="tk-mark">1</span><span>登录官网</span></div>
+            <div class="tk-item" id="tk2"><span class="tk-mark">2</span><span>环境准备</span></div>
+            <div class="tk-item" id="tk3"><span class="tk-mark">3</span><span>选择开发机型</span></div>
+          </div>
+        </div>
+        <div id="flow-messages"></div>
+      </div>
+
       <div class="scenario-banner" id="scenario-banner" style="display:none">
         <span id="scenario-banner-text"></span>
         <button onclick="reopenScenarioView()">分屏查看 ↗</button>
@@ -314,19 +419,19 @@ body.history-tab-mode .hist-item { background: var(--bg-active); }
           onkeydown="handleKey(event)"></textarea>
         <button class="chat-send" id="send-btn" onclick="sendMsg()">↑</button>
       </div>
-    </div>
 
-    <div class="history-view" id="history-view">
-      <div class="hv-section-title">示例场景 · 点击载入会话并分屏打开对应功能</div>
-      <div id="scenario-list" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div class="hv-section-title">我的会话</div>
-      <div id="session-list" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
+      <div class="done-overlay" id="done-overlay">
+        <div class="done-icon">✅</div>
+        <div class="done-title">安装部署完成！</div>
+        <div class="done-sub" id="done-sub">正在打开开发视图…</div>
+        <button class="abtn primary" onclick="document.getElementById('done-overlay').classList.remove('show')">进入开发环境</button>
+      </div>
+    </main>
   </div>
 </div>
 
 <script>
-const INIT = '你好！我是 openUBMC Studio 助手。\n点击右上角「历史」查看示例场景会话——点开任意一条，会自动分屏打开对应的功能视图。';
+const INIT = '你好！我是 openUBMC Studio 助手。\n点击左上角「历史」查看最近对话——点开任意一条即可载入，并自动分屏打开关联的功能视图。';
 let thinking = false;
 
 // ── 单色 SVG 图标（不使用 emoji） ──────────────────────────────
@@ -570,51 +675,63 @@ function hideTyping() {
 }
 
 // ── 历史视图 ─────────────────────────────────────────────────
-function histItem({ icon, title, preview, time, viewLabel }, onClick) {
+function histItem({ title, state }, onClick) {
   const div = document.createElement('div');
   div.className = 'hist-item';
   div.innerHTML =
-    '<div class="hist-icon">' + ICON(icon) + '</div>' +
-    '<div class="hist-main">' +
-      '<div class="hist-title">' + escapeHtml(title) + '</div>' +
-      '<div class="hist-preview">' + escapeHtml(preview) + '</div>' +
-      '<div class="hist-meta">' +
-        '<span class="hist-time">' + escapeHtml(time) + '</span>' +
-        (viewLabel ? '<span class="hist-chip">↗ ' + escapeHtml(viewLabel) + '</span>' : '') +
-      '</div>' +
-    '</div>';
+    '<span class="hist-dot ' + (state || 'done') + '"></span>' +
+    '<span class="hist-name">' + escapeHtml(title) + '</span>';
   div.onclick = onClick;
   return div;
 }
 
+// 全局任务 checklist（跨对话）：读取安装引导进度（bmcInstallProgress，ai-install 写入），
+// 无数据时用演示态兜底。位于历史区，随历史收起而收起（沉浸式单对话）。
+const GLOBAL_TASKS = [
+  { key: 'install', name: '安装部署', steps: 3 },
+  { key: 'topo',    name: '配置拓扑' },
+  { key: 'sensor',  name: '配置传感器时间' },
+  { key: 'cooling', name: '散热策略' },
+  { key: 'build',   name: '构建' },
+  { key: 'debug',   name: '调试验证' },
+];
+function renderGlobalChecklist() {
+  const el = document.getElementById('global-checklist');
+  if (!el) return;
+  let prog = null;
+  try { prog = JSON.parse(localStorage.getItem('bmcInstallProgress')); } catch (_) {}
+  const step = (prog && prog.step) ? prog.step : 1;
+  let doneCount = 0, rows = '';
+  for (const t of GLOBAL_TASKS) {
+    let dot = '', meta = '未开始';
+    if (t.key === 'install') {
+      if (step >= 4) { dot = 'done'; meta = '已完成'; doneCount++; }
+      else { dot = 'running'; meta = Math.max(0, Math.min(t.steps, step - 1)) + '/' + t.steps; }
+    }
+    rows += '<div class="gtask"><span class="gtask-dot ' + dot + '"></span>'
+      + '<span class="gtask-name">' + escapeHtml(t.name) + '</span>'
+      + '<span class="gtask-meta">' + meta + '</span></div>';
+  }
+  el.innerHTML = '<div class="gc-head" onclick="toggleGlobal()"><span>全局任务</span>'
+    + '<span class="gc-count">' + doneCount + '/' + GLOBAL_TASKS.length + '</span>'
+    + '<svg class="gc-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>'
+    + '<div class="gc-list">' + rows + '</div>';
+}
+function toggleGlobal() { const el = document.getElementById('global-checklist'); if (el) el.classList.toggle('collapsed'); }
+
 function renderHistory() {
+  renderGlobalChecklist();
   const scList = document.getElementById('scenario-list');
   scList.innerHTML = '';
   for (const sc of SCENARIOS) {
-    scList.appendChild(histItem({
-      icon: sc.icon, title: sc.title,
-      preview: sc.messages[0].text, time: sc.time,
-      viewLabel: VIEW_LABELS[sc.view],
-    }, () => loadScenario(sc)));
+    scList.appendChild(histItem({ title: sc.title, state: 'done' }, () => loadScenario(sc)));
   }
 
   const ssList = document.getElementById('session-list');
   ssList.innerHTML = '';
   const sessions = loadSessions();
-  if (!sessions.length) {
-    const empty = document.createElement('div');
-    empty.className = 'hist-empty';
-    empty.textContent = '暂无会话记录——发送一条消息后会自动保存到这里。';
-    ssList.appendChild(empty);
-  } else {
-    for (const ss of sessions) {
-      ssList.appendChild(histItem({
-        icon: 'chat', title: ss.title || '未命名会话',
-        preview: (ss.messages.find(m => m.role === 'user') || ss.messages[0] || { text: '' }).text,
-        time: fmtTime(ss.time),
-        viewLabel: null,
-      }, () => loadSession(ss)));
-    }
+  for (const ss of sessions) {
+    ssList.appendChild(histItem({ title: ss.title || '未命名会话', state: 'done' }, () => loadSession(ss)));
   }
 }
 
@@ -622,9 +739,9 @@ function toggleHistory(force) {
   const show = force !== undefined ? force : !document.body.classList.contains('show-history');
   if (show) renderHistory();
   document.body.classList.toggle('show-history', show);
-  document.getElementById('history-btn').classList.toggle('is-active', show);
-  document.getElementById('history-btn').textContent = show ? '返回' : '历史';
-  document.getElementById('panel-title').textContent = show ? '聊天历史' : 'AI 助手';
+  const hbtn = document.getElementById('history-btn');
+  hbtn.classList.toggle('is-active', show);
+  hbtn.title = show ? '收起历史' : '历史';
 }
 
 // ── 载入历史 / 场景 ──────────────────────────────────────────
@@ -641,36 +758,48 @@ function openScenarioView(viewId) {
 
 function loadScenario(sc) {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = sc;
   session = freshSession(sc.messages);
   session.title = sc.title + '（续）';
+  setConvTitle();
   setChatLog(sc.messages, '已载入示例场景 · ' + sc.title);
   const banner = document.getElementById('scenario-banner');
   banner.style.display = 'flex';
   document.getElementById('scenario-banner-text').innerHTML =
     '关联视图：<b>' + escapeHtml(VIEW_LABELS[sc.view] || sc.view) + '</b>';
-  toggleHistory(false);
+  toggleHistory(false);   // 选中后收起历史抽屉，露出对话
   openScenarioView(sc.view);
 }
 
 function loadSession(ss) {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = null;
   session = { id: ss.id, title: ss.title, time: ss.time, messages: ss.messages.slice(), hasNew: false };
+  setConvTitle();
   setChatLog(ss.messages, '已载入历史会话');
   document.getElementById('scenario-banner').style.display = 'none';
-  toggleHistory(false);
+  toggleHistory(false);   // 选中后收起历史抽屉，露出对话
 }
 
 function reopenScenarioView() {
   if (currentScenario) openScenarioView(currentScenario.view);
 }
 
+// 头部标题显示当前对话名称（无名时显示「新对话」）
+function setConvTitle() {
+  if (IS_HISTORY_TAB) return;
+  document.getElementById('panel-title').textContent = (session && session.title) ? session.title : '新对话';
+}
+
 // ── 会话操作 ─────────────────────────────────────────────────
 function newChat() {
   persistSession();
+  document.body.classList.remove('flow-mode');
   currentScenario = null;
   session = freshSession();
+  setConvTitle();
   document.getElementById('scenario-banner').style.display = 'none';
   setChatLog([], null);
   appendMsg('ai', INIT);
@@ -686,7 +815,7 @@ function recordMsg(role, text) {
   session.messages.push({ role, text });
   if (role === 'user') {
     session.hasNew = true;
-    if (!session.title) session.title = text.length > 18 ? text.slice(0, 18) + '…' : text;
+    if (!session.title) { session.title = text.length > 18 ? text.slice(0, 18) + '…' : text; setConvTitle(); }
   }
   persistSession();
 }
@@ -697,6 +826,12 @@ function sendMsg() {
   const text = el.value.trim();
   if (!text) return;
   el.value = '';
+  // 安装引导对话里也可自由提问：渲染进 flow-messages（保持流程消息风格）
+  if (document.body.classList.contains('flow-mode')) {
+    userMsg(text);
+    aiMsg('<p>' + escapeHtml(respond(text)) + '</p>', { delay: 400 });
+    return;
+  }
   appendMsg('user', text);
   recordMsg('user', text);
   thinking = true;
@@ -716,22 +851,229 @@ function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 }
 
+// ═══ 安装引导流（?flow=install）：并入自 ai-install，渲染进 #flow-messages ═══
+const flowMsgs = document.getElementById('flow-messages');
+function toParent(msg) { try { window.parent.postMessage(msg, '*'); } catch (_) {} }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function flowScrollEnd() { if (flowMsgs) flowMsgs.scrollTop = flowMsgs.scrollHeight; }
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const it = document.getElementById('tk' + i);
+    if (!it) continue;
+    const mk = it.querySelector('.tk-mark');
+    it.classList.remove('active', 'done');
+    if (i < n) { it.classList.add('done'); mk.textContent = '✓'; }
+    else if (i === n) { it.classList.add('active'); mk.textContent = String(i); }
+    else { mk.textContent = String(i); }
+  }
+  const prog = document.getElementById('tk-progress');
+  if (prog) prog.textContent = Math.max(0, Math.min(3, n - 1)) + '/3';
+  try { localStorage.setItem('bmcInstallProgress', JSON.stringify({ step: n })); } catch (_) {}
+}
+function toggleTask() { const c = document.getElementById('task-card'); if (c) c.classList.toggle('collapsed'); }
+
+let flowThinkRow = null;
+function showThinking() {
+  flowThinkRow = document.createElement('div');
+  flowThinkRow.className = 'row';
+  flowThinkRow.innerHTML = '<div class="av av-ai"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></div><div class="body-wrap"><div class="thinking"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';
+  flowMsgs.appendChild(flowThinkRow); flowScrollEnd();
+}
+function hideThinking() { if (flowThinkRow) { flowThinkRow.remove(); flowThinkRow = null; } }
+
+async function aiMsg(html, opts) {
+  opts = opts || {};
+  const delay = opts.delay == null ? 700 : opts.delay;
+  const actions = opts.actions || [];
+  showThinking(); await sleep(delay); hideThinking();
+  const row = document.createElement('div'); row.className = 'row ai';
+  let actHtml = '';
+  if (actions.length) actHtml = '<div class="actions">' + actions.map(function (a) { return '<button class="abtn' + (a.primary ? ' primary' : '') + '" data-act="' + a.act + '">' + a.label + '</button>'; }).join('') + '</div>';
+  row.innerHTML = '<div class="av av-ai"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg></div><div class="body-wrap"><div class="msg-name">安装助手</div><div class="bubble">' + html + '</div>' + actHtml + '</div>';
+  flowMsgs.appendChild(row); flowScrollEnd(); return row;
+}
+function userMsg(text) {
+  const row = document.createElement('div'); row.className = 'row user';
+  row.innerHTML = '<div class="av av-user">我</div><div class="body-wrap"><div class="msg-name">你</div><div class="bubble">' + text + '</div></div>';
+  flowMsgs.appendChild(row); flowScrollEnd(); return row;
+}
+function disableActions(row) { row.querySelectorAll('.abtn').forEach(function (b) { b.disabled = true; }); }
+async function termBlock(bubble, lines) {
+  const block = document.createElement('div'); block.className = 'term'; bubble.appendChild(block); flowScrollEnd();
+  for (const ln of lines) { await sleep(ln.d == null ? 250 : ln.d); const div = document.createElement('div'); div.className = ln.c || ''; div.textContent = ln.t; block.appendChild(div); flowScrollEnd(); }
+  return block;
+}
+function runCmd(cmd) { toParent({ type: 'ai-run-agent', cmd: cmd }); }
+function openWeb(viewId) { toParent({ type: 'ai-open-web', viewId: viewId }); }
+function termNote(bubble) { const n = document.createElement('div'); n.className = 'term-note'; n.textContent = '⤷ 完整执行过程见底部 agent 终端'; bubble.appendChild(n); }
+
+async function step1Welcome() {
+  const row = await aiMsg('<p>你好！我是 openUBMC <strong>安装助手</strong>，将带你完成开发环境的全部配置。</p><p>共三步：登录官网 → 环境准备 → 选择开发机型。</p><p style="margin-top:8px">首先——你有 openUBMC 开发者账号了吗？</p>', { delay: 900, actions: [{ act: 'has-acct', label: '已有账号' }, { act: 'need-acct', label: '还没有账号' }] });
+  row.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row);
+    if (btn.dataset.act === 'has-acct') { userMsg('已有账号'); step1Login(); } else { userMsg('还没有账号'); step1Register(); }
+  });
+}
+async function step1Register() {
+  const row = await aiMsg('<p>好，点下方按钮，我在左侧分屏打开 openUBMC 注册页——注册并登录后我会自动检测登录状态并继续。</p>', { actions: [{ act: 'open-reg', label: '前往注册 openUBMC 账号', primary: true }] });
+  row.addEventListener('click', function (e) { const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row); userMsg('前往注册'); openWeb('openubmcLogin'); step1DetectLogin(); });
+}
+async function step1Login() {
+  const row = await aiMsg('<p>好，点下方按钮，我在左侧分屏打开 openUBMC 登录页——登录成功后会自动检测并进入下一步，无需手动确认。</p>', { actions: [{ act: 'open-login', label: '前往登录 openUBMC 账号', primary: true }] });
+  row.addEventListener('click', function (e) { const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row); userMsg('前往登录'); openWeb('openubmcLogin'); step1DetectLogin(); });
+}
+async function step1DetectLogin() {
+  const row = await aiMsg('<p>已在左侧分屏打开登录页，正在自动检测登录状态…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [{ t: '检测 openUBMC 登录状态…', c: 'tdm', d: 1500 }, { t: '✓ 已登录（账号会话有效）', c: 'tok', d: 600 }]);
+  await sleep(300); step2LinuxEnv();
+}
+async function step2LinuxEnv() {
+  setStep(2);
+  const row = await aiMsg('<p>登录成功 ✓</p><p>openUBMC 的编译构建需要在 <strong>Linux 环境</strong>中进行。你目前有可用的 Linux 环境吗？</p>', { delay: 600, actions: [{ act: 'has-linux', label: '有，已可以 SSH 连接', primary: true }, { act: 'need-wsl', label: '没有，需要安装 WSL' }] });
+  row.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row);
+    if (btn.dataset.act === 'has-linux') { userMsg('有，已可以 SSH 连接'); step2GitCode(); } else { userMsg('没有，需要安装 WSL'); step2InstallWSL(); }
+  });
+}
+async function step2InstallWSL() {
+  const row = await aiMsg('<p>没问题，WSL 安装命令我直接推到下方 agent 终端运行，装好后会自动带你继续，无需手动确认。</p>', { delay: 800 });
+  const bubble = row.querySelector('.bubble');
+  runCmd('agent 安装 wsl 子系统');
+  await termBlock(bubble, [
+    { t: 'setup_check_platform', c: 'tc', d: 300 },
+    { t: '  检测到 Windows 主机，未安装 WSL', c: 'tdm', d: 700 },
+    { t: '  ① wsl --install -d Ubuntu-22.04（WSL2 内核 + Ubuntu-22.04，装好重启）', c: 'tdm', d: 900 },
+    { t: '  ② 重启后设置 Linux 用户名/密码 → sudo apt update && upgrade -y', c: 'tdm', d: 900 },
+    { t: '  ③ VS Code 装 Remote-WSL，左下角 >< → Connect to WSL', c: 'tdm', d: 800 },
+    { t: '  ✓ WSL2 · Ubuntu-22.04 就绪', c: 'tok', d: 700 },
+  ]);
+  termNote(bubble); await sleep(600); step2GitCode();
+}
+async function step2GitCode() {
+  const row = await aiMsg('<p>下面配置 <strong>GitCode SSH 密钥</strong>，用于拉取代码仓。点下方按钮我在左侧分屏打开 GitCode 密钥设置页；公钥会在终端取出，添加后我自动检测并继续。</p><div class="checks"><div class="chk"><span class="chk-icon">①</span><span class="chk-label">终端运行 <code>cat ~/.ssh/id_rsa.pub</code> 复制公钥</span></div><div class="chk"><span class="chk-icon">②</span><span class="chk-label">GitCode 个人设置 → SSH 密钥 → 添加公钥</span></div></div>', { actions: [{ act: 'open-git', label: '打开 GitCode 密钥设置', primary: true }] });
+  row.addEventListener('click', function (e) { const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row); userMsg('打开 GitCode 密钥设置'); openWeb('gitcodeKeys'); step2DetectKey(); });
+}
+async function step2DetectKey() {
+  const row = await aiMsg('<p>已在左侧分屏打开 GitCode 密钥设置页，正在自动检测 SSH 公钥…</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [
+    { t: 'cat ~/.ssh/id_rsa.pub', c: 'tc', d: 400 },
+    { t: '  ssh-ed25519 AAAAC3Nz…dev@openubmc', c: 'tdm', d: 700 },
+    { t: '  检测 GitCode SSH 公钥…', c: 'tdm', d: 1200 },
+    { t: '  ✓ 公钥已添加，SSH 连接 gitcode.com 通过', c: 'tok', d: 600 },
+  ]);
+  await sleep(300); step2DoDeploy();
+}
+async function step2DoDeploy() {
+  const row = await aiMsg('<p>密钥就绪。下面我自动部署开发环境——拉取 manifest、下载 bmc_sdk、执行 init.py。</p>', { delay: 500 });
+  const bubble = row.querySelector('.bubble');
+  runCmd('agent 下载开发资源 拉取 manifest');
+  await termBlock(bubble, [
+    { t: 'setup_clone_manifest', c: 'tc', d: 300 },
+    { t: '  Cloning openubmc-24.03 manifest...', c: 'tdm', d: 1300 },
+    { t: '  ✓  代码仓克隆完成（172 repos synced）', c: 'tok', d: 500 },
+    { t: 'setup_install_sdk', c: 'tc', d: 400 },
+    { t: '  下载 bmc_sdk … 校验和一致', c: 'tdm', d: 1400 },
+    { t: '  ✓  SDK 就位', c: 'tok', d: 500 },
+    { t: 'setup_run_init', c: 'tc', d: 400 },
+    { t: '  python3 init.py --profile openubmc-24.03', c: 'tdm', d: 1500 },
+    { t: '  ✓  init.py 执行完成 (exit 0 · 4.2s)', c: 'tok', d: 600 },
+  ]);
+  termNote(bubble); await sleep(500); step2DoVerify();
+}
+async function step2DoVerify() {
+  const row = await aiMsg('<p>代码仓与 SDK 就绪，最后自动运行配置检测，确认环境全部通过。</p>', { delay: 400 });
+  const bubble = row.querySelector('.bubble');
+  runCmd('agent 运行配置检测');
+  await termBlock(bubble, [
+    { t: 'setup_verify_all', c: 'tc', d: 300 },
+    { t: '  检查 GitCode SSH 连通性...', c: 'tdm', d: 600 },
+    { t: '  ✓  SSH 连接 gitcode.com — 通过', c: 'tok', d: 500 },
+    { t: '  检查 manifest 代码仓...', c: 'tdm', d: 500 },
+    { t: '  ✓  openubmc-24.03 manifest — 通过', c: 'tok', d: 400 },
+    { t: '  检查 bmc_sdk...', c: 'tdm', d: 400 },
+    { t: '  ✓  bmc_sdk 完整性校验 — 通过', c: 'tok', d: 400 },
+    { t: '  检查 Conan 工具链...', c: 'tdm', d: 500 },
+    { t: '  ✓  Conan remote openubmc — 通过', c: 'tok', d: 400 },
+    { t: '环境准备配置检测通过，所有配置项验证成功', c: 'tok', d: 600 },
+  ]);
+  termNote(bubble); await sleep(600); step3ModelSelect();
+}
+async function step3ModelSelect() {
+  setStep(3);
+  const row = await aiMsg('<p>环境准备配置检测通过 ✓</p><p>最后一步——选择开发机型。选好后我直接加载对应机型配置并打开硬件适配视图，之后可在 IDE 右下角状态栏随时切换。</p>', { delay: 700, actions: [{ act: 'taishan', label: '华为 TaiShan 200 2180（均衡型）', primary: true }, { act: 'tianchi', label: '华为 天池 TianChi' }, { act: 'ref', label: 'openUBMC 社区参考机型' }] });
+  const MODELS = { taishan: '华为 TaiShan 200 2180（均衡型）', tianchi: '华为 天池 TianChi', ref: 'openUBMC 社区参考机型' };
+  row.addEventListener('click', function (e) { const btn = e.target.closest('[data-act]'); if (!btn) return; disableActions(row); const name = MODELS[btn.dataset.act]; userMsg('选择机型：' + name); step3ApplyModel(name); });
+}
+async function step3ApplyModel(name) {
+  const row = await aiMsg('<p>正在加载机型配置：<strong>' + name + '</strong>…</p>', { delay: 400 });
+  const bubble = row.querySelector('.bubble');
+  await termBlock(bubble, [{ t: 'setup_check_platform', c: 'tc', d: 300 }, { t: '  载入机型配置 ' + name, c: 'tdm', d: 900 }, { t: '  ✓ 机型配置就绪，开发辅助已启用', c: 'tok', d: 600 }]);
+  const tk3 = document.getElementById('tk3');
+  tk3.classList.remove('active'); tk3.classList.add('done'); tk3.querySelector('.tk-mark').textContent = '✓';
+  const prog = document.getElementById('tk-progress'); if (prog) prog.textContent = '3/3';
+  try { localStorage.setItem('bmcInstallProgress', JSON.stringify({ step: 4 })); } catch (_) {}
+  await aiMsg('<p>机型「' + name + '」配置完成 ✓ 正在打开硬件适配视图…</p>', { delay: 400 });
+  await sleep(700);
+  document.getElementById('done-sub').textContent = '正在打开硬件适配视图…';
+  document.getElementById('done-overlay').classList.add('show');
+  await sleep(800);
+  toParent({ type: 'ai-open-scenario', viewId: 'vueTopo' });
+}
+function startInstallFlow() { setStep(1); sleep(400).then(step1Welcome); }
+
+// 在当前 AI 助手里新建一个「安装引导」对话（统一入口，不再单开面板）
+function startInstallConversation() {
+  currentScenario = null;
+  session = freshSession();
+  session.title = 'AI 引导安装部署';
+  setConvTitle();
+  const sb = document.getElementById('scenario-banner'); if (sb) sb.style.display = 'none';
+  const fm = document.getElementById('flow-messages'); if (fm) fm.innerHTML = '';
+  const tc = document.getElementById('task-card'); if (tc) tc.classList.remove('collapsed');
+  document.body.classList.add('flow-mode');
+  toggleHistory(false);
+  startInstallFlow();
+}
+// 读取「打开安装引导」标记（App 在点 AI 引导安装时置位），命中则起流程
+function maybeStartInstallFromFlag() {
+  let ts = 0;
+  try { ts = +(localStorage.getItem('bmcStartInstallFlow') || 0); } catch (_) {}
+  if (ts && Date.now() - ts < 10000) {
+    try { localStorage.removeItem('bmcStartInstallFlow'); } catch (_) {}
+    startInstallConversation();
+    return true;
+  }
+  return false;
+}
+
 // ── 初始化 ───────────────────────────────────────────────────
 const IS_HISTORY_TAB = new URLSearchParams(location.search).get('view') === 'history';
+const IS_FLOW_INSTALL = new URLSearchParams(location.search).get('flow') === 'install';
 
 function onHistoryBtn() {
   if (IS_HISTORY_TAB) return;
-  // In the right-side AI panel: open history as a proper tab in the main pane
-  window.parent.postMessage({ type: 'ai-open-history' }, '*');
+  // 在 AI 助手侧面板内就地展开历史（同一卡片切换列表↔对话），不再单开一个 tab
+  toggleHistory();
 }
 
 if (IS_HISTORY_TAB) {
   document.body.classList.add('history-tab-mode', 'show-history');
   document.getElementById('panel-title').textContent = 'AI 历史';
   renderHistory();
+} else if (IS_FLOW_INSTALL) {
+  startInstallConversation();
+} else if (maybeStartInstallFromFlag()) {
+  /* 通过标记进入安装引导对话 */
 } else {
   appendMsg('ai', INIT);
 }
+window.addEventListener('storage', function (e) {
+  if (e.key === 'bmcInstallProgress') renderGlobalChecklist();
+  if (e.key === 'bmcStartInstallFlow') maybeStartInstallFromFlag();
+});
 window.addEventListener('beforeunload', persistSession);
 </script>
 </body>
