@@ -226,6 +226,8 @@
 
 /* 告警/传感器 = 横向泳道大图（器件 → 传感器 → 事件）→ 宽面板铺开 */
 .topo-property-panel.wide { width: min(1080px, calc(100vw - 260px)); }
+/* 单器件告警：只有事件按类，无泳道 → 收窄面板，避免整屏铺开显空 */
+.topo-property-panel.wide-dev { width: min(680px, calc(100vw - 260px)); }
 
 /* 配置面板 tab 条：按字数定宽（不随面板缩放） */
 .pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }

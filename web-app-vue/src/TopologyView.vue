@@ -618,7 +618,7 @@ function catStateClass(cat: CatNode): string {
     </div>
 
     <!-- ── Property panel ────────────────────────────────────────── -->
-    <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' }" @click.stop>
+    <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' && !activeDevice, 'wide-dev': panelTab === 'alarm' && !!activeDevice }" @click.stop>
       <div class="pp-header">
         <button v-if="activeDevice" class="pp-back" title="返回板卡" @click="activeDevice = null">‹</button>
         <span>{{ activeDevice ? activeDevice.label : '板卡配置' }}</span>
