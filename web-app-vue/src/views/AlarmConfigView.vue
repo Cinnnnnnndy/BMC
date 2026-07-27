@@ -310,7 +310,7 @@ const blockEls = new Map<string, HTMLElement>();
 function setBlockRef(key: string, el: unknown): void {
   if (el) blockEls.set(key, el as HTMLElement); else blockEls.delete(key);
 }
-interface Conn { id: string; d: string; sensorId: string; }
+interface Conn { id: string; d: string; sensorId: string; dashed?: boolean; }
 const connByBlock = reactive<Record<string, Conn[]>>({});
 const hoverSensor = ref<string | null>(null);
 
@@ -354,6 +354,11 @@ function recomputeConnectors(): void {
       evAll.filter((e) => e.getAttribute('data-event-of') === sid).forEach((eEl, i) => {
         conns.push({ id: `se-${sid}-${i}`, sensorId: sid, d: linkPathH(Rs, eEl.getBoundingClientRect(), R0) });
       });
+    });
+    // 无传感器的独立事件：器件 → 分类组（虚线，一类一条），体现「直连数据源」
+    if (Ro) block.querySelectorAll('[data-cat-head]').forEach((cEl) => {
+      const cid = (cEl as HTMLElement).getAttribute('data-cat-head') || '';
+      conns.push({ id: `oc-${cid}`, sensorId: cid, d: linkPathH(Ro, cEl.getBoundingClientRect(), R0), dashed: true });
     });
     connByBlock[g.chipKey] = conns;
   }
@@ -422,15 +427,23 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
       </div>
     </teleport>
 
-    <!-- 统一流：数据源器件(芯片) → 传感器 / 分类 → 事件（无传感器的事件按分类直接挂器件） -->
+    <!-- 横向泳道大图：器件(数据源) → 传感器 → 事件；每块 = 一个器件的横向带 -->
     <div class="flow-list">
+      <!-- 泳道表头（吸顶）：三条泳道 -->
+      <div class="lane-head">
+        <div class="lh-chip">器件 · 数据源</div>
+        <div class="lh-se">
+          <div class="lh-sensor">传感器</div>
+          <div class="lh-event">事件 / 告警（按类）</div>
+        </div>
+      </div>
       <div v-if="!chipFlows.length" class="empty">{{ scopeChipKey === '__firmware' ? '该固件通道暂无离散状态传感器或事件。' : scopeChipKey ? '该器件仅参与拓扑/在位识别，未承载遥测传感器，也无独立事件。' : '还没有告警链路。上方选监控对象、点电压轨 / 监控量即可添加一条。' }}</div>
 
       <div v-for="cf in chipFlows" :key="cf.chipKey" class="obj-block" :ref="(el) => setBlockRef(cf.chipKey, el)">
         <!-- 上下游连线层（器件→中间节点→事件，随布局重算，hover 高亮链路） -->
         <svg class="conn-layer" preserveAspectRatio="none" aria-hidden="true">
           <path v-for="c in (connByBlock[cf.chipKey] || [])" :key="c.id" :d="c.d" class="conn"
-                :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId }" />
+                :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId, dashed: c.dashed }" />
         </svg>
         <!-- 第一列：数据源器件(芯片) 节点，纵向贯穿；其传感器/分类扇出到中列、事件到右列 -->
         <div class="chip-node" data-role="obj" :title="chipTip(cf)">
@@ -440,12 +453,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <span class="cn-cnt">{{ cf.sensorCount ? cf.sensorCount + ' 传感器 · ' : '' }}{{ cf.eventCount }} 事件</span>
         </div>
 
-        <!-- 第二列：传感器 / 分类 ⟶ 第三列：事件 -->
+        <!-- 泳道二：传感器 ⟶ 泳道三：事件 -->
         <div class="se-cols">
-          <div class="se-colhead">
-            <span class="sch sch-s">传感器</span>
-            <span class="sch sch-e">事件 / 告警（按类）</span>
-          </div>
           <template v-for="entry in cf.sensors" :key="entry.sensor.configId">
             <div class="se-row"
                  :class="[entry.sensor.kind, { open: expandedId === entry.sensor.configId, hot: hoverSensor === entry.sensor.configId }]"
@@ -574,14 +583,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
             </div>
           </template>
 
-          <!-- 独立事件：无传感器 → 第二列(传感器)留空；事件按告警分类归拢（分类只是事件的分组头，不作节点）-->
-          <div v-if="cf.cats.length" class="loose-block">
-              <div v-for="row in cf.cats" :key="cf.chipKey + ':' + row.cat" class="cat-grp">
-                <div class="cat-head" :class="row.cat">
+          <!-- 独立事件：传感器泳道留空（无传感器）；事件泳道按告警分类分色归拢 -->
+          <div v-if="cf.cats.length" class="se-row loose-row">
+            <div class="se-sensor se-empty">
+              <span v-if="!cf.sensors.length" class="se-none">该器件无传感器<br>事件直连数据源</span>
+            </div>
+            <div class="se-events loose-events">
+              <div v-for="row in cf.cats" :key="cf.chipKey + ':' + row.cat" class="cat-grp" :class="row.cat">
+                <div class="cat-head" :class="[row.cat, { hot: hoverSensor === cf.chipKey + ':' + row.cat }]" :data-cat-head="cf.chipKey + ':' + row.cat"
+                     @mouseenter="hoverSensor = cf.chipKey + ':' + row.cat" @mouseleave="hoverSensor = null">
                   <span class="cat-dot"></span>
                   <span class="cat-name">{{ row.label }}</span>
                   <span class="cat-n">{{ row.events.length }}</span>
-                  <span class="cat-nos">无传感器 · 直连器件数据源</span>
                 </div>
                 <div class="cat-chips">
                   <template v-for="e in row.events" :key="e.id">
@@ -614,6 +627,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                   </template>
                 </div>
               </div>
+            </div>
           </div>
         </div>
       </div>
@@ -685,8 +699,13 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 
 .empty { padding: 24px; text-align: center; color: var(--foreground-muted); font-size: 12px; border-radius: 12px; background: var(--surface-1); }
 
-/* ── 流：节点图（不套外卡）——三列 器件 → 传感器 → 事件，用连线关联 ── */
-.flow-list { display: flex; flex-direction: column; gap: 4px; }
+/* ── 横向泳道大图：器件(170) → 传感器(230) → 事件(flex)，连线关联 ── */
+.flow-list { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.lane-head { position: sticky; top: 0; z-index: 3; display: flex; gap: 18px; padding: 4px 4px 8px; background: var(--background); border-bottom: 1px solid rgba(255,255,255,0.08); }
+.lh-chip { flex: none; width: 170px; font-size: 11px; font-weight: 600; color: var(--foreground-secondary); }
+.lh-se { flex: 1; display: flex; gap: 14px; min-width: 0; }
+.lh-sensor { flex: none; width: 230px; font-size: 11px; font-weight: 600; color: var(--foreground-secondary); padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.06); }
+.lh-event { flex: 1; font-size: 11px; font-weight: 600; color: var(--foreground-secondary); padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.06); }
 .obj-block { position: relative; display: flex; flex-direction: row; align-items: stretch; gap: 18px; padding: 14px 4px; }
 .obj-block + .obj-block { border-top: 1px solid rgba(255,255,255,0.06); }
 
@@ -695,9 +714,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .conn { fill: none; stroke: color-mix(in srgb, var(--foreground-muted) 42%, transparent); stroke-width: 1.5; transition: stroke .12s, stroke-width .12s, opacity .12s; }
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
+.conn.dashed { stroke-dasharray: 4 5; stroke: color-mix(in srgb, var(--foreground-muted) 30%, transparent); }
+.conn.dashed.active { stroke: var(--primary); }
 
-/* 第一列：数据源器件(芯片) 节点，置于块顶（高块也不至于连线拉太远），扇出到中列 */
-.chip-node { position: relative; z-index: 1; flex: none; width: 158px; align-self: flex-start; margin-top: 22px; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
+/* 泳道一：数据源器件(芯片) 节点，置于块顶，扇出到传感器/事件泳道 */
+.chip-node { position: relative; z-index: 1; flex: none; width: 170px; align-self: flex-start; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }
 .cn-ic { display: inline-flex; }
 .cn-ic svg { width: 20px; height: 20px; fill: var(--foreground-secondary); }
 .cn-ic.fw svg { fill: var(--foreground-muted); }
@@ -705,16 +726,15 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cn-type { font-size: 10px; color: var(--foreground-muted); }
 .cn-cnt { margin-top: 3px; align-self: flex-start; font-size: 10px; color: var(--foreground-secondary); padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-1); }
 
-/* ── 中列：传感器 ⟶ 右列：事件（不套行卡，节点间用连线关联） ── */
+/* ── 泳道二：传感器 ⟶ 泳道三：事件（不套行卡，节点间用连线关联） ── */
 .se-cols { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.se-colhead { display: flex; align-items: center; gap: 14px; padding: 0 2px; }
-.sch { font-size: 11px; color: var(--foreground-muted); }
-.sch-s { flex: 1 1 0; min-width: 0; }
-.sch-e { flex: 1.2 1 0; min-width: 0; }
 .se-row { display: flex; align-items: center; gap: 14px; padding: 2px 0; }
+.se-row.loose-row { align-items: flex-start; }
 
-/* 中列：传感器节点卡（与事件不共卡，靠连线关联） */
-.se-sensor { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; }
+/* 泳道二：传感器节点卡（固定宽度，与表头对齐；与事件不共卡，靠连线关联） */
+.se-sensor { flex: none; width: 230px; min-width: 0; display: flex; align-items: center; gap: 6px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.05); }
+.se-sensor.se-empty { align-items: flex-start; }
+.se-none { font-size: 11px; line-height: 1.5; color: var(--foreground-muted); }
 .sensor-card { all: unset; cursor: pointer; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--radius-md); background: var(--surface-3); transition: background var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default); }
 .sensor-card:hover { background: var(--surface-4); }
 .se-row.hot .sensor-card, .se-row.open .sensor-card { box-shadow: inset 0 0 0 1px var(--primary); }
@@ -734,8 +754,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .dot.Major { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .dot.Critical { background: var(--danger); }
 
-/* 右列：事件节点卡换行扇出，铃铛图标按严重度着色 */
-.se-events { flex: 1.2 1 0; min-width: 0; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* 泳道三：事件节点卡换行扇出，铃铛图标按严重度着色；左侧泳道分隔线 */
+.se-events { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; align-items: center; gap: 6px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.05); }
 .event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-1); font-size: 11px; color: var(--foreground-secondary); }
 .event-node.none { color: var(--foreground-muted); }
 .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
@@ -751,10 +771,17 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 /* 逐条事件的就地编辑：在该事件下换行铺满，紧跟被点对象（不沉底） */
 .ev-inline { flex: 1 0 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px; margin: 2px 0; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--primary); }
 
-/* 独立事件区（无传感器）：第二列留空，事件按告警分类归拢——分类是事件的分组头，不作节点 */
-.loose-block { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; }
-.cat-grp { display: flex; flex-direction: column; gap: 6px; }
-.cat-head { display: flex; align-items: center; gap: 7px; padding: 3px 2px; }
+/* 独立事件区（无传感器）：事件泳道里按告警分类分色归拢——分类是事件的分组头，不作节点 */
+.loose-events { flex-direction: column; align-items: stretch; gap: 12px; }
+.cat-grp { display: flex; flex-direction: column; gap: 6px; padding-left: 10px; border-left: 2px solid var(--foreground-muted); }
+.cat-grp.voltage  { border-left-color: var(--warning); }
+.cat-grp.temp     { border-left-color: var(--danger); }
+.cat-grp.presence { border-left-color: var(--primary); }
+.cat-grp.chassis  { border-left-color: var(--success); }
+.cat-grp.power    { border-left-color: var(--purple, #a78bfa); }
+.cat-grp.system   { border-left-color: color-mix(in srgb, var(--primary) 60%, var(--success)); }
+.cat-head { display: flex; align-items: center; gap: 7px; cursor: default; }
+.cat-head.hot .cat-name { color: var(--primary); }
 .cat-dot { flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--foreground-muted); }
 .cat-head.voltage  .cat-dot { background: var(--warning); }
 .cat-head.temp     .cat-dot { background: var(--danger); }
@@ -764,8 +791,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cat-head.system   .cat-dot { background: color-mix(in srgb, var(--primary) 60%, var(--success)); }
 .cat-name { flex: none; font-size: 12px; font-weight: 600; }
 .cat-n { flex: none; font-size: 10px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--foreground-secondary); }
-.cat-nos { flex: none; font-size: 10px; color: var(--foreground-muted); }
-.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 15px; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .branch-del { all: unset; cursor: pointer; flex: none; align-self: center; color: var(--foreground-muted); font-size: 12px; padding: 2px 6px; border-radius: var(--radius-sm); }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
