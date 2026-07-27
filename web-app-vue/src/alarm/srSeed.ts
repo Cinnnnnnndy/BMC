@@ -99,6 +99,38 @@ function readingChipOf(objects: Record<string, Record<string, unknown>>, obj: Re
   const cr = sc ? parseRef(sc.Chip) : null;
   return cr ? cr.target : '';
 }
+
+/** 传感器 → 它订阅的 Scanner 的真实寄存器参数（Chip/Offset/Size/Mask/Period）。
+ *  Offset/Mask 可能是表达式串（非数字）→ 回落默认值（无法用数字位表示）。*/
+interface ScannerParams { chip: string; offset: number; size: number; mask: number; period?: number }
+function scannerParamsOf(objects: Record<string, Record<string, unknown>>, sensorName: string): ScannerParams | null {
+  const s = objects[sensorName];
+  const r = s?.Reading;
+  if (typeof r !== 'string') return null;
+  const m = r.match(/<=\/(Scanner_[A-Za-z0-9_]+)\.Value/);
+  if (!m) return null;
+  const sc = objects[m[1]];
+  if (!sc) return null;
+  const num = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
+  const cr = parseRef(sc.Chip);
+  return {
+    chip: cr ? cr.target : '',
+    offset: num(sc.Offset, 0), size: num(sc.Size, 1), mask: num(sc.Mask, 255),
+    period: typeof sc.Period === 'number' ? sc.Period : undefined,
+  };
+}
+
+/** 门限传感器 SensorType → 监控量（修正「全按温度」的错标：PSU 电压/电流/功率各归各类）。 */
+function thresholdQuantityOf(sensorObj: Record<string, unknown> | undefined): { qk: string; deviceKey: string; deviceLabel: string } {
+  const st = typeof sensorObj?.SensorType === 'number' ? sensorObj.SensorType : 1;
+  switch (st) {
+    case 2:  return { qk: 'voltage',     deviceKey: 'Volt_Board',  deviceLabel: '单板电压' };
+    case 3:  return { qk: 'current',     deviceKey: 'Curr_Board',  deviceLabel: '单板电流' };
+    case 4:  return { qk: 'fanspeed',    deviceKey: 'Fan_Board',   deviceLabel: '风扇转速' };
+    case 11: return { qk: 'power',       deviceKey: 'Power_Board', deviceLabel: '功率' };
+    default: return { qk: 'temperature', deviceKey: 'Temp_Board',  deviceLabel: '单板温度' };
+  }
+}
 function scopeOf(keyId: string): LooseEvent['scope'] {
   if (/^Chassis\./.test(keyId)) return 'chassis';
   return 'board';
@@ -140,7 +172,8 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
   for (const ch of chains) {
     if (!/^(ThresholdSensor|DiscreteSensor)_/.test(ch.name)) { skipped++; continue; }
     const name = ch.name.replace(/^(ThresholdSensor|DiscreteSensor)_/, '');
-    const dsChip = pb.chipMap[ch.name] || '';
+    const sp = scannerParamsOf(pb.objects, ch.name);           // 真实 Scanner 寄存器参数（若能追到）
+    const dsChip = sp?.chip || pb.chipMap[ch.name] || '';
     // 门限传感器：即便 .sr 未定义 IPMI 门限值也照样导入（阈值留空由用户填），使计数与真实对象一致
     if (ch.kind === 'threshold') {
       const events: EvItem[] = ch.events.map((e) => {
@@ -152,10 +185,13 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
           levelField: lf, condition: e.condition ?? 1, eventKeyId: e.eventKeyId, enabled: true,
         };
       });
+      // 按真实 SensorType 归类（温度/电压/电流/功率/风扇），不再一律当温度
+      const q = thresholdQuantityOf(pb.objects[ch.name]);
       cfgs.push({
-        id: `sr:${name}`, deviceKey: 'Temp_Board', deviceLabel: '单板温度',
-        quantityKey: 'temperature', railKey: name, railLabel: name,
-        dsMode: dsChip ? 'scanner' : 'device-field', dsChip, dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 1000,
+        id: `sr:${name}`, deviceKey: q.deviceKey, deviceLabel: q.deviceLabel,
+        quantityKey: q.qk, railKey: name, railLabel: name,
+        dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
+        dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 1000,
         thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true,
       });
     } else if (ch.kind === 'discrete') {
@@ -167,7 +203,8 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
       cfgs.push({
         id: `sr:${name}`, deviceKey: 'System', deviceLabel: '系统状态',
         quantityKey: 'sr_state', railKey: name, railLabel: name,
-        dsMode: dsChip ? 'scanner' : 'device-field', dsChip, dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 8000,
+        dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
+        dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 8000,
         thresholds: {}, hysteresis: 0, events, enabled: true,
       });
     } else { skipped++; }

@@ -773,7 +773,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
               </select>
             </label>
-            <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ openLooseEvent.eventKeyId }}</code></label>
+            <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
             <div class="ev-hint">
               <span>触发值：读数命中该值即告警（电压限值 / PMBus 状态位 / 在位标志）</span>
               <span>方向：{{ operatorDesc(openLooseEvent.operatorId) }}</span>
@@ -1009,6 +1009,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-del { all: unset; cursor: pointer; align-self: flex-start; margin-top: 18px; margin-left: auto; color: var(--foreground-muted); font-size: 12px; padding: 2px 4px; border-radius: var(--radius-sm); }
 .ev-del:hover { color: var(--danger); background: var(--state-hover); }
 .thr-in.wnm { width: 104px; text-align: left; padding: 5px 7px; }
+.thr-in.wkey { width: 100%; text-align: left; padding: 5px 7px; font-family: ui-monospace, monospace; }
 /* 就近提示行：铺在该事件行控件下方，解释各下拉含义 */
 .ev-hint { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 3px 16px; margin-top: 4px; padding-top: 7px; border-top: 1px dashed rgba(255, 255, 255, 0.08); font-size: 10.5px; line-height: 1.5; color: var(--foreground-muted); }
 .ev-hint code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
