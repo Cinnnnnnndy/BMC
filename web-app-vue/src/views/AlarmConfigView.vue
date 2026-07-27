@@ -41,7 +41,6 @@ const scopedCfgs = computed(() => {
 
 /* 默认折叠，只看流的全貌；点传感器卡展开它的配置（单展开）*/
 const expandedId = ref<string | null>(null);
-function toggleExpand(id: string): void { expandedId.value = expandedId.value === id ? null : id; }
 // 换板卡：各板 cfgs 独立存于 store（不清空）；首次进入用真实 .sr 播种
 watch(boardKey, (key) => {
   expandedId.value = null;
@@ -225,6 +224,16 @@ const sensorCount = computed(() => generated.value.cards.length);
 const openEntry = computed<Entry | null>(() => generated.value.cards.find((e) => e.sensor.configId === expandedId.value) || null);
 const openCfg = computed<SensorCfg | null>(() => openEntry.value?.cfg || null);
 
+/* 配置改为「聚焦浮层卡」：点传感器/事件都弹一张实底卡（压暗泳道背景、卡内自滚动，
+   配置项再多也不撑泳道）。点事件时高亮定位到该事件行，说明「事件属于该传感器」。 */
+const focusEventKey = ref<string | null>(null);   // 点事件进入时，卡内高亮/滚动到该 EventKeyId 的事件行
+const cfgCardEl = ref<HTMLElement | null>(null);
+function scrollFocusEvent(): void {
+  const box = cfgCardEl.value; if (!box) return;
+  const hit = box.querySelector('.ev-edit.focused') as HTMLElement | null;
+  if (hit) hit.scrollIntoView({ block: 'nearest' });
+}
+
 /* 独立事件（不经传感器）——真实 .sr 里绝大多数事件属此类；按数据源器件分组、可逐条点击配置 */
 const looseAll = computed<LooseEvent[]>(() => boardAlarm(boardKey.value).looseEvents);
 const scopedLoose = computed<LooseEvent[]>(() => {
@@ -238,7 +247,46 @@ const scopedLoose = computed<LooseEvent[]>(() => {
 });
 const looseCount = computed(() => scopedLoose.value.length);
 const openLooseId = ref<string | null>(null);
-function toggleLoose(id: string): void { openLooseId.value = openLooseId.value === id ? null : id; }
+const openLooseEvent = computed<LooseEvent | null>(() => scopedLoose.value.find((e) => e.id === openLooseId.value) || null);
+function toggleLoose(id: string): void {
+  const willOpen = openLooseId.value !== id;
+  openLooseId.value = willOpen ? id : null;
+  if (willOpen) { expandedId.value = null; focusEventKey.value = null; }
+}
+// .sr 播种的状态传感器常带空 events（生效值是对象生成器合成的默认「状态命中」）；
+// 打开配置时把这条合成默认落成可编辑事件，避免出现「已配置 0」的空编辑区。
+function ensureEditableEvents(c: SensorCfg): void {
+  if (c.events.length === 0) c.events = initEvents(c.quantityKey);
+}
+// 点传感器卡：展开该传感器（不定位到某条事件）
+function openSensor(id: string): void {
+  const willOpen = expandedId.value !== id;
+  expandedId.value = willOpen ? id : null;
+  focusEventKey.value = null;
+  if (willOpen) {
+    openLooseId.value = null;
+    if (openCfg.value) ensureEditableEvents(openCfg.value);
+  }
+}
+// 点某条事件：展开其所属传感器，并高亮/滚动定位到该事件行
+function openSensorEvent(sensorId: string, eventKeyId: string): void {
+  expandedId.value = sensorId;
+  openLooseId.value = null;
+  const cfg = openCfg.value;
+  if (cfg) {
+    ensureEditableEvents(cfg);
+    // 高亮定位：优先匹配被点事件的字典条目，匹配不到落到首条（合成默认可能字典条目不同）
+    focusEventKey.value = cfg.events.some((e) => e.eventKeyId === eventKeyId)
+      ? eventKeyId : (cfg.events[0]?.eventKeyId ?? eventKeyId);
+  } else {
+    focusEventKey.value = eventKeyId;
+  }
+  nextTick(scrollFocusEvent);
+}
+function closeFocus(): void { expandedId.value = null; openLooseId.value = null; focusEventKey.value = null; }
+function onFocusKey(e: KeyboardEvent): void { if (e.key === 'Escape') closeFocus(); }
+onMounted(() => window.addEventListener('keydown', onFocusKey));
+onBeforeUnmount(() => window.removeEventListener('keydown', onFocusKey));
 
 /* 统一流：按数据源「器件(芯片)」归组 → 器件 → 传感器 → 事件；无传感器的事件按告警分类直接挂器件（不显示传感器）*/
 interface CatRow { cat: string; label: string; events: LooseEvent[]; }
@@ -461,7 +509,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                  @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
               <!-- 左列：传感器节点卡 -->
               <div class="se-sensor">
-                <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="toggleExpand(entry.sensor.configId)">
+                <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @click="openSensor(entry.sensor.configId)">
                   <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
                   <span class="sc-name" :title="sensorLabel(entry)">{{ sensorLabel(entry) }}</span>
                   <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
@@ -473,113 +521,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <!-- 右列：事件节点卡扇出（铃铛按严重度着色；无门限时该列空态） -->
               <div class="se-events">
                 <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
-                <button v-for="ev in entry.sensor.events" :key="ev.key" class="event-node click" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="'点击展开配置 · ' + ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel" @click.stop="toggleExpand(entry.sensor.configId)">
+                <button v-for="ev in entry.sensor.events" :key="ev.key" class="event-node click" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="'点击展开配置 · ' + ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel" @click.stop="openSensorEvent(entry.sensor.configId, ev.eventKeyId)">
                   <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
                   <span class="en-label">{{ ev.label }}</span>
                 </button>
               </div>
-            </div>
-
-            <!-- 展开的配置（整列宽度铺在该行下方，默认折叠）-->
-            <div v-if="expandedId === entry.sensor.configId && openCfg && openEntry" class="sensor-config">
-              <div class="sc-sec-cap">传感器 · {{ sensorLabel(entry) }}<span class="sc-explain">{{ QUANTITIES[openCfg.quantityKey].explain }}</span></div>
-
-              <!-- 门限档 -->
-              <div v-if="isThreshold(openCfg)" class="fn-thr">
-                <div v-for="k in THRESHOLD_ORDER" :key="k" class="thr-pill" :class="{ off: openCfg.thresholds[k] == null }" :title="ZH[k] + ' 门限'">
-                  <span class="thr-l">{{ ZH[k] }}</span>
-                  <input v-model.number="openCfg.thresholds[k]" type="number" class="thr-in" :placeholder="recoThreshold(openCfg, k) != null ? '关' : '—'" />
-                  <span v-if="recoThreshold(openCfg, k) != null" class="thr-reco">荐{{ recoThreshold(openCfg, k) }}</span>
-                </div>
-                <span class="thr-unit">{{ unitOf(openCfg) }}</span>
-              </div>
-              <div v-else class="disc-note">离散状态量：无门限，触发值与告警在下方「事件」配置。</div>
-
-              <!-- 数据源 -->
-              <div class="mf">
-                <label>数据源</label>
-                <select v-model="openCfg.dsMode" class="disc-sel wide">
-                  <option value="device-field">器件读数 · {{ openCfg.deviceKey }}.{{ QUANTITIES[openCfg.quantityKey].readingField }}（推荐 · 已接）</option>
-                  <option value="scanner">从寄存器周期读（高级 · 需选硬件信号）</option>
-                </select>
-              </div>
-              <div class="mf-desc">{{ openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField }}</div>
-              <template v-if="openCfg.dsMode === 'scanner'">
-                <div class="scan-grid">
-                  <label>硬件信号(Chip)<input v-model="openCfg.dsChip" class="thr-in w" placeholder="Smc_..." /></label>
-                  <label>偏移(Offset)<input v-model.number="openCfg.dsOffset" type="number" class="thr-in w" /></label>
-                  <label>字节(Size)<input v-model.number="openCfg.dsSize" type="number" class="thr-in w" /></label>
-                  <label>掩码(Mask)<input v-model.number="openCfg.dsMask" type="number" class="thr-in w" /></label>
-                </div>
-                <div class="mf">
-                  <label>采集周期</label>
-                  <select v-model.number="openCfg.periodMs" class="disc-sel wide" title="来自 README §6 扫描周期分类">
-                    <option v-for="ct in PERIOD_CATEGORIES" :key="ct.periodMs + ct.label" :value="ct.periodMs">{{ ct.label }} · {{ ct.periodMs }}ms{{ recommendedPeriod(QUANTITIES[openCfg.quantityKey].recommend.periodKey).periodMs === ct.periodMs ? '（推荐）' : '' }}</option>
-                  </select>
-                </div>
-              </template>
-              <div v-if="isThreshold(openCfg)" class="mf">
-                <label>迟滞</label>
-                <input v-model.number="openCfg.hysteresis" type="number" class="thr-in w" />
-                <span class="mf-desc">推荐 {{ QUANTITIES[openCfg.quantityKey].recommend.hysteresis ?? 2 }} · 回差防抖</span>
-              </div>
-
-              <!-- 事件编辑（一个传感器多条事件）-->
-              <div class="sc-sec-cap">事件 · 已配置 {{ openCfg.events.length }} · 生效 {{ openEntry.sensor.events.length }}
-                <button class="ev-add" @click="addEvent(openCfg)">＋ 添加事件</button>
-              </div>
-              <template v-if="isThreshold(openCfg)">
-                <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: thrValue(openCfg, ev.levelField) == null || !ev.enabled }">
-                  <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="ev.enabled" /></label>
-                  <label class="ef">
-                    <span class="ef-k">档位<i class="i" title="事件监视哪一档门限；触发值自动引用该档，改门限只改一处。">i</i></span>
-                    <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
-                      <option v-for="k in THRESHOLD_ORDER" :key="k" :value="k">{{ ZH[k] }}{{ openCfg.thresholds[k] != null ? ' = ' + openCfg.thresholds[k] : '（未设）' }}</option>
-                    </select>
-                  </label>
-                  <span class="ef ef-ro"><span class="ef-k">方向</span><span class="ef-dir" :title="operatorDesc(ev.operatorId)">{{ operatorSym(ev.operatorId) }} 门限</span></span>
-                  <label class="ef"><span class="ef-k">分级</span>
-                    <select v-model="ev.severity" class="disc-sel">
-                      <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                    </select>
-                  </label>
-                  <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
-                    <select v-model="ev.eventKeyId" class="disc-sel wide">
-                      <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
-                    </select>
-                  </label>
-                  <span class="ef-ref" v-if="ev.levelField">
-                    <template v-if="thrValue(openCfg, ev.levelField) != null"><code>{{ openEntry.sensor.sensorKey }}.{{ ev.levelField }}</code> = {{ thrValue(openCfg, ev.levelField) }}</template>
-                    <button v-else class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
-                  </span>
-                  <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
-                </div>
-              </template>
-              <template v-else>
-                <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: !ev.enabled }">
-                  <label class="ev-en"><input type="checkbox" v-model="ev.enabled" /></label>
-                  <label class="ef"><span class="ef-k">触发值<i class="i" title="读数=触发值即命中；离散量一般 1=置位/故障，0=不在位。">i</i></span>
-                    <input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i>
-                  </label>
-                  <label class="ef"><span class="ef-k">方向</span>
-                    <select v-model.number="ev.operatorId" class="disc-sel">
-                      <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}{{ o.id === QUANTITIES[openCfg.quantityKey].recommend.operatorId ? '（推荐）' : '' }}</option>
-                    </select>
-                  </label>
-                  <label class="ef"><span class="ef-k">分级</span>
-                    <select v-model="ev.severity" class="disc-sel">
-                      <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                    </select>
-                  </label>
-                  <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
-                    <select v-model="ev.eventKeyId" class="disc-sel wide">
-                      <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
-                    </select>
-                  </label>
-                  <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
-                </div>
-              </template>
-              <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
             </div>
           </template>
 
@@ -604,26 +550,6 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                       <span class="en-label">{{ e.label }}</span>
                       <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
                     </button>
-                    <div v-if="openLooseId === e.id" class="ev-inline">
-                      <div class="sc-sec-cap">独立事件 · {{ e.label }}<span class="sc-explain">{{ e.eventKeyId }} · 不经传感器，直连器件数据源</span></div>
-                      <div class="ev-edit">
-                        <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="e.enabled" /></label>
-                        <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
-                          <input v-model.number="e.condition" type="number" class="thr-in w" />
-                        </label>
-                        <label class="ef"><span class="ef-k">方向</span>
-                          <select v-model.number="e.operatorId" class="disc-sel">
-                            <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
-                          </select>
-                        </label>
-                        <label class="ef"><span class="ef-k">分级</span>
-                          <select v-model="e.severity" class="disc-sel">
-                            <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                          </select>
-                        </label>
-                        <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ e.eventKeyId }}</code></label>
-                      </div>
-                    </div>
                   </template>
                 </div>
               </div>
@@ -641,12 +567,156 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
             <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
           </button>
-          <button v-if="expandedId" class="btn" @click="expandedId = null">收起全部</button>
           <button class="btn" @click="showJson = !showJson">{{ showJson ? '隐藏' : '查看' }} CSR 对象</button>
           <button class="btn-solid" @click="copyAll">{{ copied ? '已复制' : '复制全部' }}</button>
         </div>
       </div>
       <pre v-if="showJson" class="bs-json">{{ objectsJson }}</pre>
+    </div>
+
+    <!-- ══ 配置：聚焦浮层卡（点传感器/事件都弹这张实底卡，压暗泳道，卡内自滚动）══ -->
+    <div v-if="(expandedId && openCfg && openEntry) || (openLooseId && openLooseEvent)" class="cfg-backdrop" @click.self="closeFocus">
+      <!-- ① 传感器（含其门限/数据源/多条事件）-->
+      <div v-if="expandedId && openCfg && openEntry" ref="cfgCardEl" class="cfg-card">
+        <div class="cfg-head">
+          <span class="cfg-ic sensor"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
+          <div class="cfg-tt">
+            <span class="cfg-title">{{ sensorLabel(openEntry) }}<span class="cfg-badge">{{ isThreshold(openCfg) ? '门限传感器' : '状态传感器' }}</span></span>
+            <span class="cfg-sub">{{ QUANTITIES[openCfg.quantityKey].explain }}</span>
+          </div>
+          <button class="cfg-x" title="关闭 (Esc)" @click="closeFocus">✕</button>
+        </div>
+        <div class="cfg-body">
+          <!-- 门限档 -->
+          <div v-if="isThreshold(openCfg)" class="fn-thr">
+            <div v-for="k in THRESHOLD_ORDER" :key="k" class="thr-pill" :class="{ off: openCfg.thresholds[k] == null }" :title="ZH[k] + ' 门限'">
+              <span class="thr-l">{{ ZH[k] }}</span>
+              <input v-model.number="openCfg.thresholds[k]" type="number" class="thr-in" :placeholder="recoThreshold(openCfg, k) != null ? '关' : '—'" />
+              <span v-if="recoThreshold(openCfg, k) != null" class="thr-reco">荐{{ recoThreshold(openCfg, k) }}</span>
+            </div>
+            <span class="thr-unit">{{ unitOf(openCfg) }}</span>
+          </div>
+          <div v-else class="disc-note">离散状态量：无门限，触发值与告警在下方「事件」配置。</div>
+
+          <!-- 数据源 -->
+          <div class="mf">
+            <label>数据源</label>
+            <select v-model="openCfg.dsMode" class="disc-sel wide">
+              <option value="device-field">器件读数 · {{ openCfg.deviceKey }}.{{ QUANTITIES[openCfg.quantityKey].readingField }}（推荐 · 已接）</option>
+              <option value="scanner">从寄存器周期读（高级 · 需选硬件信号）</option>
+            </select>
+          </div>
+          <div class="mf-desc">{{ openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField }}</div>
+          <template v-if="openCfg.dsMode === 'scanner'">
+            <div class="scan-grid">
+              <label>硬件信号(Chip)<input v-model="openCfg.dsChip" class="thr-in w" placeholder="Smc_..." /></label>
+              <label>偏移(Offset)<input v-model.number="openCfg.dsOffset" type="number" class="thr-in w" /></label>
+              <label>字节(Size)<input v-model.number="openCfg.dsSize" type="number" class="thr-in w" /></label>
+              <label>掩码(Mask)<input v-model.number="openCfg.dsMask" type="number" class="thr-in w" /></label>
+            </div>
+            <div class="mf">
+              <label>采集周期</label>
+              <select v-model.number="openCfg.periodMs" class="disc-sel wide" title="来自 README §6 扫描周期分类">
+                <option v-for="ct in PERIOD_CATEGORIES" :key="ct.periodMs + ct.label" :value="ct.periodMs">{{ ct.label }} · {{ ct.periodMs }}ms{{ recommendedPeriod(QUANTITIES[openCfg.quantityKey].recommend.periodKey).periodMs === ct.periodMs ? '（推荐）' : '' }}</option>
+              </select>
+            </div>
+          </template>
+          <div v-if="isThreshold(openCfg)" class="mf">
+            <label>迟滞</label>
+            <input v-model.number="openCfg.hysteresis" type="number" class="thr-in w" />
+            <span class="mf-desc">推荐 {{ QUANTITIES[openCfg.quantityKey].recommend.hysteresis ?? 2 }} · 回差防抖</span>
+          </div>
+
+          <!-- 事件编辑（一个传感器多条事件；点事件进入时高亮定位到对应行）-->
+          <div class="sc-sec-cap">事件 · 已配置 {{ openCfg.events.length }} · 生效 {{ openEntry.sensor.events.length }}
+            <span v-if="focusEventKey" class="sc-focus-hint">← 你点的事件属于本传感器</span>
+            <button class="ev-add" @click="addEvent(openCfg)">＋ 添加事件</button>
+          </div>
+          <template v-if="isThreshold(openCfg)">
+            <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: thrValue(openCfg, ev.levelField) == null || !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
+              <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="ev.enabled" /></label>
+              <label class="ef">
+                <span class="ef-k">档位<i class="i" title="事件监视哪一档门限；触发值自动引用该档，改门限只改一处。">i</i></span>
+                <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
+                  <option v-for="k in THRESHOLD_ORDER" :key="k" :value="k">{{ ZH[k] }}{{ openCfg.thresholds[k] != null ? ' = ' + openCfg.thresholds[k] : '（未设）' }}</option>
+                </select>
+              </label>
+              <span class="ef ef-ro"><span class="ef-k">方向</span><span class="ef-dir" :title="operatorDesc(ev.operatorId)">{{ operatorSym(ev.operatorId) }} 门限</span></span>
+              <label class="ef"><span class="ef-k">分级</span>
+                <select v-model="ev.severity" class="disc-sel">
+                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                </select>
+              </label>
+              <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
+                <select v-model="ev.eventKeyId" class="disc-sel wide">
+                  <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
+                </select>
+              </label>
+              <span class="ef-ref" v-if="ev.levelField">
+                <template v-if="thrValue(openCfg, ev.levelField) != null"><code>{{ openEntry.sensor.sensorKey }}.{{ ev.levelField }}</code> = {{ thrValue(openCfg, ev.levelField) }}</template>
+                <button v-else class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
+              </span>
+              <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+            </div>
+          </template>
+          <template v-else>
+            <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
+              <label class="ev-en"><input type="checkbox" v-model="ev.enabled" /></label>
+              <label class="ef"><span class="ef-k">触发值<i class="i" title="读数=触发值即命中；离散量一般 1=置位/故障，0=不在位。">i</i></span>
+                <input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i>
+              </label>
+              <label class="ef"><span class="ef-k">方向</span>
+                <select v-model.number="ev.operatorId" class="disc-sel">
+                  <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}{{ o.id === QUANTITIES[openCfg.quantityKey].recommend.operatorId ? '（推荐）' : '' }}</option>
+                </select>
+              </label>
+              <label class="ef"><span class="ef-k">分级</span>
+                <select v-model="ev.severity" class="disc-sel">
+                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                </select>
+              </label>
+              <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
+                <select v-model="ev.eventKeyId" class="disc-sel wide">
+                  <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
+                </select>
+              </label>
+              <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+            </div>
+          </template>
+          <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
+        </div>
+      </div>
+
+      <!-- ② 独立事件（不经传感器，直连器件数据源）-->
+      <div v-else-if="openLooseId && openLooseEvent" class="cfg-card cfg-card-sm">
+        <div class="cfg-head">
+          <span class="cfg-ic event"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
+          <div class="cfg-tt">
+            <span class="cfg-title">{{ openLooseEvent.label }}<span class="cfg-badge">独立事件</span></span>
+            <span class="cfg-sub">{{ openLooseEvent.eventKeyId }} · 不经传感器，直连器件数据源</span>
+          </div>
+          <button class="cfg-x" title="关闭 (Esc)" @click="closeFocus">✕</button>
+        </div>
+        <div class="cfg-body">
+          <div class="ev-edit focused">
+            <label class="ev-en" title="是否产出该事件"><input type="checkbox" v-model="openLooseEvent.enabled" /></label>
+            <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+              <input v-model.number="openLooseEvent.condition" type="number" class="thr-in w" />
+            </label>
+            <label class="ef"><span class="ef-k">方向</span>
+              <select v-model.number="openLooseEvent.operatorId" class="disc-sel">
+                <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+              </select>
+            </label>
+            <label class="ef"><span class="ef-k">分级</span>
+              <select v-model="openLooseEvent.severity" class="disc-sel">
+                <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+              </select>
+            </label>
+            <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ openLooseEvent.eventKeyId }}</code></label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -769,8 +839,25 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .event-node.off { opacity: .5; }
 .en-op { flex: none; font-family: ui-monospace, monospace; font-size: 10px; color: var(--foreground-muted); }
 
-/* 逐条事件的就地编辑：在该事件下换行铺满，紧跟被点对象（不沉底） */
-.ev-inline { flex: 1 0 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px; margin: 2px 0; border-radius: var(--radius-md); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--primary); }
+/* 配置：聚焦浮层卡（点传感器/事件都弹这张实底卡；复用 add-pop 的 fixed 浮层套路） */
+.cfg-backdrop { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(1.5px); }
+.cfg-card { display: flex; flex-direction: column; width: min(720px, 100%); max-height: min(80vh, 720px); border-radius: var(--radius-lg); background: var(--background-elevated); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-lg); overflow: hidden; }
+.cfg-card-sm { width: min(560px, 100%); }
+.cfg-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.cfg-ic { flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); }
+.cfg-ic svg { width: 16px; height: 16px; }
+.cfg-ic.sensor svg { fill: var(--primary); }
+.cfg-ic.event svg { fill: var(--warning); }
+.cfg-tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.cfg-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--foreground); font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cfg-badge { flex: none; font-family: var(--font-sans); font-weight: 500; font-size: 10px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--foreground-secondary); }
+.cfg-sub { font-size: 11px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cfg-x { all: unset; flex: none; cursor: pointer; width: 26px; height: 26px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--foreground-muted); font-size: 14px; }
+.cfg-x:hover { background: var(--state-hover); color: var(--foreground); }
+.cfg-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+/* 点事件进入：高亮定位到对应事件行 */
+.sc-focus-hint { font-size: 10px; color: var(--primary); }
+.ev-edit.focused { background: color-mix(in srgb, var(--primary) 14%, var(--surface-2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent); }
 
 /* 独立事件区（无传感器）：事件泳道里按告警分类分色归拢——分类是事件的分组头，不作节点 */
 .loose-events { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -798,8 +885,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .se-row:hover .branch-del, .branch-del:focus-visible { opacity: 1; }
 .branch-del:hover { color: var(--danger); background: var(--state-hover); }
 
-/* 展开配置：圆角卡（嵌在展开的节点卡内） */
-.sensor-config { display: flex; flex-direction: column; gap: 10px; padding: 12px; margin: 2px 0 0; border-radius: var(--radius-md); background: var(--surface-1); }
+/* 配置卡内小节标题 */
 .sc-sec-cap { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--foreground-secondary); }
 .sc-explain { font-size: 11px; color: var(--foreground-muted); font-weight: 400; }
 
