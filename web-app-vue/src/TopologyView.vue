@@ -277,6 +277,11 @@ function computeDevicesFor(g: BoardGroup): PanelDevice[] {
   return devs.sort((a, b) => (b.sensorCount + b.eventCount) - (a.sensorCount + a.eventCount));
 }
 const boardDevices = computed<PanelDevice[]>(() => activeGroup.value ? computeDevicesFor(activeGroup.value) : []);
+// 告警 tab 上的数量：器件级取该器件，板卡级汇总全板（传感器数 / 告警事件数）
+const alarmTabCount = computed<{ s: number; e: number }>(() => {
+  if (activeDevice.value) return { s: activeDevice.value.sensorCount, e: activeDevice.value.eventCount };
+  return boardDevices.value.reduce((a, d) => ({ s: a.s + d.sensorCount, e: a.e + d.eventCount }), { s: 0, e: 0 });
+});
 
 // 点击拓扑里的器件（芯片）→ 选中该板 + 打开该器件配置面板（区分板卡/器件入口）
 const CHIP_TYPE_ALIAS: Record<string, string> = { smc: 'Smc', lm75: 'Lm75', eeprom: 'Eeprom', cpld: 'Cpld', pca9545: 'Pca9545', mux: 'Pca9545' };
@@ -623,7 +628,7 @@ function catStateClass(cat: CatNode): string {
       <!-- 板卡/器件级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
       <div class="pp-tabs" role="tablist">
         <button class="pp-tab" :class="{ active: panelTab === 'detail' }" @click="panelTab = 'detail'">详情</button>
-        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器</button>
+        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器<span v-if="alarmTabCount.s + alarmTabCount.e" class="pp-tab-n" :title="alarmTabCount.s + ' 传感器 · ' + alarmTabCount.e + ' 告警/事件'">{{ alarmTabCount.s }}·{{ alarmTabCount.e }}</span></button>
       </div>
 
       <!-- ══════ 板卡模式 ══════ -->
