@@ -14,7 +14,7 @@ import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
 import { boardAlarm } from './alarm/alarmStore';
 import { loadBoardOnce, boardChipDevices } from './alarm/srSeed';
-import { boardRollup, chassisEvents, thresholdInconsistencies } from './alarm/chassisAggregate';
+import { boardRollup, chassisEvents, thresholdInconsistencies, boardSoftDetail } from './alarm/chassisAggregate';
 import { getTopology } from './data/boardTopologies';
 import { chipTypeLabel } from './data/srParser';
 
@@ -312,6 +312,10 @@ const ovIncons = computed(() => thresholdInconsistencies());
 const ovTotalChips = computed(() => ovRows.value.reduce((n, r) => n + r.chips, 0));
 const ovTotalSensors = computed(() => ovRows.value.reduce((n, r) => n + r.thresholdSensors + r.discreteSensors, 0));
 const ovTotalEvents = computed(() => ovRows.value.reduce((n, r) => n + r.events, 0));
+// 各板明细行可展开，显示该板的软件内容（传感器 → 告警事件）
+const ovExpanded = ref<Record<string, boolean>>({});
+function toggleOvBoard(name: string) { ovExpanded.value = { ...ovExpanded.value, [name]: !ovExpanded.value[name] }; }
+function softOf(name: string) { return boardSoftDetail(name); }
 
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
@@ -503,21 +507,39 @@ function catStateClass(cat: CatNode): string {
         整机总览
       </div>
       <div class="ov-body">
-        <!-- 各板明细（真实 .sr 直读：器件｜门限｜状态｜事件｜机箱） -->
+        <!-- 各板明细（真实 .sr 直读：器件｜门限｜状态｜事件｜机箱），点击展开该板软件内容 -->
         <div class="ov-card">
-          <div class="ov-cap">各板明细 · 来自真实 .sr（硬件 + 软件合并）</div>
+          <div class="ov-cap">各板明细 · 来自真实 .sr（点击板卡展开软件内容）</div>
           <div class="ov-rt-head"><span>板卡</span><span>器件</span><span>门限</span><span>状态</span><span>事件</span><span>机箱</span></div>
-          <div v-for="r in ovRows" :key="r.name" class="ov-rt">
-            <span class="ov-rt-name">
-              <span class="ov-rt-nm">{{ r.name }}</span>
-              <span class="ov-rt-src">{{ r.type }} · {{ r.sourceModel }}</span>
-            </span>
-            <span class="ov-rt-n">{{ r.chips }}</span>
-            <span class="ov-rt-n">{{ r.thresholdSensors }}</span>
-            <span class="ov-rt-n">{{ r.discreteSensors }}</span>
-            <span class="ov-rt-n">{{ r.events }}</span>
-            <span class="ov-rt-n" :class="{ hot: r.chassisEvents }">{{ r.chassisEvents || '—' }}</span>
-          </div>
+          <template v-for="r in ovRows" :key="r.name">
+            <button class="ov-rt" :class="{ open: ovExpanded[r.name] }" @click="toggleOvBoard(r.name)">
+              <span class="ov-rt-name">
+                <span class="ov-rt-nm"><i class="ov-rt-caret" :class="{ open: ovExpanded[r.name] }">▸</i>{{ r.name }}</span>
+                <span class="ov-rt-src">{{ r.type }} · {{ r.sourceModel }}</span>
+              </span>
+              <span class="ov-rt-n">{{ r.chips }}</span>
+              <span class="ov-rt-n">{{ r.thresholdSensors }}</span>
+              <span class="ov-rt-n">{{ r.discreteSensors }}</span>
+              <span class="ov-rt-n">{{ r.events }}</span>
+              <span class="ov-rt-n" :class="{ hot: r.chassisEvents }">{{ r.chassisEvents || '—' }}</span>
+            </button>
+            <!-- 展开：该板软件内容（传感器 → 告警事件） -->
+            <div v-if="ovExpanded[r.name]" class="ov-soft">
+              <div v-if="!softOf(r.name).length" class="ov-empty">该板无传感器/告警软件对象</div>
+              <div v-for="s in softOf(r.name)" :key="s.name" class="ov-soft-row">
+                <div class="ov-soft-sensor">
+                  <span class="ov-soft-kind" :class="s.kind">{{ s.kind === 'threshold' ? '门限' : '状态' }}</span>
+                  <span class="ov-soft-name">{{ s.name }}</span>
+                  <span class="ov-soft-cnt">{{ s.events.length }} 告警</span>
+                </div>
+                <div v-if="s.events.length" class="ov-soft-events">
+                  <span v-for="e in s.events" :key="e.name" class="ov-soft-ev" :title="e.keyId + (e.level ? ' · ' + e.level : '')">
+                    <i class="ov-dot" :class="e.severity"></i>{{ e.name }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
         <!-- 跨板一致性 -->
         <div v-if="ovIncons.length" class="ov-card ov-warn">
@@ -1006,12 +1028,32 @@ function catStateClass(cat: CatNode): string {
 .ov-rt-head, .ov-rt { display: grid; grid-template-columns: 1.5fr 0.55fr 0.55fr 0.55fr 0.55fr 0.55fr; align-items: center; gap: 4px; font-size: 10.5px; }
 .ov-rt-head { color: var(--foreground-muted); padding: 1px 5px; }
 .ov-rt-head span:not(:first-child), .ov-rt .ov-rt-n { text-align: right; }
-.ov-rt { padding: 6px 5px; border-radius: var(--radius-sm, 6px); background: var(--surface-2); }
+.ov-rt {
+  width: 100%; box-sizing: border-box; text-align: left;
+  border: none; font: inherit; color: var(--foreground-secondary);
+  padding: 6px 5px; border-radius: var(--radius-sm, 6px);
+  background: var(--surface-2); cursor: pointer;
+}
+.ov-rt:hover { background: var(--surface-3); }
+.ov-rt.open { background: var(--state-selected, var(--surface-3)); }
 .ov-rt-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.ov-rt-nm { font-size: 11px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ov-rt-src { font-size: 9px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-rt-nm { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-rt-caret { font-style: normal; font-size: 8px; color: var(--foreground-muted); transition: transform 0.12s; display: inline-block; }
+.ov-rt-caret.open { transform: rotate(90deg); }
+.ov-rt-src { font-size: 9px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 11px; }
 .ov-rt-n { color: var(--foreground-secondary); }
 .ov-rt-n.hot { color: var(--warning); font-weight: 700; }
+
+/* 展开：单板软件内容（传感器 → 告警事件） */
+.ov-soft { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px 6px 8px; }
+.ov-soft-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: var(--radius-sm, 6px); background: var(--surface-2); }
+.ov-soft-sensor { display: flex; align-items: center; gap: 6px; }
+.ov-soft-kind { font-size: 9px; padding: 1px 6px; border-radius: var(--radius-pill, 999px); background: var(--surface-1); color: var(--foreground-muted); flex: none; }
+.ov-soft-kind.threshold { color: var(--primary, #4369ef); }
+.ov-soft-name { font-size: 10.5px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.ov-soft-cnt { font-size: 9px; color: var(--foreground-muted); flex: none; }
+.ov-soft-events { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 4px; }
+.ov-soft-ev { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: var(--radius-pill, 999px); background: var(--surface-1); font-size: 9.5px; color: var(--foreground-secondary); }
 
 .ov-incon { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; }
 .ov-incon-name { font-family: ui-monospace, monospace; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
