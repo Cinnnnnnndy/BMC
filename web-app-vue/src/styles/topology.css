@@ -164,7 +164,7 @@
 /* 浮动圆角面板壳（消费 --panel-shell-* token；从贴边描边改为 8px 内缩浮层，呼应参考布局） */
 .topo-property-panel {
   position: absolute;
-  right: 8px; top: 8px; bottom: 8px;
+  right: 8px; top: calc(8px + var(--embed-top-inset, 0px)); bottom: 8px;
   width: 300px;
   transition: width var(--duration-base, 200ms) var(--easing-default, ease);
   background: var(--panel-shell-bg);
