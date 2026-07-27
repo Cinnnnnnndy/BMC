@@ -388,8 +388,6 @@ function copyAll(): void {
     copied.value = true; window.setTimeout(() => { copied.value = false; }, 1500);
   });
 }
-const showJson = ref(false);
-// 在右侧代码分屏打开本板对应的 .sr（当前用生成的 CSR 对象作内容）
 // 「代码」：嵌入 IDE 时交给宿主在右侧编辑器分屏打开（而非本视图内部分屏）；独立运行则用内部分屏预览。
 function openInCode(): void {
   const file = `${boardName.value}.sr`;
@@ -631,11 +629,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
             <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
           </button>
-          <button class="btn" @click="showJson = !showJson">{{ showJson ? '隐藏' : '查看' }} CSR 对象</button>
-          <button class="btn-solid" @click="copyAll">{{ copied ? '已复制' : '复制全部' }}</button>
+          <button class="btn-solid" @click="copyAll" title="复制本板生成的全部 CSR 对象(JSON)到剪贴板，可粘贴进 .sr">{{ copied ? '已复制 CSR' : '复制 CSR' }}</button>
         </div>
       </div>
-      <pre v-if="showJson" class="bs-json">{{ objectsJson }}</pre>
     </div>
 
     <!-- ══ 配置：聚焦浮层卡（点传感器/事件都弹这张实底卡，压暗泳道，卡内自滚动）══ -->
