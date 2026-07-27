@@ -324,32 +324,59 @@ function operatorDesc(id: number): string { return OPERATORS.find((o) => o.id ==
 function dsResolved(c: SensorCfg): boolean { return c.dsMode === 'device-field' || !!c.dsChip.trim(); }
 function sensorLabel(e: Entry): string { return e.cfg.railLabel || QUANTITIES[e.cfg.quantityKey].label; }
 function thrValue(c: SensorCfg, lf?: ThrKey): number | undefined { return lf ? c.thresholds[lf] : undefined; }
-function chipTip(cf: ChipFlow): string {
-  const head = cf.chipKey === '__fw'
-    ? `固件 / BIOS 推送\nReading=0 或无 Scanner，数据不经物理芯片，由固件直接上报。`
-    : `数据源器件 ${cf.chipLabel}${cf.subLabel ? '（' + cf.subLabel + '）' : ''}\n其上传感器/事件都经 Scanner 取数（Reading ⟵ Scanner.Value ⟵ ${cf.chipLabel}）。`;
-  const stat = `共 ${cf.sensorCount} 传感器 · ${cf.eventCount} 事件`;
-  const names = cf.sensors.length ? '传感器：' + cf.sensors.map((s) => sensorLabel(s)).join('、') : '';
-  return [head, stat, names].filter(Boolean).join('\n');
+function severityLabel(v: string): string { return SEVERITIES.find((s) => s.v === v)?.label || v; }
+function severityDesc(v: string): string { return SEVERITIES.find((s) => s.v === v)?.desc || ''; }
+
+/* 自绘 hover 卡（原生 title 太隐蔽、延迟长）——器件 / 传感器 / 事件 悬停即显要点 */
+interface TipRow { k: string; v: string; }
+const tip = reactive({ show: false, x: 0, y: 0, head: '', sub: '', rows: [] as TipRow[] });
+function placeTip(e: MouseEvent): void {
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  tip.x = Math.max(8, Math.min(r.left, window.innerWidth - 320));
+  tip.y = r.bottom + 6;
 }
-// 传感器 hover 提示：类型 / 键名 / 数据源(是否已接) / 门限档 / 事件条数
-function sensorTip(e: Entry): string {
-  const q = QUANTITIES[e.cfg.quantityKey];
-  const kind = e.sensor.kind === 'threshold' ? '门限传感器' : '状态传感器';
-  const lines: string[] = [`${kind} · ${sensorLabel(e)}（${q.label}${q.unitLabel ? ' ' + q.unitLabel : ''}）`];
-  lines.push(`键名：${e.sensor.sensorKey}`);
-  const ds = e.cfg.dsMode === 'device-field'
-    ? `器件读数 ${e.cfg.deviceKey}.${q.readingField}`
-    : `寄存器周期读 ${e.cfg.dsChip || '(未选芯片)'} @${e.cfg.periodMs}ms`;
-  lines.push(`数据源：${ds}（${dsResolved(e.cfg) ? '已接' : '未接'}）`);
-  if (e.sensor.kind === 'threshold') {
-    const set = THRESHOLD_ORDER.filter((k) => e.cfg.thresholds[k] != null).map((k) => `${ZH[k]}=${e.cfg.thresholds[k]}`);
-    lines.push(`门限：${set.length ? set.join(' · ') + (q.unitLabel ? ' ' + q.unitLabel : '') : '未设'}`);
+function showChipTip(e: MouseEvent, cf: ChipFlow): void {
+  placeTip(e);
+  tip.head = cf.chipKey === '__fw' ? '固件 / BIOS 推送' : cf.chipLabel;
+  tip.sub = cf.chipKey === '__fw' ? 'Reading=0 或无 Scanner，由固件直接上报' : `数据源器件${cf.subLabel ? ' · ' + cf.subLabel : ''}`;
+  const rows: TipRow[] = [
+    { k: '取数', v: cf.chipKey === '__fw' ? '固件直报，不经物理芯片' : `Reading ⟵ Scanner.Value ⟵ ${cf.chipLabel}` },
+    { k: '规模', v: `${cf.sensorCount} 传感器 · ${cf.eventCount} 事件` },
+  ];
+  if (cf.sensors.length) rows.push({ k: '传感器', v: cf.sensors.map((s) => sensorLabel(s)).join('、') });
+  tip.rows = rows; tip.show = true;
+}
+function showSensorTip(e: MouseEvent, en: Entry): void {
+  placeTip(e);
+  const q = QUANTITIES[en.cfg.quantityKey];
+  tip.head = sensorLabel(en);
+  tip.sub = `${en.sensor.kind === 'threshold' ? '门限传感器' : '状态传感器'} · ${q.label}${q.unitLabel ? ' ' + q.unitLabel : ''}`;
+  const ds = en.cfg.dsMode === 'device-field'
+    ? `器件读数 ${en.cfg.deviceKey}.${q.readingField}`
+    : `寄存器周期读 ${en.cfg.dsChip || '(未选芯片)'} @${en.cfg.periodMs}ms`;
+  const rows: TipRow[] = [
+    { k: '键名', v: en.sensor.sensorKey },
+    { k: '数据源', v: `${ds}（${dsResolved(en.cfg) ? '已接' : '未接'}）` },
+  ];
+  if (en.sensor.kind === 'threshold') {
+    const set = THRESHOLD_ORDER.filter((k) => en.cfg.thresholds[k] != null).map((k) => `${ZH[k]}=${en.cfg.thresholds[k]}`);
+    rows.push({ k: '门限', v: set.length ? set.join(' · ') + (q.unitLabel ? ' ' + q.unitLabel : '') : '未设' });
   }
-  const evs = e.sensor.events;
-  lines.push(`事件：${evs.length} 条${evs.length ? '（' + evs.map((x) => x.label).join('、') + '）' : ''}`);
-  return lines.join('\n');
+  rows.push({ k: '事件', v: `${en.sensor.events.length} 条${en.sensor.events.length ? '（' + en.sensor.events.map((x) => x.label).join('、') + '）' : ''}` });
+  tip.rows = rows; tip.show = true;
 }
+function showEventTip(e: MouseEvent, label: string, eventKeyId: string, trig: string, severity: string, owner: string): void {
+  placeTip(e);
+  tip.head = label;
+  tip.sub = `事件 / 告警 · ${owner}`;
+  tip.rows = [
+    { k: '触发', v: trig },
+    { k: '分级', v: severityLabel(severity) },
+    { k: '字典条目', v: eventKeyId || '(未选)' },
+  ];
+  tip.show = true;
+}
+function hideTip(): void { tip.show = false; }
 
 const copied = ref(false);
 function copyAll(): void {
@@ -515,7 +542,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 :class="{ active: hoverSensor === c.sensorId, dim: hoverSensor && hoverSensor !== c.sensorId, dashed: c.dashed }" />
         </svg>
         <!-- 第一列：数据源器件(芯片) 节点，纵向贯穿；其传感器/分类扇出到中列、事件到右列 -->
-        <div class="chip-node" data-role="obj" :title="chipTip(cf)">
+        <div class="chip-node" data-role="obj" @mouseenter="showChipTip($event, cf)" @mouseleave="hideTip">
           <span class="cn-ic" :class="{ fw: cf.chipKey === '__fw' }"><svg viewBox="0 0 24 24"><path d="M9 3h6v2h3a1 1 0 0 1 1 1v3h2v2h-2v2h2v2h-2v3a1 1 0 0 1-1 1h-3v2H9v-2H6a1 1 0 0 1-1-1v-3H3v-2h2v-2H3V9h2V6a1 1 0 0 1 1-1h3V3zm0 5v8h6V8H9z"/></svg></span>
           <span class="cn-name">{{ cf.chipLabel }}</span>
           <span class="cn-type">{{ cf.subLabel }}</span>
@@ -530,7 +557,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                  @mouseenter="hoverSensor = entry.sensor.configId" @mouseleave="hoverSensor = null">
               <!-- 左列：传感器节点卡 -->
               <div class="se-sensor">
-                <button class="sensor-card" :data-sensor-card="entry.sensor.configId" :title="sensorTip(entry)" @click="openSensor(entry.sensor.configId)">
+                <button class="sensor-card" :data-sensor-card="entry.sensor.configId" @mouseenter="showSensorTip($event, entry)" @mouseleave="hideTip" @click="openSensor(entry.sensor.configId)">
                   <span class="sc-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></span>
                   <span class="sc-name">{{ sensorLabel(entry) }}</span>
                   <span class="sc-kind">{{ entry.sensor.kind === 'threshold' ? '门限' : '状态' }}</span>
@@ -542,7 +569,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <!-- 右列：事件节点卡扇出（铃铛按严重度着色；无门限时该列空态） -->
               <div class="se-events">
                 <div v-if="!entry.sensor.events.length" class="event-node none">未设门限 · 暂无告警</div>
-                <button v-for="ev in entry.sensor.events" :key="ev.key" class="event-node click" :class="ev.severity" :data-event-of="entry.sensor.configId" :title="'点击展开配置 · ' + ev.eventKeyId + ' · ' + ev.operator + ' ' + ev.conditionLabel" @click.stop="openSensorEvent(entry.sensor.configId, ev.eventKeyId)">
+                <button v-for="ev in entry.sensor.events" :key="ev.key" class="event-node click" :class="ev.severity" :data-event-of="entry.sensor.configId" @mouseenter="showEventTip($event, ev.label, ev.eventKeyId, ev.operator + ' ' + ev.conditionLabel, ev.severity || 'Major', '属于 ' + sensorLabel(entry))" @mouseleave="hideTip" @click.stop="openSensorEvent(entry.sensor.configId, ev.eventKeyId)">
                   <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
                   <span class="en-label">{{ ev.label }}</span>
                 </button>
@@ -566,7 +593,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <div class="cat-chips">
                   <template v-for="e in row.events" :key="e.id">
                     <button class="event-node click" :class="[e.severity, { open: openLooseId === e.id, off: !e.enabled }]"
-                            :title="'点击展开配置 · ' + e.eventKeyId" @click.stop="toggleLoose(e.id)">
+                            @mouseenter="showEventTip($event, e.label, e.eventKeyId, operatorSym(e.operatorId) + ' ' + e.condition, e.severity, '独立事件 · 直连器件')" @mouseleave="hideTip" @click.stop="toggleLoose(e.id)">
                       <span class="en-ic"><svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 0 0-6 6c0 3.5-1 4.9-2 6v1h16v-1c-1-1.1-2-2.5-2-6a6 6 0 0 0-6-6zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/></svg></span>
                       <span class="en-label">{{ e.label }}</span>
                       <span class="en-op">{{ operatorSym(e.operatorId) }} {{ e.condition }}</span>
@@ -617,7 +644,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
             </div>
             <span class="thr-unit">{{ unitOf(openCfg) }}</span>
           </div>
-          <div v-else class="disc-note">离散状态量：无门限，触发值与告警在下方「事件」配置。</div>
+          <div v-else class="disc-note">本传感器为<b>离散状态量</b>：没有门限档（所以这里不显示门限），每条事件用下方的「触发值」判定命中。</div>
 
           <!-- 数据源 -->
           <div class="mf">
@@ -656,34 +683,39 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <template v-if="isThreshold(openCfg)">
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: thrValue(openCfg, ev.levelField) == null || !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
               <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" v-model="ev.enabled" /></label>
+              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
               <label class="ef ef-lv">
-                <span class="ef-k">档位<i class="i" title="事件监视哪一档门限；触发值自动引用该档，改门限只改一处。">i</i></span>
+                <span class="ef-k">档位</span>
                 <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
                   <option v-for="k in THRESHOLD_ORDER" :key="k" :value="k">{{ ZH[k] }}{{ openCfg.thresholds[k] != null ? ' = ' + openCfg.thresholds[k] : '（未设）' }}</option>
                 </select>
               </label>
-              <span class="ef"><span class="ef-k">方向</span><span class="ef-dir" :title="operatorDesc(ev.operatorId)">{{ operatorSym(ev.operatorId) }} 门限</span></span>
+              <span class="ef"><span class="ef-k">方向</span><span class="ef-dir">{{ operatorSym(ev.operatorId) }} 门限</span></span>
               <label class="ef"><span class="ef-k">分级</span>
                 <select v-model="ev.severity" class="disc-sel">
                   <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
                 </select>
               </label>
-              <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
+              <label class="ef ef-grow"><span class="ef-k">告警字典条目</span>
                 <select v-model="ev.eventKeyId" class="disc-sel wide">
                   <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                 </select>
               </label>
-              <span class="ef-ref" v-if="ev.levelField">
-                <template v-if="thrValue(openCfg, ev.levelField) != null"><code>{{ openEntry.sensor.sensorKey }}.{{ ev.levelField }}</code> = {{ thrValue(openCfg, ev.levelField) }}</template>
-                <button v-else class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
-              </span>
               <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+              <!-- 就近提示：解释本行几个下拉的含义 + 触发值引用哪档门限 -->
+              <div class="ev-hint">
+                <span>档位：监视该档门限，触发值自动引用<template v-if="ev.levelField"> <code>{{ openEntry.sensor.sensorKey }}.{{ ev.levelField }}</code><template v-if="thrValue(openCfg, ev.levelField) != null"> = {{ thrValue(openCfg, ev.levelField) }}</template><button v-else class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button></template></span>
+                <span>方向：{{ operatorDesc(ev.operatorId) }}</span>
+                <span>分级：{{ severityDesc(ev.severity) }}</span>
+                <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
+              </div>
             </div>
           </template>
           <template v-else>
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
               <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" v-model="ev.enabled" /></label>
-              <label class="ef"><span class="ef-k">触发值<i class="i" title="读数=触发值即命中；离散量一般 1=置位/故障，0=不在位。">i</i></span>
+              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
+              <label class="ef"><span class="ef-k">触发值</span>
                 <span class="ef-ctl"><input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
               </label>
               <label class="ef"><span class="ef-k">方向</span>
@@ -696,12 +728,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                   <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
                 </select>
               </label>
-              <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射。首项为推荐。">i</i></span>
+              <label class="ef ef-grow"><span class="ef-k">告警字典条目</span>
                 <select v-model="ev.eventKeyId" class="disc-sel wide">
                   <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                 </select>
               </label>
               <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+              <div class="ev-hint">
+                <span>触发值：读数命中该值即告警（离散量常 1=置位/故障，0=不在位）</span>
+                <span>方向：{{ operatorDesc(ev.operatorId) }}</span>
+                <span>分级：{{ severityDesc(ev.severity) }}</span>
+                <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
+              </div>
             </div>
           </template>
           <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
@@ -719,9 +757,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <button class="cfg-x" title="关闭 (Esc)" @click="closeFocus">✕</button>
         </div>
         <div class="cfg-body">
-          <div class="ev-edit focused">
+          <div class="ev-edit">
             <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" v-model="openLooseEvent.enabled" /></label>
-            <label class="ef"><span class="ef-k">触发值<i class="i" title="Condition：读数达到该字面值即命中（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+            <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="openLooseEvent.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
+            <label class="ef"><span class="ef-k">触发值</span>
               <input v-model.number="openLooseEvent.condition" type="number" class="thr-in w" />
             </label>
             <label class="ef"><span class="ef-k">方向</span>
@@ -735,9 +774,22 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               </select>
             </label>
             <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><code class="levt-key">{{ openLooseEvent.eventKeyId }}</code></label>
+            <div class="ev-hint">
+              <span>触发值：读数命中该值即告警（电压限值 / PMBus 状态位 / 在位标志）</span>
+              <span>方向：{{ operatorDesc(openLooseEvent.operatorId) }}</span>
+              <span>分级：{{ severityDesc(openLooseEvent.severity) }}</span>
+              <span>字典条目：{{ openLooseEvent.eventKeyId }} — 不经传感器，直连器件数据源</span>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 自绘 hover 卡：器件 / 传感器 / 事件 悬停要点（原生 title 太隐蔽） -->
+    <div v-if="tip.show" class="hover-tip" :style="{ left: tip.x + 'px', top: tip.y + 'px' }">
+      <div class="ht-head">{{ tip.head }}</div>
+      <div v-if="tip.sub" class="ht-sub">{{ tip.sub }}</div>
+      <div v-for="r in tip.rows" :key="r.k" class="ht-row"><span class="ht-k">{{ r.k }}</span><span class="ht-v">{{ r.v }}</span></div>
     </div>
   </div>
 </template>
@@ -876,9 +928,17 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .cfg-x { all: unset; flex: none; cursor: pointer; width: 26px; height: 26px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--foreground-muted); font-size: 14px; }
 .cfg-x:hover { background: var(--state-hover); color: var(--foreground); }
 .cfg-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-/* 点事件进入：高亮定位到对应事件行 */
-.sc-focus-hint { font-size: 10px; color: var(--primary); }
-.ev-edit.focused { background: color-mix(in srgb, var(--primary) 14%, var(--surface-2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent); }
+/* 点事件进入：仅滚动定位到对应事件行（不加发光框，反馈靠勾选态即可） */
+.sc-focus-hint { font-size: 10px; color: var(--foreground-muted); }
+.ev-edit.focused .ev-en input { accent-color: var(--primary); outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent); outline-offset: 1px; border-radius: 3px; }
+
+/* 自绘 hover 卡（器件 / 传感器 / 事件）：跟随元素左下浮出，实底可读 */
+.hover-tip { position: fixed; z-index: 500; width: max-content; max-width: 320px; padding: 9px 11px; border-radius: var(--radius-md); background: var(--background-elevated); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-lg); pointer-events: none; display: flex; flex-direction: column; gap: 3px; }
+.ht-head { font-size: 12px; font-weight: 600; color: var(--foreground); font-family: ui-monospace, monospace; }
+.ht-sub { font-size: 10.5px; color: var(--foreground-secondary); margin-bottom: 3px; }
+.ht-row { display: flex; gap: 8px; font-size: 11px; line-height: 1.5; }
+.ht-k { flex: none; width: 46px; color: var(--foreground-muted); }
+.ht-v { flex: 1; color: var(--foreground-secondary); word-break: break-word; }
 
 /* 独立事件区（无传感器）：事件泳道里按告警分类分色归拢——分类是事件的分组头，不作节点 */
 .loose-events { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -948,6 +1008,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-fix { all: unset; cursor: pointer; font-size: 11px; color: var(--warning); }
 .ev-del { all: unset; cursor: pointer; align-self: flex-start; margin-top: 18px; margin-left: auto; color: var(--foreground-muted); font-size: 12px; padding: 2px 4px; border-radius: var(--radius-sm); }
 .ev-del:hover { color: var(--danger); background: var(--state-hover); }
+.thr-in.wnm { width: 104px; text-align: left; padding: 5px 7px; }
+/* 就近提示行：铺在该事件行控件下方，解释各下拉含义 */
+.ev-hint { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 3px 16px; margin-top: 4px; padding-top: 7px; border-top: 1px dashed rgba(255, 255, 255, 0.08); font-size: 10.5px; line-height: 1.5; color: var(--foreground-muted); }
+.ev-hint code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
+.ev-hint .ev-fix { margin-left: 6px; }
 
 .board-summary { margin-top: 14px; padding-top: 12px; }
 .bs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--foreground-secondary); margin-bottom: 8px; }
