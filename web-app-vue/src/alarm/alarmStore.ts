@@ -21,6 +21,7 @@ export interface SensorCfg {
   railKey?: string; railLabel?: string;
   dsMode: 'device-field' | 'scanner';
   dsChip: string; dsOffset: number; dsMask: number; dsSize: number; periodMs: number;
+  readingField?: string;     // device-field 取数：订阅的器件读数字段（空=按监控量默认 QUANTITIES[q].readingField）
   thresholds: Record<string, number>;
   hysteresis: number; events: EvItem[]; enabled: boolean;
   entityRef?: string;        // 物理实体（Entity_* 名，来自 Sensor.EntityId）

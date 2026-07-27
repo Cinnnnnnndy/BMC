@@ -197,7 +197,7 @@ function toSpec(c: SensorCfg): AlarmSpec {
     hysteresis: q.kind === 'threshold' ? c.hysteresis : undefined,
     dataSource: c.dsMode === 'scanner'
       ? { mode: 'scanner', scanner: { chip: c.dsChip, offset: c.dsOffset, size: c.dsSize, mask: c.dsMask, periodMs: c.periodMs } }
-      : { mode: 'device-field', field: q.readingField },
+      : { mode: 'device-field', field: (c.readingField && c.readingField.trim()) || q.readingField },
   };
 }
 interface Entry { cfg: SensorCfg; sensor: GeneratedSensor; warnings: string[]; }
@@ -293,15 +293,39 @@ function toggleLoose(id: string): void {
   openLooseId.value = willOpen ? id : null;
   if (willOpen) { expandedId.value = null; focusEventKey.value = null; }
 }
-// 新增独立事件：不经传感器、直连器件数据源（真实 .sr 里大多数告警属此类）。新建空事件并打开其配置。
-function addLooseEvent(): void {
+// 独立事件模板：一键落成一条不经传感器、直连数据源的事件（预置字典条目/触发值/方向/分级）
+interface EvtTemplate { key: string; name: string; desc: string; eventKeyId: string; label: string; condition: number; operatorId: number; severity: 'Minor' | 'Major' | 'Critical'; }
+const EVENT_TEMPLATES: EvtTemplate[] = [
+  { key: 'overvolt',  name: '过压告警',   desc: '电压高于限值即告警',        eventKeyId: 'Mainboard.MainboardOverVoltageMajor', label: 'OverVoltage',  condition: 1, operatorId: 4, severity: 'Major' },
+  { key: 'undervolt', name: '欠压告警',   desc: '电压低于限值即告警',        eventKeyId: 'Mainboard.MainboardLowerVoltageMajor', label: 'LowerVoltage', condition: 1, operatorId: 1, severity: 'Major' },
+  { key: 'installed', name: '部件插入',   desc: '器件由缺失变为在位（热插拔）', eventKeyId: 'Component.ComponentInstalled', label: 'Installed', condition: 1, operatorId: 7, severity: 'Minor' },
+  { key: 'removed',   name: '部件移除',   desc: '器件由在位变为缺失（热插拔）', eventKeyId: 'Component.ComponentRemoved',   label: 'Removed',   condition: 0, operatorId: 8, severity: 'Major' },
+  { key: 'absent',    name: '不在位告警', desc: '部件缺失即告警',            eventKeyId: 'Component.ComponentAbsent', label: 'Absent', condition: 0, operatorId: 5, severity: 'Major' },
+  { key: 'overtemp',  name: '过温告警',   desc: '温度越限即告警',            eventKeyId: 'Chassis.ChassisOverTempMajor', label: 'OverTemp', condition: 1, operatorId: 4, severity: 'Major' },
+  { key: 'fault',     name: '状态位故障', desc: 'PMBus/寄存器状态位置位即告警', eventKeyId: 'Board.StatusFault', label: 'StatusFault', condition: 1, operatorId: 6, severity: 'Critical' },
+  { key: 'blank',     name: '空白事件',   desc: '从零手动配置',              eventKeyId: '', label: '新事件', condition: 1, operatorId: 5, severity: 'Major' },
+];
+// 新增独立事件：按模板落成一条事件并打开其配置。
+function addLooseEvent(tpl?: EvtTemplate): void {
+  const t = tpl || EVENT_TEMPLATES[EVENT_TEMPLATES.length - 1];
   const st = boardAlarm(boardKey.value);
   const id = `le-m${nextEvSeq(boardKey.value)}`;
   const dsChip = props.scopeChipKey && props.scopeChipKey !== '__firmware' ? props.scopeChipKey : '';
-  st.looseEvents.push({ id, eventKeyId: '', label: '新事件', condition: 1, operatorId: 5, severity: 'Major', dsChip, scope: 'board', enabled: true });
+  st.looseEvents.push({ id, eventKeyId: t.eventKeyId, label: t.label, condition: t.condition, operatorId: t.operatorId, severity: t.severity, dsChip, scope: 'board', enabled: true });
   expandedId.value = null;
   openLooseId.value = id;
   showAdd.value = false;
+  showAddEvt.value = false;
+}
+const showAddEvt = ref(false);
+const addEvtBtnRef = ref<HTMLElement | null>(null);
+const addEvtPopStyle = ref<Record<string, string>>({});
+function toggleAddEvt(): void {
+  showAddEvt.value = !showAddEvt.value;
+  if (showAddEvt.value) nextTick(() => {
+    const r = addEvtBtnRef.value?.getBoundingClientRect();
+    if (r) addEvtPopStyle.value = { top: `${r.bottom + 6}px`, right: `${Math.max(8, window.innerWidth - r.right)}px` };
+  });
 }
 // .sr 播种的状态传感器常带空 events（生效值是对象生成器合成的默认「状态命中」）；
 // 打开配置时把这条合成默认落成可编辑事件，避免出现「已配置 0」的空编辑区。
@@ -545,7 +569,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
     <div class="alarm-toolbar">
       <span class="tb-tag">{{ scopeChipKey ? '数据源器件' : '来自拓扑' }}</span>
       <span class="tb-src">{{ source || boardName }}</span>
-      <button class="btn add-open2" title="新增一条不经传感器的独立事件（直连器件数据源）" @click="addLooseEvent">＋ 新增事件</button>
+      <button ref="addEvtBtnRef" class="btn add-open2" :class="{ on: showAddEvt }" title="从模板新增一条不经传感器的独立事件（直连器件数据源）" @click="toggleAddEvt">＋ 新增事件</button>
       <button ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
     </div>
 
@@ -587,6 +611,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <span class="tpl-desc">{{ tplDesc(qk) }}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- 独立事件模板浮窗 -->
+      <div v-if="showAddEvt" class="add-backdrop" @click="showAddEvt = false"></div>
+      <div v-if="showAddEvt" class="add-pop" :style="addEvtPopStyle" @click.stop>
+        <div class="add-title">选事件模板<span class="i" title="模板 = 预置字典条目/触发值/方向/分级 的独立事件（不经传感器，直连数据源），加完可再逐项微调。">i</span></div>
+        <div class="tpl-list">
+          <button v-for="t in EVENT_TEMPLATES" :key="t.key" class="tpl-card" @click="addLooseEvent(t)">
+            <span class="tpl-name">{{ t.name }}</span>
+            <span class="tpl-desc">{{ t.desc }}{{ t.eventKeyId ? ' · ' + t.eventKeyId : '' }}</span>
+          </button>
         </div>
       </div>
     </teleport>
@@ -710,10 +746,17 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <div class="mf">
             <label>取数方式<i class="i" :title="openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField">i</i></label>
             <select v-model="openCfg.dsMode" class="disc-sel wide">
-              <option value="device-field">器件读数 · {{ openCfg.deviceKey }}.{{ QUANTITIES[openCfg.quantityKey].readingField }}（推荐 · 已接）</option>
+              <option value="device-field">器件读数 · 订阅器件语义量（推荐）</option>
               <option value="scanner">从寄存器周期读（高级 · 需选硬件信号）</option>
             </select>
           </div>
+          <template v-if="openCfg.dsMode === 'device-field'">
+            <div class="scan-grid">
+              <label>器件(Component)<input v-model="openCfg.deviceKey" class="thr-in w" placeholder="System" /></label>
+              <label>读数字段(Field)<input v-model="openCfg.readingField" class="thr-in w" :placeholder="QUANTITIES[openCfg.quantityKey].readingField + '（默认）'" /></label>
+            </div>
+            <div class="mf-desc">订阅 <code>{{ openCfg.deviceKey || '?' }}.{{ (openCfg.readingField && openCfg.readingField.trim()) || QUANTITIES[openCfg.quantityKey].readingField }}</code> —— 缩放 / 单位已在器件模型内处理，最省心。</div>
+          </template>
           <template v-if="openCfg.dsMode === 'scanner'">
             <div class="scan-grid">
               <label>硬件信号(Chip)<input v-model="openCfg.dsChip" class="thr-in w" placeholder="Smc_..." /></label>
@@ -782,8 +825,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
                 <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
                 <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
-                  <select v-model="ev.eventKeyId" class="disc-sel wide">
+                <label class="ef ef-grow"><span v-if="ev.eventKeyId" class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                  <select v-model="ev.eventKeyId" class="disc-sel wide" :class="{ 'todo-field': !ev.eventKeyId }">
+                    <option value="" disabled>待选 · 告警字典条目</option>
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
@@ -818,8 +862,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
                 <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
                 <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
-                  <select v-model="ev.eventKeyId" class="disc-sel wide">
+                <label class="ef ef-grow"><span v-if="ev.eventKeyId" class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                  <select v-model="ev.eventKeyId" class="disc-sel wide" :class="{ 'todo-field': !ev.eventKeyId }">
+                    <option value="" disabled>待选 · 告警字典条目</option>
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
@@ -1118,6 +1163,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .disc-sel { padding: 6px 26px 6px 9px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: rgba(255,255,255,0.07); border: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
 .disc-sel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
 .disc-sel.wide { flex: 1; min-width: 120px; }
+/* 未选择态：不靠上方标签，字段本身变橙填充在位提示「待选」（v-model='' 命中 disabled 占位项） */
+.disc-sel.todo-field { color: var(--warning); font-weight: 600; background-color: color-mix(in srgb, var(--warning) 15%, rgba(255,255,255,0.04)); }
+.mf-desc code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
 .scan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px 10px; }
 .scan-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--foreground-muted); }
 .scan-grid label .thr-in { width: 100%; text-align: left; }
