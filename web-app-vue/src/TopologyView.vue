@@ -12,10 +12,9 @@ import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
-import ChassisOverview from './components/ChassisOverview.vue';
 import { boardAlarm } from './alarm/alarmStore';
 import { loadBoardOnce, boardChipDevices } from './alarm/srSeed';
-import { boardRollup, chassisEvents } from './alarm/chassisAggregate';
+import { boardRollup, chassisEvents, thresholdInconsistencies } from './alarm/chassisAggregate';
 import { getTopology } from './data/boardTopologies';
 import { chipTypeLabel } from './data/srParser';
 
@@ -110,17 +109,6 @@ const expandedGroups = ref<Record<string, boolean>>({});
 const hwSearchQuery  = ref<string>('');
 /** 硬件管理器左树可折叠为窄条（对齐 CSR 拓扑编辑器左树的交互）。 */
 const paletteCollapsed = ref(false);
-
-// ── 整机总览信息融合进左树头部（汇总统计条，数据源与 ChassisOverview 一致）──
-const chassisStats = computed(() => {
-  const rows = boardRollup();
-  return {
-    boards: rows.length,
-    sensors: rows.reduce((s, r) => s + r.thresholdSensors + r.discreteSensors, 0),
-    events: rows.reduce((s, r) => s + r.events, 0),
-    chassis: chassisEvents().length,
-  };
-});
 
 interface CatNode { type: string; label: string; groups: BoardGroup[]; boardCount: number }
 const categoryTree = computed<CatNode[]>(() => {
@@ -311,12 +299,19 @@ watch(activeGroup, (g) => {
   if (g) loadBoardOnce(g.name);
 }, { immediate: true });
 
-// 整机（Chassis）告警总览：跨板聚合 + 机箱级 + 一致性
-const showChassis = ref(false);
+// 整机（Chassis）告警总览：现在常驻左侧「硬件管理器」，与「板卡分类」并列；
+// 顶部放统计信息（跨板明细 + 机箱级事件 + 一致性），数据源与原浮层一致。
 const allBoards = computed(() => nodes.value
   .filter((n) => n.type === 'boardgroup')
   .map((n) => { const g = n.data.group as BoardGroup; return { name: g.name, type: g.type }; }));
-function openChassis() { showChassis.value = true; activeNode.value = null; }
+// 挂载即为每块画布板播种（使板卡/器件面板与总览同源、统计真实）
+onMounted(() => { for (const b of allBoards.value) loadBoardOnce(b.name); });
+const ovRows = computed(() => boardRollup());
+const ovCEvents = computed(() => chassisEvents());
+const ovIncons = computed(() => thresholdInconsistencies());
+const ovTotalChips = computed(() => ovRows.value.reduce((n, r) => n + r.chips, 0));
+const ovTotalSensors = computed(() => ovRows.value.reduce((n, r) => n + r.thresholdSensors + r.discreteSensors, 0));
+const ovTotalEvents = computed(() => ovRows.value.reduce((n, r) => n + r.events, 0));
 
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
@@ -407,14 +402,14 @@ function catStateClass(cat: CatNode): string {
         </div>
       </div>
 
-      <!-- ── 整机总览汇总条（融合 ChassisOverview 的关键统计，点击打开完整总览）── -->
-      <button class="hw-sum-strip" title="打开整机告警总览（跨板 + 机箱级）" @click="openChassis">
-        <span class="hw-sum-label">整机总览</span>
-        <span class="chk-chip chk-ok">{{ chassisStats.boards }} 板</span>
-        <span class="chk-chip chk-ok">{{ chassisStats.sensors }} 传感器</span>
-        <span class="chk-chip" :class="chassisStats.events ? 'chk-warn' : 'chk-ok'">{{ chassisStats.events }} 事件</span>
-        <span v-if="chassisStats.chassis" class="chk-chip chk-err">{{ chassisStats.chassis }} 机箱级</span>
-      </button>
+      <!-- ── 整机统计（顶部：跨板聚合概览，数据来自真实 .sr） ── -->
+      <div class="ov-stats">
+        <div class="ov-stat"><span class="ov-n">{{ ovRows.length }}</span><span class="ov-l">样例板卡</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalChips }}</span><span class="ov-l">物理器件</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalSensors }}</span><span class="ov-l">传感器</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalEvents }}</span><span class="ov-l">事件/告警</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovCEvents.length }}</span><span class="ov-l">机箱级</span></div>
+      </div>
 
       <!-- ── Search ── -->
       <div class="hw-search-row">
@@ -422,6 +417,8 @@ function catStateClass(cat: CatNode): string {
         <input class="hw-search-input" v-model="hwSearchQuery" placeholder="搜索板卡名称…" />
       </div>
 
+      <!-- ── 管理器主体：板卡分类 + 整机总览 并列，整体滚动 ── -->
+      <div class="mgr-scroll">
       <!-- ── Section header ── -->
       <div class="sec-hd">
         <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -500,15 +497,54 @@ function catStateClass(cat: CatNode): string {
         </template>
       </div>
 
+      <!-- ── 整机总览（与「板卡分类」并列的常驻区，替代原浮层按钮+右侧面板） ── -->
+      <div class="sec-hd">
+        <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+        整机总览
+      </div>
+      <div class="ov-body">
+        <!-- 各板明细（真实 .sr 直读：器件｜门限｜状态｜事件｜机箱） -->
+        <div class="ov-card">
+          <div class="ov-cap">各板明细 · 来自真实 .sr（硬件 + 软件合并）</div>
+          <div class="ov-rt-head"><span>板卡</span><span>器件</span><span>门限</span><span>状态</span><span>事件</span><span>机箱</span></div>
+          <div v-for="r in ovRows" :key="r.name" class="ov-rt">
+            <span class="ov-rt-name">
+              <span class="ov-rt-nm">{{ r.name }}</span>
+              <span class="ov-rt-src">{{ r.type }} · {{ r.sourceModel }}</span>
+            </span>
+            <span class="ov-rt-n">{{ r.chips }}</span>
+            <span class="ov-rt-n">{{ r.thresholdSensors }}</span>
+            <span class="ov-rt-n">{{ r.discreteSensors }}</span>
+            <span class="ov-rt-n">{{ r.events }}</span>
+            <span class="ov-rt-n" :class="{ hot: r.chassisEvents }">{{ r.chassisEvents || '—' }}</span>
+          </div>
+        </div>
+        <!-- 跨板一致性 -->
+        <div v-if="ovIncons.length" class="ov-card ov-warn">
+          <div class="ov-cap">跨板一致性 · {{ ovIncons.length }} 项待核对</div>
+          <div v-for="(it, i) in ovIncons" :key="i" class="ov-incon">
+            <span class="ov-incon-name">{{ it.name }}.{{ it.field }}</span>
+            <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
+          </div>
+        </div>
+        <!-- 机箱级事件（Chassis.* · 跨板归属机箱） -->
+        <div class="ov-card">
+          <div class="ov-cap">机箱级事件（Chassis.* · 跨板归属机箱）</div>
+          <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
+          <div class="ov-chs-grid">
+            <span v-for="(e, i) in ovCEvents" :key="i" class="ov-chs-ev" :title="e.board + ' · ' + e.keyId">
+              <i class="ov-dot" :class="e.severity"></i>{{ e.name }}
+            </span>
+          </div>
+        </div>
+        <div class="ov-note">整机层只做总览 + 机箱级 + 一致性；逐条编辑请到板卡 / 器件配置面板。</div>
+      </div>
+      </div><!-- /mgr-scroll -->
+
     </aside>
 
     <!-- ── Canvas ────────────────────────────────────────────────── -->
     <div class="topo-canvas-wrap">
-      <!-- 整机总览入口 -->
-      <button class="chassis-entry" @click.stop="openChassis" title="整机告警总览（跨板 + 机箱级）">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2 3v2h2V7H6zm0 6h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm2 3v2h2v-2H6z"/></svg>
-        整机总览
-      </button>
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -692,8 +728,6 @@ function catStateClass(cat: CatNode): string {
       </template>
     </div>
 
-    <!-- ── 整机总览面板 ── -->
-    <ChassisOverview v-if="showChassis" :boards="allBoards" @close="showChassis = false" />
   </div>
 </template>
 
@@ -707,21 +741,31 @@ function catStateClass(cat: CatNode): string {
 .topo-palette.closed:hover { background: var(--state-hover); }
 .rail-ic { width: 14px; height: 14px; color: var(--foreground-muted); }
 
-/* ── 整机总览汇总条（融合 ChassisOverview 统计，button 化 hw-sum-strip） ── */
-.hw-sum-strip {
-  all: unset;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 0 12px;
-  height: 38px;
+/* ── 整机统计（侧栏顶部 stat 条：样例板卡/物理器件/传感器/事件/机箱级） ── */
+.ov-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  cursor: pointer;
 }
-.hw-sum-strip:hover { background: var(--state-hover); }
+.ov-stat {
+  display: flex; flex-direction: column; gap: 1px; align-items: center;
+  padding: 7px 3px; border-radius: var(--radius-md, 8px);
+  background: var(--surface-1);
+}
+.ov-n { font-size: 15px; font-weight: 700; color: var(--foreground); }
+.ov-l { font-size: 9px; color: var(--foreground-muted); white-space: nowrap; }
+
+/* 管理器主体：板卡分类 + 整机总览 并列，整体滚动 */
+.mgr-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
 
 /* ── 搜索框：胶囊造型（对齐 CSR 拓扑编辑器左树搜索框）── */
 .hw-search-row {
@@ -737,9 +781,7 @@ function catStateClass(cat: CatNode): string {
 .hw-tree {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+  flex: none;
   /* 小边距让 hover/选中圆角胶囊在面板内浮起，避免圆角贴边露出直角瑕疵（对齐 CSR 左树） */
   padding: 4px 6px;
 }
@@ -953,18 +995,37 @@ function catStateClass(cat: CatNode): string {
   display: inline-block;
 }
 
-/* 整机总览入口按钮 */
-.chassis-entry {
-  position: absolute; top: 12px; left: 12px; z-index: 6;
-  all: unset; box-sizing: border-box; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 32px; padding: 0 12px; border-radius: var(--radius-lg);
-  background: var(--board-tag-bg, #1b1b21); color: var(--foreground);
-  font-size: 12px; font-weight: 500; backdrop-filter: blur(4px);
-}
-.chassis-entry:hover { background: var(--surface-3); }
-.chassis-entry svg { width: 15px; height: 15px; fill: currentColor; }
-.chassis-entry:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+/* ── 整机总览常驻区（与板卡分类并列） ── */
+.ov-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
+.ov-card { padding: 10px; border-radius: var(--radius-md, 8px); background: var(--surface-1); display: flex; flex-direction: column; gap: 7px; }
+.ov-cap { font-size: 10.5px; color: var(--foreground-secondary); }
+.ov-empty { font-size: 11px; color: var(--foreground-muted); }
+.ov-warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning) 40%, transparent); }
+
+/* 各板明细表：板卡(含来源模型) | 器件 | 门限 | 状态 | 事件 | 机箱 */
+.ov-rt-head, .ov-rt { display: grid; grid-template-columns: 1.5fr 0.55fr 0.55fr 0.55fr 0.55fr 0.55fr; align-items: center; gap: 4px; font-size: 10.5px; }
+.ov-rt-head { color: var(--foreground-muted); padding: 1px 5px; }
+.ov-rt-head span:not(:first-child), .ov-rt .ov-rt-n { text-align: right; }
+.ov-rt { padding: 6px 5px; border-radius: var(--radius-sm, 6px); background: var(--surface-2); }
+.ov-rt-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ov-rt-nm { font-size: 11px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-rt-src { font-size: 9px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-rt-n { color: var(--foreground-secondary); }
+.ov-rt-n.hot { color: var(--warning); font-weight: 700; }
+
+.ov-incon { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; }
+.ov-incon-name { font-family: ui-monospace, monospace; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-incon-vals { display: flex; flex-wrap: wrap; gap: 6px; }
+.ov-incon-v { color: var(--warning); }
+
+.ov-chs-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.ov-chs-ev { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--radius-pill, 999px); background: var(--surface-2); font-size: 10px; color: var(--foreground-secondary); }
+.ov-dot { width: 6px; height: 6px; border-radius: var(--radius-pill, 999px); background: var(--warning); flex: none; }
+.ov-dot.min { background: var(--warning); }
+.ov-dot.maj { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
+.ov-dot.crit { background: var(--danger); }
+
+.ov-note { font-size: 10px; color: var(--foreground-muted); padding: 0 2px; }
 
 /* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
 :deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {
