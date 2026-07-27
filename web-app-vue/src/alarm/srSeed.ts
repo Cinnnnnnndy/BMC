@@ -102,7 +102,7 @@ function readingChipOf(objects: Record<string, Record<string, unknown>>, obj: Re
 
 /** 传感器 → 它订阅的 Scanner 的真实寄存器参数（Chip/Offset/Size/Mask/Period）。
  *  Offset/Mask 可能是表达式串（非数字）→ 回落默认值（无法用数字位表示）。*/
-interface ScannerParams { chip: string; offset: number; size: number; mask: number; period?: number }
+interface ScannerParams { chip: string; offset: number; size: number; mask: number; period?: number; debounce?: string; scanEnabled?: string }
 function scannerParamsOf(objects: Record<string, Record<string, unknown>>, sensorName: string): ScannerParams | null {
   const s = objects[sensorName];
   const r = s?.Reading;
@@ -113,10 +113,14 @@ function scannerParamsOf(objects: Record<string, Record<string, unknown>>, senso
   if (!sc) return null;
   const num = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
   const cr = parseRef(sc.Chip);
+  // Debounce：#/MidAvg_* / #/ContBin_*（去抖滤波）或字面 "None"；ScanEnabled：<=/Scanner_*.Value（上电门控）
+  const deb = sc.Debounce;
+  const debounce = typeof deb === 'string' ? (parseRef(deb)?.target || deb) : undefined;
   return {
     chip: cr ? cr.target : '',
     offset: num(sc.Offset, 0), size: num(sc.Size, 1), mask: num(sc.Mask, 255),
     period: typeof sc.Period === 'number' ? sc.Period : undefined,
+    debounce, scanEnabled: parseRef(sc.ScanEnabled)?.target,
   };
 }
 
@@ -216,6 +220,7 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
         dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
         dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 1000,
         thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true, entityRef,
+        debounce: sp?.debounce, scanEnabled: sp?.scanEnabled,
       });
     } else if (ch.kind === 'discrete') {
       const events: EvItem[] = ch.events.map((e) => ({
@@ -230,6 +235,7 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
         dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
         dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 8000,
         thresholds: {}, hysteresis: 0, events, enabled: true, entityRef,
+        debounce: sp?.debounce, scanEnabled: sp?.scanEnabled,
       });
     } else { skipped++; }
   }

@@ -24,6 +24,8 @@ export interface SensorCfg {
   thresholds: Record<string, number>;
   hysteresis: number; events: EvItem[]; enabled: boolean;
   entityRef?: string;        // 物理实体（Entity_* 名，来自 Sensor.EntityId）
+  debounce?: string;         // Scanner.Debounce：去抖滤波（MidAvg_*/ContBin_*/None）
+  scanEnabled?: string;      // Scanner.ScanEnabled：上电门控（依赖的 Scanner_* 名）
 }
 
 // 独立事件：不经传感器（Condition 为字面值）——真实 .sr 里绝大多数事件属此类（电压/在位/PMBus 状态等），

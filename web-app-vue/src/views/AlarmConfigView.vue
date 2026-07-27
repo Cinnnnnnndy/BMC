@@ -669,6 +669,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <option v-for="ct in PERIOD_CATEGORIES" :key="ct.periodMs + ct.label" :value="ct.periodMs">{{ ct.label }} · {{ ct.periodMs }}ms{{ recommendedPeriod(QUANTITIES[openCfg.quantityKey].recommend.periodKey).periodMs === ct.periodMs ? '（推荐）' : '' }}</option>
               </select>
             </div>
+            <div v-if="(openCfg.debounce && openCfg.debounce !== 'None') || openCfg.scanEnabled" class="ev-assoc">
+              <span class="ea-cap">来自 .sr</span>
+              <span v-if="openCfg.debounce && openCfg.debounce !== 'None'">去抖滤波 <code>{{ openCfg.debounce }}</code>（{{ /^MidAvg/.test(openCfg.debounce) ? '滑动均值' : /^ContBin/.test(openCfg.debounce) ? 'N 连续判定' : '滤波' }}）</span>
+              <span v-if="openCfg.scanEnabled">上电门控 <code>{{ openCfg.scanEnabled }}</code>（就绪才扫描）</span>
+            </div>
           </template>
           <div v-if="isThreshold(openCfg)" class="mf">
             <label>迟滞</label>
