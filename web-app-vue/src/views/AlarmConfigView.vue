@@ -358,6 +358,7 @@ function showSensorTip(e: MouseEvent, en: Entry): void {
     { k: '键名', v: en.sensor.sensorKey },
     { k: '数据源', v: `${ds}（${dsResolved(en.cfg) ? '已接' : '未接'}）` },
   ];
+  if (en.cfg.entityRef) rows.push({ k: '物理实体', v: en.cfg.entityRef });
   if (en.sensor.kind === 'threshold') {
     const set = THRESHOLD_ORDER.filter((k) => en.cfg.thresholds[k] != null).map((k) => `${ZH[k]}=${en.cfg.thresholds[k]}`);
     rows.push({ k: '门限', v: set.length ? set.join(' · ') + (q.unitLabel ? ' ' + q.unitLabel : '') : '未设' });
@@ -709,6 +710,13 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <span>分级：{{ severityDesc(ev.severity) }}</span>
                 <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
               </div>
+              <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
+                <span class="ea-cap">来自 .sr</span>
+                <span v-if="ev.component">归属 FRU <code>{{ ev.component }}</code></span>
+                <span v-if="ev.evHysteresis != null">迟滞 {{ ev.evHysteresis }}</span>
+                <span v-if="ev.ledFaultCode">面板故障码 <code>{{ ev.ledFaultCode }}</code></span>
+                <span v-if="ev.invalidReading != null">无效读数 {{ ev.invalidReading }}</span>
+              </div>
             </div>
           </template>
           <template v-else>
@@ -739,6 +747,13 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <span>方向：{{ operatorDesc(ev.operatorId) }}</span>
                 <span>分级：{{ severityDesc(ev.severity) }}</span>
                 <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
+              </div>
+              <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
+                <span class="ea-cap">来自 .sr</span>
+                <span v-if="ev.component">归属 FRU <code>{{ ev.component }}</code></span>
+                <span v-if="ev.evHysteresis != null">迟滞 {{ ev.evHysteresis }}</span>
+                <span v-if="ev.ledFaultCode">面板故障码 <code>{{ ev.ledFaultCode }}</code></span>
+                <span v-if="ev.invalidReading != null">无效读数 {{ ev.invalidReading }}</span>
               </div>
             </div>
           </template>
@@ -779,6 +794,14 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <span>方向：{{ operatorDesc(openLooseEvent.operatorId) }}</span>
               <span>分级：{{ severityDesc(openLooseEvent.severity) }}</span>
               <span>字典条目：{{ openLooseEvent.eventKeyId }} — 不经传感器，直连器件数据源</span>
+            </div>
+            <div v-if="openLooseEvent.component || openLooseEvent.evHysteresis != null || openLooseEvent.ledFaultCode || openLooseEvent.invalidReading != null || openLooseEvent.descArgs" class="ev-assoc">
+              <span class="ea-cap">来自 .sr</span>
+              <span v-if="openLooseEvent.component">归属 FRU <code>{{ openLooseEvent.component }}</code></span>
+              <span v-if="openLooseEvent.evHysteresis != null">迟滞 {{ openLooseEvent.evHysteresis }}</span>
+              <span v-if="openLooseEvent.ledFaultCode">面板故障码 <code>{{ openLooseEvent.ledFaultCode }}</code></span>
+              <span v-if="openLooseEvent.invalidReading != null">无效读数 {{ openLooseEvent.invalidReading }}</span>
+              <span v-if="openLooseEvent.descArgs">参数 <code v-for="(a, ai) in openLooseEvent.descArgs" :key="ai">{{ a }}</code></span>
             </div>
           </div>
         </div>
@@ -1014,6 +1037,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-hint { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 3px 16px; margin-top: 4px; padding-top: 7px; border-top: 1px dashed rgba(255, 255, 255, 0.08); font-size: 10.5px; line-height: 1.5; color: var(--foreground-muted); }
 .ev-hint code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
 .ev-hint .ev-fix { margin-left: 6px; }
+/* 来自 .sr 的真实关联/可调项（保真导入，非模板臆造）：单独一行、加浅底区分 */
+.ev-assoc { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 4px; padding: 6px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--primary) 9%, transparent); font-size: 10.5px; color: var(--foreground-secondary); }
+.ev-assoc .ea-cap { flex: none; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary); }
+.ev-assoc code { font-family: ui-monospace, monospace; color: var(--foreground); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); margin-left: 2px; }
 
 .board-summary { margin-top: 14px; padding-top: 12px; }
 .bs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--foreground-secondary); margin-bottom: 8px; }

@@ -10,6 +10,11 @@ export interface EvItem {
   id: string; suffix: string; label: string;
   severity: 'Minor' | 'Major' | 'Critical'; operatorId: number;
   levelField?: ThrKey; condition: number; eventKeyId: string; enabled: boolean;
+  // 真实 .sr 里事件自带的关联 / 可调项（保真导入，不再由生成器臆造）
+  component?: string;        // 归属 FRU（Component_* 名）
+  evHysteresis?: number;     // 事件级迟滞
+  ledFaultCode?: string;     // 面板故障码
+  invalidReading?: number;   // 无效读数（屏蔽值）
 }
 export interface SensorCfg {
   id: string; deviceKey: string; deviceLabel: string; quantityKey: string;
@@ -18,6 +23,7 @@ export interface SensorCfg {
   dsChip: string; dsOffset: number; dsMask: number; dsSize: number; periodMs: number;
   thresholds: Record<string, number>;
   hysteresis: number; events: EvItem[]; enabled: boolean;
+  entityRef?: string;        // 物理实体（Entity_* 名，来自 Sensor.EntityId）
 }
 
 // 独立事件：不经传感器（Condition 为字面值）——真实 .sr 里绝大多数事件属此类（电压/在位/PMBus 状态等），
@@ -29,6 +35,12 @@ export interface LooseEvent {
   dsChip: string;              // 数据源芯片（''=固件/无）
   scope: 'chassis' | 'board' | 'device';
   enabled: boolean;
+  // 真实 .sr 关联 / 可调项（保真导入）
+  component?: string;          // 归属 FRU（Component_* 名）
+  evHysteresis?: number;       // 事件级迟滞
+  ledFaultCode?: string;       // 面板故障码
+  invalidReading?: number;     // 无效读数（屏蔽值）
+  descArgs?: string[];         // 真实 DescArg1..N（信号名/参数）
 }
 
 export interface BoardAlarm { cfgs: SensorCfg[]; looseEvents: LooseEvent[]; uidN: number; evSeq: number; loaded: boolean; }
