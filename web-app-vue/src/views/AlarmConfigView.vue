@@ -390,7 +390,20 @@ function copyAll(): void {
 }
 const showJson = ref(false);
 // 在右侧代码分屏打开本板对应的 .sr（当前用生成的 CSR 对象作内容）
-function openInCode(): void { openCodeDoc(`${boardName.value}.sr`, objectsJson.value); }
+// 「代码」：嵌入 IDE 时交给宿主在右侧编辑器分屏打开（而非本视图内部分屏）；独立运行则用内部分屏预览。
+function openInCode(): void {
+  const file = `${boardName.value}.sr`;
+  const content = objectsJson.value;
+  let embedded = false;
+  try { embedded = window.self !== window.top; } catch { embedded = true; }
+  if (embedded) {
+    const msg = { type: 'open-code', source: 'hardware-alarm', file, language: 'jsonc', readOnly: true, content };
+    try { window.parent.postMessage(msg, '*'); } catch { /* ignore */ }
+    try { (window as unknown as { vscode?: { postMessage?: (m: unknown) => void } }).vscode?.postMessage?.(msg); } catch { /* ignore */ }
+  } else {
+    openCodeDoc(file, content);
+  }
+}
 
 /* 快速新增：把「监控对象 + 添加区」收进「＋ 新增」浮窗（teleport 到 body，避开面板 overflow 裁剪）*/
 const showAdd = ref(false);
@@ -690,32 +703,30 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           </div>
           <template v-if="isThreshold(openCfg)">
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: thrValue(openCfg, ev.levelField) == null || !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
-              <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" class="sw" v-model="ev.enabled" /></label>
-              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
-              <label class="ef ef-lv">
-                <span class="ef-k">档位</span>
-                <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
-                  <option v-for="k in THRESHOLD_ORDER" :key="k" :value="k">{{ ZH[k] }}{{ openCfg.thresholds[k] != null ? ' = ' + openCfg.thresholds[k] : '（未设）' }}</option>
-                </select>
-              </label>
-              <span class="ef"><span class="ef-k">方向</span><span class="ef-dir">{{ operatorSym(ev.operatorId) }} 门限</span></span>
-              <label class="ef"><span class="ef-k">分级</span>
-                <select v-model="ev.severity" class="disc-sel">
-                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                </select>
-              </label>
-              <label class="ef ef-grow"><span class="ef-k">告警字典条目</span>
-                <select v-model="ev.eventKeyId" class="disc-sel wide">
-                  <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
-                </select>
-              </label>
-              <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
-              <!-- 就近提示：解释本行几个下拉的含义 + 触发值引用哪档门限 -->
-              <div class="ev-hint">
-                <span>档位：监视该档门限，触发值自动引用<template v-if="ev.levelField"> <code>{{ openEntry.sensor.sensorKey }}.{{ ev.levelField }}</code><template v-if="thrValue(openCfg, ev.levelField) != null"> = {{ thrValue(openCfg, ev.levelField) }}</template><button v-else class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button></template></span>
-                <span>方向：{{ operatorDesc(ev.operatorId) }}</span>
-                <span>分级：{{ severityDesc(ev.severity) }}</span>
-                <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
+              <div class="ev-head">
+                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
+                <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+              </div>
+              <div class="ev-fields">
+                <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
+                <label class="ef ef-lv">
+                  <span class="ef-k">档位<i class="i" :title="ev.levelField ? ('监视该档门限，触发值自动引用 ' + openEntry.sensor.sensorKey + '.' + ev.levelField + (thrValue(openCfg, ev.levelField) != null ? ' = ' + thrValue(openCfg, ev.levelField) : '（该档未设，可点“设推荐”）')) : '选择监视哪一档门限'">i</i></span>
+                  <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
+                    <option v-for="k in THRESHOLD_ORDER" :key="k" :value="k">{{ ZH[k] }}{{ openCfg.thresholds[k] != null ? ' = ' + openCfg.thresholds[k] : '（未设）' }}</option>
+                  </select>
+                </label>
+                <span class="ef"><span class="ef-k">方向<i class="i" :title="operatorDesc(ev.operatorId)">i</i></span><span class="ef-dir">{{ operatorSym(ev.operatorId) }} 门限</span></span>
+                <label class="ef"><span class="ef-k">分级<i class="i" :title="severityDesc(ev.severity)">i</i></span>
+                  <select v-model="ev.severity" class="disc-sel">
+                    <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                  </select>
+                </label>
+                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                  <select v-model="ev.eventKeyId" class="disc-sel wide">
+                    <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
+                  </select>
+                </label>
+                <button v-if="ev.levelField && thrValue(openCfg, ev.levelField) == null" class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
               </div>
               <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
                 <span class="ea-cap">来自 .sr</span>
@@ -728,32 +739,30 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           </template>
           <template v-else>
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
-              <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" class="sw" v-model="ev.enabled" /></label>
-              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
-              <label class="ef"><span class="ef-k">触发值</span>
-                <span class="ef-ctl"><input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
-              </label>
-              <label class="ef"><span class="ef-k">方向</span>
-                <select v-model.number="ev.operatorId" class="disc-sel">
-                  <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}{{ o.id === QUANTITIES[openCfg.quantityKey].recommend.operatorId ? '（推荐）' : '' }}</option>
-                </select>
-              </label>
-              <label class="ef"><span class="ef-k">分级</span>
-                <select v-model="ev.severity" class="disc-sel">
-                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-                </select>
-              </label>
-              <label class="ef ef-grow"><span class="ef-k">告警字典条目</span>
-                <select v-model="ev.eventKeyId" class="disc-sel wide">
-                  <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
-                </select>
-              </label>
-              <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
-              <div class="ev-hint">
-                <span>触发值：读数命中该值即告警（离散量常 1=置位/故障，0=不在位）</span>
-                <span>方向：{{ operatorDesc(ev.operatorId) }}</span>
-                <span>分级：{{ severityDesc(ev.severity) }}</span>
-                <span>字典条目：决定告警在字典中的文案与等级映射（首项推荐）</span>
+              <div class="ev-head">
+                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
+                <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
+              </div>
+              <div class="ev-fields">
+                <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
+                <label class="ef"><span class="ef-k">触发值<i class="i" title="读数命中该值即告警；离散量一般 1=置位/故障，0=不在位。">i</i></span>
+                  <span class="ef-ctl"><input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
+                </label>
+                <label class="ef"><span class="ef-k">方向<i class="i" :title="operatorDesc(ev.operatorId)">i</i></span>
+                  <select v-model.number="ev.operatorId" class="disc-sel">
+                    <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}{{ o.id === QUANTITIES[openCfg.quantityKey].recommend.operatorId ? '（推荐）' : '' }}</option>
+                  </select>
+                </label>
+                <label class="ef"><span class="ef-k">分级<i class="i" :title="severityDesc(ev.severity)">i</i></span>
+                  <select v-model="ev.severity" class="disc-sel">
+                    <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                  </select>
+                </label>
+                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                  <select v-model="ev.eventKeyId" class="disc-sel wide">
+                    <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
+                  </select>
+                </label>
               </div>
               <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
                 <span class="ea-cap">来自 .sr</span>
@@ -787,27 +796,25 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
         </div>
         <div class="cfg-body">
           <div class="ev-edit">
-            <label class="ef ev-en" title="是否产出该事件"><span class="ef-k">启用</span><input type="checkbox" class="sw" v-model="openLooseEvent.enabled" /></label>
-            <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="openLooseEvent.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
-            <label class="ef"><span class="ef-k">触发值</span>
-              <input v-model.number="openLooseEvent.condition" type="number" class="thr-in w" />
-            </label>
-            <label class="ef"><span class="ef-k">方向</span>
-              <select v-model.number="openLooseEvent.operatorId" class="disc-sel">
-                <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
-              </select>
-            </label>
-            <label class="ef"><span class="ef-k">分级</span>
-              <select v-model="openLooseEvent.severity" class="disc-sel">
-                <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
-              </select>
-            </label>
-            <label class="ef ef-grow"><span class="ef-k">告警字典条目</span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
-            <div class="ev-hint">
-              <span>触发值：读数命中该值即告警（电压限值 / PMBus 状态位 / 在位标志）</span>
-              <span>方向：{{ operatorDesc(openLooseEvent.operatorId) }}</span>
-              <span>分级：{{ severityDesc(openLooseEvent.severity) }}</span>
-              <span>字典条目：{{ openLooseEvent.eventKeyId }} — 不经传感器，直连器件数据源</span>
+            <div class="ev-head">
+              <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="openLooseEvent.enabled" /><span class="ev-en-l">启用</span></label>
+            </div>
+            <div class="ev-fields">
+              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="openLooseEvent.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
+              <label class="ef"><span class="ef-k">触发值<i class="i" title="读数命中该值即告警（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
+                <input v-model.number="openLooseEvent.condition" type="number" class="thr-in w" />
+              </label>
+              <label class="ef"><span class="ef-k">方向<i class="i" :title="operatorDesc(openLooseEvent.operatorId)">i</i></span>
+                <select v-model.number="openLooseEvent.operatorId" class="disc-sel">
+                  <option v-for="o in OPERATORS" :key="o.id" :value="o.id">{{ o.symbol }} {{ o.label }}</option>
+                </select>
+              </label>
+              <label class="ef"><span class="ef-k">分级<i class="i" :title="severityDesc(openLooseEvent.severity)">i</i></span>
+                <select v-model="openLooseEvent.severity" class="disc-sel">
+                  <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
+                </select>
+              </label>
+              <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
             </div>
             <div v-if="openLooseEvent.component || openLooseEvent.evHysteresis != null || openLooseEvent.ledFaultCode || openLooseEvent.invalidReading != null || openLooseEvent.descArgs" class="ev-assoc">
               <span class="ea-cap">来自 .sr</span>
@@ -941,7 +948,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 
 /* 泳道三：事件节点卡换行扇出，铃铛图标按严重度着色；左侧泳道分隔线 */
 .se-events { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; align-items: center; gap: 6px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.05); }
-.event-node { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 11px; color: var(--foreground); }
+.event-node { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 8px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 10.5px; color: var(--foreground); }
 .event-node.none { color: var(--foreground-muted); }
 .en-ic { display: inline-flex; flex: none; color: var(--foreground-muted); }
 .en-ic svg { width: 12px; height: 12px; fill: currentColor; }
@@ -1034,16 +1041,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 
 /* 事件编辑 */
 .ev-add { all: unset; cursor: pointer; margin-left: auto; font-size: 11px; color: var(--foreground-secondary); padding: 3px 10px; border-radius: 999px; background: var(--surface-3); }
-/* 事件行：所有字段列顶对齐 → 标签成一行、控件成一行（.ef-k 定高保证控件基线一致） */
-.ev-edit { display: flex; align-items: flex-start; gap: 8px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-2); }
+/* 事件卡：启用单独一行(头部) + 字段行(标签+控件对齐) + .sr 关联行 */
+.ev-edit { display: flex; flex-direction: column; gap: 9px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-2); }
 .ev-edit.inactive { opacity: .55; }
+.ev-head { display: flex; align-items: center; justify-content: space-between; }
+.ev-fields { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 14px; }
 .ef { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--foreground-muted); }
 .ef-grow { flex: 1; min-width: 180px; }
 .ef-lv { min-width: 128px; }
 .ef-k { display: flex; align-items: center; gap: 3px; height: 15px; line-height: 15px; white-space: nowrap; }
 .ef-ctl { display: flex; align-items: center; gap: 6px; }
-.ev-en { flex: none; align-items: center; }
-.ev-en .ef-k { justify-content: center; }
+.ev-en { display: flex; flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
+.ev-en-l { font-size: 11px; color: var(--foreground-secondary); }
 .ev-nm { flex: 1 1 160px; }
 /* 启用：统一为开关（原勾选框） */
 .sw { all: unset; box-sizing: border-box; position: relative; width: 32px; height: 18px; border-radius: 999px; background: var(--surface-4, #3a3a3a); cursor: pointer; flex: none; transition: background .15s; }
@@ -1054,8 +1063,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ef-ref { display: flex; flex-wrap: wrap; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; color: var(--foreground-muted); flex-basis: 100%; padding-left: 2px; }
 .ef-dir { font-size: 12px; color: var(--foreground-secondary); padding: 6px 0; }
 .ef-ref code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 1px 6px; border-radius: var(--radius-sm); }
-.ev-fix { all: unset; cursor: pointer; font-size: 11px; color: var(--warning); }
-.ev-del { all: unset; cursor: pointer; align-self: flex-start; margin-top: 18px; margin-left: auto; color: var(--foreground-muted); font-size: 12px; padding: 2px 4px; border-radius: var(--radius-sm); }
+.ev-fix { all: unset; cursor: pointer; align-self: flex-end; font-size: 11px; color: var(--warning); padding-bottom: 5px; }
+.ev-del { all: unset; cursor: pointer; color: var(--foreground-muted); font-size: 13px; padding: 2px 6px; border-radius: var(--radius-sm); }
 .ev-del:hover { color: var(--danger); background: var(--state-hover); }
 .thr-in.wnm { width: 100%; min-width: 0; text-align: left; padding: 5px 7px; }
 .thr-in.wkey { width: 100%; text-align: left; padding: 5px 7px; font-family: ui-monospace, monospace; }
