@@ -224,10 +224,10 @@
 .di-arrow { flex: none; color: var(--text-dim); }
 .di-empty { font-size: 11px; color: var(--foreground-muted); padding: 6px 2px; }
 
-/* 告警/传感器 = 横向泳道大图（器件 → 传感器 → 事件）→ 宽面板铺开 */
-.topo-property-panel.wide { width: min(1080px, calc(100vw - 260px)); }
+/* 告警/传感器 = 横向泳道大图（器件 → 传感器 → 事件）→ 宽面板铺开；上限收窄，小屏留更多画布 */
+.topo-property-panel.wide { width: min(900px, calc(100vw - 40px)); }
 /* 单器件告警：只有事件按类，无泳道 → 收窄面板，避免整屏铺开显空 */
-.topo-property-panel.wide-dev { width: min(680px, calc(100vw - 260px)); }
+.topo-property-panel.wide-dev { width: min(620px, calc(100vw - 40px)); }
 
 /* 配置面板 tab 条：按字数定宽（不随面板缩放） */
 .pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }

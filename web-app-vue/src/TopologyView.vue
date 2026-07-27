@@ -299,9 +299,13 @@ function pickChip(g: BoardGroup, chip: { label: string; chipType: string }): voi
 }
 provide('onChipPick', pickChip);
 // 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
-watch(activeGroup, (g) => {
+watch(activeGroup, (g, prev) => {
   activeDevice.value = null;
-  if (g) loadBoardOnce(g.name);
+  if (g) {
+    loadBoardOnce(g.name);
+    // 配置面板打开时（关→开）默认收起左侧硬件管理器，给小屏让出画布；板→板切换不强制再收
+    if (!prev) paletteCollapsed.value = true;
+  }
 }, { immediate: true });
 
 // 整机（Chassis）告警总览：现在常驻左侧「硬件管理器」，与「板卡分类」并列；
