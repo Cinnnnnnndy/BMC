@@ -628,7 +628,7 @@ function catStateClass(cat: CatNode): string {
       <!-- 板卡/器件级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
       <div class="pp-tabs" role="tablist">
         <button class="pp-tab" :class="{ active: panelTab === 'detail' }" @click="panelTab = 'detail'">详情</button>
-        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器<span v-if="alarmTabCount.s + alarmTabCount.e" class="pp-tab-n" :title="alarmTabCount.s + ' 传感器 · ' + alarmTabCount.e + ' 告警/事件'">{{ alarmTabCount.s }}·{{ alarmTabCount.e }}</span></button>
+        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警<span class="pp-tab-n">{{ alarmTabCount.e }}</span> / 传感器<span class="pp-tab-n">{{ alarmTabCount.s }}</span></button>
       </div>
 
       <!-- ══════ 板卡模式 ══════ -->

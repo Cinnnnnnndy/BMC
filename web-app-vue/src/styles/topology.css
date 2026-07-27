@@ -233,7 +233,7 @@
 .pp-tab:hover { color: var(--text-main); }
 .pp-tab.active { background: var(--surface-3); color: var(--text-main); font-weight: 600; }
 .pp-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
-.pp-tab-n { margin-left: 7px; font-size: 10px; font-weight: 600; font-family: ui-monospace, monospace; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--primary); vertical-align: middle; }
+.pp-tab-n { margin-left: 3px; font-size: 10.5px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--primary); }
 
 /* 告警 tab 容器：内嵌 AlarmConfigView，自身滚动 */
 .pp-alarm { flex: 1; min-height: 0; overflow-y: auto; }
