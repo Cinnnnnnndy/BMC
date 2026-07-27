@@ -714,8 +714,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .conn { fill: none; stroke: color-mix(in srgb, var(--foreground-muted) 42%, transparent); stroke-width: 1.5; transition: stroke .12s, stroke-width .12s, opacity .12s; }
 .conn.active { stroke: var(--primary); stroke-width: 2; }
 .conn.dim { opacity: .22; }
-.conn.dashed { stroke-dasharray: 4 5; stroke: color-mix(in srgb, var(--foreground-muted) 30%, transparent); }
-.conn.dashed.active { stroke: var(--primary); }
+/* 器件→分类(独立事件)虚线：默认隐藏避免穿过传感器区显乱，hover 分类时才显 */
+.conn.dashed { stroke-dasharray: 4 5; stroke: color-mix(in srgb, var(--foreground-muted) 30%, transparent); opacity: 0; }
+.conn.dashed.active { opacity: 1; stroke: var(--primary); }
 
 /* 泳道一：数据源器件(芯片) 节点，置于块顶，扇出到传感器/事件泳道 */
 .chip-node { position: relative; z-index: 1; flex: none; width: 170px; align-self: flex-start; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px; border-radius: var(--radius-lg); background: var(--surface-3); }

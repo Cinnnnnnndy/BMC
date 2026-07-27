@@ -554,9 +554,9 @@ function catStateClass(cat: CatNode): string {
             <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
           </div>
         </div>
-        <!-- 机箱级事件（Chassis.* · 跨板归属机箱）：逐条列出，样式对齐上面板卡明细 -->
+        <!-- 整机事件（Chassis.* · 跨板归属机箱）：逐条列出，样式对齐上面板卡明细 -->
         <div class="ov-chs-list">
-          <div class="ov-sub2">机箱级事件（Chassis.* · 跨板归属机箱）</div>
+          <div class="ov-sub2">整机事件<span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载">?</span></div>
           <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
           <div
             v-for="(e, i) in ovCEvents"
@@ -1043,7 +1043,7 @@ function catStateClass(cat: CatNode): string {
 }
 
 /* ── 整机总览常驻区（与板卡分类并列） ── */
-.ov-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
+.ov-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 6px 12px; }
 .ov-card { padding: 10px; border-radius: var(--radius-md, 8px); background: var(--surface-1); display: flex; flex-direction: column; gap: 7px; }
 .ov-cap { font-size: 10.5px; color: var(--foreground-secondary); }
 .ov-empty { font-size: 11px; color: var(--foreground-muted); }
@@ -1065,10 +1065,12 @@ function catStateClass(cat: CatNode): string {
 .ov-incon-vals { display: flex; flex-wrap: wrap; gap: 6px; }
 .ov-incon-v { color: var(--warning); }
 
-/* 机箱级事件：逐条一行（对齐板卡分类列表行的观感，不放卡片） */
+/* 机箱级事件：逐条一行，行高/左缩进对齐上方板卡分类树（统一竖向节奏，不放卡片） */
 .ov-chs-list { display: flex; flex-direction: column; }
-.ov-sub2 { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--foreground-muted); padding: 2px 2px 4px; }
-.ov-chs-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--radius-sm, 6px); font-size: 11px; color: var(--foreground-secondary); }
+.ov-sub2 { display: flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px 0 12px; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--foreground-muted); }
+.ov-help { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 999px; background: var(--surface-2); color: var(--foreground-muted); font-size: 9px; cursor: help; text-transform: none; }
+.ov-help:hover { background: var(--surface-3); color: var(--foreground-secondary); }
+.ov-chs-row { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 12px; border-radius: var(--radius-md, 8px); font-size: 11px; color: var(--foreground-secondary); }
 .ov-chs-row:hover { background: var(--state-hover); }
 .ov-chs-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-chs-bd { flex: none; font-size: 9.5px; color: var(--foreground-muted); }
