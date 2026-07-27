@@ -314,6 +314,7 @@ onMounted(() => { for (const b of allBoards.value) loadBoardOnce(b.name); });
 const ovRows = computed(() => boardRollup());
 const ovCEvents = computed(() => chassisEvents());
 const ovIncons = computed(() => thresholdInconsistencies());
+const chassisOpen = ref(true); // 整机事件区可折叠（点区头收起/展开）
 const ovTotalChips = computed(() => ovRows.value.reduce((n, r) => n + r.chips, 0));
 const ovTotalSensors = computed(() => ovRows.value.reduce((n, r) => n + r.thresholdSensors + r.discreteSensors, 0));
 const ovTotalEvents = computed(() => ovRows.value.reduce((n, r) => n + r.events, 0));
@@ -545,13 +546,13 @@ function catStateClass(cat: CatNode): string {
         </template>
       </div>
 
-      <!-- ── 整机事件（Chassis.* · 跨板，不归属单块板；含跨板一致性核对）── -->
-      <div class="sec-hd">
-        <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+      <!-- ── 整机事件（Chassis.* · 跨板，不归属单块板；含跨板一致性核对）· 可折叠 ── -->
+      <div class="sec-hd sec-hd-toggle" @click="chassisOpen = !chassisOpen">
+        <svg viewBox="0 0 24 24" width="10" height="10" :style="{ color: 'var(--foreground-muted)', transform: chassisOpen ? 'rotate(90deg)' : 'rotate(0deg)', flexShrink: 0, transition: 'transform .15s' }" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
         整机事件
-        <span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载">?</span>
+        <span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载" @click.stop>?</span>
       </div>
-      <div class="ov-body">
+      <div v-show="chassisOpen" class="ov-body">
         <!-- 逐条列出机箱级事件（样式对齐上面板卡分类树的行节奏） -->
         <div class="ov-chs-list">
           <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
@@ -1022,6 +1023,7 @@ function catStateClass(cat: CatNode): string {
 
 /* ── 整机总览常驻区（与板卡分类并列） ── */
 .ov-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 6px 12px; }
+.sec-hd-toggle { cursor: pointer; user-select: none; }
 .ov-card { padding: 10px; border-radius: var(--radius-md, 8px); background: var(--surface-1); display: flex; flex-direction: column; gap: 7px; }
 .ov-cap { font-size: 10.5px; color: var(--foreground-secondary); }
 .ov-empty { font-size: 11px; color: var(--foreground-muted); }

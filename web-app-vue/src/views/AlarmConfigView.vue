@@ -754,7 +754,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <label>器件(Component)<input v-model="openCfg.deviceKey" class="thr-in w" placeholder="System" /></label>
               <label>读数字段(Field)<input v-model="openCfg.readingField" class="thr-in w" :placeholder="QUANTITIES[openCfg.quantityKey].readingField + '（默认）'" /></label>
             </div>
-            <div class="mf-desc">订阅 <code>{{ openCfg.deviceKey || '?' }}.{{ (openCfg.readingField && openCfg.readingField.trim()) || QUANTITIES[openCfg.quantityKey].readingField }}</code> —— 缩放 / 单位已在器件模型内处理，最省心。</div>
+            <div class="mf-desc">→ 订阅 <code>{{ openCfg.deviceKey || '?' }}.{{ (openCfg.readingField && openCfg.readingField.trim()) || QUANTITIES[openCfg.quantityKey].readingField }}</code></div>
           </template>
           <template v-if="openCfg.dsMode === 'scanner'">
             <div class="scan-grid">
@@ -822,9 +822,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
                 <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
                 <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                <label class="ef ef-grow"><span v-if="ev.eventKeyId" class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
                   <select v-model="ev.eventKeyId" class="disc-sel wide" :class="{ 'todo-field': !ev.eventKeyId }">
-                    <option value="" disabled>待选 · 告警字典条目</option>
+                    <option value="" disabled>待选…</option>
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
@@ -859,9 +859,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
                 <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
                 <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                <label class="ef ef-grow"><span v-if="ev.eventKeyId" class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
+                <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
                   <select v-model="ev.eventKeyId" class="disc-sel wide" :class="{ 'todo-field': !ev.eventKeyId }">
-                    <option value="" disabled>待选 · 告警字典条目</option>
+                    <option value="" disabled>待选…</option>
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
@@ -1156,8 +1156,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .thr-unit { font-size: 11px; color: var(--foreground-muted); }
 .disc-note { font-size: 11px; color: var(--foreground-muted); }
 
-.mf { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mf > label { flex: none; display: inline-flex; align-items: center; gap: 2px; min-width: 52px; font-size: 11px; color: var(--foreground-secondary); }
+/* 配置字段统一「标签在上、控件在下」（与 scan-grid / 事件字段一致，避免取数方式等标题位置不一） */
+.mf { display: flex; flex-direction: column; gap: 4px; }
+.mf > label { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; font-size: 11px; color: var(--foreground-secondary); }
+.mf > .disc-sel { width: 100%; }
 .mf-desc { font-size: 11px; color: var(--foreground-muted); }
 .disc-sel { padding: 6px 26px 6px 9px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: rgba(255,255,255,0.07); border: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
 .disc-sel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
