@@ -320,6 +320,17 @@ const rollupByName = computed(() => {
 });
 function rollupOf(name: string): BoardRollup | undefined { return rollupByName.value.get(name); }
 function softOf(name: string) { return boardSoftDetail(name); }
+/** 板卡组行的悬浮提示：来源 Connector + 该板软硬件计数（器件/门限/状态/事件/机箱）。 */
+function groupTitle(g: BoardGroup): string {
+  const base = g.connectorRef
+    ? `来源 Connector：${g.connectorRef.parentGroupId} / ${g.connectorRef.connectorName}`
+    : g.label;
+  const r = rollupOf(g.name);
+  if (!r) return base;
+  const stats = `器件 ${r.chips} · 门限 ${r.thresholdSensors} · 状态 ${r.discreteSensors} · 事件 ${r.events}`
+    + (r.chassisEvents ? ` · 机箱 ${r.chassisEvents}` : '');
+  return `${base}\n${stats}`;
+}
 
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
@@ -454,7 +465,7 @@ function catStateClass(cat: CatNode): string {
               <div
                 class="hw-grp-row"
                 :class="{ 'is-active': activeNode?.id === g.id }"
-                :title="g.connectorRef ? '来源 Connector：' + g.connectorRef.parentGroupId + ' / ' + g.connectorRef.connectorName : g.label"
+                :title="groupTitle(g)"
                 @click="clickGroup(g)"
               >
                 <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">
@@ -470,16 +481,8 @@ function catStateClass(cat: CatNode): string {
                   @click.stop="toggleAssign(g.id)"
                 >指派</button>
               </div>
-              <!-- 展开：该板软硬件明细放一起（汇总统计 + 源文件[硬件] + 传感器/告警[软件] + 机箱级） -->
+              <!-- 展开：该板软硬件明细放一起（源文件[硬件] + 传感器/告警[软件]）；计数见行悬浮提示 -->
               <div v-if="expandedGroups[g.id]" class="hw-detail">
-                <!-- 汇总统计条（真实 .sr 直读；无匹配样例则不显示） -->
-                <div v-if="rollupOf(g.name)" class="hw-mini">
-                  <span>器件 {{ rollupOf(g.name)!.chips }}</span>
-                  <span>门限 {{ rollupOf(g.name)!.thresholdSensors }}</span>
-                  <span>状态 {{ rollupOf(g.name)!.discreteSensors }}</span>
-                  <span>事件 {{ rollupOf(g.name)!.events }}</span>
-                  <span v-if="rollupOf(g.name)!.chassisEvents" class="hot">机箱 {{ rollupOf(g.name)!.chassisEvents }}</span>
-                </div>
                 <!-- 硬件：源文件（.sr / _soft.sr 折叠为主文件一行） -->
                 <template v-if="g.boards.length">
                   <div class="hw-sub">硬件 · 源文件</div>
@@ -551,17 +554,21 @@ function catStateClass(cat: CatNode): string {
             <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
           </div>
         </div>
-        <!-- 机箱级事件（Chassis.* · 跨板归属机箱） -->
-        <div class="ov-card">
-          <div class="ov-cap">机箱级事件（Chassis.* · 跨板归属机箱）</div>
+        <!-- 机箱级事件（Chassis.* · 跨板归属机箱）：逐条列出，样式对齐上面板卡明细 -->
+        <div class="ov-chs-list">
+          <div class="ov-sub2">机箱级事件（Chassis.* · 跨板归属机箱）</div>
           <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
-          <div class="ov-chs-grid">
-            <span v-for="(e, i) in ovCEvents" :key="i" class="ov-chs-ev" :title="e.board + ' · ' + e.keyId">
-              <i class="ov-dot" :class="e.severity"></i>{{ e.name }}
-            </span>
+          <div
+            v-for="(e, i) in ovCEvents"
+            :key="i"
+            class="ov-chs-row"
+            :title="e.board + ' · ' + e.keyId"
+          >
+            <i class="ov-dot" :class="e.severity"></i>
+            <span class="ov-chs-nm">{{ e.name }}</span>
+            <span class="ov-chs-bd">{{ e.board }}</span>
           </div>
         </div>
-        <div class="ov-note">整机层只做总览 + 机箱级 + 一致性；逐条编辑请到板卡 / 器件配置面板。</div>
       </div>
       </div><!-- /mgr-scroll -->
 
@@ -898,15 +905,6 @@ function catStateClass(cat: CatNode): string {
   gap: 4px;
   padding: 2px 8px 8px 28px;
 }
-.hw-mini {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  padding: 2px 2px 3px;
-  font-size: 9.5px;
-  color: var(--foreground-muted);
-}
-.hw-mini .hot { color: var(--warning); font-weight: 700; }
 .hw-sub {
   font-size: 9px;
   letter-spacing: 0.04em;
@@ -1067,14 +1065,18 @@ function catStateClass(cat: CatNode): string {
 .ov-incon-vals { display: flex; flex-wrap: wrap; gap: 6px; }
 .ov-incon-v { color: var(--warning); }
 
-.ov-chs-grid { display: flex; flex-wrap: wrap; gap: 5px; }
-.ov-chs-ev { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--radius-pill, 999px); background: var(--surface-2); font-size: 10px; color: var(--foreground-secondary); }
+/* 机箱级事件：逐条一行（对齐板卡分类列表行的观感，不放卡片） */
+.ov-chs-list { display: flex; flex-direction: column; }
+.ov-sub2 { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--foreground-muted); padding: 2px 2px 4px; }
+.ov-chs-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--radius-sm, 6px); font-size: 11px; color: var(--foreground-secondary); }
+.ov-chs-row:hover { background: var(--state-hover); }
+.ov-chs-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-chs-bd { flex: none; font-size: 9.5px; color: var(--foreground-muted); }
 .ov-dot { width: 6px; height: 6px; border-radius: var(--radius-pill, 999px); background: var(--warning); flex: none; }
 .ov-dot.min { background: var(--warning); }
 .ov-dot.maj { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
 .ov-dot.crit { background: var(--danger); }
 
-.ov-note { font-size: 10px; color: var(--foreground-muted); padding: 0 2px; }
 
 /* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
 :deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {
