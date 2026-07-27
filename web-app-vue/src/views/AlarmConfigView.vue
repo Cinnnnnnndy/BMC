@@ -263,6 +263,16 @@ function toggleLoose(id: string): void {
   openLooseId.value = willOpen ? id : null;
   if (willOpen) { expandedId.value = null; focusEventKey.value = null; }
 }
+// 新增独立事件：不经传感器、直连器件数据源（真实 .sr 里大多数告警属此类）。新建空事件并打开其配置。
+function addLooseEvent(): void {
+  const st = boardAlarm(boardKey.value);
+  const id = `le-m${nextEvSeq(boardKey.value)}`;
+  const dsChip = props.scopeChipKey && props.scopeChipKey !== '__firmware' ? props.scopeChipKey : '';
+  st.looseEvents.push({ id, eventKeyId: '', label: '新事件', condition: 1, operatorId: 5, severity: 'Major', dsChip, scope: 'board', enabled: true });
+  expandedId.value = null;
+  openLooseId.value = id;
+  showAdd.value = false;
+}
 // .sr 播种的状态传感器常带空 events（生效值是对象生成器合成的默认「状态命中」）；
 // 打开配置时把这条合成默认落成可编辑事件，避免出现「已配置 0」的空编辑区。
 function ensureEditableEvents(c: SensorCfg): void {
@@ -506,6 +516,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
       <span class="tb-tag">{{ scopeChipKey ? '数据源器件' : '来自拓扑' }}</span>
       <span class="tb-src">{{ source || boardName }}</span>
       <span v-if="sensorCount || looseCount" class="tb-note">{{ showChipLane ? flowCount + ' 器件 · ' : '' }}{{ sensorCount }} 传感器 · {{ eventCount }} 告警<template v-if="looseCount"> · {{ looseCount }} 独立事件</template></span>
+      <button class="btn add-open2" title="新增一条不经传感器的独立事件（直连器件数据源）" @click="addLooseEvent">＋ 新增事件</button>
       <button v-if="!scopeChipKey" ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
     </div>
 
@@ -729,21 +740,16 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                     <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
                   </select>
                 </label>
+                <label v-if="ev.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
+                <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
+                <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+                <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
                 <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
                   <select v-model="ev.eventKeyId" class="disc-sel wide">
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
                 <button v-if="ev.levelField && thrValue(openCfg, ev.levelField) == null" class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
-              </div>
-              <div v-if="ev.component != null || ev.evHysteresis != null || ev.ledFaultCode != null || ev.invalidReading != null" class="ev-assoc">
-                <div class="ea-cap">来自 .sr · 可改</div>
-                <div class="ea-fields">
-                  <label v-if="ev.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
-                  <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
-                  <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
-                  <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                </div>
               </div>
             </div>
           </template>
@@ -768,20 +774,15 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                     <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
                   </select>
                 </label>
+                <label v-if="ev.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
+                <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
+                <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+                <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
                 <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span>
                   <select v-model="ev.eventKeyId" class="disc-sel wide">
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
-              </div>
-              <div v-if="ev.component != null || ev.evHysteresis != null || ev.ledFaultCode != null || ev.invalidReading != null" class="ev-assoc">
-                <div class="ea-cap">来自 .sr · 可改</div>
-                <div class="ea-fields">
-                  <label v-if="ev.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
-                  <label v-if="ev.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
-                  <label v-if="ev.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
-                  <label v-if="ev.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
-                </div>
               </div>
             </div>
           </template>
@@ -826,17 +827,12 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                   <option v-for="s in SEVERITIES" :key="s.v" :value="s.v">{{ s.label }}</option>
                 </select>
               </label>
+              <label v-if="openLooseEvent.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="openLooseEvent.component" class="ea-in" placeholder="Component_*" /></label>
+              <label v-if="openLooseEvent.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="openLooseEvent.evHysteresis" type="number" class="ea-in num" /></label>
+              <label v-if="openLooseEvent.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="openLooseEvent.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+              <label v-if="openLooseEvent.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="openLooseEvent.invalidReading" type="number" class="ea-in num" /></label>
+              <label v-for="(a, ai) in openLooseEvent.descArgs" :key="ai" class="ef"><span class="ef-k">参数{{ ai + 1 }}</span><input v-model="openLooseEvent.descArgs![ai]" class="ea-in" /></label>
               <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
-            </div>
-            <div v-if="openLooseEvent.component != null || openLooseEvent.evHysteresis != null || openLooseEvent.ledFaultCode != null || openLooseEvent.invalidReading != null || openLooseEvent.descArgs" class="ev-assoc">
-              <div class="ea-cap">来自 .sr · 可改</div>
-              <div class="ea-fields">
-                <label v-if="openLooseEvent.component != null" class="ef"><span class="ef-k">归属 FRU</span><input v-model="openLooseEvent.component" class="ea-in" placeholder="Component_*" /></label>
-                <label v-if="openLooseEvent.evHysteresis != null" class="ef"><span class="ef-k">迟滞</span><input v-model.number="openLooseEvent.evHysteresis" type="number" class="ea-in num" /></label>
-                <label v-if="openLooseEvent.ledFaultCode != null" class="ef"><span class="ef-k">面板故障码</span><input v-model="openLooseEvent.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
-                <label v-if="openLooseEvent.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="openLooseEvent.invalidReading" type="number" class="ea-in num" /></label>
-                <label v-for="(a, ai) in openLooseEvent.descArgs" :key="ai" class="ef"><span class="ef-k">参数{{ ai + 1 }}</span><input v-model="openLooseEvent.descArgs![ai]" class="ea-in" /></label>
-              </div>
             </div>
           </div>
         </div>
@@ -860,7 +856,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .tb-tag { flex: none; font-size: 11px; padding: 1px 9px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--foreground-secondary); }
 .tb-src { flex: none; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tb-note { min-width: 0; font-size: 11px; color: var(--foreground-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.add-open { margin-left: auto; flex: none; }
+.add-open2 { margin-left: auto; flex: none; }
+.add-open { flex: none; }
 .add-open.on { box-shadow: 0 0 0 2px var(--focus-ring); }
 
 .add-backdrop { position: fixed; inset: 0; z-index: 299; }
@@ -1100,10 +1097,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-hint code { font-family: ui-monospace, monospace; color: var(--foreground-secondary); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); }
 .ev-hint .ev-fix { margin-left: 6px; }
 /* 来自 .sr 的真实关联/可调项（可编辑）：标题一行 + 字段区（与上面配置字段同款：标签在上，控件在下） */
-.ev-assoc { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; padding: 9px 11px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--primary) 8%, transparent); }
-.ev-assoc .ea-cap { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary); }
-.ev-assoc .ea-fields { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; }
-.ea-in { all: unset; box-sizing: border-box; min-width: 72px; max-width: 220px; font-size: 11px; color: var(--foreground); background: var(--surface-3); border-radius: var(--radius-sm); padding: 5px 8px; font-family: ui-monospace, monospace; }
+/* .sr 导入的字段（FRU/迟滞/面板码/参数…）与其余配置一视同仁，混在同一字段区，无特殊底色/标题 */
+.ea-in { all: unset; box-sizing: border-box; min-width: 72px; max-width: 220px; font-size: 11px; color: var(--foreground); background: var(--surface-1); border-radius: var(--radius-sm); padding: 5px 8px; font-family: ui-monospace, monospace; }
 .ea-in.num { width: 72px; }
 .ea-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 /* DiscreteEvent（SEL 生成）只读列表 */
