@@ -102,20 +102,25 @@ function baseCfg(deviceKey: string, deviceLabel: string, quantityKey: string, ra
     events: initEvents(quantityKey), enabled: true,
   };
 }
+// 单器件视图里新增的传感器绑到该数据源芯片（否则收窄视图看不到、也不知取数来源）
+function bindScope(c: SensorCfg): SensorCfg {
+  if (props.scopeChipKey && props.scopeChipKey !== '__firmware') { c.dsChip = props.scopeChipKey; c.dsMode = 'scanner'; }
+  return c;
+}
 function addRail(r: VoltageRail): void {
   if (!selDevice.value || railAdded(r.key)) return;
-  cfgs.value.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', r.key, r.label, r.nominal));
+  cfgs.value.push(bindScope(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', r.key, r.label, r.nominal)));
 }
 function addAllRails(): void { for (const r of railPalette.value) if (!railAdded(r.key)) addRail(r); }
 function addCustomRail(): void {
   const name = customRail.value.trim();
   if (!name || !selDevice.value) return;
-  cfgs.value.push(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', name, name, 12));
+  cfgs.value.push(bindScope(baseCfg(selDevice.value.key, selDevice.value.typeLabel, 'voltage', name, name, 12)));
   customRail.value = '';
 }
 function addQuantity(qKey: string): void {
   if (!selDevice.value || quantityAdded(qKey)) return;
-  const c = baseCfg(selDevice.value.key, selDevice.value.typeLabel, qKey);
+  const c = bindScope(baseCfg(selDevice.value.key, selDevice.value.typeLabel, qKey));
   cfgs.value.push(c);
   expandedId.value = c.id;
 }
@@ -515,9 +520,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
     <div class="alarm-toolbar">
       <span class="tb-tag">{{ scopeChipKey ? '数据源器件' : '来自拓扑' }}</span>
       <span class="tb-src">{{ source || boardName }}</span>
-      <span v-if="sensorCount || looseCount" class="tb-note">{{ showChipLane ? flowCount + ' 器件 · ' : '' }}{{ sensorCount }} 传感器 · {{ eventCount }} 告警<template v-if="looseCount"> · {{ looseCount }} 独立事件</template></span>
       <button class="btn add-open2" title="新增一条不经传感器的独立事件（直连器件数据源）" @click="addLooseEvent">＋ 新增事件</button>
-      <button v-if="!scopeChipKey" ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
+      <button ref="addBtnRef" class="btn-solid add-open" :class="{ on: showAdd }" @click="toggleAdd">＋ 新增传感器</button>
     </div>
 
     <!-- 快速新增浮窗（teleport 到 body，避开面板 overflow 裁剪） -->
@@ -645,15 +649,12 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
     </div>
 
     <!-- 板卡级汇总 -->
-    <div v-if="sensorCount || looseCount" class="board-summary">
-      <div class="bs-head">
-        <span>将写入 <b>{{ boardName }}.sr</b></span>
-        <div class="bs-actions">
-          <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
-            <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
-          </button>
-          <button class="btn-solid" @click="copyAll" title="复制本板生成的全部 CSR 对象(JSON)到剪贴板，可粘贴进 .sr">{{ copied ? '已复制 CSR' : '复制 CSR' }}</button>
-        </div>
+    <div v-if="sensorCount || looseCount" class="cfg-actions-float">
+      <div class="fa-group" :title="'将写入 ' + boardName + '.sr'">
+        <button class="btn" @click="openInCode" title="在右侧分屏打开对应代码文件">
+          <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg>代码
+        </button>
+        <button class="btn-solid" @click="copyAll" title="复制本板生成的全部 CSR 对象(JSON)到剪贴板，可粘贴进 .sr">{{ copied ? '已复制 CSR' : '复制 CSR' }}</button>
       </div>
     </div>
 
@@ -1107,11 +1108,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .sel-row code { font-family: ui-monospace, monospace; color: var(--foreground); }
 .sel-sum { color: var(--foreground-muted); }
 
-.board-summary { margin-top: 14px; padding-top: 12px; }
-.bs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--foreground-secondary); margin-bottom: 8px; }
-.bs-actions { display: flex; gap: 8px; }
+/* 代码 / 复制CSR：固定在内容区右下角的浮层（吸底右对齐，滚动时常驻在上面） */
+.cfg-actions-float { position: sticky; bottom: 6px; z-index: 6; display: flex; justify-content: flex-end; margin-top: 12px; pointer-events: none; }
+.cfg-actions-float .fa-group { pointer-events: auto; display: flex; gap: 8px; padding: 7px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--background-elevated) 88%, transparent); box-shadow: var(--shadow-lg); backdrop-filter: blur(6px); }
 .btn-ic { width: 13px; height: 13px; fill: currentColor; }
-.bs-json { max-height: 260px; overflow: auto; font-size: 11px; background: var(--surface-1); border-radius: var(--radius-md); padding: 10px; margin: 0; }
 
 /* 事件节点卡可点击（展开其传感器配置） */
 button.event-node { border: none; font: inherit; cursor: pointer; text-align: left; }
