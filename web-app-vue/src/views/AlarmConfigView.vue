@@ -708,13 +708,12 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
             <span class="cs-st" :class="{ ok: stepDsDone }">{{ stepDsDone ? '已接' : '待配置' }}</span>
           </div>
           <div class="mf">
-            <label>取数方式</label>
+            <label>取数方式<i class="i" :title="openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField">i</i></label>
             <select v-model="openCfg.dsMode" class="disc-sel wide">
               <option value="device-field">器件读数 · {{ openCfg.deviceKey }}.{{ QUANTITIES[openCfg.quantityKey].readingField }}（推荐 · 已接）</option>
               <option value="scanner">从寄存器周期读（高级 · 需选硬件信号）</option>
             </select>
           </div>
-          <div class="mf-desc">{{ openCfg.dsMode === 'scanner' ? DATA_SOURCE_NOTES.scanner : DATA_SOURCE_NOTES.deviceField }}</div>
           <template v-if="openCfg.dsMode === 'scanner'">
             <div class="scan-grid">
               <label>硬件信号(Chip)<input v-model="openCfg.dsChip" class="thr-in w" placeholder="Smc_..." /></label>
@@ -749,9 +748,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           </div>
           <div v-else class="disc-note">离散状态量：无门限档，命中在下方每条事件的「触发值」判定。</div>
           <div v-if="isThreshold(openCfg)" class="mf">
-            <label>迟滞</label>
+            <label>迟滞<i class="i" :title="'回差防抖：读数在门限附近抖动时避免反复告警。推荐 ' + (QUANTITIES[openCfg.quantityKey].recommend.hysteresis ?? 2)">i</i></label>
             <input v-model.number="openCfg.hysteresis" type="number" class="thr-in w" />
-            <span class="mf-desc">推荐 {{ QUANTITIES[openCfg.quantityKey].recommend.hysteresis ?? 2 }} · 回差防抖</span>
           </div>
 
           <!-- ③ 事件 / 告警（点事件进入时高亮定位到对应行）-->
@@ -764,11 +762,10 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
           <template v-if="isThreshold(openCfg)">
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: thrValue(openCfg, ev.levelField) == null || !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
               <div class="ev-head">
-                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
+                <label class="ef ev-nm ev-nm-top"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
                 <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
               </div>
               <div class="ev-fields">
-                <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
                 <label class="ef ef-lv">
                   <span class="ef-k">档位<i class="i" :title="ev.levelField ? ('监视该档门限，触发值自动引用 ' + openEntry.sensor.sensorKey + '.' + ev.levelField + (thrValue(openCfg, ev.levelField) != null ? ' = ' + thrValue(openCfg, ev.levelField) : '（该档未设，可点“设推荐”）')) : '选择监视哪一档门限'">i</i></span>
                   <select v-model="ev.levelField" class="disc-sel" @change="syncThrEvent(ev)">
@@ -792,16 +789,18 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 </label>
                 <button v-if="ev.levelField && thrValue(openCfg, ev.levelField) == null" class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
               </div>
+              <div class="ev-foot">
+                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
+              </div>
             </div>
           </template>
           <template v-else>
             <div v-for="ev in openCfg.events" :key="ev.id" class="ev-edit" :class="{ inactive: !ev.enabled, focused: focusEventKey === ev.eventKeyId }">
               <div class="ev-head">
-                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
+                <label class="ef ev-nm ev-nm-top"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
                 <button class="ev-del" title="删除该事件" @click="removeEvent(openCfg, ev.id)">✕</button>
               </div>
               <div class="ev-fields">
-                <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="ev.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
                 <label class="ef"><span class="ef-k">触发值<i class="i" title="读数命中该值即告警；离散量一般 1=置位/故障，0=不在位。">i</i></span>
                   <span class="ef-ctl"><input v-model.number="ev.condition" type="number" class="thr-in w" /><i class="thr-reco">荐{{ QUANTITIES[openCfg.quantityKey].recommend.condition ?? 1 }}</i></span>
                 </label>
@@ -824,6 +823,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                     <option v-for="(o, oi) in keyOptions(openCfg)" :key="o" :value="o">{{ o }}{{ oi === 0 ? '（推荐）' : '' }}</option>
                   </select>
                 </label>
+              </div>
+              <div class="ev-foot">
+                <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="ev.enabled" /><span class="ev-en-l">启用</span></label>
               </div>
             </div>
           </template>
@@ -851,10 +853,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
         <div class="cfg-body">
           <div class="ev-edit">
             <div class="ev-head">
-              <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="openLooseEvent.enabled" /><span class="ev-en-l">启用</span></label>
+              <label class="ef ev-nm ev-nm-top"><span class="ef-k">名称</span><input v-model="openLooseEvent.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
             </div>
             <div class="ev-fields">
-              <label class="ef ev-nm"><span class="ef-k">名称</span><input v-model="openLooseEvent.label" type="text" class="thr-in wnm" placeholder="事件名" /></label>
               <label class="ef"><span class="ef-k">触发值<i class="i" title="读数命中该值即告警（电压限值 / PMBus 状态位 / 在位标志）。">i</i></span>
                 <input v-model.number="openLooseEvent.condition" type="number" class="thr-in w" />
               </label>
@@ -874,6 +875,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               <label v-if="openLooseEvent.invalidReading != null" class="ef"><span class="ef-k">无效读数</span><input v-model.number="openLooseEvent.invalidReading" type="number" class="ea-in num" /></label>
               <label v-for="(a, ai) in openLooseEvent.descArgs" :key="ai" class="ef"><span class="ef-k">参数{{ ai + 1 }}</span><input v-model="openLooseEvent.descArgs![ai]" class="ea-in" /></label>
               <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
+            </div>
+            <div class="ev-foot">
+              <label class="ev-en" title="是否产出该事件"><input type="checkbox" class="sw" v-model="openLooseEvent.enabled" /><span class="ev-en-l">启用</span></label>
             </div>
           </div>
         </div>
@@ -936,7 +940,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .tpl-name { font-size: 12px; font-weight: 600; color: var(--foreground); display: flex; align-items: center; gap: 7px; }
 .tpl-tag { font-size: 9px; font-weight: 500; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--surface-1); color: var(--foreground-muted); }
 .tpl-desc { font-size: 10.5px; color: var(--foreground-muted); }
-.num { padding: 6px 9px; background: var(--surface-1); color: var(--foreground); border-radius: var(--radius-md); width: 100px; }
+.num { padding: 6px 9px; background: rgba(255,255,255,0.07); color: var(--foreground); border-radius: var(--radius-md); width: 100px; }
 .num.wide { width: 220px; }
 .i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 999px; background: var(--surface-3); color: var(--foreground-muted); font-size: 11px; font-style: italic; cursor: help; margin-left: 3px; }
 /* PTO 三级按钮体系（solid=白底深字·唯一 / btn=次级填充 / ghost=透明行内） */
@@ -1100,7 +1104,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .thr-pill { display: flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 8px; background: var(--surface-3); }
 .thr-pill.off { opacity: .5; }
 .thr-l { font-size: 11px; color: var(--foreground-muted); }
-.thr-in { all: unset; box-sizing: border-box; width: 46px; text-align: center; font-size: 12px; color: var(--foreground); background: var(--surface-1); border-radius: var(--radius-sm); padding: 4px; }
+.thr-in { all: unset; box-sizing: border-box; width: 46px; text-align: center; font-size: 12px; color: var(--foreground); background: rgba(255,255,255,0.07); border-radius: var(--radius-sm); padding: 4px; }
+.thr-in::placeholder { color: var(--foreground-muted); }
 .thr-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 .thr-in.w { width: 78px; text-align: left; padding: 5px 7px; }
 .thr-reco { font-size: 11px; color: var(--foreground-muted); font-style: normal; }
@@ -1108,13 +1113,14 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .disc-note { font-size: 11px; color: var(--foreground-muted); }
 
 .mf { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mf > label { flex: none; width: 52px; font-size: 11px; color: var(--foreground-secondary); }
+.mf > label { flex: none; display: inline-flex; align-items: center; gap: 2px; min-width: 52px; font-size: 11px; color: var(--foreground-secondary); }
 .mf-desc { font-size: 11px; color: var(--foreground-muted); }
-.disc-sel { padding: 6px 26px 6px 9px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: var(--surface-1); border: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
+.disc-sel { padding: 6px 26px 6px 9px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: rgba(255,255,255,0.07); border: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
 .disc-sel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
 .disc-sel.wide { flex: 1; min-width: 120px; }
-.scan-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.scan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px 10px; }
 .scan-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--foreground-muted); }
+.scan-grid label .thr-in { width: 100%; text-align: left; }
 .fn-warn { font-size: 11px; color: var(--warning); }
 
 /* 事件编辑 */
@@ -1122,7 +1128,9 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 /* 事件卡：启用单独一行(头部) + 字段行(标签+控件对齐) + .sr 关联行 */
 .ev-edit { display: flex; flex-direction: column; gap: 9px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-2); }
 .ev-edit.inactive { opacity: .55; }
-.ev-head { display: flex; align-items: center; justify-content: space-between; }
+.ev-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.ev-nm-top { flex: 1 1 auto; }
+.ev-foot { display: flex; margin-top: 2px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.07); }
 .ev-fields { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 14px; }
 .ef { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--foreground-muted); }
 .ef-grow { flex: 1; min-width: 180px; }
@@ -1152,7 +1160,7 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-hint .ev-fix { margin-left: 6px; }
 /* 来自 .sr 的真实关联/可调项（可编辑）：标题一行 + 字段区（与上面配置字段同款：标签在上，控件在下） */
 /* .sr 导入的字段（FRU/迟滞/面板码/参数…）与其余配置一视同仁，混在同一字段区，无特殊底色/标题 */
-.ea-in { all: unset; box-sizing: border-box; min-width: 72px; max-width: 220px; font-size: 11px; color: var(--foreground); background: var(--surface-1); border-radius: var(--radius-sm); padding: 5px 8px; font-family: ui-monospace, monospace; }
+.ea-in { all: unset; box-sizing: border-box; min-width: 72px; max-width: 220px; font-size: 11px; color: var(--foreground); background: rgba(255,255,255,0.07); border-radius: var(--radius-sm); padding: 5px 8px; font-family: ui-monospace, monospace; }
 .ea-in.num { width: 72px; }
 .ea-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 /* DiscreteEvent（SEL 生成）只读列表 */
