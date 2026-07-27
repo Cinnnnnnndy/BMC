@@ -146,7 +146,11 @@ const numOr = (v: unknown): number | undefined => (typeof v === 'number' ? v : u
 const strOr = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
 function descArgsOf(obj: Record<string, unknown>): string[] | undefined {
   const out: string[] = [];
-  for (let i = 1; i <= 4; i++) { const v = obj[`DescArg${i}`]; if (typeof v === 'string' && v) out.push(v); }
+  // 只取人类可读参数（信号名/单位/数值）；跳过 引用/表达式串(#/ <=/ |>) —— 那是派生量、非用户可配参数
+  for (let i = 1; i <= 4; i++) {
+    const v = obj[`DescArg${i}`];
+    if (typeof v === 'string' && v && !/\|>|^#\/|^<=\//.test(v)) out.push(v);
+  }
   return out.length ? out : undefined;
 }
 // 关联到某离散传感器的 DiscreteEvent_*（IPMI SEL 生成事件），只读汇总展示。

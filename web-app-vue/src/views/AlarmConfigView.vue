@@ -724,12 +724,12 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                 </label>
                 <button v-if="ev.levelField && thrValue(openCfg, ev.levelField) == null" class="ev-fix" @click="ensureThreshold(openCfg, ev.levelField)">该档未设 · 设推荐</button>
               </div>
-              <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
-                <span class="ea-cap">来自 .sr</span>
-                <span v-if="ev.component">归属 FRU <code>{{ ev.component }}</code></span>
-                <span v-if="ev.evHysteresis != null">迟滞 {{ ev.evHysteresis }}</span>
-                <span v-if="ev.ledFaultCode">面板故障码 <code>{{ ev.ledFaultCode }}</code></span>
-                <span v-if="ev.invalidReading != null">无效读数 {{ ev.invalidReading }}</span>
+              <div v-if="ev.component != null || ev.evHysteresis != null || ev.ledFaultCode != null || ev.invalidReading != null" class="ev-assoc">
+                <span class="ea-cap">来自 .sr · 可改</span>
+                <label v-if="ev.component != null" class="ea-f">归属 FRU<input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
+                <label v-if="ev.evHysteresis != null" class="ea-f">迟滞<input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
+                <label v-if="ev.ledFaultCode != null" class="ea-f">面板故障码<input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+                <label v-if="ev.invalidReading != null" class="ea-f">无效读数<input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
               </div>
             </div>
           </template>
@@ -760,12 +760,12 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
                   </select>
                 </label>
               </div>
-              <div v-if="ev.component || ev.evHysteresis != null || ev.ledFaultCode || ev.invalidReading != null" class="ev-assoc">
-                <span class="ea-cap">来自 .sr</span>
-                <span v-if="ev.component">归属 FRU <code>{{ ev.component }}</code></span>
-                <span v-if="ev.evHysteresis != null">迟滞 {{ ev.evHysteresis }}</span>
-                <span v-if="ev.ledFaultCode">面板故障码 <code>{{ ev.ledFaultCode }}</code></span>
-                <span v-if="ev.invalidReading != null">无效读数 {{ ev.invalidReading }}</span>
+              <div v-if="ev.component != null || ev.evHysteresis != null || ev.ledFaultCode != null || ev.invalidReading != null" class="ev-assoc">
+                <span class="ea-cap">来自 .sr · 可改</span>
+                <label v-if="ev.component != null" class="ea-f">归属 FRU<input v-model="ev.component" class="ea-in" placeholder="Component_*" /></label>
+                <label v-if="ev.evHysteresis != null" class="ea-f">迟滞<input v-model.number="ev.evHysteresis" type="number" class="ea-in num" /></label>
+                <label v-if="ev.ledFaultCode != null" class="ea-f">面板故障码<input v-model="ev.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+                <label v-if="ev.invalidReading != null" class="ea-f">无效读数<input v-model.number="ev.invalidReading" type="number" class="ea-in num" /></label>
               </div>
             </div>
           </template>
@@ -812,13 +812,13 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               </label>
               <label class="ef ef-grow"><span class="ef-k">告警字典条目<i class="i" title="EventKeyId：决定告警在字典中的文案与等级映射，首项为推荐。">i</i></span><input v-model="openLooseEvent.eventKeyId" type="text" class="thr-in wkey" placeholder="Namespace.EventName" /></label>
             </div>
-            <div v-if="openLooseEvent.component || openLooseEvent.evHysteresis != null || openLooseEvent.ledFaultCode || openLooseEvent.invalidReading != null || openLooseEvent.descArgs" class="ev-assoc">
-              <span class="ea-cap">来自 .sr</span>
-              <span v-if="openLooseEvent.component">归属 FRU <code>{{ openLooseEvent.component }}</code></span>
-              <span v-if="openLooseEvent.evHysteresis != null">迟滞 {{ openLooseEvent.evHysteresis }}</span>
-              <span v-if="openLooseEvent.ledFaultCode">面板故障码 <code>{{ openLooseEvent.ledFaultCode }}</code></span>
-              <span v-if="openLooseEvent.invalidReading != null">无效读数 {{ openLooseEvent.invalidReading }}</span>
-              <span v-if="openLooseEvent.descArgs">参数 <code v-for="(a, ai) in openLooseEvent.descArgs" :key="ai">{{ a }}</code></span>
+            <div v-if="openLooseEvent.component != null || openLooseEvent.evHysteresis != null || openLooseEvent.ledFaultCode != null || openLooseEvent.invalidReading != null || openLooseEvent.descArgs" class="ev-assoc">
+              <span class="ea-cap">来自 .sr · 可改</span>
+              <label v-if="openLooseEvent.component != null" class="ea-f">归属 FRU<input v-model="openLooseEvent.component" class="ea-in" placeholder="Component_*" /></label>
+              <label v-if="openLooseEvent.evHysteresis != null" class="ea-f">迟滞<input v-model.number="openLooseEvent.evHysteresis" type="number" class="ea-in num" /></label>
+              <label v-if="openLooseEvent.ledFaultCode != null" class="ea-f">面板故障码<input v-model="openLooseEvent.ledFaultCode" class="ea-in num" placeholder="A00" /></label>
+              <label v-if="openLooseEvent.invalidReading != null" class="ea-f">无效读数<input v-model.number="openLooseEvent.invalidReading" type="number" class="ea-in num" /></label>
+              <label v-for="(a, ai) in openLooseEvent.descArgs" :key="ai" class="ea-f">参数{{ ai + 1 }}<input v-model="openLooseEvent.descArgs![ai]" class="ea-in" /></label>
             </div>
           </div>
         </div>
@@ -1020,7 +1020,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .thr-pill { display: flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 8px; background: var(--surface-3); }
 .thr-pill.off { opacity: .5; }
 .thr-l { font-size: 11px; color: var(--foreground-muted); }
-.thr-in { all: unset; box-sizing: border-box; width: 46px; text-align: center; font-size: 12px; color: var(--foreground); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--border-subtle); border-radius: var(--radius-sm); padding: 3px 4px; }
+.thr-in { all: unset; box-sizing: border-box; width: 46px; text-align: center; font-size: 12px; color: var(--foreground); background: var(--surface-1); border-radius: var(--radius-sm); padding: 4px; }
+.thr-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 .thr-in.w { width: 78px; text-align: left; padding: 5px 7px; }
 .thr-reco { font-size: 11px; color: var(--foreground-muted); font-style: normal; }
 .thr-unit { font-size: 11px; color: var(--foreground-muted); }
@@ -1029,7 +1030,8 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .mf { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mf > label { flex: none; width: 52px; font-size: 11px; color: var(--foreground-secondary); }
 .mf-desc { font-size: 11px; color: var(--foreground-muted); }
-.disc-sel { padding: 5px 26px 5px 8px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: var(--surface-1); border: 1px solid var(--border-default); cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
+.disc-sel { padding: 6px 26px 6px 9px; border-radius: var(--radius-md); font-size: 11px; color: var(--foreground); background-color: var(--surface-1); border: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M7%2010l5%205%205-5z'%20fill='%23808080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
+.disc-sel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
 .disc-sel.wide { flex: 1; min-width: 120px; }
 .scan-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .scan-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--foreground-muted); }
@@ -1072,6 +1074,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-assoc { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 4px; padding: 6px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--primary) 9%, transparent); font-size: 10.5px; color: var(--foreground-secondary); }
 .ev-assoc .ea-cap { flex: none; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary); }
 .ev-assoc code { font-family: ui-monospace, monospace; color: var(--foreground); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); margin-left: 2px; }
+/* .sr 关联项可改：label + 填充式输入（无描边） */
+.ea-f { display: inline-flex; align-items: center; gap: 5px; color: var(--foreground-muted); }
+.ea-in { all: unset; box-sizing: border-box; min-width: 60px; max-width: 200px; font-size: 11px; color: var(--foreground); background: var(--surface-3); border-radius: var(--radius-sm); padding: 3px 7px; font-family: ui-monospace, monospace; }
+.ea-in.num { width: 64px; }
+.ea-in:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
 /* DiscreteEvent（SEL 生成）只读列表 */
 .sel-list { display: flex; flex-direction: column; gap: 4px; }
 .sel-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 11px; }
