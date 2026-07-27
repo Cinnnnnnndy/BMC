@@ -762,6 +762,13 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
               </div>
             </div>
           </template>
+          <!-- DiscreteEvent_*：该离散传感器关联的 IPMI SEL 生成事件（来自 .sr，只读） -->
+          <template v-if="!isThreshold(openCfg) && openCfg.selEvents && openCfg.selEvents.length">
+            <div class="sc-sec-cap">SEL 事件<span class="sc-explain">IPMI 系统事件日志生成（DiscreteEvent，来自 .sr，只读）</span></div>
+            <div class="sel-list">
+              <div v-for="s in openCfg.selEvents" :key="s.name" class="sel-row"><code>{{ s.name }}</code><span class="sel-sum">{{ s.summary }}</span></div>
+            </div>
+          </template>
           <div v-for="w in openEntry.warnings" :key="w" class="fn-warn">{{ w }}</div>
         </div>
       </div>
@@ -1046,6 +1053,11 @@ watch([chipFlows, expandedId, openLooseId], () => nextTick(recomputeConnectors))
 .ev-assoc { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 4px; padding: 6px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--primary) 9%, transparent); font-size: 10.5px; color: var(--foreground-secondary); }
 .ev-assoc .ea-cap { flex: none; font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary); }
 .ev-assoc code { font-family: ui-monospace, monospace; color: var(--foreground); background: var(--surface-3); padding: 0 5px; border-radius: var(--radius-sm); margin-left: 2px; }
+/* DiscreteEvent（SEL 生成）只读列表 */
+.sel-list { display: flex; flex-direction: column; gap: 4px; }
+.sel-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 11px; }
+.sel-row code { font-family: ui-monospace, monospace; color: var(--foreground); }
+.sel-sum { color: var(--foreground-muted); }
 
 .board-summary { margin-top: 14px; padding-top: 12px; }
 .bs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--foreground-secondary); margin-bottom: 8px; }

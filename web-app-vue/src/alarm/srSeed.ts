@@ -149,6 +149,17 @@ function descArgsOf(obj: Record<string, unknown>): string[] | undefined {
   for (let i = 1; i <= 4; i++) { const v = obj[`DescArg${i}`]; if (typeof v === 'string' && v) out.push(v); }
   return out.length ? out : undefined;
 }
+// 关联到某离散传感器的 DiscreteEvent_*（IPMI SEL 生成事件），只读汇总展示。
+function selEventsFor(objects: Record<string, Record<string, unknown>>, sensorName: string): { name: string; summary: string }[] {
+  const out: { name: string; summary: string }[] = [];
+  for (const [n, o] of Object.entries(objects)) {
+    if (objectType(n) !== 'DiscreteEvent' || refName(o.SensorObject) !== sensorName) continue;
+    const lt = typeof o.ListenType === 'number' ? o.ListenType : 0;
+    const ed = [o.EventData1, o.EventData2, o.EventData3].filter((v) => typeof v === 'number' && v !== 255).join('/');
+    out.push({ name: n.replace(/^DiscreteEvent_/, ''), summary: `${lt === 1 ? '读值型' : '位型'}${ed ? ' · 数据 ' + ed : ''}` });
+  }
+  return out;
+}
 
 /** 独立事件：所有未被传感器归属、且带 EventKeyId 的 Event（Condition 多为字面值，直连数据源/固件）。 */
 export function looseEventsOf(pb: ParsedBoard): LooseEvent[] {
@@ -236,6 +247,7 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
         dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 8000,
         thresholds: {}, hysteresis: 0, events, enabled: true, entityRef,
         debounce: sp?.debounce, scanEnabled: sp?.scanEnabled,
+        selEvents: selEventsFor(pb.objects, ch.name),
       });
     } else { skipped++; }
   }

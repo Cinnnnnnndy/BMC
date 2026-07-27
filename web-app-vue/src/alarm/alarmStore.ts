@@ -26,7 +26,9 @@ export interface SensorCfg {
   entityRef?: string;        // 物理实体（Entity_* 名，来自 Sensor.EntityId）
   debounce?: string;         // Scanner.Debounce：去抖滤波（MidAvg_*/ContBin_*/None）
   scanEnabled?: string;      // Scanner.ScanEnabled：上电门控（依赖的 Scanner_* 名）
+  selEvents?: SelEvent[];    // 关联的 DiscreteEvent_*（IPMI SEL 生成），来自 .sr，只读展示
 }
+export interface SelEvent { name: string; summary: string; }
 
 // 独立事件：不经传感器（Condition 为字面值）——真实 .sr 里绝大多数事件属此类（电压/在位/PMBus 状态等），
 // 直连数据源芯片（Reading→Scanner.Chip）或由固件推送。与传感器松耦合，单独成条可点击配置。
