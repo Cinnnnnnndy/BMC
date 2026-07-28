@@ -5,7 +5,8 @@ import { EVENT_STANDARD_KEY_SET } from '../data/eventStandardKeys';
 
 // 「事件定义」= 事件模板：EventCode/Severity/ActionId 等由字典统一定义，
 // CSR 里的每个 Event_* 对象只是引用某个模板并填入本机差异化参数
-// （Component / Reading / DescArg1~5），因此本页以模板表格为主视图。
+// （Component / Reading / DescArg1~5），因此本页以模板表格为主视图，
+// 同时把 CSR 绑定（原「硬件适配」独立事件弹窗做的事）收进同一处编排。
 interface EventDefEntry {
   EventCode?: string;
   ReportChannel?: number;
@@ -17,6 +18,8 @@ interface EventDefEntry {
   SeverityId?: number;
   ActionId?: number;
   EventName?: string;
+  /** 手动归类覆盖：字典客观归属之外，允许本地重新标记 */
+  SourceOverride?: 'standard' | 'extra';
 }
 
 interface EventDescEntry {
@@ -60,9 +63,26 @@ function severityMeta(id: number | undefined) {
   return SEVERITY_META[id ?? -1] ?? { label: `未知(${id ?? '-'})`, tone: 'var(--foreground-muted)' };
 }
 
+// 触发方向（OperatorId）：与「硬件适配」独立事件弹窗共用同一套编号/词表
+// （来源：web-app-vue/src/alarm/alarmKnowledge.ts OPERATORS），确保两处编排是同一件事。
+const OPERATOR_LABELS: Array<{ id: number; label: string; symbol: string }> = [
+  { id: 4, label: '高于门限', symbol: '≥' },
+  { id: 1, label: '低于门限', symbol: '≤' },
+  { id: 5, label: '状态命中', symbol: '=' },
+  { id: 3, label: '严格大于', symbol: '>' },
+  { id: 2, label: '严格小于', symbol: '<' },
+  { id: 6, label: '状态跳变', symbol: '⇌' },
+  { id: 7, label: '在位 / 插入', symbol: '＋' },
+  { id: 8, label: '离位 / 移除', symbol: '－' },
+];
 function categoryOf(eventKeyId: string): string {
   const dot = eventKeyId.indexOf('.');
   return dot > 0 ? eventKeyId.slice(0, dot) : eventKeyId;
+}
+
+/** 事件来源归类：手动覆盖优先，否则按标准字典客观归属判定 */
+function sourceTag(d: EventDefEntry): 'standard' | 'extra' {
+  return d.SourceOverride ?? (EVENT_STANDARD_KEY_SET.has(d.EventKeyId) ? 'standard' : 'extra');
 }
 
 function extractPlaceholders(text: string | undefined): number[] {
@@ -131,6 +151,26 @@ function EditField({ label, value, onChange, mono, type = 'text' }: {
         onBlur={() => setFocused(false)}
         style={{ ...fieldInputStyle(focused), fontFamily: mono ? 'var(--font-mono)' : 'inherit' }}
       />
+    </div>
+  );
+}
+
+function EditTextarea({ label, value, onChange, hint, rows = 3 }: {
+  label: string; value: string; onChange: (v: string) => void; hint?: string; rows?: number;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div>
+      <label style={LABEL_STYLE}>{label}</label>
+      <textarea
+        value={value}
+        rows={rows}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{ ...fieldInputStyle(focused), resize: 'vertical', lineHeight: 1.5 }}
+      />
+      {hint && <div style={{ fontSize: 10, color: 'var(--foreground-muted)', marginTop: 3 }}>{hint}</div>}
     </div>
   );
 }
@@ -232,9 +272,11 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const [bindingFilter, setBindingFilter] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [descLang, setDescLang] = useState<'Zh' | 'En'>('Zh');
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
   // 会话内本地编辑覆盖（事件定义库本身是静态字典文件，编排结果先保存在页面内）
   const [overrides, setOverrides] = useState<Record<string, Partial<EventDefEntry>>>({});
+  const [descOverrides, setDescOverrides] = useState<Record<string, Partial<EventDescEntry>>>({});
+  // 用户在本页新增的事件模板（不在字典文件里）
+  const [customDefs, setCustomDefs] = useState<EventDefEntry[]>([]);
 
   useEffect(() => {
     if (eventDef) return; // 用户已上传自定义字典，无需再拉内置文件
@@ -249,10 +291,12 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
 
   const bundle: EventDefBundle | null = (eventDef as EventDefBundle | undefined) ?? bundled;
   const rawDefs = useMemo(() => bundle?.EventDefinition ?? [], [bundle]);
+  const allRawDefs = useMemo(() => [...rawDefs, ...customDefs], [rawDefs, customDefs]);
   const defs = useMemo(
-    () => rawDefs.map((d) => (overrides[d.EventKeyId] ? { ...d, ...overrides[d.EventKeyId] } : d)),
-    [rawDefs, overrides]
+    () => allRawDefs.map((d) => (overrides[d.EventKeyId] ? { ...d, ...overrides[d.EventKeyId] } : d)),
+    [allRawDefs, overrides]
   );
+  const customKeySet = useMemo(() => new Set(customDefs.map((d) => d.EventKeyId)), [customDefs]);
   const descByKey = useMemo(() => {
     const map = new Map<string, EventDescEntry>();
     for (const d of bundle?.EventDescription ?? []) map.set(d.EventKeyId, d);
@@ -262,12 +306,47 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const updateDef = (key: string, patch: Partial<EventDefEntry>) => {
     setOverrides((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   };
-  const resetDef = (key: string) => {
-    setOverrides((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
+  const updateDescField = (key: string, field: 'Description' | 'Cause' | 'Influence' | 'Suggestion', lang: 'Zh' | 'En', value: string) => {
+    setDescOverrides((prev) => {
+      const base = descByKey.get(key);
+      const prevPatch = prev[key] ?? {};
+      const baseFieldObj = (base?.[field] as { En?: string; Zh?: string } | undefined) ?? {};
+      const prevFieldObj = (prevPatch[field] as { En?: string; Zh?: string } | undefined) ?? baseFieldObj;
+      return { ...prev, [key]: { ...prevPatch, [field]: { ...prevFieldObj, [lang]: value } } };
     });
+  };
+  const resetKey = (key: string) => {
+    setOverrides((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    setDescOverrides((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  };
+
+  const handleAddDef = () => {
+    const existingKeys = new Set(allRawDefs.map((d) => d.EventKeyId));
+    let n = 1;
+    let key = `Custom.NewEvent${n}`;
+    while (existingKeys.has(key)) key = `Custom.NewEvent${++n}`;
+    const draft: EventDefEntry = {
+      EventKeyId: key, EventName: '新事件', SeverityId: 0, EventCode: '', ActionId: 0,
+      EventType: 0, LifeCycleId: 0, DeassertFlag: 0, ReportChannel: 65535,
+    };
+    setCustomDefs((prev) => [...prev, draft]);
+    setSelectedKey(key);
+  };
+  const renameCustomDef = (oldKey: string, newKeyRaw: string) => {
+    const newKey = newKeyRaw.trim();
+    if (!newKey || newKey === oldKey || allRawDefs.some((d) => d.EventKeyId === newKey)) return;
+    setCustomDefs((prev) => prev.map((d) => (d.EventKeyId === oldKey ? { ...d, EventKeyId: newKey } : d)));
+    if (overrides[oldKey]) {
+      setOverrides((prev) => { const n = { ...prev }; n[newKey] = n[oldKey]; delete n[oldKey]; return n; });
+    }
+    setSelectedKey(newKey);
+  };
+  const deleteCustomDef = (key: string) => {
+    setCustomDefs((prev) => prev.filter((d) => d.EventKeyId !== key));
+    resetKey(key);
+    if (selectedKey === key) setSelectedKey(null);
+    // 级联清理该模板在当前 CSR 里留下的绑定，避免残留悬空引用
+    for (const b of bindingsByKey.get(key) ?? []) handleDeleteBinding(b.objectId);
   };
 
   const csrObj = csr?.Objects ?? {};
@@ -323,7 +402,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   }, [defs]);
 
   const sourceOptions = useMemo<FilterOption[]>(() => {
-    const standard = defs.filter((d) => EVENT_STANDARD_KEY_SET.has(d.EventKeyId)).length;
+    const standard = defs.filter((d) => sourceTag(d) === 'standard').length;
     return [
       { value: 'standard', label: '标准字典', count: standard },
       { value: 'extra', label: '字典外新增', count: defs.length - standard },
@@ -347,8 +426,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
       if (!passesSet(eventTypeFilter, String(d.EventType ?? 0))) return false;
       if (!passesSet(lifeCycleFilter, String(d.LifeCycleId ?? 0))) return false;
       if (!passesSet(deassertFilter, String(d.DeassertFlag ?? 0))) return false;
-      const isStandard = EVENT_STANDARD_KEY_SET.has(d.EventKeyId);
-      if (!passesSet(sourceFilter, isStandard ? 'standard' : 'extra')) return false;
+      if (!passesSet(sourceFilter, sourceTag(d))) return false;
       const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
       if (!passesSet(bindingFilter, boundCount > 0 ? 'bound' : 'unbound')) return false;
       return true;
@@ -364,16 +442,22 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const stats = useMemo(() => {
     const defKeys = new Set(defs.map((d) => d.EventKeyId));
     const coveredStandard = [...EVENT_STANDARD_KEY_SET].filter((k) => defKeys.has(k)).length;
-    const extra = defs.length - coveredStandard;
     let boundDefs = 0;
     for (const d of defs) if ((bindingsByKey.get(d.EventKeyId)?.length ?? 0) > 0) boundDefs += 1;
-    return { standardTotal: EVENT_STANDARD_KEY_SET.size, defTotal: defs.length, coveredStandard, extra, boundDefs };
+    return { standardTotal: EVENT_STANDARD_KEY_SET.size, defTotal: defs.length, coveredStandard, boundDefs };
   }, [defs, bindingsByKey]);
 
   const selectedDef = selectedKey ? defs.find((d) => d.EventKeyId === selectedKey) ?? null : null;
-  const selectedDesc = selectedKey ? descByKey.get(selectedKey) ?? null : null;
+  const selectedDesc = useMemo(() => {
+    if (!selectedKey) return null;
+    const base = descByKey.get(selectedKey);
+    const patch = descOverrides[selectedKey];
+    if (!base && !patch) return null;
+    return { EventKeyId: selectedKey, ...base, ...patch } as EventDescEntry;
+  }, [selectedKey, descByKey, descOverrides]);
   const selectedBindings = selectedKey ? bindingsByKey.get(selectedKey) ?? [] : [];
-  const selectedEdited = selectedKey ? !!overrides[selectedKey] : false;
+  const selectedEdited = selectedKey ? (!!overrides[selectedKey] || !!descOverrides[selectedKey]) : false;
+  const selectedIsCustom = selectedKey ? customKeySet.has(selectedKey) : false;
 
   const handleAddBinding = () => {
     if (!csr || !selectedDef) return;
@@ -384,6 +468,18 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
     while (csrObj[id]) id = `${base}_${++i}`;
     const next = { ...csrObj };
     next[id] = { EventKeyId: selectedDef.EventKeyId, Reading: '', Condition: 0, OperatorId: 5, Enabled: true, Component: '' };
+    onChange({ ...csr, Objects: next });
+  };
+  const handleUpdateBinding = (objectId: string, patch: Record<string, unknown>) => {
+    if (!csr) return;
+    const cur = csrObj[objectId] as Record<string, unknown> | undefined;
+    if (!cur) return;
+    onChange({ ...csr, Objects: { ...csrObj, [objectId]: { ...cur, ...patch } } });
+  };
+  const handleDeleteBinding = (objectId: string) => {
+    if (!csr) return;
+    const next = { ...csrObj };
+    delete next[objectId];
     onChange({ ...csr, Objects: next });
   };
 
@@ -410,6 +506,17 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
             onChange={(e) => setSearch(e.target.value)}
             style={{ ...fieldInputStyle(false), width: 260 }}
           />
+          <button
+            onClick={handleAddDef}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 999, border: 'none',
+              cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit',
+              background: 'var(--primary)', color: 'var(--primary-foreground)',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            新建事件模板
+          </button>
           {activeFilterCount > 0 && (
             <button
               onClick={clearAllFilters}
@@ -431,7 +538,6 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
           <span>标准字典 <b style={{ color: 'var(--foreground)' }}>{stats.standardTotal}</b> 项</span>
           <span>事件定义库 <b style={{ color: 'var(--foreground)' }}>{stats.defTotal}</b> 项</span>
           <span>标准字典覆盖 <b style={{ color: 'var(--primary)' }}>{stats.coveredStandard}</b> 项</span>
-          <span>字典外新增 <b style={{ color: 'var(--warning)' }}>{stats.extra}</b> 项</span>
           <span>当前 CSR 已绑定 <b style={{ color: 'var(--success)' }}>{stats.boundDefs}</b> / {stats.defTotal} 项模板</span>
           {!csr && <span style={{ color: 'var(--danger)' }}>（未加载 CSR，绑定数据不可用，新建绑定功能已禁用）</span>}
         </div>
@@ -458,8 +564,9 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
               {filtered.map((d) => {
                 const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
                 const sev = severityMeta(d.SeverityId);
-                const isStandard = EVENT_STANDARD_KEY_SET.has(d.EventKeyId);
+                const isStandard = sourceTag(d) === 'standard';
                 const isSelected = selectedKey === d.EventKeyId;
+                const isCustom = customKeySet.has(d.EventKeyId);
                 return (
                   <tr
                     key={d.EventKeyId}
@@ -477,7 +584,9 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                       borderLeft: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
                     }}>
                       <div style={{ fontFamily: 'var(--font-mono)', color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
-                        {d.EventKeyId}{overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 6, color: 'var(--warning)' }}>●</span>}
+                        {d.EventKeyId}
+                        {isCustom && <span title="本页新建的自定义事件模板" style={{ marginLeft: 6, color: 'var(--accent)' }}>●</span>}
+                        {overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 4, color: 'var(--warning)' }}>●</span>}
                       </div>
                       <div style={{ color: 'var(--foreground-muted)', fontSize: 10.5, marginTop: 2 }}>{d.EventName}</div>
                     </td>
@@ -506,65 +615,64 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
         </div>
       </main>
 
-      {/* ── 右：配置详情（可编排，可收起） ── */}
-      {panelCollapsed ? (
-        <button
-          onClick={() => setPanelCollapsed(false)}
-          title="展开详情面板"
-          style={{
-            width: 28, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', background: 'none',
-            borderTop: 'none', borderRight: 'none', borderBottom: 'none',
-            cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 14,
-            color: 'var(--foreground-muted)',
-          }}
-        >
-          <CollapseIcon dir="left" />
-        </button>
-      ) : (
+      {/* ── 右：配置详情（选中事件才打开，关闭即清除选中）── */}
+      {selectedDef && (
         <aside style={{ width: 380, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', overflowY: 'auto', padding: 18, position: 'relative' }}>
           <button
-            onClick={() => setPanelCollapsed(true)}
-            title="收起详情面板"
+            onClick={() => setSelectedKey(null)}
+            title="关闭"
             style={{
               position: 'absolute', top: 14, right: 14, width: 22, height: 22, borderRadius: 6, border: 'none',
               background: 'var(--state-hover)', color: 'var(--foreground-muted)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <CollapseIcon dir="right" />
+            <CloseIcon />
           </button>
-          {!selectedDef ? (
-            <div style={{ color: 'var(--foreground-muted)', padding: '24px 32px 24px 0' }}>请在左侧表格选择一个事件模板，查看并编排其定义与 CSR 绑定</div>
-          ) : (
-            <EventDetail
-              def={selectedDef}
-              desc={selectedDesc}
-              bindings={selectedBindings}
-              lang={descLang}
-              onLangChange={setDescLang}
-              csrLoaded={!!csr}
-              edited={selectedEdited}
-              onFieldChange={(patch) => updateDef(selectedDef.EventKeyId, patch)}
-              onReset={() => resetDef(selectedDef.EventKeyId)}
-              onAddBinding={handleAddBinding}
-            />
-          )}
+          <EventDetail
+            def={selectedDef}
+            desc={selectedDesc}
+            bindings={selectedBindings}
+            lang={descLang}
+            onLangChange={setDescLang}
+            csrLoaded={!!csr}
+            edited={selectedEdited}
+            isCustom={selectedIsCustom}
+            onFieldChange={(patch) => updateDef(selectedDef.EventKeyId, patch)}
+            onDescFieldChange={(field, lang, value) => updateDescField(selectedDef.EventKeyId, field, lang, value)}
+            onReset={() => resetKey(selectedDef.EventKeyId)}
+            onRename={(newKey) => renameCustomDef(selectedDef.EventKeyId, newKey)}
+            onDeleteDef={() => deleteCustomDef(selectedDef.EventKeyId)}
+            onAddBinding={handleAddBinding}
+            onUpdateBinding={handleUpdateBinding}
+            onDeleteBinding={handleDeleteBinding}
+          />
         </aside>
       )}
     </div>
   );
 }
 
-function CollapseIcon({ dir }: { dir: 'left' | 'right' }) {
+function CloseIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points={dir === 'left' ? '9 6 15 12 9 18' : '15 6 9 12 15 18'} />
+      <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
     </svg>
   );
 }
 
 function EventDetail({
-  def, desc, bindings, lang, onLangChange, csrLoaded, edited, onFieldChange, onReset, onAddBinding,
+  def, desc, bindings, lang, onLangChange, csrLoaded, edited, isCustom,
+  onFieldChange, onDescFieldChange, onReset, onRename, onDeleteDef,
+  onAddBinding, onUpdateBinding, onDeleteBinding,
 }: {
   def: EventDefEntry;
   desc: EventDescEntry | null;
@@ -573,19 +681,31 @@ function EventDetail({
   onLangChange: (l: 'Zh' | 'En') => void;
   csrLoaded: boolean;
   edited: boolean;
+  isCustom: boolean;
   onFieldChange: (patch: Partial<EventDefEntry>) => void;
+  onDescFieldChange: (field: 'Description' | 'Cause' | 'Influence' | 'Suggestion', lang: 'Zh' | 'En', value: string) => void;
   onReset: () => void;
+  onRename: (newKey: string) => void;
+  onDeleteDef: () => void;
   onAddBinding: () => void;
+  onUpdateBinding: (objectId: string, patch: Record<string, unknown>) => void;
+  onDeleteBinding: (objectId: string) => void;
 }) {
-  const isStandard = EVENT_STANDARD_KEY_SET.has(def.EventKeyId);
-  const description = desc?.Description?.[lang];
+  const isStandard = sourceTag(def) === 'standard';
+  const description = desc?.Description?.[lang] ?? '';
+  const cause = desc?.Cause?.[lang] ?? '';
+  const influence = desc?.Influence?.[lang] ?? '';
+  const suggestion = desc?.Suggestion?.[lang] ?? '';
   const placeholders = extractPlaceholders(desc?.Description?.Zh ?? desc?.Description?.En);
   const num = (v: unknown) => (v === undefined || v === null || v === '' ? 0 : Number(v) || 0);
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ font: 'var(--text-label)', color: 'var(--foreground-muted)', wordBreak: 'break-all' }}>{def.EventKeyId}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ font: 'var(--text-label)', color: 'var(--foreground-muted)', wordBreak: 'break-all' }}>{def.EventKeyId}</span>
+          {isCustom && <Badge text="自定义" tone="var(--accent)" />}
+        </div>
         {edited && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <Badge text="已编排" tone="var(--warning)" />
@@ -596,13 +716,19 @@ function EventDetail({
         )}
       </div>
 
+      {isCustom && (
+        <div style={{ marginTop: 10 }}>
+          <EditField label="EventKeyId（分类.名称，如 Custom.MyEvent）" mono value={def.EventKeyId} onChange={onRename} />
+        </div>
+      )}
+
       <div style={{ marginTop: 10, marginBottom: 14 }}>
         <EditField label="事件名称 EventName" value={def.EventName ?? ''} onChange={(v) => onFieldChange({ EventName: v })} />
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <SeveritySelect value={def.SeverityId} onChange={(v) => onFieldChange({ SeverityId: v })} />
-        <Badge text={isStandard ? '标准字典' : '字典外新增'} tone={isStandard ? 'var(--primary)' : 'var(--accent)'} />
+        <SourceToggle isStandard={isStandard} onChange={(std) => onFieldChange({ SourceOverride: std ? 'standard' : 'extra' })} />
         <ToggleChip
           label="支持去抖"
           checked={def.DeassertFlag === 1}
@@ -623,46 +749,47 @@ function EventDetail({
         <div style={{ fontSize: 10.5, color: 'var(--foreground-muted)', marginTop: 2 }}>65535 = 全通道上报</div>
       )}
 
-      {desc && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <label style={{ ...LABEL_STYLE, marginBottom: 0 }}>描述模板</label>
-            <div style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 8, background: 'var(--surface-disabled)' }}>
-              {(['Zh', 'En'] as const).map((l) => (
-                <button key={l} onClick={() => onLangChange(l)} style={chipBtnStyle(lang === l)}>
-                  {l === 'Zh' ? '中' : 'EN'}
-                </button>
-              ))}
-            </div>
+      <div style={{ marginTop: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <label style={{ ...LABEL_STYLE, marginBottom: 0 }}>描述模板</label>
+          <div style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 8, background: 'var(--surface-disabled)' }}>
+            {(['Zh', 'En'] as const).map((l) => (
+              <button key={l} onClick={() => onLangChange(l)} style={chipBtnStyle(lang === l)}>
+                {l === 'Zh' ? '中' : 'EN'}
+              </button>
+            ))}
           </div>
-          <div style={{ padding: 10, background: 'var(--surface-1)', borderRadius: 8, lineHeight: 1.6, wordBreak: 'break-all' }}>
-            {description || '（无描述）'}
-          </div>
-          {placeholders.length > 0 && (
-            <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--foreground-muted)' }}>
-              占位符 {placeholders.map((n) => `%${n}`).join(' ')} 依次取值于 CSR 侧该事件绑定的 Component / DescArg1~5 字段
-            </div>
-          )}
-
-          {desc.Cause?.[lang] && <TextBlock label="可能原因" text={desc.Cause[lang]!} />}
-          {desc.Influence?.[lang] && <TextBlock label="影响" text={desc.Influence[lang]!} />}
-          {desc.Suggestion?.[lang] && <TextBlock label="处理建议" text={desc.Suggestion[lang]!} />}
         </div>
-      )}
+        <EditTextarea label="Description" value={description} onChange={(v) => onDescFieldChange('Description', lang, v)} rows={2} />
+        {placeholders.length > 0 && (
+          <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--foreground-muted)' }}>
+            占位符 {placeholders.map((n) => `%${n}`).join(' ')} 依次取值于 CSR 侧该事件绑定的 Component / DescArg1~5 字段
+          </div>
+        )}
+        <div style={{ marginTop: 10 }}>
+          <EditTextarea label="可能原因 Cause" value={cause} onChange={(v) => onDescFieldChange('Cause', lang, v)} hint="多条原因用 @#AB; 分隔" />
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <EditTextarea label="影响 Influence" value={influence} onChange={(v) => onDescFieldChange('Influence', lang, v)} />
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <EditTextarea label="处理建议 Suggestion" value={suggestion} onChange={(v) => onDescFieldChange('Suggestion', lang, v)} hint="多条建议用 @#AB; 分隔" />
+        </div>
+      </div>
 
       <div style={{ marginTop: 18, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
         <label style={{ ...LABEL_STYLE, marginBottom: 6 }}>CSR 绑定（{bindings.length}）</label>
         {bindings.length === 0 ? (
           <div style={{ color: 'var(--foreground-muted)', marginBottom: 8 }}>当前 CSR 中暂无 Event_* 对象绑定此事件</div>
         ) : (
-          <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {bindings.map((b) => (
-              <div key={b.objectId} style={{ padding: '7px 10px', background: 'var(--surface-1)', borderRadius: 8 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--foreground)' }}>{b.objectId}</div>
-                <div style={{ color: 'var(--foreground-muted)', fontSize: 10.5, marginTop: 2 }}>
-                  Component: {String(b.Component || '-')} · Condition: {String(b.Condition ?? '-')} · Enabled: {String(b.Enabled ?? '-')}
-                </div>
-              </div>
+              <BindingRow
+                key={b.objectId}
+                binding={b}
+                onUpdate={(patch) => onUpdateBinding(b.objectId, patch)}
+                onDelete={() => onDeleteBinding(b.objectId)}
+              />
             ))}
           </div>
         )}
@@ -680,6 +807,68 @@ function EventDetail({
           + 新增 CSR 绑定
         </button>
       </div>
+
+      {isCustom && (
+        <div style={{ marginTop: 18, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+          <button
+            onClick={onDeleteDef}
+            style={{
+              width: '100%', padding: '8px 0', borderRadius: 8, border: 'none', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
+              background: 'color-mix(in srgb, var(--danger) 14%, transparent)', color: 'var(--danger)', cursor: 'pointer',
+            }}
+          >
+            删除该自定义事件模板
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** CSR 绑定行：字段与「硬件适配」独立事件弹窗一致（归属 FRU / 触发值 / 方向 / 启用），两处编排同一份数据 */
+function BindingRow({ binding, onUpdate, onDelete }: {
+  binding: CsrBinding;
+  onUpdate: (patch: Record<string, unknown>) => void;
+  onDelete: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div style={{ padding: '8px 10px', background: 'var(--surface-1)', borderRadius: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--foreground)', fontSize: 11.5 }}>{binding.objectId}</div>
+        <button
+          onClick={onDelete}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          title="删除该绑定"
+          style={{
+            width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5, border: 'none',
+            cursor: 'pointer', background: hover ? 'color-mix(in srgb, var(--danger) 16%, transparent)' : 'transparent',
+            color: hover ? 'var(--danger)' : 'var(--foreground-muted)',
+          }}
+        >
+          <TrashIcon />
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <EditField label="归属 FRU（Component）" mono value={String(binding.Component ?? '')} onChange={(v) => onUpdate({ Component: v })} />
+        <EditField label="触发值（Condition）" type="number" value={String(binding.Condition ?? 0)} onChange={(v) => onUpdate({ Condition: Number(v) || 0 })} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-end' }}>
+        <div style={{ flex: 1 }}>
+          <label style={LABEL_STYLE}>方向（OperatorId）</label>
+          <select
+            value={Number(binding.OperatorId ?? 5)}
+            onChange={(e) => onUpdate({ OperatorId: Number(e.target.value) })}
+            style={{ ...fieldInputStyle(false), cursor: 'pointer' }}
+          >
+            {OPERATOR_LABELS.map((o) => (
+              <option key={o.id} value={o.id}>{o.symbol} {o.label}</option>
+            ))}
+          </select>
+        </div>
+        <ToggleChip label="启用" checked={binding.Enabled !== false} onChange={(v) => onUpdate({ Enabled: v })} />
+      </div>
     </div>
   );
 }
@@ -690,6 +879,7 @@ function SeveritySelect({ value, onChange }: { value: number | undefined; onChan
     <select
       value={value ?? 0}
       onChange={(e) => onChange(Number(e.target.value))}
+      title="点击切换严重级别"
       style={{
         appearance: 'none', WebkitAppearance: 'none', border: 'none', cursor: 'pointer',
         padding: '3px 22px 3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 500, fontFamily: 'inherit',
@@ -705,15 +895,44 @@ function SeveritySelect({ value, onChange }: { value: number | undefined; onChan
   );
 }
 
+/** 标准字典 / 字典外新增 —— 可点击手动重分类（不影响标准字典本身，仅本地标记） */
+function SourceToggle({ isStandard, onChange }: { isStandard: boolean; onChange: (std: boolean) => void }) {
+  const [hover, setHover] = useState(false);
+  const tone = isStandard ? 'var(--primary)' : 'var(--accent)';
+  return (
+    <button
+      onClick={() => onChange(!isStandard)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title="点击切换「标准字典 / 字典外新增」归类标记（本地标记，不改变官方字典本身）"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 999,
+        fontSize: 11, fontWeight: 500, fontFamily: 'inherit', border: 'none', cursor: 'pointer',
+        color: tone, background: `color-mix(in srgb, ${tone} ${hover ? 26 : 16}%, transparent)`,
+        boxShadow: hover ? `0 0 0 1px ${tone} inset` : 'none',
+      }}
+    >
+      {isStandard ? '标准字典' : '字典外新增'}
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M8 7l8 5-8 5" /></svg>
+    </button>
+  );
+}
+
 function ToggleChip({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const [hover, setHover] = useState(false);
+  const tone = checked ? 'var(--success)' : 'var(--foreground-muted)';
   return (
     <button
       onClick={() => onChange(!checked)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title="点击切换"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 8px', borderRadius: 999,
         fontSize: 11, fontFamily: 'inherit', border: 'none', cursor: 'pointer',
-        background: checked ? 'color-mix(in srgb, var(--success) 16%, transparent)' : 'var(--surface-disabled)',
-        color: checked ? 'var(--success)' : 'var(--foreground-muted)',
+        background: checked ? `color-mix(in srgb, var(--success) ${hover ? 26 : 16}%, transparent)` : (hover ? 'var(--state-hover)' : 'var(--surface-disabled)'),
+        color: tone,
+        boxShadow: hover ? `0 0 0 1px ${tone} inset` : 'none',
       }}
     >
       <span style={{
@@ -722,16 +941,5 @@ function ToggleChip({ label, checked, onChange }: { label: string; checked: bool
       }} />
       {label}
     </button>
-  );
-}
-
-function TextBlock({ label, text }: { label: string; text: string }) {
-  return (
-    <div style={{ marginTop: 10 }}>
-      <label style={LABEL_STYLE}>{label}</label>
-      <div style={{ color: 'var(--foreground-secondary)', lineHeight: 1.6, wordBreak: 'break-all' }}>
-        {text.split('@#AB;').map((line, i) => <div key={i}>{line}</div>)}
-      </div>
-    </div>
   );
 }
