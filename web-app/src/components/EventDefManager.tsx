@@ -3,6 +3,9 @@ import type { CSRDocument } from '../types';
 import { withBase } from '../base';
 import { EVENT_STANDARD_KEY_SET } from '../data/eventStandardKeys';
 
+// 「事件定义」= 事件模板：EventCode/Severity/ActionId 等由字典统一定义，
+// CSR 里的每个 Event_* 对象只是引用某个模板并填入本机差异化参数
+// （Component / Reading / DescArg1~5），因此本页以模板表格为主视图。
 interface EventDefEntry {
   EventCode?: string;
   ReportChannel?: number;
@@ -75,6 +78,11 @@ function extractEvents(obj: Record<string, unknown>): Array<{ id: string; def: R
     .map(([id, def]) => ({ id, def: def as Record<string, unknown> }));
 }
 
+/** 空集合 = 不筛选（全部通过） */
+function passesSet(set: Set<string>, tag: string): boolean {
+  return set.size === 0 || set.has(tag);
+}
+
 const LABEL_STYLE: React.CSSProperties = { font: 'var(--text-label)', color: 'var(--foreground-muted)', marginBottom: 5, display: 'block' };
 
 function Badge({ text, tone }: { text: string; tone: string }) {
@@ -127,13 +135,101 @@ function EditField({ label, value, onChange, mono, type = 'text' }: {
   );
 }
 
+interface FilterOption { value: string; label: string; count: number }
+
+/** 表头内嵌的筛选下拉：点击表头图标展开选项，代替左侧筛选列表 */
+function FilterTh({ label, options, selected, onChange, width, mono }: {
+  label: string;
+  options: FilterOption[];
+  selected: Set<string>;
+  onChange: (next: Set<string>) => void;
+  width?: number;
+  mono?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const active = selected.size > 0;
+
+  const toggleValue = (v: string) => {
+    const next = new Set(selected);
+    if (next.has(v)) next.delete(v); else next.add(v);
+    onChange(next);
+  };
+
+  return (
+    <th style={{ position: 'relative', padding: '8px 10px', fontWeight: 500, textAlign: 'left', width, whiteSpace: 'nowrap' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer',
+          color: active ? 'var(--primary)' : 'inherit', font: 'inherit', fontWeight: active ? 600 : 500, padding: 0,
+          fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+        }}
+      >
+        {label}
+        <svg width="9" height="9" viewBox="0 0 24 24" fill={active ? 'var(--primary)' : 'currentColor'} style={{ opacity: active ? 1 : 0.5, flexShrink: 0 }}>
+          <path d="M7 10l5 5 5-5z" />
+        </svg>
+        {active && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 14, height: 14,
+            borderRadius: 999, background: 'var(--primary)', color: 'var(--primary-foreground)', fontSize: 9, padding: '0 3px',
+          }}>
+            {selected.size}
+          </span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 50, minWidth: 180, maxHeight: 300,
+            overflowY: 'auto', background: 'var(--surface-2)', borderRadius: 10, boxShadow: 'var(--shadow-lg)', padding: 6,
+          }}>
+            {active && (
+              <button
+                onClick={() => onChange(new Set())}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px', marginBottom: 2, borderRadius: 6,
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--primary)', fontWeight: 500,
+                }}
+              >
+                清空筛选
+              </button>
+            )}
+            {options.map((o) => (
+              <label
+                key={o.value}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '5px 8px', borderRadius: 6, cursor: 'pointer',
+                  fontSize: 12, fontWeight: 400, color: 'var(--foreground-secondary)',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLLabelElement).style.background = 'var(--state-hover)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLLabelElement).style.background = 'transparent'; }}
+              >
+                <input type="checkbox" checked={selected.has(o.value)} onChange={() => toggleValue(o.value)} style={{ accentColor: 'var(--primary)' }} />
+                <span style={{ flex: 1, whiteSpace: 'nowrap' }}>{o.label}</span>
+                <span style={{ color: 'var(--foreground-muted)', fontSize: 10.5 }}>{o.count}</span>
+              </label>
+            ))}
+            {options.length === 0 && <div style={{ padding: '5px 8px', fontSize: 11, color: 'var(--foreground-muted)' }}>无可选项</div>}
+          </div>
+        </>
+      )}
+    </th>
+  );
+}
+
 export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const [bundled, setBundled] = useState<EventDefBundle | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<string>('all');
-  const [bindingFilter, setBindingFilter] = useState<'all' | 'bound' | 'unbound'>('all');
-  const [standardFilter, setStandardFilter] = useState<'all' | 'standard' | 'extra'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
+  const [severityFilter, setSeverityFilter] = useState<Set<string>>(new Set());
+  const [eventTypeFilter, setEventTypeFilter] = useState<Set<string>>(new Set());
+  const [lifeCycleFilter, setLifeCycleFilter] = useState<Set<string>>(new Set());
+  const [deassertFilter, setDeassertFilter] = useState<Set<string>>(new Set());
+  const [sourceFilter, setSourceFilter] = useState<Set<string>>(new Set());
+  const [bindingFilter, setBindingFilter] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [descLang, setDescLang] = useState<'Zh' | 'En'>('Zh');
   // 会话内本地编辑覆盖（事件定义库本身是静态字典文件，编排结果先保存在页面内）
@@ -193,26 +289,76 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [csr]);
 
-  const categories = useMemo(() => {
+  // ── 表头筛选下拉的选项 + 计数（基于全量字典，独立于其它列的筛选结果）──
+  const categoryOptions = useMemo<FilterOption[]>(() => {
     const counts = new Map<string, number>();
     for (const d of defs) counts.set(categoryOf(d.EventKeyId), (counts.get(categoryOf(d.EventKeyId)) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: value, count }));
   }, [defs]);
+
+  const severityOptions = useMemo<FilterOption[]>(() => (
+    [0, 1, 2, 3].map((id) => ({ value: String(id), label: SEVERITY_META[id].label, count: defs.filter((d) => (d.SeverityId ?? 0) === id).length }))
+      .filter((o) => o.count > 0)
+  ), [defs]);
+
+  const eventTypeOptions = useMemo<FilterOption[]>(() => {
+    const counts = new Map<number, number>();
+    for (const d of defs) { const v = d.EventType ?? 0; counts.set(v, (counts.get(v) ?? 0) + 1); }
+    return [...counts.entries()].sort((a, b) => a[0] - b[0]).map(([v, count]) => ({ value: String(v), label: `EventType ${v}`, count }));
+  }, [defs]);
+
+  const lifeCycleOptions = useMemo<FilterOption[]>(() => {
+    const counts = new Map<number, number>();
+    for (const d of defs) { const v = d.LifeCycleId ?? 0; counts.set(v, (counts.get(v) ?? 0) + 1); }
+    return [...counts.entries()].sort((a, b) => a[0] - b[0]).map(([v, count]) => ({ value: String(v), label: `LifeCycleId ${v}`, count }));
+  }, [defs]);
+
+  const deassertOptions = useMemo<FilterOption[]>(() => {
+    const yes = defs.filter((d) => d.DeassertFlag === 1).length;
+    return [
+      { value: '1', label: '支持去抖', count: yes },
+      { value: '0', label: '不支持', count: defs.length - yes },
+    ].filter((o) => o.count > 0);
+  }, [defs]);
+
+  const sourceOptions = useMemo<FilterOption[]>(() => {
+    const standard = defs.filter((d) => EVENT_STANDARD_KEY_SET.has(d.EventKeyId)).length;
+    return [
+      { value: 'standard', label: '标准字典', count: standard },
+      { value: 'extra', label: '字典外新增', count: defs.length - standard },
+    ].filter((o) => o.count > 0);
+  }, [defs]);
+
+  const bindingOptions = useMemo<FilterOption[]>(() => {
+    const bound = defs.filter((d) => (bindingsByKey.get(d.EventKeyId)?.length ?? 0) > 0).length;
+    return [
+      { value: 'bound', label: '已绑定', count: bound },
+      { value: 'unbound', label: '未绑定', count: defs.length - bound },
+    ].filter((o) => o.count > 0);
+  }, [defs, bindingsByKey]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return defs.filter((d) => {
-      if (category !== 'all' && categoryOf(d.EventKeyId) !== category) return false;
       if (q && !(d.EventKeyId.toLowerCase().includes(q) || (d.EventName ?? '').toLowerCase().includes(q) || (d.EventCode ?? '').toLowerCase().includes(q))) return false;
-      const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
-      if (bindingFilter === 'bound' && boundCount === 0) return false;
-      if (bindingFilter === 'unbound' && boundCount > 0) return false;
+      if (!passesSet(categoryFilter, categoryOf(d.EventKeyId))) return false;
+      if (!passesSet(severityFilter, String(d.SeverityId ?? 0))) return false;
+      if (!passesSet(eventTypeFilter, String(d.EventType ?? 0))) return false;
+      if (!passesSet(lifeCycleFilter, String(d.LifeCycleId ?? 0))) return false;
+      if (!passesSet(deassertFilter, String(d.DeassertFlag ?? 0))) return false;
       const isStandard = EVENT_STANDARD_KEY_SET.has(d.EventKeyId);
-      if (standardFilter === 'standard' && !isStandard) return false;
-      if (standardFilter === 'extra' && isStandard) return false;
+      if (!passesSet(sourceFilter, isStandard ? 'standard' : 'extra')) return false;
+      const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
+      if (!passesSet(bindingFilter, boundCount > 0 ? 'bound' : 'unbound')) return false;
       return true;
     });
-  }, [defs, search, category, bindingFilter, standardFilter, bindingsByKey]);
+  }, [defs, search, categoryFilter, severityFilter, eventTypeFilter, lifeCycleFilter, deassertFilter, sourceFilter, bindingFilter, bindingsByKey]);
+
+  const activeFilterCount = categoryFilter.size + severityFilter.size + eventTypeFilter.size + lifeCycleFilter.size + deassertFilter.size + sourceFilter.size + bindingFilter.size;
+  const clearAllFilters = () => {
+    setCategoryFilter(new Set()); setSeverityFilter(new Set()); setEventTypeFilter(new Set());
+    setLifeCycleFilter(new Set()); setDeassertFilter(new Set()); setSourceFilter(new Set()); setBindingFilter(new Set());
+  };
 
   const stats = useMemo(() => {
     const defKeys = new Set(defs.map((d) => d.EventKeyId));
@@ -250,75 +396,43 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden', fontSize: 12, color: 'var(--foreground-secondary)' }}>
-      {/* ── 左：分类筛选 ── */}
-      <aside style={{ width: 232, flexShrink: 0, borderRight: '1px solid var(--border-subtle)', overflowY: 'auto', padding: '12px 10px' }}>
-        <input
-          type="text"
-          placeholder="搜索 EventKeyId / 名称 / 编码"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ ...fieldInputStyle(false), marginBottom: 14 }}
-        />
-
-        <label style={LABEL_STYLE}>CSR 绑定状态</label>
-        <div style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 10, background: 'var(--surface-disabled)', marginBottom: 14 }}>
-          {(['all', 'bound', 'unbound'] as const).map((v) => (
-            <button key={v} onClick={() => setBindingFilter(v)} style={chipBtnStyle(bindingFilter === v)}>
-              {v === 'all' ? '全部' : v === 'bound' ? '已绑定' : '未绑定'}
-            </button>
-          ))}
-        </div>
-
-        <label style={LABEL_STYLE}>字典来源</label>
-        <div style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 10, background: 'var(--surface-disabled)', marginBottom: 16 }}>
-          {(['all', 'standard', 'extra'] as const).map((v) => (
-            <button key={v} onClick={() => setStandardFilter(v)} style={chipBtnStyle(standardFilter === v)}>
-              {v === 'all' ? '全部' : v === 'standard' ? '标准字典' : '字典外新增'}
-            </button>
-          ))}
-        </div>
-
-        <label style={LABEL_STYLE}>分类（{categories.length}）</label>
-        <div
-          onClick={() => setCategory('all')}
-          style={{
-            padding: '6px 10px', marginBottom: 2, borderRadius: 8, cursor: 'pointer',
-            background: category === 'all' ? 'var(--state-selected)' : 'transparent',
-            color: category === 'all' ? 'var(--foreground)' : 'var(--foreground-secondary)',
-          }}
-        >
-          全部（{defs.length}）
-        </div>
-        {categories.map(([name, count]) => (
-          <div
-            key={name}
-            onClick={() => setCategory(name)}
-            style={{
-              padding: '6px 10px', marginBottom: 2, borderRadius: 8, cursor: 'pointer',
-              background: category === name ? 'var(--state-selected)' : 'transparent',
-              color: category === name ? 'var(--foreground)' : 'var(--foreground-secondary)',
-              display: 'flex', justifyContent: 'space-between',
-            }}
-          >
-            <span>{name}</span>
-            <span style={{ color: 'var(--foreground-muted)' }}>{count}</span>
-          </div>
-        ))}
-      </aside>
-
-      {/* ── 中：表格 ── */}
+      {/* ── 主区：事件模板表格（表头即筛选器）── */}
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{
           padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)',
+          display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          <input
+            type="text"
+            placeholder="搜索 EventKeyId / 名称 / 编码"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ ...fieldInputStyle(false), width: 260 }}
+          />
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearAllFilters}
+              style={{
+                padding: '5px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+                background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)',
+              }}
+            >
+              清除全部筛选（{activeFilterCount}）
+            </button>
+          )}
+          <span style={{ marginLeft: 'auto', color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
+        </div>
+
+        <div style={{
+          padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)',
           display: 'flex', gap: 18, flexWrap: 'wrap', color: 'var(--foreground-muted)', fontSize: 11,
         }}>
           <span>标准字典 <b style={{ color: 'var(--foreground)' }}>{stats.standardTotal}</b> 项</span>
           <span>事件定义库 <b style={{ color: 'var(--foreground)' }}>{stats.defTotal}</b> 项</span>
           <span>标准字典覆盖 <b style={{ color: 'var(--primary)' }}>{stats.coveredStandard}</b> 项</span>
           <span>字典外新增 <b style={{ color: 'var(--warning)' }}>{stats.extra}</b> 项</span>
-          <span>当前 CSR 已绑定 <b style={{ color: 'var(--success)' }}>{stats.boundDefs}</b> / {stats.defTotal} 项定义</span>
+          <span>当前 CSR 已绑定 <b style={{ color: 'var(--success)' }}>{stats.boundDefs}</b> / {stats.defTotal} 项模板</span>
           {!csr && <span style={{ color: 'var(--danger)' }}>（未加载 CSR，绑定数据不可用，新建绑定功能已禁用）</span>}
-          <span style={{ marginLeft: 'auto' }}>共 {filtered.length} 条</span>
         </div>
 
         <div style={{ flex: 1, overflow: 'auto' }}>
@@ -328,12 +442,16 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 position: 'sticky', top: 0, background: 'var(--surface-1)', zIndex: 1, textAlign: 'left',
                 color: 'var(--foreground-muted)', font: 'var(--text-label)',
               }}>
-                <th style={{ padding: '8px 16px', fontWeight: 500 }}>EventKeyId</th>
+                <FilterTh label="分类" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} width={110} />
+                <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventKeyId</th>
                 <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventName</th>
                 <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventCode</th>
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>级别</th>
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>来源</th>
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>CSR 绑定</th>
+                <FilterTh label="级别" options={severityOptions} selected={severityFilter} onChange={setSeverityFilter} width={70} />
+                <FilterTh label="EventType" options={eventTypeOptions} selected={eventTypeFilter} onChange={setEventTypeFilter} width={90} />
+                <FilterTh label="LifeCycleId" options={lifeCycleOptions} selected={lifeCycleFilter} onChange={setLifeCycleFilter} width={100} />
+                <FilterTh label="去抖" options={deassertOptions} selected={deassertFilter} onChange={setDeassertFilter} width={70} />
+                <FilterTh label="来源" options={sourceOptions} selected={sourceFilter} onChange={setSourceFilter} width={70} />
+                <FilterTh label="CSR 绑定" options={bindingOptions} selected={bindingFilter} onChange={setBindingFilter} width={90} />
               </tr>
             </thead>
             <tbody>
@@ -355,15 +473,22 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                     onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                   >
                     <td style={{
-                      padding: '7px 16px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
-                      color: isSelected ? 'var(--primary)' : 'var(--foreground)',
+                      padding: '7px 10px', color: isSelected ? 'var(--primary)' : 'var(--foreground-muted)',
                       borderLeft: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
                     }}>
+                      {categoryOf(d.EventKeyId)}
+                    </td>
+                    <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
                       {d.EventKeyId}{overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 6, color: 'var(--warning)' }}>●</span>}
                     </td>
                     <td style={{ padding: '7px 10px', color: 'var(--foreground-secondary)' }}>{d.EventName}</td>
                     <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', color: 'var(--foreground-muted)' }}>{d.EventCode}</td>
                     <td style={{ padding: '7px 10px' }}><Badge text={sev.label} tone={sev.tone} /></td>
+                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.EventType ?? 0}</td>
+                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.LifeCycleId ?? 0}</td>
+                    <td style={{ padding: '7px 10px' }}>
+                      <Badge text={d.DeassertFlag === 1 ? '是' : '否'} tone={d.DeassertFlag === 1 ? 'var(--success)' : 'var(--foreground-muted)'} />
+                    </td>
                     <td style={{ padding: '7px 10px' }}>
                       <Badge text={isStandard ? '标准' : '扩展'} tone={isStandard ? 'var(--primary)' : 'var(--accent)'} />
                     </td>
@@ -374,7 +499,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
+                <tr><td colSpan={10} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
               )}
             </tbody>
           </table>
@@ -384,7 +509,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
       {/* ── 右：配置详情（可编排） ── */}
       <aside style={{ width: 380, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', overflowY: 'auto', padding: 18 }}>
         {!selectedDef ? (
-          <div style={{ color: 'var(--foreground-muted)', padding: 24 }}>请在中间表格选择一个事件，查看并编排其定义与 CSR 绑定</div>
+          <div style={{ color: 'var(--foreground-muted)', padding: 24 }}>请在左侧表格选择一个事件模板，查看并编排其定义与 CSR 绑定</div>
         ) : (
           <EventDetail
             def={selectedDef}
