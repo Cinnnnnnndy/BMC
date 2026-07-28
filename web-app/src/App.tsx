@@ -18,6 +18,7 @@ const lazy = <T extends React.ComponentType<never>>(
 
 const TopologyView               = lazy(() => import('./components/TopologyView'),               'TopologyView');
 const EventConfig                = lazy(() => import('./components/EventConfig'),                'EventConfig');
+const EventDefManager            = lazy(() => import('./components/EventDefManager'),            'EventDefManager');
 const SensorConfig               = lazy(() => import('./components/SensorConfig'),               'SensorConfig');
 const Simulator                  = lazy(() => import('./components/Simulator'),                  'Simulator');
 const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardTopologyView'),   'TianChiBoardTopologyView');
@@ -55,13 +56,13 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
   | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
-  | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
+  | 'topology' | 'boardTopology' | 'association' | 'event' | 'eventDefManager' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo' | 'signingConfig'
   | 'smcOffset' | 'exprCalc' | 'coolingConfig' | 'whiteBrand'
   | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup'
   | 'openubmcLogin' | 'gitcodeKeys';
 
-const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'sensor', 'simulator']);
+const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'eventDefManager', 'sensor', 'simulator']);
 
 // ── Rail icon SVG helper ───────────────────────────────────────────────────
 function SI({ d }: { d: string | string[] }) {
@@ -94,6 +95,7 @@ const ICONS: Record<string, React.ReactNode> = {
   boardTopology:<SI d="M4 5h16M4 12h16M4 19h16M9 5v14M15 5v14" />,
   association:  <SI d={['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71','M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71']} />,
   event:        <SI d="M13 2L3 14h9l-1 8 10-12h-9l1-8" />,
+  eventDefManager: <SI d={['M9 2h6a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z','M9 6h6','M9 10h6','M9 14h4','M7 2h2v4H7z']} />,
   sensor:       <SI d="M22 12h-4l-3 9L9 3l-3 9H2" />,
   simulator:    <SI d="M5 3l14 9-14 9V3z" />,
   hwTopology:   <SI d={['M9 3H5a2 2 0 0 0-2 2v4m6-6h6m-6 0v18m6-18h4a2 2 0 0 1 2 2v4M3 9h6M21 9h-6','M3 21h6m-6 0v-4m18 4h-6m6 0v-4M9 21v-4m0 0h6m0 0v4']} />,
@@ -207,7 +209,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
   threeD: '3D 仿真', vueTopo: '硬件适配', signingConfig: '签名与证书管理',csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
-  sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
+  sensor: '传感器配置', event: '事件配置', eventDefManager: '事件管理', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
   openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥',
   whiteBrand: '白牌定制',
@@ -1011,6 +1013,8 @@ export default function App() {
         return csr ? <SoftwareHardwareAssociationView csr={csr} /> : null;
       case 'event':
         return csr ? <EventConfig csr={csr} eventDef={eventDef} onChange={handleCsrChange} /> : null;
+      case 'eventDefManager':
+        return <EventDefManager csr={csr} eventDef={eventDef} onChange={handleCsrChange} onOpenEventConfig={() => openView('event')} />;
       case 'sensor':
         return csr ? <SensorConfig csr={csr} onChange={handleCsrChange} /> : null;
       case 'simulator':
@@ -1111,9 +1115,10 @@ export default function App() {
     topology: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     vueTopo:  { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     event:    { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+    eventDefManager: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     sensor:   { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
   };
-  const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'sensor', 'association', 'boardTopology', 'simulator']);
+  const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'eventDefManager', 'sensor', 'association', 'boardTopology', 'simulator']);
 
   function renderTabActions(viewId: ViewId): React.ReactNode {
     const agentAct = CONTEXT_AGENT[viewId];
@@ -1177,6 +1182,7 @@ export default function App() {
     { id: 'association', csrRequired: true },
     { id: 'sensor',      csrRequired: true },
     { id: 'event',       csrRequired: true },
+    { id: 'eventDefManager', csrRequired: true },
     { id: 'serverView' },
     ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, csrRequired: true }] : []),
   ];

@@ -61,6 +61,7 @@ export const REPO_CAPABILITIES: Record<RepoType, CapabilityGroup[]> = {
       items: [
         { name: '拓扑视图', open: 'topology' },
         { name: '事件配置', open: 'event' },
+        { name: '事件管理', open: 'eventDefManager' },
         { name: '传感器配置', open: 'sensor' },
         { name: '能效调速', open: 'coolingConfig' },
         { name: 'SMC 偏移量', open: 'smcExt' },
