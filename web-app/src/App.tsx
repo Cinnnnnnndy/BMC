@@ -1014,7 +1014,7 @@ export default function App() {
       case 'event':
         return csr ? <EventConfig csr={csr} eventDef={eventDef} onChange={handleCsrChange} /> : null;
       case 'eventDefManager':
-        return <EventDefManager csr={csr} eventDef={eventDef} onChange={handleCsrChange} onOpenEventConfig={() => openView('event')} />;
+        return <EventDefManager csr={csr} eventDef={eventDef} onChange={handleCsrChange} />;
       case 'sensor':
         return csr ? <SensorConfig csr={csr} onChange={handleCsrChange} /> : null;
       case 'simulator':
@@ -1181,7 +1181,6 @@ export default function App() {
     { id: 'topology',    csrRequired: true },
     { id: 'association', csrRequired: true },
     { id: 'sensor',      csrRequired: true },
-    { id: 'event',       csrRequired: true },
     { id: 'eventDefManager', csrRequired: true },
     { id: 'serverView' },
     ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, csrRequired: true }] : []),

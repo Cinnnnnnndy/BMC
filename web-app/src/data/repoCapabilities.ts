@@ -60,7 +60,6 @@ export const REPO_CAPABILITIES: Record<RepoType, CapabilityGroup[]> = {
       group: '配置编辑',
       items: [
         { name: '拓扑视图', open: 'topology' },
-        { name: '事件配置', open: 'event' },
         { name: '事件管理', open: 'eventDefManager' },
         { name: '传感器配置', open: 'sensor' },
         { name: '能效调速', open: 'coolingConfig' },
@@ -117,7 +116,7 @@ export const REPO_CAPABILITIES: Record<RepoType, CapabilityGroup[]> = {
       group: '配置编辑',
       items: [
         { name: '拓扑视图', open: 'topology' },
-        { name: '事件配置', open: 'event' },
+        { name: '事件管理', open: 'eventDefManager' },
       ],
     },
   ],
