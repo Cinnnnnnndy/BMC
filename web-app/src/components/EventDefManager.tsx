@@ -439,14 +439,6 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
     setLifeCycleFilter(new Set()); setDeassertFilter(new Set()); setSourceFilter(new Set()); setBindingFilter(new Set());
   };
 
-  const stats = useMemo(() => {
-    const defKeys = new Set(defs.map((d) => d.EventKeyId));
-    const coveredStandard = [...EVENT_STANDARD_KEY_SET].filter((k) => defKeys.has(k)).length;
-    let boundDefs = 0;
-    for (const d of defs) if ((bindingsByKey.get(d.EventKeyId)?.length ?? 0) > 0) boundDefs += 1;
-    return { standardTotal: EVENT_STANDARD_KEY_SET.size, defTotal: defs.length, coveredStandard, boundDefs };
-  }, [defs, bindingsByKey]);
-
   const selectedDef = selectedKey ? defs.find((d) => d.EventKeyId === selectedKey) ?? null : null;
   const selectedDesc = useMemo(() => {
     if (!selectedKey) return null;
@@ -529,17 +521,6 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
             </button>
           )}
           <span style={{ marginLeft: 'auto', color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
-        </div>
-
-        <div style={{
-          padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex', gap: 18, flexWrap: 'wrap', color: 'var(--foreground-muted)', fontSize: 11,
-        }}>
-          <span>标准字典 <b style={{ color: 'var(--foreground)' }}>{stats.standardTotal}</b> 项</span>
-          <span>事件定义库 <b style={{ color: 'var(--foreground)' }}>{stats.defTotal}</b> 项</span>
-          <span>标准字典覆盖 <b style={{ color: 'var(--primary)' }}>{stats.coveredStandard}</b> 项</span>
-          <span>当前 CSR 已绑定 <b style={{ color: 'var(--success)' }}>{stats.boundDefs}</b> / {stats.defTotal} 项模板</span>
-          {!csr && <span style={{ color: 'var(--danger)' }}>（未加载 CSR，绑定数据不可用，新建绑定功能已禁用）</span>}
         </div>
 
         <div style={{ flex: 1, overflow: 'auto' }}>
