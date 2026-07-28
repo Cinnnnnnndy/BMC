@@ -232,6 +232,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const [bindingFilter, setBindingFilter] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [descLang, setDescLang] = useState<'Zh' | 'En'>('Zh');
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   // 会话内本地编辑覆盖（事件定义库本身是静态字典文件，编排结果先保存在页面内）
   const [overrides, setOverrides] = useState<Record<string, Partial<EventDefEntry>>>({});
 
@@ -442,9 +443,8 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 position: 'sticky', top: 0, background: 'var(--surface-1)', zIndex: 1, textAlign: 'left',
                 color: 'var(--foreground-muted)', font: 'var(--text-label)',
               }}>
-                <FilterTh label="分类" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} width={110} />
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventKeyId</th>
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventName</th>
+                <th style={{ padding: '8px 10px', fontWeight: 500 }}>事件（EventKeyId / EventName）</th>
+                <FilterTh label="分类" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} width={100} />
                 <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventCode</th>
                 <FilterTh label="级别" options={severityOptions} selected={severityFilter} onChange={setSeverityFilter} width={70} />
                 <FilterTh label="EventType" options={eventTypeOptions} selected={eventTypeFilter} onChange={setEventTypeFilter} width={90} />
@@ -473,15 +473,15 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                     onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                   >
                     <td style={{
-                      padding: '7px 10px', color: isSelected ? 'var(--primary)' : 'var(--foreground-muted)',
+                      padding: '7px 10px', whiteSpace: 'nowrap',
                       borderLeft: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
                     }}>
-                      {categoryOf(d.EventKeyId)}
+                      <div style={{ fontFamily: 'var(--font-mono)', color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
+                        {d.EventKeyId}{overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 6, color: 'var(--warning)' }}>●</span>}
+                      </div>
+                      <div style={{ color: 'var(--foreground-muted)', fontSize: 10.5, marginTop: 2 }}>{d.EventName}</div>
                     </td>
-                    <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
-                      {d.EventKeyId}{overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 6, color: 'var(--warning)' }}>●</span>}
-                    </td>
-                    <td style={{ padding: '7px 10px', color: 'var(--foreground-secondary)' }}>{d.EventName}</td>
+                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)' }}>{categoryOf(d.EventKeyId)}</td>
                     <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', color: 'var(--foreground-muted)' }}>{d.EventCode}</td>
                     <td style={{ padding: '7px 10px' }}><Badge text={sev.label} tone={sev.tone} /></td>
                     <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.EventType ?? 0}</td>
@@ -499,33 +499,67 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
+                <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </main>
 
-      {/* ── 右：配置详情（可编排） ── */}
-      <aside style={{ width: 380, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', overflowY: 'auto', padding: 18 }}>
-        {!selectedDef ? (
-          <div style={{ color: 'var(--foreground-muted)', padding: 24 }}>请在左侧表格选择一个事件模板，查看并编排其定义与 CSR 绑定</div>
-        ) : (
-          <EventDetail
-            def={selectedDef}
-            desc={selectedDesc}
-            bindings={selectedBindings}
-            lang={descLang}
-            onLangChange={setDescLang}
-            csrLoaded={!!csr}
-            edited={selectedEdited}
-            onFieldChange={(patch) => updateDef(selectedDef.EventKeyId, patch)}
-            onReset={() => resetDef(selectedDef.EventKeyId)}
-            onAddBinding={handleAddBinding}
-          />
-        )}
-      </aside>
+      {/* ── 右：配置详情（可编排，可收起） ── */}
+      {panelCollapsed ? (
+        <button
+          onClick={() => setPanelCollapsed(false)}
+          title="展开详情面板"
+          style={{
+            width: 28, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', background: 'none',
+            borderTop: 'none', borderRight: 'none', borderBottom: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 14,
+            color: 'var(--foreground-muted)',
+          }}
+        >
+          <CollapseIcon dir="left" />
+        </button>
+      ) : (
+        <aside style={{ width: 380, flexShrink: 0, borderLeft: '1px solid var(--border-subtle)', overflowY: 'auto', padding: 18, position: 'relative' }}>
+          <button
+            onClick={() => setPanelCollapsed(true)}
+            title="收起详情面板"
+            style={{
+              position: 'absolute', top: 14, right: 14, width: 22, height: 22, borderRadius: 6, border: 'none',
+              background: 'var(--state-hover)', color: 'var(--foreground-muted)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <CollapseIcon dir="right" />
+          </button>
+          {!selectedDef ? (
+            <div style={{ color: 'var(--foreground-muted)', padding: '24px 32px 24px 0' }}>请在左侧表格选择一个事件模板，查看并编排其定义与 CSR 绑定</div>
+          ) : (
+            <EventDetail
+              def={selectedDef}
+              desc={selectedDesc}
+              bindings={selectedBindings}
+              lang={descLang}
+              onLangChange={setDescLang}
+              csrLoaded={!!csr}
+              edited={selectedEdited}
+              onFieldChange={(patch) => updateDef(selectedDef.EventKeyId, patch)}
+              onReset={() => resetDef(selectedDef.EventKeyId)}
+              onAddBinding={handleAddBinding}
+            />
+          )}
+        </aside>
+      )}
     </div>
+  );
+}
+
+function CollapseIcon({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points={dir === 'left' ? '9 6 15 12 9 18' : '15 6 9 12 15 18'} />
+    </svg>
   );
 }
 
