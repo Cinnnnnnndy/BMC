@@ -486,113 +486,124 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden', fontSize: 12, color: 'var(--foreground-secondary)' }}>
       {/* ── 主区：事件模板表格（表头即筛选器）── */}
-      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
-        }}>
-          <input
-            type="text"
-            placeholder="搜索 EventKeyId / 名称 / 编码"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ ...fieldInputStyle(false), width: 260 }}
-          />
-          <button
-            onClick={handleAddDef}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 999, border: 'none',
-              cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit',
-              background: 'var(--primary)', color: 'var(--primary-foreground)',
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            新建事件模板
-          </button>
-          {activeFilterCount > 0 && (
+      {/* 大屏下内容居中定宽，避免为了扫一行数据而来回转头 */}
+      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
+        <div style={{ width: '100%', maxWidth: 1180, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '10px 4px', borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+          }}>
+            <input
+              type="text"
+              placeholder="搜索 EventKeyId / 名称 / 编码"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ ...fieldInputStyle(false), width: 260 }}
+            />
             <button
-              onClick={clearAllFilters}
+              onClick={handleAddDef}
               style={{
-                padding: '5px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-                background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)',
+                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 999, border: 'none',
+                cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit',
+                background: 'var(--primary)', color: 'var(--primary-foreground)',
               }}
             >
-              清除全部筛选（{activeFilterCount}）
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              新建事件模板
             </button>
-          )}
-          <span style={{ marginLeft: 'auto', color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
-        </div>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                style={{
+                  padding: '5px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+                  background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)',
+                }}
+              >
+                清除全部筛选（{activeFilterCount}）
+              </button>
+            )}
+            <span style={{ marginLeft: 'auto', color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
+          </div>
 
-        <div style={{ flex: 1, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{
-                position: 'sticky', top: 0, background: 'var(--surface-1)', zIndex: 1, textAlign: 'left',
-                color: 'var(--foreground-muted)', font: 'var(--text-label)',
-              }}>
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>事件（EventKeyId / EventName）</th>
-                <FilterTh label="分类" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} width={100} />
-                <th style={{ padding: '8px 10px', fontWeight: 500 }}>EventCode</th>
-                <FilterTh label="级别" options={severityOptions} selected={severityFilter} onChange={setSeverityFilter} width={70} />
-                <FilterTh label="EventType" options={eventTypeOptions} selected={eventTypeFilter} onChange={setEventTypeFilter} width={90} />
-                <FilterTh label="LifeCycleId" options={lifeCycleOptions} selected={lifeCycleFilter} onChange={setLifeCycleFilter} width={100} />
-                <FilterTh label="去抖" options={deassertOptions} selected={deassertFilter} onChange={setDeassertFilter} width={70} />
-                <FilterTh label="来源" options={sourceOptions} selected={sourceFilter} onChange={setSourceFilter} width={70} />
-                <FilterTh label="CSR 绑定" options={bindingOptions} selected={bindingFilter} onChange={setBindingFilter} width={90} />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((d) => {
-                const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
-                const sev = severityMeta(d.SeverityId);
-                const isStandard = sourceTag(d) === 'standard';
-                const isSelected = selectedKey === d.EventKeyId;
-                const isCustom = customKeySet.has(d.EventKeyId);
-                return (
-                  <tr
-                    key={d.EventKeyId}
-                    onClick={() => setSelectedKey(d.EventKeyId)}
-                    style={{
-                      cursor: 'pointer',
-                      background: isSelected ? 'var(--state-selected)' : 'transparent',
-                      borderBottom: '1px solid var(--border-subtle)',
-                    }}
-                    onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--state-hover)'; }}
-                    onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
-                  >
-                    <td style={{
-                      padding: '7px 10px', whiteSpace: 'nowrap',
-                      borderLeft: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
-                    }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
-                        {d.EventKeyId}
-                        {isCustom && <span title="本页新建的自定义事件模板" style={{ marginLeft: 6, color: 'var(--accent)' }}>●</span>}
-                        {overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 4, color: 'var(--warning)' }}>●</span>}
-                      </div>
-                      <div style={{ color: 'var(--foreground-muted)', fontSize: 10.5, marginTop: 2 }}>{d.EventName}</div>
-                    </td>
-                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)' }}>{categoryOf(d.EventKeyId)}</td>
-                    <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', color: 'var(--foreground-muted)' }}>{d.EventCode}</td>
-                    <td style={{ padding: '7px 10px' }}><Badge text={sev.label} tone={sev.tone} /></td>
-                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.EventType ?? 0}</td>
-                    <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.LifeCycleId ?? 0}</td>
-                    <td style={{ padding: '7px 10px' }}>
-                      <Badge text={d.DeassertFlag === 1 ? '是' : '否'} tone={d.DeassertFlag === 1 ? 'var(--success)' : 'var(--foreground-muted)'} />
-                    </td>
-                    <td style={{ padding: '7px 10px' }}>
-                      <Badge text={isStandard ? '标准' : '扩展'} tone={isStandard ? 'var(--primary)' : 'var(--accent)'} />
-                    </td>
-                    <td style={{ padding: '7px 10px' }}>
-                      <Badge text={String(boundCount)} tone={boundCount > 0 ? 'var(--success)' : 'var(--foreground-muted)'} />
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
-              )}
-            </tbody>
-          </table>
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {/* table-layout: fixed + 每列定宽，避免「事件」列被拉伸导致后面列隔得很远 */}
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{
+                  position: 'sticky', top: 0, background: 'var(--surface-1)', zIndex: 1, textAlign: 'left',
+                  color: 'var(--foreground-muted)', font: 'var(--text-label)',
+                }}>
+                  {/* 列顺序按扫读优先级排列：身份 → 级别/绑定状态（最需要一眼看到）→ 分类归属 → 技术细节字段（靠后，低频查看） */}
+                  <th style={{ padding: '8px 10px', fontWeight: 500, width: 300 }}>事件（EventKeyId / EventName）</th>
+                  <FilterTh label="级别" options={severityOptions} selected={severityFilter} onChange={setSeverityFilter} width={70} />
+                  <FilterTh label="CSR 绑定" options={bindingOptions} selected={bindingFilter} onChange={setBindingFilter} width={90} />
+                  <FilterTh label="分类" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} width={100} />
+                  <FilterTh label="来源" options={sourceOptions} selected={sourceFilter} onChange={setSourceFilter} width={80} />
+                  <th style={{ padding: '8px 10px', fontWeight: 500, width: 110 }}>EventCode</th>
+                  <FilterTh label="去抖" options={deassertOptions} selected={deassertFilter} onChange={setDeassertFilter} width={70} />
+                  <FilterTh label="EventType" options={eventTypeOptions} selected={eventTypeFilter} onChange={setEventTypeFilter} width={90} />
+                  <FilterTh label="LifeCycleId" options={lifeCycleOptions} selected={lifeCycleFilter} onChange={setLifeCycleFilter} width={100} />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((d) => {
+                  const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
+                  const sev = severityMeta(d.SeverityId);
+                  const isStandard = sourceTag(d) === 'standard';
+                  const isSelected = selectedKey === d.EventKeyId;
+                  const isCustom = customKeySet.has(d.EventKeyId);
+                  return (
+                    <tr
+                      key={d.EventKeyId}
+                      onClick={() => setSelectedKey(d.EventKeyId)}
+                      style={{
+                        cursor: 'pointer',
+                        background: isSelected ? 'var(--state-selected)' : 'transparent',
+                        borderBottom: '1px solid var(--border-subtle)',
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--state-hover)'; }}
+                      onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
+                    >
+                      <td style={{
+                        padding: '7px 10px', overflow: 'hidden',
+                        borderLeft: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
+                      }}>
+                        <div
+                          title={d.EventKeyId}
+                          style={{
+                            fontFamily: 'var(--font-mono)', color: isSelected ? 'var(--primary)' : 'var(--foreground)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {d.EventKeyId}
+                          {isCustom && <span title="本页新建的自定义事件模板" style={{ marginLeft: 6, color: 'var(--accent)' }}>●</span>}
+                          {overrides[d.EventKeyId] && <span title="已本地编辑" style={{ marginLeft: 4, color: 'var(--warning)' }}>●</span>}
+                        </div>
+                        <div style={{ color: 'var(--foreground-muted)', fontSize: 10.5, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.EventName}</div>
+                      </td>
+                      <td style={{ padding: '7px 10px' }}><Badge text={sev.label} tone={sev.tone} /></td>
+                      <td style={{ padding: '7px 10px' }}>
+                        <Badge text={String(boundCount)} tone={boundCount > 0 ? 'var(--success)' : 'var(--foreground-muted)'} />
+                      </td>
+                      <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{categoryOf(d.EventKeyId)}</td>
+                      <td style={{ padding: '7px 10px' }}>
+                        <Badge text={isStandard ? '标准' : '扩展'} tone={isStandard ? 'var(--primary)' : 'var(--accent)'} />
+                      </td>
+                      <td style={{ padding: '7px 10px', fontFamily: 'var(--font-mono)', color: 'var(--foreground-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.EventCode}</td>
+                      <td style={{ padding: '7px 10px' }}>
+                        <Badge text={d.DeassertFlag === 1 ? '是' : '否'} tone={d.DeassertFlag === 1 ? 'var(--success)' : 'var(--foreground-muted)'} />
+                      </td>
+                      <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.EventType ?? 0}</td>
+                      <td style={{ padding: '7px 10px', color: 'var(--foreground-muted)', fontFamily: 'var(--font-mono)' }}>{d.LifeCycleId ?? 0}</td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: 'var(--foreground-muted)' }}>无匹配的事件定义</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
 
