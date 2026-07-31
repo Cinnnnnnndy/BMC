@@ -841,7 +841,7 @@ function EventDetail({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
         <MiniField label="级别 Severity" tip="事件的严重程度分级：提示 / 一般 / 重要 / 紧急，决定告警展示的紧急程度。">
           <SeveritySelect value={def.SeverityId} onChange={(v) => onFieldChange({ SeverityId: v })} />
         </MiniField>
