@@ -106,6 +106,13 @@ function passesSet(set: Set<string>, tag: string): boolean {
 const PAGE_SIZE = 20;
 
 const LABEL_STYLE: React.CSSProperties = { font: 'var(--text-label)', color: 'var(--foreground-muted)', marginBottom: 5, display: 'block' };
+// 分区大标题（"基础字段" / "描述模板" / "CSR 绑定"）：字重、大小写、字距都区别于下面
+// 一个个具体字段的小说明文字（LABEL_STYLE），避免两级标签长得太像分不清层级。
+const SECTION_LABEL_STYLE: React.CSSProperties = {
+  fontSize: 11.5, fontWeight: 700, color: 'var(--foreground-secondary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block',
+};
+const SECTION_WRAP_STYLE: React.CSSProperties = { marginTop: 18, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 };
 
 function PageBtn({ children, disabled, onClick, title }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; title?: string }) {
   const [hover, setHover] = useState(false);
@@ -786,22 +793,24 @@ function EventDetail({
         />
       </div>
 
-      <label style={{ ...LABEL_STYLE, marginBottom: 8 }}>基础字段</label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
-        <EditField label="EventCode" mono value={def.EventCode ?? ''} onChange={(v) => onFieldChange({ EventCode: v })} />
-        <EditField label="OldEventCode" mono value={def.OldEventCode ?? ''} onChange={(v) => onFieldChange({ OldEventCode: v })} />
-        <EditField label="ReportChannel" type="number" value={String(def.ReportChannel ?? 0)} onChange={(v) => onFieldChange({ ReportChannel: num(v) })} />
-        <EditField label="EventType" type="number" value={String(def.EventType ?? 0)} onChange={(v) => onFieldChange({ EventType: num(v) })} />
-        <EditField label="LifeCycleId" type="number" value={String(def.LifeCycleId ?? 0)} onChange={(v) => onFieldChange({ LifeCycleId: num(v) })} />
-        <EditField label="ActionId" type="number" value={String(def.ActionId ?? 0)} onChange={(v) => onFieldChange({ ActionId: num(v) })} />
+      <div style={SECTION_WRAP_STYLE}>
+        <label style={{ ...SECTION_LABEL_STYLE, marginBottom: 10 }}>基础字段</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
+          <EditField label="EventCode" mono value={def.EventCode ?? ''} onChange={(v) => onFieldChange({ EventCode: v })} />
+          <EditField label="OldEventCode" mono value={def.OldEventCode ?? ''} onChange={(v) => onFieldChange({ OldEventCode: v })} />
+          <EditField label="ReportChannel" type="number" value={String(def.ReportChannel ?? 0)} onChange={(v) => onFieldChange({ ReportChannel: num(v) })} />
+          <EditField label="EventType" type="number" value={String(def.EventType ?? 0)} onChange={(v) => onFieldChange({ EventType: num(v) })} />
+          <EditField label="LifeCycleId" type="number" value={String(def.LifeCycleId ?? 0)} onChange={(v) => onFieldChange({ LifeCycleId: num(v) })} />
+          <EditField label="ActionId" type="number" value={String(def.ActionId ?? 0)} onChange={(v) => onFieldChange({ ActionId: num(v) })} />
+        </div>
+        {def.ReportChannel === 65535 && (
+          <div style={{ fontSize: 10.5, color: 'var(--foreground-muted)', marginTop: 2 }}>65535 = 全通道上报</div>
+        )}
       </div>
-      {def.ReportChannel === 65535 && (
-        <div style={{ fontSize: 10.5, color: 'var(--foreground-muted)', marginTop: 2 }}>65535 = 全通道上报</div>
-      )}
 
-      <div style={{ marginTop: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label style={{ ...LABEL_STYLE, marginBottom: 0 }}>描述模板</label>
+      <div style={SECTION_WRAP_STYLE}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <label style={SECTION_LABEL_STYLE}>描述模板</label>
           <div style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 8, background: 'var(--surface-disabled)' }}>
             {(['Zh', 'En'] as const).map((l) => (
               <button key={l} onClick={() => onLangChange(l)} style={chipBtnStyle(lang === l)}>
@@ -827,8 +836,8 @@ function EventDetail({
         </div>
       </div>
 
-      <div style={{ marginTop: 18, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
-        <label style={{ ...LABEL_STYLE, marginBottom: 6 }}>CSR 绑定（{bindings.length}）</label>
+      <div style={SECTION_WRAP_STYLE}>
+        <label style={{ ...SECTION_LABEL_STYLE, marginBottom: 10 }}>CSR 绑定（{bindings.length}）</label>
         {bindings.length === 0 ? (
           <div style={{ color: 'var(--foreground-muted)', marginBottom: 8 }}>当前 CSR 中暂无 Event_* 对象绑定此事件</div>
         ) : (
