@@ -169,13 +169,49 @@ function fieldInputStyle(focused: boolean): React.CSSProperties {
   };
 }
 
-function EditField({ label, value, onChange, mono, type = 'text' }: {
-  label: string; value: string; onChange: (v: string) => void; mono?: boolean; type?: 'text' | 'number';
+/** 字段名后的「?」——hover 显示该配置项含义，不占用常驻空间 */
+function InfoTip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}>
+      <button
+        type="button"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        style={{
+          width: 14, height: 14, borderRadius: '50%', border: 'none', cursor: 'default', padding: 0, lineHeight: 1,
+          background: 'var(--state-hover)', color: 'var(--foreground-muted)', fontSize: 9.5, fontWeight: 700,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        ?
+      </button>
+      {show && (
+        <div style={{
+          position: 'absolute', left: 18, top: -6, width: 230, zIndex: 60,
+          background: 'var(--surface-2)', borderRadius: 8, padding: '8px 10px', boxShadow: 'var(--shadow-lg)',
+          fontSize: 11, fontWeight: 400, fontStyle: 'normal', textTransform: 'none', letterSpacing: 'normal',
+          color: 'var(--foreground-secondary)', lineHeight: 1.6, pointerEvents: 'none',
+        }}>
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function EditField({ label, value, onChange, mono, type = 'text', tip }: {
+  label: string; value: string; onChange: (v: string) => void; mono?: boolean; type?: 'text' | 'number'; tip?: string;
 }) {
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={LABEL_STYLE}>{label}</label>
+      <label style={LABEL_STYLE}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          {label}
+          {tip && <InfoTip text={tip} />}
+        </span>
+      </label>
       <input
         type={type}
         value={value}
@@ -783,7 +819,10 @@ function EventDetail({
       )}
 
       <div style={{ marginTop: 10, marginBottom: 14 }}>
-        <EditField label="事件名称 EventName" value={def.EventName ?? ''} onChange={(v) => onFieldChange({ EventName: v })} />
+        <EditField
+          label="事件名称 EventName" value={def.EventName ?? ''} onChange={(v) => onFieldChange({ EventName: v })}
+          tip="该事件在 BMC 事件字典中的短名称，通常与 EventKeyId 最后一段一致。"
+        />
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -798,13 +837,31 @@ function EventDetail({
 
       <div style={SECTION_WRAP_STYLE}>
         <label style={{ ...SECTION_LABEL_STYLE, marginBottom: 10 }}>基础字段</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
-          <EditField label="EventCode" mono value={def.EventCode ?? ''} onChange={(v) => onFieldChange({ EventCode: v })} />
-          <EditField label="OldEventCode" mono value={def.OldEventCode ?? ''} onChange={(v) => onFieldChange({ OldEventCode: v })} />
-          <EditField label="ReportChannel" type="number" value={String(def.ReportChannel ?? 0)} onChange={(v) => onFieldChange({ ReportChannel: num(v) })} />
-          <EditField label="EventType" type="number" value={String(def.EventType ?? 0)} onChange={(v) => onFieldChange({ EventType: num(v) })} />
-          <EditField label="LifeCycleId" type="number" value={String(def.LifeCycleId ?? 0)} onChange={(v) => onFieldChange({ LifeCycleId: num(v) })} />
-          <EditField label="ActionId" type="number" value={String(def.ActionId ?? 0)} onChange={(v) => onFieldChange({ ActionId: num(v) })} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 4 }}>
+          <EditField
+            label="事件编码 EventCode" mono value={def.EventCode ?? ''} onChange={(v) => onFieldChange({ EventCode: v })}
+            tip="该事件在字典中的十六进制唯一编码，例如 0x0200001F，用于标识事件条目本身。"
+          />
+          <EditField
+            label="旧版事件编码 OldEventCode" mono value={def.OldEventCode ?? ''} onChange={(v) => onFieldChange({ OldEventCode: v })}
+            tip="该事件在旧版编码规则下对应的编码，用于跨版本兼容映射；没有对应关系时留空。"
+          />
+          <EditField
+            label="上报通道 ReportChannel" type="number" value={String(def.ReportChannel ?? 0)} onChange={(v) => onFieldChange({ ReportChannel: num(v) })}
+            tip="事件上报的目标通道位掩码。65535（0xFFFF）表示全部通道均上报。"
+          />
+          <EditField
+            label="事件类型 EventType" type="number" value={String(def.EventType ?? 0)} onChange={(v) => onFieldChange({ EventType: num(v) })}
+            tip="事件的类型编号，具体分类由 BMC 固件事件类型表定义，当前字典里常见取值为 0、1。"
+          />
+          <EditField
+            label="生命周期标识 LifeCycleId" type="number" value={String(def.LifeCycleId ?? 0)} onChange={(v) => onFieldChange({ LifeCycleId: num(v) })}
+            tip="标识事件在其生命周期中所处的阶段/类别编号，具体取值由 BMC 固件生命周期定义决定。"
+          />
+          <EditField
+            label="动作标识 ActionId" type="number" value={String(def.ActionId ?? 0)} onChange={(v) => onFieldChange({ ActionId: num(v) })}
+            tip="事件触发后关联执行的动作编号；当前字典中所有事件均为 0，即暂未启用动作关联。"
+          />
         </div>
         {def.ReportChannel === 65535 && (
           <div style={{ ...HINT_STYLE, marginTop: 2 }}>65535 = 全通道上报</div>
