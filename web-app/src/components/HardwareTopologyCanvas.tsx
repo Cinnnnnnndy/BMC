@@ -97,7 +97,7 @@ function computeDiff(before: CVS, after: CVS): Array<{ label: string; color: str
   // Toggles
   if (before.showSoft !== after.showSoft)  tags.push({ label: after.showSoft  ? '软件叠加 ●' : '软件叠加 ○', color: '#fbbf24' });
   if (before.showI2C !== after.showI2C)    tags.push({ label: after.showI2C   ? 'I²C ●' : 'I²C ○',            color: '#64748b' });
-  if (before.showPCIe !== after.showPCIe)  tags.push({ label: after.showPCIe  ? 'PCIe ●' : 'PCIe ○',          color: '#4DA3FF' });
+  if (before.showPCIe !== after.showPCIe)  tags.push({ label: after.showPCIe  ? 'PCIe ●' : 'PCIe ○',          color: '#0077FF' });
   if (before.filterType !== after.filterType) {
     tags.push({ label: after.filterType ? `筛选 ${after.filterType}` : '清除筛选', color: '#4ade80' });
   }
@@ -451,7 +451,7 @@ function AgentPanel({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, color: '#fff',
             }}>✦</div>
-            <span style={{ fontSize: 10.5, color: '#4DA3FF', fontWeight: 600, flex: 1, letterSpacing: '0.03em' }}>AI 助手</span>
+            <span style={{ fontSize: 10.5, color: '#0077FF', fontWeight: 600, flex: 1, letterSpacing: '0.03em' }}>AI 助手</span>
             <button
               onClick={() => setResponseVisible(false)}
               style={{ background: 'none', border: 'none', color: '#2d3f52', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '2px 4px', borderRadius: 4, transition: 'color 0.15s' }}
@@ -472,7 +472,7 @@ function AgentPanel({
               style={{
                 fontSize: 10, padding: '5px 13px', borderRadius: 8,
                 background: 'rgba(0,119,255,0.08)', border: '1px solid rgba(0,119,255,0.22)',
-                color: '#4DA3FF', cursor: 'pointer', transition: 'all 0.15s',
+                color: '#0077FF', cursor: 'pointer', transition: 'all 0.15s',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.18)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.08)'; }}
@@ -547,7 +547,7 @@ function AgentPanel({
                   background: msg.role === 'user' ? 'rgba(0,119,255,0.12)' : 'transparent',
                   border: msg.role === 'user' ? '1px solid rgba(0,119,255,0.2)' : 'none',
                   borderLeft: msg.role === 'agent' ? '2px solid rgba(255,255,255,0.06)' : undefined,
-                  color: msg.role === 'user' ? '#4DA3FF' : '#3d5068',
+                  color: msg.role === 'user' ? '#0077FF' : '#3d5068',
                 }}>
                   {msg.role === 'agent'
                     ? msg.text.replace(/\*\*/g, '').split('\n')[0].slice(0, 72) + (msg.text.length > 72 ? '…' : '')
@@ -563,7 +563,7 @@ function AgentPanel({
                       background: 'transparent', border: '1px solid rgba(255,255,255,0.07)',
                       color: '#2d3f52', cursor: 'pointer', transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.5)'; e.currentTarget.style.color = '#4DA3FF'; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.5)'; e.currentTarget.style.color = '#0077FF'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#2d3f52'; }}
                   >↩</button>
                 )}
@@ -590,7 +590,7 @@ function AgentPanel({
                 color: '#3d5068', cursor: 'pointer', backdropFilter: 'blur(12px)',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.4)'; e.currentTarget.style.color = '#4DA3FF'; e.currentTarget.style.background = 'rgba(0,119,255,0.1)'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.4)'; e.currentTarget.style.color = '#0077FF'; e.currentTarget.style.background = 'rgba(0,119,255,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#3d5068'; e.currentTarget.style.background = 'rgba(9,14,24,0.78)'; }}
             >{s}</button>
           ))}
@@ -619,7 +619,7 @@ function AgentPanel({
             flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
             background: showHistory ? 'rgba(0,119,255,0.22)' : userMsgs.length > 0 ? 'rgba(255,255,255,0.05)' : 'transparent',
             border: showHistory ? '1px solid rgba(0,119,255,0.45)' : '1px solid rgba(255,255,255,0.08)',
-            color: showHistory ? '#4DA3FF' : userMsgs.length > 0 ? '#3d5068' : '#1a2535',
+            color: showHistory ? '#0077FF' : userMsgs.length > 0 ? '#3d5068' : '#1a2535',
             cursor: 'pointer', fontSize: 9, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.18s', userSelect: 'none',
@@ -856,7 +856,7 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
       <MiniBusDiagram board={board} showSoft={cvs.showSoft} />
 
       <div style={{ padding: '3px 8px', borderTop: `1px solid #0f1a25`, display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
-        {ups.length > 0 && <span style={{ color: '#4DA3FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
+        {ups.length > 0 && <span style={{ color: '#0077FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
         {downs.length > 0 && <span style={{ color: '#4ade80' }}>↓ {downs.length}×{[...new Set(downs.map(d => d.connType))].join('/')}</span>}
         {cvs.showSoft && board.soft.eventCount > 0 && <span style={{ color: '#fbbf24', marginLeft: 'auto' }}>{board.soft.eventCount}evt</span>}
       </div>
@@ -1064,7 +1064,7 @@ function BoardNode({ board, x, y, cvs, onSelect }: {
       {board.desc && <div style={{ fontSize: 9, color: '#374151', padding: '2px 8px' }}>{board.desc}</div>}
       <MiniBusDiagram board={board} showSoft={cvs.showSoft} />
       <div style={{ padding: '3px 8px', borderTop: '1px solid #0f1a25', display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
-        {ups.length > 0 && <span style={{ color: '#4DA3FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
+        {ups.length > 0 && <span style={{ color: '#0077FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
         {downs.length > 0 && <span style={{ color: '#4ade80' }}>↓ {downs.length}×{[...new Set(downs.map(d => d.connType))].join('/')}</span>}
         {cvs.showSoft && board.soft.eventCount > 0 && <span style={{ color: '#fbbf24', marginLeft: 'auto' }}>{board.soft.eventCount}evt</span>}
       </div>
@@ -1195,8 +1195,8 @@ function DetailPanel({ board, cvs, onClose }: { board: HwBoard; cvs: CVS; onClos
             <div style={{ fontSize: 10, color: '#4b6080', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>PCIe 连接器</div>
             {ups.map(bc => (
               <div key={bc.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', marginBottom: 3, background: '#0a1628', border: '1px solid #1e3a5f', borderRadius: 4, fontSize: 11 }}>
-                <span style={{ color: '#4DA3FF' }}>↑</span>
-                <span style={{ color: '#4DA3FF', padding: '0 4px', background: '#1e3a5f', borderRadius: 2, fontSize: 10 }}>Upstream</span>
+                <span style={{ color: '#0077FF' }}>↑</span>
+                <span style={{ color: '#0077FF', padding: '0 4px', background: '#1e3a5f', borderRadius: 2, fontSize: 10 }}>Upstream</span>
                 <span style={{ color: '#e2e8f0', flex: 1 }}>{bc.name}</span>
                 <span style={{ color: '#475569' }}>{bc.linkWidth}</span>
                 <span style={{ color: '#374151' }}>{bc.connType}</span>
@@ -1309,7 +1309,7 @@ function TimelinePanel({
         flexShrink: 0,
       }}>
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#0077FF', boxShadow: '0 0 6px #0077FF' }} />
-        <span style={{ fontSize: 10, color: '#4DA3FF' }}>当前状态</span>
+        <span style={{ fontSize: 10, color: '#0077FF' }}>当前状态</span>
         <span style={{ fontSize: 9, color: '#2d4a6a', marginLeft: 'auto' }}>{Math.round(cvs.scale * 100)}% · {cvs.highlightUids.length > 0 ? `${cvs.highlightUids.length}板高亮` : '全览'}</span>
       </div>
 
@@ -1357,7 +1357,7 @@ function TimelinePanel({
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
                 {/* User query */}
-                <div style={{ fontSize: 11, color: isLatest ? '#4DA3FF' : '#475569', marginBottom: 4, lineHeight: 1.4, paddingRight: 4 }}>
+                <div style={{ fontSize: 11, color: isLatest ? '#0077FF' : '#475569', marginBottom: 4, lineHeight: 1.4, paddingRight: 4 }}>
                   {entry.userQuery.length > 28 ? entry.userQuery.slice(0, 28) + '…' : entry.userQuery}
                 </div>
 
@@ -1399,7 +1399,7 @@ function TimelinePanel({
                         style={{
                           flex: 1, fontSize: 9.5, padding: '5px 0', borderRadius: 6,
                           background: 'rgba(0,119,255,0.1)', border: '1px solid rgba(0,119,255,0.25)',
-                          color: '#4DA3FF', cursor: 'pointer', transition: 'all 0.15s',
+                          color: '#0077FF', cursor: 'pointer', transition: 'all 0.15s',
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.2)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.1)'; }}
@@ -1583,11 +1583,11 @@ export function HardwareTopologyCanvas() {
         <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #1e2d3d' }}>
           <button
             onClick={() => setViewMode('grouped')}
-            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'grouped' ? '#1e3a5f' : 'transparent', border: 'none', color: viewMode === 'grouped' ? '#4DA3FF' : '#475569' }}
+            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'grouped' ? '#1e3a5f' : 'transparent', border: 'none', color: viewMode === 'grouped' ? '#0077FF' : '#475569' }}
           >分组视图</button>
           <button
             onClick={() => setViewMode('expanded')}
-            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'expanded' ? '#1e3a5f' : 'transparent', border: '1px solid transparent', borderLeft: '1px solid #1e2d3d', color: viewMode === 'expanded' ? '#4DA3FF' : '#475569' }}
+            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'expanded' ? '#1e3a5f' : 'transparent', border: '1px solid transparent', borderLeft: '1px solid #1e2d3d', color: viewMode === 'expanded' ? '#0077FF' : '#475569' }}
           >展开视图</button>
         </div>
         <div style={{ flex: 1 }} />
@@ -1597,7 +1597,7 @@ export function HardwareTopologyCanvas() {
           { key: 'showSoft', label: '软件叠加', on: cvs.showSoft },
         ].map(({ key, label, on }) => (
           <button key={key} onClick={() => setCvs(c => ({ ...c, [key]: !on }))}
-            style={{ padding: '3px 10px', fontSize: 10, borderRadius: 4, cursor: 'pointer', background: on ? '#1e3a5f' : 'transparent', border: `1px solid ${on ? '#0077FF' : '#1e2d3d'}`, color: on ? '#4DA3FF' : '#374151' }}>
+            style={{ padding: '3px 10px', fontSize: 10, borderRadius: 4, cursor: 'pointer', background: on ? '#1e3a5f' : 'transparent', border: `1px solid ${on ? '#0077FF' : '#1e2d3d'}`, color: on ? '#0077FF' : '#374151' }}>
             {on ? '●' : '○'} {label}
           </button>
         ))}
@@ -1741,7 +1741,7 @@ export function HardwareTopologyCanvas() {
           onMouseLeave={e => { if (!showTimeline) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
         >
           {/* Vertical text */}
-          <span style={{ fontSize: 8, color: showTimeline ? '#4DA3FF' : '#2d3f52', writingMode: 'vertical-rl', letterSpacing: '0.08em', fontWeight: 600, textTransform: 'uppercase', userSelect: 'none' }}>
+          <span style={{ fontSize: 8, color: showTimeline ? '#0077FF' : '#2d3f52', writingMode: 'vertical-rl', letterSpacing: '0.08em', fontWeight: 600, textTransform: 'uppercase', userSelect: 'none' }}>
             {showTimeline ? '收起' : '时间轴'}
           </span>
           {historyEntries.length > 0 && (

@@ -137,7 +137,7 @@ export function SmcOffsetView() {
 
         {/* 标题 */}
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#4DA3FF', margin: '0 0 4px' }}>SMC 偏移量计算器</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0077FF', margin: '0 0 4px' }}>SMC 偏移量计算器</h2>
           <p style={{ fontSize: 12.5, color: '#4a5a7a', margin: 0 }}>
             32-bit SMC 命令字编解码 · 功能码 / 命令码 / 参数字段 · 支持十进制 / 十六进制 / 八进制
           </p>
@@ -154,7 +154,7 @@ export function SmcOffsetView() {
             placeholder="0x0C020101"
             style={{
               width: '100%', background: '#080d1a', border: '1px solid #0077FF',
-              borderRadius: 6, color: '#4DA3FF', fontSize: 22, fontWeight: 700,
+              borderRadius: 6, color: '#0077FF', fontSize: 22, fontWeight: 700,
               padding: '10px 14px', boxSizing: 'border-box', outline: 'none',
               ...MONO, textAlign: 'center', letterSpacing: '0.05em',
             }}
@@ -169,7 +169,7 @@ export function SmcOffsetView() {
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', margin: '14px 0' }}>
           <button onClick={handleDecode} style={{
             padding: '7px 22px', background: '#0f1a3a', border: '1px solid #0077FF',
-            borderRadius: 6, color: '#4DA3FF', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+            borderRadius: 6, color: '#0077FF', fontSize: 13, cursor: 'pointer', fontWeight: 600,
           }}>
             ↓ 解码到字段
           </button>
@@ -219,9 +219,9 @@ export function SmcOffsetView() {
         {/* 帮助 */}
         <div style={{ ...CARD, fontSize: 11.5, color: '#3a4a60', lineHeight: 1.8 }}>
           <span style={{ color: '#4a5a7a', fontWeight: 600 }}>格式支持：</span>
-          &nbsp;十进制 <code style={{ color: '#4DA3FF' }}>12</code>
-          &nbsp;· 十六进制 <code style={{ color: '#4DA3FF' }}>0x0C</code>
-          &nbsp;· 八进制 <code style={{ color: '#4DA3FF' }}>0o14</code>
+          &nbsp;十进制 <code style={{ color: '#0077FF' }}>12</code>
+          &nbsp;· 十六进制 <code style={{ color: '#0077FF' }}>0x0C</code>
+          &nbsp;· 八进制 <code style={{ color: '#0077FF' }}>0o14</code>
           <br />
           <span style={{ color: '#4a5a7a', fontWeight: 600 }}>输入后</span> 点击「解码到字段」或「从字段编码」刷新结果。
         </div>

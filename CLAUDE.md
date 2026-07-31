@@ -6,19 +6,20 @@
 **高亮色和重点按钮一律用品牌色 `#0077FF`。这一条写死，之后所有新增页面/组件都必须遵守。**
 自动检查：`node scripts/check-brand-color.mjs`（PostToolUse hook 每次 Write/Edit 后自动运行，违规必须立即修复）。
 
-允许集合（**仅此 4 个色值 + 其 rgba 形式**，不得再派生其它蓝）：
+允许集合（**仅此 3 个色值 + 其 rgba 形式**，不得再派生任何浅蓝/深蓝）：
 
 | 用途 | 色值 |
 |---|---|
 | 主色：高亮、重点/主 CTA 按钮、选中态、激活态 | `#0077FF` |
 | hover | `#3291FE`（= `rgba(50,145,254,1)`，同欢迎页「新建工程」） |
 | active / pressed | `#0062D6` |
-| 深底上的高亮**文字/图标**（唯一允许的派生浅色） | `#4DA3FF` |
 | 弱化底/描边/焦点环 | `rgba(0,119,255,α)` |
 
-- **token 权威**：`web-app/src/styles/pto-foundation.css` 的 `--brand-primary` / `--brand-primary-hover` / `--brand-primary-active` / `--brand-primary-tint` / `--brand-primary-soft` / `--brand-primary-ring`。`--primary`、`--ark-blue-500/600`、`--focus-ring`、`--state-focus` 全部由它派生。写组件时优先 `var(--primary)`，兜底值只能写 `var(--primary, #0077FF)`。
+深底上的高亮**文字/图标**也直接用 `#0077FF`（同欢迎页「检查更新」链接），不要为了对比度另调浅蓝。
+
+- **token 权威**：`web-app/src/styles/pto-foundation.css` 的 `--brand-primary` / `--brand-primary-hover` / `--brand-primary-active` / `--brand-primary-soft` / `--brand-primary-ring`。`--primary`、`--ark-blue-500/600`、`--focus-ring`、`--state-focus` 全部由它派生。写组件时优先 `var(--primary)`，兜底值只能写 `var(--primary, #0077FF)`。
 - **独立 HTML / iframe 页面**（public/ 下）不继承宿主 token，必须自己声明这组 `--brand-primary*`，或直接写 `#0077FF`。
-- **禁止**再出现任何其它主蓝字面量：`#4369ef #3457d5 #5a92e6 #4F46E5 #4f6ef7 #7c8cf8 #7c9aff #a5b4fc #3b82f6 #2563eb #1d4ed8 #60a5fa #93c5fd #818cf8 #6366f1 #4a90e2 #007acc #1e90ff` 及其 rgba 形式（checker B1 强制）。
+- **禁止**再出现任何其它主蓝字面量：`#4369ef #3457d5 #5a92e6 #4F46E5 #4f6ef7 #7c8cf8 #7c9aff #a5b4fc #3b82f6 #2563eb #1d4ed8 #60a5fa #93c5fd #818cf8 #6366f1 #4a90e2 #007acc #1e90ff #4DA3FF` 及其 rgba 形式（checker B1 强制）。
 - **data-viz 例外**：拓扑节点/连线、图表分类色、位域色阶、代码着色属于数据语义色，不是 UI 高亮色，可以保留其它色相 —— 但必须显式标记，否则 checker 报错：
   - 行内或前 3 行写 `data-viz-exempt`
   - 区块用 `data-viz-exempt:start` … `data-viz-exempt:end`

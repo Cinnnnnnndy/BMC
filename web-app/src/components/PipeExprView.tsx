@@ -158,7 +158,7 @@ export function PipeExprView() {
 
         {/* 标题 */}
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#4DA3FF', margin: '0 0 4px', ...MONO }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0077FF', margin: '0 0 4px', ...MONO }}>
             管道表达式计算器
           </h2>
           <p style={{ fontSize: 12.5, color: '#4a5a7a', margin: 0 }}>
@@ -174,7 +174,7 @@ export function PipeExprView() {
               border: '1px solid #1e2a40', background: '#0f1420', color: '#5a6a8a',
               transition: 'color .15s, border-color .15s',
             }}
-              onMouseOver={(e) => { (e.target as HTMLElement).style.color = '#4DA3FF'; }}
+              onMouseOver={(e) => { (e.target as HTMLElement).style.color = '#0077FF'; }}
               onMouseOut={(e) => { (e.target as HTMLElement).style.color = '#5a6a8a'; }}
             >{ex.label}</button>
           ))}
@@ -192,7 +192,7 @@ export function PipeExprView() {
               placeholder="$1 | add $2 | toHex 8"
               style={{
                 width: '100%', background: '#080d1a', border: '1px solid #0077FF',
-                borderRadius: 6, color: '#4DA3FF', fontSize: 15, fontWeight: 600,
+                borderRadius: 6, color: '#0077FF', fontSize: 15, fontWeight: 600,
                 padding: '10px 14px', boxSizing: 'border-box', outline: 'none', ...MONO,
               }}
             />
@@ -254,7 +254,7 @@ export function PipeExprView() {
                         {i + 1}
                       </div>
                       {/* 操作名 */}
-                      <span style={{ fontSize: 13, color: '#4DA3FF', flex: '0 0 auto', minWidth: 160, ...MONO }}>
+                      <span style={{ fontSize: 13, color: '#0077FF', flex: '0 0 auto', minWidth: 160, ...MONO }}>
                         {step.op}
                       </span>
                       {/* 类型 */}
@@ -319,7 +319,7 @@ export function PipeExprView() {
               ['sqrt',    '平方根'],
             ].map(([op, desc]) => (
               <div key={op as string} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
-                <code style={{ color: '#4DA3FF', ...MONO, flexShrink: 0 }}>{op as string}</code>
+                <code style={{ color: '#0077FF', ...MONO, flexShrink: 0 }}>{op as string}</code>
                 <span style={{ color: '#3a4a60' }}>{desc as string}</span>
               </div>
             ))}

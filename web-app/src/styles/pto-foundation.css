@@ -13,7 +13,6 @@
   --brand-primary:        #0077FF;
   --brand-primary-hover:  #3291FE;  /* rgba(50,145,254,1)，同欢迎页「新建工程」hover */
   --brand-primary-active: #0062D6;
-  --brand-primary-tint:   #4DA3FF;  /* 深底上的高亮文字/图标，唯一允许的派生浅色 */
   --brand-primary-rgb:    0, 119, 255;
   --brand-primary-soft:   rgba(0, 119, 255, 0.14);
   --brand-primary-ring:   rgba(0, 119, 255, 0.42);

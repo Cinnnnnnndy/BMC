@@ -920,7 +920,7 @@ function catStateClass(cat: CatNode): string {
   transition: background 0.12s, color 0.12s;
 }
 .hw-file-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-sub, #c3c9de); }
-.hw-file-row.is-current { color: #4DA3FF; }
+.hw-file-row.is-current { color: #0077FF; }
 .hw-file-ic {
   width: 11px;
   height: 11px;

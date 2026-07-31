@@ -3,8 +3,9 @@ import { SERVER_BOARDS } from '../data/serverBoardsData';
 import type { ServerBoard } from '../data/serverBoardsData';
 
 /* ─── colour tokens ─────────────────────────────────────────── */
+// data-viz-exempt: 板卡类型语义色
 const TYPE_COLOR: Record<string, string> = {
-  PSR: '#a78bfa', EXU: '#4DA3FF', BCU: '#34d399',
+  PSR: '#a78bfa', EXU: '#60a5fa', BCU: '#34d399',
   CLU: '#fbbf24', IEU: '#fb923c', SEU: '#f472b6', NICCard: '#22d3ee',
 };
 // data-viz-exempt: 硬件类型语义色

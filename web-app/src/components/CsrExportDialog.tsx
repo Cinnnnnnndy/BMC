@@ -43,7 +43,7 @@ const METHOD_LABEL: Record<SignMethod, string> = {
 
 const METHOD_COLOR: Record<SignMethod, { bg: string; color: string }> = {
   self_sign:   { bg: 'rgba(4,215,147,.12)',  color: '#04d793' },
-  server_sign: { bg: 'rgba(0,119,255,.14)', color: '#4DA3FF' },
+  server_sign: { bg: 'rgba(0,119,255,.14)', color: '#0077FF' },
   signserver:  { bg: 'rgba(255,170,59,.12)', color: '#ffaa3b' },
 };
 

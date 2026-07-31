@@ -7,7 +7,6 @@
  *   #0077FF  主色（highlight / primary button）
  *   #3291FE  hover（= rgba(50,145,254,1)）
  *   #0062D6  active / pressed
- *   #4DA3FF  深底上的高亮文字、图标（唯一允许的派生浅色）
  *   rgba(0,119,255,α) / var(--brand-*) / var(--primary*) / var(--ark-blue-*)
  *
  * 检查范围：web-app/{src,public}、web-app-vue/{src,public}、webview/src、src
@@ -79,6 +78,7 @@ const RETIRED = [
   [/#4a90e2/gi,                             '#4a90e2（旧 VSCode 蓝）'],
   [/#007acc/gi,                             '#007acc（旧 VSCode 蓝）'],
   [/#1e90ff/gi,                             '#1e90ff（dodgerblue）'],
+  [/#4da3ff/gi,                             '#4DA3FF（已取消的品牌派生浅蓝，统一用 #0077FF）'],
   [/rgba\(\s*59,\s*130,\s*246\s*,/g,        'rgba(59,130,246,…)（tailwind blue-500）'],
   [/rgba\(\s*37,\s*99,\s*235\s*,/g,         'rgba(37,99,235,…)（tailwind blue-600）'],
 ];
@@ -86,10 +86,10 @@ const RETIRED = [
 /** B2：品牌类 token —— 取值必须落在允许集合内。
  *  注意 --state-hover / --state-press / --state-selected 是 ArkUI 式中性叠加层
  *  （rgba(255,255,255,α)），刻意不带色相，不在此列。 */
-const BRAND_TOKENS = /--(brand-primary(?:-hover|-active|-tint|-soft|-ring|-rgb)?|primary|primary-hover|primary-active|accent-blue|accent-primary|accent-hi|ark-blue-\d{3}|focus-ring|state-focus|btn-primary-bg-color(?:_active)?|el-color-primary)\s*:\s*([^;}\n]+)/g;
+const BRAND_TOKENS = /--(brand-primary(?:-hover|-active|-soft|-ring|-rgb)?|primary|primary-hover|primary-active|accent-blue|accent-primary|accent-hi|ark-blue-\d{3}|focus-ring|state-focus|btn-primary-bg-color(?:_active)?|el-color-primary)\s*:\s*([^;}\n]+)/g;
 
 /** 允许出现在品牌 token 值里的东西 */
-const ALLOWED_VALUE = /^(?:#0077ff|#3291fe|#0062d6|#4da3ff|0,\s*119,\s*255|rgba?\(\s*0\s*,\s*119\s*,\s*255\b[^)]*\)|var\(--(?:brand-|primary|ark-blue-|accent\b)[^)]*\)|color-mix\([^;]*\)|inherit|currentcolor|transparent|none)$/i;
+const ALLOWED_VALUE = /^(?:#0077ff|#3291fe|#0062d6|0,\s*119,\s*255|rgba?\(\s*0\s*,\s*119\s*,\s*255\b[^)]*\)|var\(--(?:brand-|primary|ark-blue-|accent\b)[^)]*\)|color-mix\([^;]*\)|inherit|currentcolor|transparent|none)$/i;
 
 /** B3：var(--primary, X) 兜底值 */
 const VAR_FALLBACK = /var\(\s*--(?:primary|brand-primary|accent-blue|accent-primary)\s*,\s*([^)]+)\)/g;
@@ -158,7 +158,7 @@ for (const f of files) {
     for (const m of line.matchAll(BRAND_TOKENS)) {
       const value = m[2].trim().replace(/\s*\/\*.*$/, '').trim();
       if (!ALLOWED_VALUE.test(value)) {
-        problems.push(`${rel}:${n}  B2 品牌 token --${m[1]} 取值 "${value}" 不是品牌色 —— 只允许 #0077FF/#3291FE/#0062D6/#4DA3FF/rgba(0,119,255,α)/var(--brand-*)`);
+        problems.push(`${rel}:${n}  B2 品牌 token --${m[1]} 取值 "${value}" 不是品牌色 —— 只允许 #0077FF/#3291FE/#0062D6/rgba(0,119,255,α)/var(--brand-*)`);
       }
     }
 

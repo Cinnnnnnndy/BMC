@@ -69,7 +69,7 @@ function BoardMiniPreview({ board }: { board: HwBoard }) {
       </div>
       {/* PCIe summary */}
       <div style={{ display: 'flex', gap: 6, fontSize: 10, color: '#888' }}>
-        {ups.length > 0 && <span style={{ color: '#4DA3FF' }}>↑ {ups.length} UP</span>}
+        {ups.length > 0 && <span style={{ color: '#0077FF' }}>↑ {ups.length} UP</span>}
         {downs.length > 0 && <span style={{ color: '#4ade80' }}>↓ {downs.length} DOWN</span>}
         {board.soft.eventCount > 0 && <span style={{ color: '#fbbf24' }}>{board.soft.eventCount}evt</span>}
         {board.soft.sensorCount > 0 && <span style={{ color: '#a78bfa' }}>{board.soft.sensorCount}snsr</span>}
@@ -113,7 +113,7 @@ function TreeNodeRow({
           paddingTop: 3, paddingBottom: 3,
           cursor: 'pointer', borderRadius: 4,
           background: isSelected ? '#1e3a5f' : 'transparent',
-          borderLeft: isSelected ? '2px solid #4DA3FF' : '2px solid transparent',
+          borderLeft: isSelected ? '2px solid #0077FF' : '2px solid transparent',
           marginLeft: 2,
         }}
         onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#1a1a2e'; }}
@@ -252,8 +252,8 @@ function BoardDetailPanel({
                     padding: '5px 10px', borderRadius: 5,
                     background: '#0a1628', border: '1px solid #1e3a5f',
                   }}>
-                    <span style={{ fontSize: 11, color: '#4DA3FF', fontFamily: 'monospace', minWidth: 14 }}>↑</span>
-                    <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 3, background: '#1e3a5f', color: '#4DA3FF' }}>Upstream</span>
+                    <span style={{ fontSize: 11, color: '#0077FF', fontFamily: 'monospace', minWidth: 14 }}>↑</span>
+                    <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 3, background: '#1e3a5f', color: '#0077FF' }}>Upstream</span>
                     <span style={{ fontSize: 12, color: '#e2e8f0', flex: 1 }}>{bc.name}</span>
                     <span style={{ fontSize: 10, color: '#64748b' }}>{bc.linkWidth}</span>
                     <span style={{ fontSize: 10, color: '#475569' }}>{bc.connType}</span>
@@ -459,7 +459,7 @@ export function HardwareTopologyView() {
             padding: '4px 12px', fontSize: 12, borderRadius: 4, cursor: 'pointer',
             background: showSoft ? '#1e3a5f' : 'transparent',
             border: `1px solid ${showSoft ? '#0077FF' : '#1e2d3d'}`,
-            color: showSoft ? '#4DA3FF' : '#64748b',
+            color: showSoft ? '#0077FF' : '#64748b',
             transition: 'all 0.15s',
           }}
         >
