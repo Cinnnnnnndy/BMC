@@ -224,6 +224,22 @@ function EditField({ label, value, onChange, mono, type = 'text', tip }: {
   );
 }
 
+/** 短标签 + 任意控件（select / toggle）——把「级别」「来源」「去抖」这类紧凑控件
+ * 也套进跟 EditField 一致的「配置项」外观：名称在上、控件在下、名称后可挂「?」提示。 */
+function MiniField({ label, tip, children }: { label: string; tip?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={LABEL_STYLE}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          {label}
+          {tip && <InfoTip text={tip} />}
+        </span>
+      </label>
+      {children}
+    </div>
+  );
+}
+
 function EditTextarea({ label, value, onChange, hint, rows = 3 }: {
   label: string; value: string; onChange: (v: string) => void; hint?: string; rows?: number;
 }) {
@@ -825,14 +841,20 @@ function EventDetail({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <SeveritySelect value={def.SeverityId} onChange={(v) => onFieldChange({ SeverityId: v })} />
-        <SourceToggle isStandard={isStandard} onChange={(std) => onFieldChange({ SourceOverride: std ? 'standard' : 'extra' })} />
-        <ToggleChip
-          label="支持去抖"
-          checked={def.DeassertFlag === 1}
-          onChange={(v) => onFieldChange({ DeassertFlag: v ? 1 : 0 })}
-        />
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+        <MiniField label="级别 Severity" tip="事件的严重程度分级：提示 / 一般 / 重要 / 紧急，决定告警展示的紧急程度。">
+          <SeveritySelect value={def.SeverityId} onChange={(v) => onFieldChange({ SeverityId: v })} />
+        </MiniField>
+        <MiniField label="来源 Source" tip="该事件是否属于官方标准事件字典。可点击手动切换本地归类标记，不影响标准字典本身。">
+          <SourceToggle isStandard={isStandard} onChange={(std) => onFieldChange({ SourceOverride: std ? 'standard' : 'extra' })} />
+        </MiniField>
+        <MiniField label="去抖 DeassertFlag" tip="是否支持去抖（deassert）：开启后，触发条件解除时会自动上报一次“已恢复”事件。">
+          <ToggleChip
+            label={def.DeassertFlag === 1 ? '是' : '否'}
+            checked={def.DeassertFlag === 1}
+            onChange={(v) => onFieldChange({ DeassertFlag: v ? 1 : 0 })}
+          />
+        </MiniField>
       </div>
 
       <div style={SECTION_WRAP_STYLE}>
