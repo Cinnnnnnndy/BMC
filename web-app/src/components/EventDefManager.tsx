@@ -113,6 +113,9 @@ const SECTION_LABEL_STYLE: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block',
 };
 const SECTION_WRAP_STYLE: React.CSSProperties = { marginTop: 18, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 };
+// 字段下方的辅助提示文字（"占位符 %1... "、"多条原因用 @#AB; 分隔"）：比字段名称
+// （LABEL_STYLE）更暗更小、并用斜体，三级层次一眼能分：分区 > 字段名 > 提示语。
+const HINT_STYLE: React.CSSProperties = { fontSize: 10, color: 'var(--foreground-disabled)', fontStyle: 'italic', lineHeight: 1.5, display: 'block' };
 
 function PageBtn({ children, disabled, onClick, title }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; title?: string }) {
   const [hover, setHover] = useState(false);
@@ -200,7 +203,7 @@ function EditTextarea({ label, value, onChange, hint, rows = 3 }: {
         onBlur={() => setFocused(false)}
         style={{ ...fieldInputStyle(focused), resize: 'vertical', lineHeight: 1.5 }}
       />
-      {hint && <div style={{ fontSize: 10, color: 'var(--foreground-muted)', marginTop: 3 }}>{hint}</div>}
+      {hint && <div style={{ ...HINT_STYLE, marginTop: 3 }}>{hint}</div>}
     </div>
   );
 }
@@ -804,7 +807,7 @@ function EventDetail({
           <EditField label="ActionId" type="number" value={String(def.ActionId ?? 0)} onChange={(v) => onFieldChange({ ActionId: num(v) })} />
         </div>
         {def.ReportChannel === 65535 && (
-          <div style={{ fontSize: 10.5, color: 'var(--foreground-muted)', marginTop: 2 }}>65535 = 全通道上报</div>
+          <div style={{ ...HINT_STYLE, marginTop: 2 }}>65535 = 全通道上报</div>
         )}
       </div>
 
@@ -821,7 +824,7 @@ function EventDetail({
         </div>
         <EditTextarea label="Description" value={description} onChange={(v) => onDescFieldChange('Description', lang, v)} rows={2} />
         {placeholders.length > 0 && (
-          <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--foreground-muted)' }}>
+          <div style={{ ...HINT_STYLE, marginTop: 6 }}>
             占位符 {placeholders.map((n) => `%${n}`).join(' ')} 依次取值于 CSR 侧该事件绑定的 Component / DescArg1~5 字段
           </div>
         )}
