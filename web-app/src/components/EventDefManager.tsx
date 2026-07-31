@@ -752,8 +752,8 @@ function EventDetail({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <span style={{ font: 'var(--text-label)', color: 'var(--foreground-muted)', wordBreak: 'break-all' }}>{def.EventKeyId}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ font: 'var(--text-title-2)', fontFamily: 'var(--font-mono)', color: 'var(--foreground)', wordBreak: 'break-all' }}>{def.EventKeyId}</span>
           {isCustom && <Badge text="自定义" tone="var(--accent)" />}
         </div>
         {edited && (

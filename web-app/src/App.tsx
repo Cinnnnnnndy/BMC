@@ -1171,6 +1171,7 @@ export default function App() {
     { id: 'signingConfig', tooltip: '签名与证书管理' },
     { id: 'whiteBrand',    tooltip: '白牌定制' },
     { id: 'csrTopo',       tooltip: 'CSR 拓扑编辑器' },
+    { id: 'eventDefManager', tooltip: '事件管理', csrRequired: true },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
   ];
 
@@ -1181,7 +1182,6 @@ export default function App() {
     { id: 'topology',    csrRequired: true },
     { id: 'association', csrRequired: true },
     { id: 'sensor',      csrRequired: true },
-    { id: 'eventDefManager', csrRequired: true },
     { id: 'serverView' },
     ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, csrRequired: true }] : []),
   ];
