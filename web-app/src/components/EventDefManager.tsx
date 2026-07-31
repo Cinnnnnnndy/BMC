@@ -103,7 +103,30 @@ function passesSet(set: Set<string>, tag: string): boolean {
   return set.size === 0 || set.has(tag);
 }
 
+const PAGE_SIZE = 20;
+
 const LABEL_STYLE: React.CSSProperties = { font: 'var(--text-label)', color: 'var(--foreground-muted)', marginBottom: 5, display: 'block' };
+
+function PageBtn({ children, disabled, onClick, title }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; title?: string }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 26, height: 26, padding: '0 6px',
+        borderRadius: 7, border: 'none', fontSize: 12, fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer',
+        background: disabled ? 'var(--surface-disabled)' : (hover ? 'var(--surface-3)' : 'var(--surface-2)'),
+        color: disabled ? 'var(--foreground-disabled)' : 'var(--foreground-secondary)',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function Badge({ text, tone }: { text: string; tone: string }) {
   return (
@@ -187,6 +210,7 @@ function FilterTh({ label, options, selected, onChange, width, mono }: {
   mono?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(false);
   const active = selected.size > 0;
 
   const toggleValue = (v: string) => {
@@ -196,17 +220,24 @@ function FilterTh({ label, options, selected, onChange, width, mono }: {
   };
 
   return (
-    <th style={{ position: 'relative', padding: '8px 10px', fontWeight: 500, textAlign: 'left', width, whiteSpace: 'nowrap' }}>
+    <th style={{ position: 'relative', padding: '6px 6px', fontWeight: 500, textAlign: 'left', width, whiteSpace: 'nowrap' }}>
       <button
         onClick={() => setOpen((o) => !o)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        title={`按「${label}」筛选`}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer',
-          color: active ? 'var(--primary)' : 'inherit', font: 'inherit', fontWeight: active ? 600 : 500, padding: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', cursor: 'pointer', borderRadius: 7,
+          padding: '4px 7px 4px 9px', font: 'inherit', fontWeight: active ? 600 : 500,
           fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+          color: active ? 'var(--primary)' : 'var(--foreground-secondary)',
+          background: active
+            ? `color-mix(in srgb, var(--primary) ${hover ? 24 : 16}%, transparent)`
+            : (hover ? 'var(--surface-3)' : 'var(--surface-2)'),
         }}
       >
         {label}
-        <svg width="9" height="9" viewBox="0 0 24 24" fill={active ? 'var(--primary)' : 'currentColor'} style={{ opacity: active ? 1 : 0.5, flexShrink: 0 }}>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: active ? 1 : 0.55, flexShrink: 0 }}>
           <path d="M7 10l5 5 5-5z" />
         </svg>
         {active && (
@@ -272,6 +303,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
   const [bindingFilter, setBindingFilter] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [descLang, setDescLang] = useState<'Zh' | 'En'>('Zh');
+  const [pageRaw, setPage] = useState(1);
   // 会话内本地编辑覆盖（事件定义库本身是静态字典文件，编排结果先保存在页面内）
   const [overrides, setOverrides] = useState<Record<string, Partial<EventDefEntry>>>({});
   const [descOverrides, setDescOverrides] = useState<Record<string, Partial<EventDescEntry>>>({});
@@ -439,6 +471,12 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
     setLifeCycleFilter(new Set()); setDeassertFilter(new Set()); setSourceFilter(new Set()); setBindingFilter(new Set());
   };
 
+  // ── 分页：换搜索/筛选条件时回到第 1 页 ──
+  useEffect(() => { setPage(1); }, [search, categoryFilter, severityFilter, eventTypeFilter, lifeCycleFilter, deassertFilter, sourceFilter, bindingFilter]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(pageRaw, totalPages);
+  const pagedRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const selectedDef = selectedKey ? defs.find((d) => d.EventKeyId === selectedKey) ?? null : null;
   const selectedDesc = useMemo(() => {
     if (!selectedKey) return null;
@@ -489,17 +527,14 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
       {/* 大屏下内容居中定宽，避免为了扫一行数据而来回转头 */}
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: 1180, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 4px 10px' }}>
+            <h1 style={{ font: 'var(--text-title-1)', color: 'var(--foreground)', margin: 0 }}>事件管理</h1>
+          </div>
+
           <div style={{
-            padding: '10px 4px', borderBottom: '1px solid var(--border-subtle)',
+            padding: '0 4px 10px', borderBottom: '1px solid var(--border-subtle)',
             display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
           }}>
-            <input
-              type="text"
-              placeholder="搜索 EventKeyId / 名称 / 编码"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ ...fieldInputStyle(false), width: 260 }}
-            />
             <button
               onClick={handleAddDef}
               style={{
@@ -511,18 +546,26 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               新建事件模板
             </button>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearAllFilters}
-                style={{
-                  padding: '5px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-                  background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)',
-                }}
-              >
-                清除全部筛选（{activeFilterCount}）
-              </button>
-            )}
-            <span style={{ marginLeft: 'auto', color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  style={{
+                    padding: '5px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+                    background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)',
+                  }}
+                >
+                  清除全部筛选（{activeFilterCount}）
+                </button>
+              )}
+              <input
+                type="text"
+                placeholder="搜索 EventKeyId / 名称 / 编码"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ ...fieldInputStyle(false), width: 260 }}
+              />
+            </div>
           </div>
 
           <div style={{ flex: 1, overflow: 'auto' }}>
@@ -546,7 +589,7 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((d) => {
+                {pagedRows.map((d) => {
                   const boundCount = bindingsByKey.get(d.EventKeyId)?.length ?? 0;
                   const sev = severityMeta(d.SeverityId);
                   const isStandard = sourceTag(d) === 'standard';
@@ -603,6 +646,21 @@ export function EventDefManager({ csr, eventDef, onChange }: Props) {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 条数统计 + 分页放在一起，置底 */}
+          <div style={{
+            padding: '10px 4px', borderTop: '1px solid var(--border-subtle)',
+            display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+          }}>
+            <span style={{ color: 'var(--foreground-muted)', fontSize: 11 }}>共 {filtered.length} / {defs.length} 条</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PageBtn title="第一页" disabled={page <= 1} onClick={() => setPage(1)}>«</PageBtn>
+              <PageBtn title="上一页" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</PageBtn>
+              <span style={{ fontSize: 11, color: 'var(--foreground-secondary)', padding: '0 6px', whiteSpace: 'nowrap' }}>第 {page} / {totalPages} 页</span>
+              <PageBtn title="下一页" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>›</PageBtn>
+              <PageBtn title="最后一页" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</PageBtn>
+            </div>
           </div>
         </div>
       </main>
