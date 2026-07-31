@@ -25,6 +25,22 @@ description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充�
 **适用场景**：bmc-env、release-notes 等数据密集的列表/表格页面
 **特征**：完整 PTO 语义 token、表格/列表为主、筛选/分页
 
+### D. 弹窗 / 对话框
+**适用场景**：确认操作、快捷选择器（QuickPick）、完成态蒙层
+**特征**：半透明遮罩 `rgba(0,0,0,.55)` + 居中卡片 `480px` / 搜索列表 `400px` / 全屏成功态
+
+### E. 全屏配置向导
+**适用场景**：setup-wizard、多步骤配置流程
+**特征**：顶部步骤条（胶囊 pill）、可折叠配置卡（grid-template-rows 动画）、底部导航按钮
+
+### F. 抽屉面板
+**适用场景**：底部日志/输出面板、侧边详情面板、Toast 通知、右键菜单
+**特征**：底部抽屉（height 过渡 `.25s`）、侧边抽屉（width 过渡 `.22s`）、固定定位 toast + context menu
+
+### G. 加载态 / 空状态
+**适用场景**：数据加载中、列表为空、AI 就绪态、进度反馈
+**特征**：骨架屏（shimmer 动画）、空状态（图标 + 文案 + CTA）、进度条 + 步骤指示器
+
 ## 模板内容
 
 不管选哪个类型，**以下三块必须存在**（缺任何一块都会被 `check-ui-style.mjs` 拦截）：
@@ -457,8 +473,20 @@ window.parent.postMessage({
 
 ## 使用流程
 
-1. 确认页面属于 A / B / C 哪种类型
-2. 复制对应模板作为起点
+1. 确认页面属于 A / B / C / D / E / F / G 哪种类型（可组合：D/F/G 是覆盖层组件，通常嵌入 A/B/C 页面中）
+2. 复制对应模板作为起点（模板文件在 `.claude/skills/public-page-scaffold/templates/` 目录下）
 3. 修改 `<title>` 和页面标题
 4. 在模板结构上添加业务内容
 5. 写完后 `check-ui-style.mjs` 自动运行校验（PostToolUse hook）
+
+## 模板文件索引
+
+| 模板 | 文件 | 用途 |
+|------|------|------|
+| A | `templates/A-fullscreen-welcome.html` | 全屏欢迎/引导页 |
+| B | `templates/B-ide-panel.html` | IDE 内嵌面板 |
+| C | `templates/C-data-management.html` | 数据管理页 |
+| D | `templates/D-modal-dialog.html` | 弹窗 / QuickPick / 完成态 |
+| E | `templates/E-fullscreen-config.html` | 全屏配置向导 |
+| F | `templates/F-drawer.html` | 抽屉 / Toast / 右键菜单 |
+| G | `templates/G-loading-empty.html` | 加载态 / 空状态 / 进度条 |
