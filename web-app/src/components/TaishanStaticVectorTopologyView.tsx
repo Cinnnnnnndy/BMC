@@ -15,6 +15,7 @@ const C = {
   purple: '#a855f7',   // I2C bus
   green:  '#4ade80',   // SMBus
   orange: '#f97316',   // Power bus
+  /* data-viz-exempt: 连线分类色 */
   blue:   '#60a5fa',   // (legacy, cross-board)
   cyan:   '#06b6d4',
   chipColor: {
@@ -89,7 +90,7 @@ function BusNode({ data, selected }: NodeProps) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 9, fontWeight: 600, color: d.dashed ? bg : '#fff',
       position: 'relative', cursor: 'grab', whiteSpace: 'nowrap',
-      boxShadow: selected ? `0 0 0 2px rgba(79,110,247,0.6), 0 0 12px rgba(79,110,247,0.3)` : 'none',
+      boxShadow: selected ? `0 0 0 2px rgba(0,119,255,0.6), 0 0 12px rgba(0,119,255,0.3)` : 'none',
       outline: 'none',
     }}>
       <Handle type="target" position={Position.Left}  id="l"
@@ -112,7 +113,7 @@ function SMBusNode({ data, selected }: NodeProps) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 9, fontWeight: 600, color: darkText ? '#0c1e14' : '#fff',
       position: 'relative', cursor: 'grab', whiteSpace: 'nowrap',
-      boxShadow: selected ? `0 0 0 2px rgba(79,110,247,0.6)` : 'none',
+      boxShadow: selected ? `0 0 0 2px rgba(0,119,255,0.6)` : 'none',
       outline: 'none',
     }}>
       <Handle type="target" position={Position.Left}  id="l"
@@ -137,7 +138,7 @@ function MuxNode({ data, selected }: NodeProps) {
   return (
     <div style={{
       width: 48, height: 48, borderRadius: 10, background: 'var(--node-bg)',
-      border: selected ? '1.5px solid rgba(100,140,255,0.70)' : '1px solid var(--surface-border-subtle)',
+      border: selected ? '1.5px solid rgba(0, 119, 255, 0.70)' : '1px solid var(--surface-border-subtle)',
       boxShadow: selected ? `0 0 0 2px rgba(167,139,250,0.25)` : 'none',
       display: 'flex', flexDirection: 'column', overflow: 'visible',
       position: 'relative', cursor: 'grab',
@@ -174,8 +175,8 @@ function ChipNode({ data, selected }: NodeProps) {
   return (
     <div style={{
       width: 48, height: 48, borderRadius: 10, background: 'var(--node-bg)',
-      border: selected ? '1.5px solid rgba(100,140,255,0.70)' : '1px solid var(--surface-border-subtle)',
-      boxShadow: selected ? `0 0 0 2px rgba(79,110,247,0.25)` : 'none',
+      border: selected ? '1.5px solid rgba(0, 119, 255, 0.70)' : '1px solid var(--surface-border-subtle)',
+      boxShadow: selected ? `0 0 0 2px rgba(0,119,255,0.25)` : 'none',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden', position: 'relative', cursor: 'grab', outline: 'none',
     }}>
@@ -202,8 +203,8 @@ function BigChipNode({ data, selected }: NodeProps) {
   return (
     <div style={{
       width: 48, height: 48, borderRadius: 10, background: 'var(--node-bg)',
-      border: selected ? '1.5px solid rgba(100,140,255,0.70)' : '1px solid var(--surface-border-subtle)',
-      boxShadow: selected ? '0 0 0 2px rgba(79,110,247,0.25)' : 'none',
+      border: selected ? '1.5px solid rgba(0, 119, 255, 0.70)' : '1px solid var(--surface-border-subtle)',
+      boxShadow: selected ? '0 0 0 2px rgba(0,119,255,0.25)' : 'none',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden', position: 'relative', cursor: 'grab', outline: 'none',
     }}>
@@ -1237,13 +1238,13 @@ function TaishanInner() {
           ].map(({ label, onClick, primary }) => (
             <button key={label} onClick={onClick} style={{
               display: 'block', width: '100%', height: 30, marginBottom: 6,
-              borderRadius: 6, border: primary ? '1px solid rgba(120,150,255,0.4)' : '1px solid rgba(255,255,255,0.10)',
-              background: primary ? 'rgba(79,110,247,0.8)' : 'rgba(255,255,255,0.04)',
+              borderRadius: 6, border: primary ? '1px solid rgba(0,119,255,0.4)' : '1px solid rgba(255,255,255,0.10)',
+              background: primary ? 'rgba(0,119,255,0.8)' : 'rgba(255,255,255,0.04)',
               color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer',
               transition: 'background 0.15s', whiteSpace: 'nowrap',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = primary ? 'rgba(99,130,255,0.9)' : 'rgba(255,255,255,0.09)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = primary ? 'rgba(79,110,247,0.8)' : 'rgba(255,255,255,0.04)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = primary ? 'rgba(50,145,254,0.9)' : 'rgba(255,255,255,0.09)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = primary ? 'rgba(0,119,255,0.8)' : 'rgba(255,255,255,0.04)'; }}
             >
               {label}
             </button>
@@ -1344,7 +1345,7 @@ function TaishanInner() {
               }}
               style={{
                 background: 'rgba(26,26,40,0.95)',
-                border: '1px solid rgba(79,110,247,0.7)',
+                border: '1px solid rgba(0,119,255,0.7)',
                 borderRadius: 4, color: '#fff', fontSize: 12,
                 padding: '3px 8px', outline: 'none',
                 boxShadow: '0 2px 12px rgba(0,0,0,0.5)',

@@ -4,9 +4,10 @@ import type { ServerBoard } from '../data/serverBoardsData';
 
 /* ─── colour tokens ─────────────────────────────────────────── */
 const TYPE_COLOR: Record<string, string> = {
-  PSR: '#a78bfa', EXU: '#60a5fa', BCU: '#34d399',
+  PSR: '#a78bfa', EXU: '#4DA3FF', BCU: '#34d399',
   CLU: '#fbbf24', IEU: '#fb923c', SEU: '#f472b6', NICCard: '#22d3ee',
 };
+// data-viz-exempt: 硬件类型语义色
 const HW_COLOR = { chip: '#3b82f6', connector: '#8b5cf6', mux: '#06b6d4' };
 const SW_COLOR = { component: '#10b981', event: '#ef4444', sensor: '#f97316', fru: '#84cc16', other: '#6b7280' };
 
@@ -486,7 +487,7 @@ function ServerSummary({ boards }: { boards: ServerBoard[] }) {
       <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>服务器软硬件关联网络</span>
       <span style={{ fontSize: 11, color: '#444' }}>|</span>
       <span style={{ fontSize: 11, color: '#888' }}>{boards.length} 板卡</span>
-      <span style={{ fontSize: 11, color: '#3b82f6' }}>{totalHw} 硬件</span>
+      <span style={{ fontSize: 11, color: '#0077FF' }}>{totalHw} 硬件</span>
       <span style={{ fontSize: 11, color: '#10b981' }}>{totalSw} 软件</span>
       <span style={{ fontSize: 11, color: '#fff' }}>{totalHwSw} 硬件↔软件</span>
       <span style={{ fontSize: 11, color: '#a78bfa' }}>{totalSwSw} 软件↔软件</span>

@@ -43,7 +43,7 @@ const METHOD_LABEL: Record<SignMethod, string> = {
 
 const METHOD_COLOR: Record<SignMethod, { bg: string; color: string }> = {
   self_sign:   { bg: 'rgba(4,215,147,.12)',  color: '#04d793' },
-  server_sign: { bg: 'rgba(67,105,239,.14)', color: '#7b9fff' },
+  server_sign: { bg: 'rgba(0,119,255,.14)', color: '#4DA3FF' },
   signserver:  { bg: 'rgba(255,170,59,.12)', color: '#ffaa3b' },
 };
 
@@ -255,8 +255,8 @@ export function CsrExportDialog({
             <button
               onClick={() => onAddProfile?.()}
               style={s.addLink}
-              onMouseOver={e => (e.currentTarget.style.color = '#4369ef')}
-              onMouseOut={e => (e.currentTarget.style.color = 'rgba(67,105,239,.80)')}
+              onMouseOver={e => (e.currentTarget.style.color = '#0077FF')}
+              onMouseOut={e => (e.currentTarget.style.color = 'rgba(0,119,255,.80)')}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 11H13V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/>
@@ -372,8 +372,8 @@ const s: Record<string, React.CSSProperties> = {
     cursor: 'pointer', transition: 'all .14s', textAlign: 'center',
   },
   uploadAreaHover: {
-    borderColor: 'rgba(67,105,239,.50)',
-    background: 'rgba(67,105,239,.05)',
+    borderColor: 'rgba(0,119,255,.50)',
+    background: 'rgba(0,119,255,.05)',
   },
   uploadAreaDone: {
     borderColor: 'rgba(4,215,147,.3)',
@@ -398,7 +398,7 @@ const s: Record<string, React.CSSProperties> = {
   addLink: {
     display: 'inline-flex', alignItems: 'center', gap: 4,
     border: 'none', background: 'none', cursor: 'pointer',
-    color: 'rgba(67,105,239,.80)', fontSize: 12, fontFamily: 'inherit', padding: 0,
+    color: 'rgba(0,119,255,.80)', fontSize: 12, fontFamily: 'inherit', padding: 0,
     transition: 'color .1s',
   },
   profilePreview: {
@@ -424,7 +424,7 @@ const s: Record<string, React.CSSProperties> = {
     borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0,
   },
   btnPrimary: {
-    padding: '7px 14px', background: 'var(--primary,#4369ef)', color: '#fff',
+    padding: '7px 14px', background: 'var(--primary, #0077FF)', color: '#fff',
     border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer',
     fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600,
   },

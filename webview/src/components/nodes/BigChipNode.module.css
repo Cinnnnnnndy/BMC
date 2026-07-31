@@ -15,14 +15,14 @@
 
 .bigChipNode:hover {
   filter: brightness(1.1);
-  box-shadow: 0 6px 24px rgba(79, 110, 247, 0.3);
-  border-color: rgba(79, 110, 247, 0.4);
+  box-shadow: 0 6px 24px rgba(0, 119, 255, 0.3);
+  border-color: rgba(0, 119, 255, 0.4);
 }
 
 .bigChipNode.selected {
   filter: brightness(1.2);
-  box-shadow: 0 8px 32px rgba(79, 110, 247, 0.4);
-  border-color: rgba(79, 110, 247, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 119, 255, 0.4);
+  border-color: rgba(0, 119, 255, 0.5);
 }
 
 .body {
@@ -65,7 +65,7 @@
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(79, 110, 247, 0.5);
+  border: 1px solid rgba(0, 119, 255, 0.5);
   border-radius: 50%;
   position: absolute;
   top: -3px;

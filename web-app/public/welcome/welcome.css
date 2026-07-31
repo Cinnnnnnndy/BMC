@@ -617,7 +617,7 @@ body {
 }
 
 .update-link:hover {
-  color: #1E90FF;
+  color: #3291FE;
   cursor: pointer;
   text-decoration: none;
 }
@@ -762,8 +762,8 @@ body {
 }
 
 .workflow-detail-item:hover {
-  background: linear-gradient(90deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.1) 100%);
-  border-color: rgba(79, 70, 229, 0.3);
+  background: linear-gradient(90deg, rgba(0, 119, 255, 0.15) 0%, rgba(0, 119, 255, 0.06) 100%);
+  border-color: rgba(0, 119, 255, 0.3);
 }
 
 .workflow-detail-disabled {
@@ -937,7 +937,7 @@ body {
 
 .message-bar svg {
   flex-shrink: 0;
-  color: #4F46E5;
+  color: #0077FF;
 }
 .flower {
   display: inline-block;
@@ -1019,7 +1019,7 @@ body {
 
 .recent-section h4 svg,
 .docs-section h4 svg {
-  color: #4F46E5;
+  color: #0077FF;
 }
 
 .recent-list {

@@ -44,8 +44,8 @@ const typeColor = computed(() => C.chipColor[props.data.chipType] ?? '#6b7280');
   outline: none;
 }
 .chip-node.is-selected {
-  border: 1.5px solid rgba(100, 140, 255, 0.70);
-  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.25);
+  border: 1.5px solid rgba(0, 119, 255, 0.70);
+  box-shadow: 0 0 0 2px rgba(0, 119, 255, 0.25);
 }
 .chip-icon-area {
   flex: 1;

@@ -21,6 +21,7 @@ const topo = BMC_TOPOLOGY;
       <MiniTopology :buses="topo.buses" />
     </div>
 
+    <!-- data-viz-exempt: 拓扑连接点色 -->
     <Handle
       type="source" :position="Position.Right" id="r"
       :style="{ width: '8px', height: '8px', background: '#4f6ef7', border: '2px solid #0b0d12', right: '-5px' }"

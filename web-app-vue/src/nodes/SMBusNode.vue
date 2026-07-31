@@ -44,6 +44,6 @@ const darkText = computed(() => bg.value === C.green);
   outline: none;
 }
 .smbus-node.is-selected {
-  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.6);
+  box-shadow: 0 0 0 2px rgba(0, 119, 255, 0.6);
 }
 </style>

@@ -25,6 +25,7 @@ import { PartPreview3D } from './PartPreview3D';
 
 const CATEGORY_META: Record<PartCategory, { icon: string; label: string; labelCN: string; color: string }> = {
   'cpu':                    { icon: '⚡', label: 'CPU',          labelCN: '处理器',     color: '#a78bfa' },
+  /* data-viz-exempt:start —— 器件品类语义色 */
   'memory-module':          { icon: '🧩', label: 'Memory',       labelCN: '内存模块',   color: '#60a5fa' },
   'storage-nvme':           { icon: '💾', label: 'NVMe',         labelCN: 'NVMe 存储',  color: '#fb923c' },
   'storage-ssd':            { icon: '💽', label: 'SSD',          labelCN: 'SATA SSD',   color: '#fbbf24' },
@@ -46,6 +47,7 @@ const CATEGORY_META: Record<PartCategory, { icon: string; label: string; labelCN
   'cable':                  { icon: '🔗', label: 'Cable',        labelCN: '线缆',       color: '#6b7280' },
   'backplane':              { icon: '🔲', label: 'Backplane',    labelCN: '背板',       color: '#94a3b8' },
 };
+  /* data-viz-exempt:end */
 
 // ─── Part Card ────────────────────────────────────────────────────────────────
 

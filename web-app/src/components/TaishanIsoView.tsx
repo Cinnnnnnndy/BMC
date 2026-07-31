@@ -233,6 +233,7 @@ export function TaishanIsoView() {
             {/* Purple I2C: board → fans */}
             <Cable from={bbMid} to={fanMid} color="#a78bfa" />
             {/* Blue PCIe: board → HDD */}
+            {/* data-viz-exempt: 跨板连线色 */}
             <Cable from={bbMid} to={hddMid} color="#60a5fa" />
             {/* Teal: board → NIC */}
             <Cable from={bbMid} to={nicMid} color="#2dd4bf" />

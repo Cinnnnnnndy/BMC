@@ -5,6 +5,7 @@ export const C = {
   amber:  '#fbbf24',   // JTAG (distinct from SMBus)
   cyan:   '#22d3ee',   // HiSport
   orange: '#f97316',   // Power bus
+  // data-viz-exempt:start —— 拓扑连线/器件分类色
   blue:   '#818cf8',   // BMC internal / general
 
   // Chip type colours — pastel variants so they read well on the dark canvas
@@ -19,6 +20,7 @@ export const C = {
     bigchip: '#f9a8d4',  // pink-300
   } as Record<string, string>,
 };
+  // data-viz-exempt:end
 
 // Bus-type → connection-line colour. Single source of truth so every edge line
 // is coloured by its bus type (used by ManhattanEdge and the canvas legend).

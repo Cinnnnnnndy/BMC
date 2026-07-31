@@ -24,15 +24,15 @@
   --border-default: rgba(255, 255, 255, 0.10);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  --primary: #4369ef;                 /* --ark-blue-500 */
-  --primary-hover: #5a92e6;           /* --ark-blue-600 */
+  --primary: #0077FF;                 /* brand（写死）*/
+  --primary-hover: #3291FE;           /* brand hover */
   --success: #04d793;
   --warning: #ffaa3b;
   --danger: #ff4b7b;
 
-  --focus-ring: rgba(67, 105, 239, 0.42);
+  --focus-ring: rgba(0, 119, 255, 0.42);
   --state-hover: rgba(255, 255, 255, 0.06);
-  --state-selected: rgba(67, 105, 239, 0.14);
+  --state-selected: rgba(0, 119, 255, 0.14);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -57,11 +57,11 @@
 /* ── ① Element Plus 变量桥接（C1/C8：EP 默认蓝 → PTO 蓝） ─────────── */
 html.dark {
   --el-color-primary: var(--primary);
-  --el-color-primary-light-3: color-mix(in srgb, #4369ef 70%, #141414);
-  --el-color-primary-light-5: color-mix(in srgb, #4369ef 50%, #141414);
-  --el-color-primary-light-7: color-mix(in srgb, #4369ef 30%, #141414);
-  --el-color-primary-light-8: color-mix(in srgb, #4369ef 20%, #141414);
-  --el-color-primary-light-9: color-mix(in srgb, #4369ef 10%, #141414);
+  --el-color-primary-light-3: color-mix(in srgb, #0077FF 70%, #141414);
+  --el-color-primary-light-5: color-mix(in srgb, #0077FF 50%, #141414);
+  --el-color-primary-light-7: color-mix(in srgb, #0077FF 30%, #141414);
+  --el-color-primary-light-8: color-mix(in srgb, #0077FF 20%, #141414);
+  --el-color-primary-light-9: color-mix(in srgb, #0077FF 10%, #141414);
   --el-color-primary-dark-2: var(--primary-hover);
   --el-color-success: var(--success);
   --el-color-warning: var(--warning);

@@ -33,14 +33,14 @@
   --tone-green-strong: color-mix(in srgb, var(--success) 22%, transparent);
   --tone-warning-strong: color-mix(in srgb, var(--warning) 22%, transparent);
 
-  --focus-ring: rgba(67, 105, 239, 0.42);
+  --focus-ring: rgba(0, 119, 255, 0.42);
 
   /* Interaction State Overlays (ArkUI-style: overlay on surface, not bg swap) */
   --state-hover:    rgba(255, 255, 255, 0.06);
   --state-press:    rgba(255, 255, 255, 0.10);
   --state-muted:    rgba(255, 255, 255, 0.06);
   --state-selected: rgba(255, 255, 255, 0.08);
-  --state-focus:    rgba(67, 105, 239, 0.20);
+  --state-focus:    rgba(0, 119, 255, 0.20);
 
   /* Disabled States */
   --surface-disabled: rgba(255, 255, 255, 0.04);
@@ -64,13 +64,13 @@
   --border-default: rgba(0, 0, 0, 0.12);
   --border-strong: rgba(0, 0, 0, 0.18);
 
-  --focus-ring: rgba(67, 105, 239, 0.36);
+  --focus-ring: rgba(0, 119, 255, 0.36);
 
   --state-hover:    rgba(0, 0, 0, 0.05);
   --state-press:    rgba(0, 0, 0, 0.09);
   --state-muted:    rgba(0, 0, 0, 0.05);
   --state-selected: rgba(0, 0, 0, 0.06);
-  --state-focus:    rgba(67, 105, 239, 0.16);
+  --state-focus:    rgba(0, 119, 255, 0.16);
 
   --surface-disabled: rgba(0, 0, 0, 0.04);
   --border-disabled:  rgba(0, 0, 0, 0.07);

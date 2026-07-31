@@ -6,8 +6,18 @@
   --ark-neutral-2: #141414;
   --ark-neutral-3: #1a1a1a;
   --ark-neutral-4: #343434;
-  --ark-blue-500: #4369ef;
-  --ark-blue-600: #5a92e6;
+
+  /* ── Brand（唯一权威 · 写死）：高亮色 / 重点按钮统一 #0077FF ── */
+  --brand-primary:        #0077FF;
+  --brand-primary-hover:  #3291FE;
+  --brand-primary-active: #0062D6;
+  --brand-primary-tint:   #4DA3FF;
+  --brand-primary-rgb:    0, 119, 255;
+  --brand-primary-soft:   rgba(0,119,255,0.14);
+  --brand-primary-ring:   rgba(0,119,255,0.42);
+
+  --ark-blue-500: var(--brand-primary);
+  --ark-blue-600: var(--brand-primary-hover);
   --ark-domain-aux: #7c8db8;
   --ark-green-500: #04d793;
   --ark-orange-500: #ffaa3b;
@@ -64,11 +74,11 @@
   --warning:  var(--ark-orange-500);
   --danger:   var(--ark-red-500);
 
-  --focus-ring:    rgba(67,105,239,0.42);
+  --focus-ring:    rgba(0,119,255,0.42);
   --state-hover:   rgba(255,255,255,0.06);
   --state-press:   rgba(255,255,255,0.10);
   --state-muted:   rgba(255,255,255,0.06);
-  --state-selected:rgba(67,105,239,0.14);
+  --state-selected:rgba(0,119,255,0.14);
 
   --tone-critical-bg:    color-mix(in srgb, var(--danger)  14%, transparent);
   --tone-warning-bg:     color-mix(in srgb, var(--warning) 16%, transparent);

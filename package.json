@@ -53,6 +53,9 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./ && npm run build:webview",
     "watch": "tsc -w -p ./",
+    "check:ui": "node scripts/check-ui-style.mjs",
+    "check:brand": "node scripts/check-brand-color.mjs",
+    "check": "npm run check:ui && npm run check:brand",
     "build:webview": "cd web-app && npm run build",
     "watch:webview": "cd web-app && npm run build -- --watch",
     "package": "vsce package --no-dependencies"

@@ -65,7 +65,7 @@ const percents = computed(() => {
   cursor: grab;
 }
 .mux-node.is-selected {
-  border: 1.5px solid rgba(100, 140, 255, 0.70);
+  border: 1.5px solid rgba(0, 119, 255, 0.70);
   box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.25);
 }
 .mux-icon-area {

@@ -6,6 +6,7 @@ import { HW_BOARDS, HwBoard, TopoNode } from '../data/hardwareTopologyData';
 ───────────────────────────────────────────── */
 const TYPE_COLOR: Record<string, string> = {
   PSR: '#7c3aed', BCU: '#0891b2', CLU: '#059669', EXU: '#d97706',
+  // data-viz-exempt: 板卡类型语义色
   IEU: '#2563eb', SEU: '#dc2626', NICCard: '#db2777', BMC: '#4b5563',
 };
 const NODE_COLOR: Record<string, string> = {
@@ -73,7 +74,7 @@ function computeDiff(before: CVS, after: CVS): Array<{ label: string; color: str
 
   // Scale / viewport change
   if (Math.abs(before.scale - after.scale) > 0.08) {
-    tags.push({ label: `${Math.round(before.scale * 100)}%→${Math.round(after.scale * 100)}%`, color: '#3b82f6' });
+    tags.push({ label: `${Math.round(before.scale * 100)}%→${Math.round(after.scale * 100)}%`, color: '#0077FF' });
   }
 
   // Highlight change
@@ -96,7 +97,7 @@ function computeDiff(before: CVS, after: CVS): Array<{ label: string; color: str
   // Toggles
   if (before.showSoft !== after.showSoft)  tags.push({ label: after.showSoft  ? '软件叠加 ●' : '软件叠加 ○', color: '#fbbf24' });
   if (before.showI2C !== after.showI2C)    tags.push({ label: after.showI2C   ? 'I²C ●' : 'I²C ○',            color: '#64748b' });
-  if (before.showPCIe !== after.showPCIe)  tags.push({ label: after.showPCIe  ? 'PCIe ●' : 'PCIe ○',          color: '#60a5fa' });
+  if (before.showPCIe !== after.showPCIe)  tags.push({ label: after.showPCIe  ? 'PCIe ●' : 'PCIe ○',          color: '#4DA3FF' });
   if (before.filterType !== after.filterType) {
     tags.push({ label: after.filterType ? `筛选 ${after.filterType}` : '清除筛选', color: '#4ade80' });
   }
@@ -117,6 +118,7 @@ function computeGroupLayout(): Map<string, { x: number; y: number }> {
 /* ─────────────────────────────────────────────
    Inter-board connections
 ───────────────────────────────────────────── */
+// data-viz-exempt:start —— 板间连线分类色（图例同源）
 const BOARD_CONNECTIONS = [
   { fromType: 'BCU', toType: 'PSR',     label: 'I²C 管理总线',         color: '#475569', style: 'dashed' as const },
   { fromType: 'CLU', toType: 'PSR',     label: 'I²C 管理总线',         color: '#475569', style: 'dashed' as const },
@@ -130,6 +132,7 @@ const BOARD_CONNECTIONS = [
   { fromType: 'EXU', toType: 'NICCard', label: 'OCP↔PCIe',            color: '#a78bfa', style: 'solid' as const },
   { fromType: 'EXU', toType: 'SEU',     label: 'PCIe CEM↔UBC',        color: '#f97316', style: 'solid' as const },
 ];
+// data-viz-exempt:end
 
 /* ─────────────────────────────────────────────
    AI Agent: natural language processor
@@ -435,7 +438,7 @@ function AgentPanel({
           borderRadius: 16,
           padding: '14px 16px 18px',
           backdropFilter: 'blur(28px)',
-          boxShadow: '0 8px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(59,130,246,0.1)',
+          boxShadow: '0 8px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,119,255,0.1)',
           animation: 'ai-slide-up 0.28s cubic-bezier(0.34,1.56,0.64,1)',
           position: 'relative',
           overflow: 'hidden',
@@ -444,11 +447,11 @@ function AgentPanel({
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
             <div style={{
               width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%)',
+              background: 'linear-gradient(135deg, #0062D6 0%, #7c3aed 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, color: '#fff',
             }}>✦</div>
-            <span style={{ fontSize: 10.5, color: '#60a5fa', fontWeight: 600, flex: 1, letterSpacing: '0.03em' }}>AI 助手</span>
+            <span style={{ fontSize: 10.5, color: '#4DA3FF', fontWeight: 600, flex: 1, letterSpacing: '0.03em' }}>AI 助手</span>
             <button
               onClick={() => setResponseVisible(false)}
               style={{ background: 'none', border: 'none', color: '#2d3f52', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '2px 4px', borderRadius: 4, transition: 'color 0.15s' }}
@@ -468,11 +471,11 @@ function AgentPanel({
               onClick={() => revert(latestResponse.userSnapshot)}
               style={{
                 fontSize: 10, padding: '5px 13px', borderRadius: 8,
-                background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)',
-                color: '#60a5fa', cursor: 'pointer', transition: 'all 0.15s',
+                background: 'rgba(0,119,255,0.08)', border: '1px solid rgba(0,119,255,0.22)',
+                color: '#4DA3FF', cursor: 'pointer', transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.18)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.08)'; }}
             >↩ 撤销此操作</button>
             {showHistory ? null : (
               <button
@@ -489,8 +492,8 @@ function AgentPanel({
           </div>
 
           {/* Auto-dismiss progress bar */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'rgba(59,130,246,0.07)' }}>
-            <div style={{ height: '100%', background: 'rgba(59,130,246,0.35)', borderRadius: '0 0 16px 16px', animation: 'ai-shrink 30s linear forwards' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'rgba(0,119,255,0.07)' }}>
+            <div style={{ height: '100%', background: 'rgba(0,119,255,0.35)', borderRadius: '0 0 16px 16px', animation: 'ai-shrink 30s linear forwards' }} />
           </div>
         </div>
       )}
@@ -541,10 +544,10 @@ function AgentPanel({
                 <div style={{
                   flex: 1, fontSize: 10.5, lineHeight: 1.55, padding: '5px 10px',
                   borderRadius: msg.role === 'user' ? '10px 10px 2px 10px' : '2px 10px 10px 10px',
-                  background: msg.role === 'user' ? 'rgba(37,99,235,0.12)' : 'transparent',
-                  border: msg.role === 'user' ? '1px solid rgba(37,99,235,0.2)' : 'none',
+                  background: msg.role === 'user' ? 'rgba(0,119,255,0.12)' : 'transparent',
+                  border: msg.role === 'user' ? '1px solid rgba(0,119,255,0.2)' : 'none',
                   borderLeft: msg.role === 'agent' ? '2px solid rgba(255,255,255,0.06)' : undefined,
-                  color: msg.role === 'user' ? '#93c5fd' : '#3d5068',
+                  color: msg.role === 'user' ? '#4DA3FF' : '#3d5068',
                 }}>
                   {msg.role === 'agent'
                     ? msg.text.replace(/\*\*/g, '').split('\n')[0].slice(0, 72) + (msg.text.length > 72 ? '…' : '')
@@ -560,7 +563,7 @@ function AgentPanel({
                       background: 'transparent', border: '1px solid rgba(255,255,255,0.07)',
                       color: '#2d3f52', cursor: 'pointer', transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'; e.currentTarget.style.color = '#60a5fa'; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.5)'; e.currentTarget.style.color = '#4DA3FF'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#2d3f52'; }}
                   >↩</button>
                 )}
@@ -587,7 +590,7 @@ function AgentPanel({
                 color: '#3d5068', cursor: 'pointer', backdropFilter: 'blur(12px)',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)'; e.currentTarget.style.color = '#93c5fd'; e.currentTarget.style.background = 'rgba(37,99,235,0.1)'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,119,255,0.4)'; e.currentTarget.style.color = '#4DA3FF'; e.currentTarget.style.background = 'rgba(0,119,255,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#3d5068'; e.currentTarget.style.background = 'rgba(9,14,24,0.78)'; }}
             >{s}</button>
           ))}
@@ -599,12 +602,12 @@ function AgentPanel({
         pointerEvents: 'all',
         display: 'flex', alignItems: 'center', gap: 6,
         background: focused ? 'rgba(11,17,29,0.97)' : 'rgba(9,14,24,0.85)',
-        border: `1px solid ${focused ? 'rgba(59,130,246,0.38)' : 'rgba(255,255,255,0.08)'}`,
+        border: `1px solid ${focused ? 'rgba(0,119,255,0.38)' : 'rgba(255,255,255,0.08)'}`,
         borderRadius: 999,
         padding: '5px 5px 5px 14px',
         backdropFilter: 'blur(28px)',
         boxShadow: focused
-          ? '0 0 0 3px rgba(59,130,246,0.09), 0 8px 36px rgba(0,0,0,0.55)'
+          ? '0 0 0 3px rgba(0,119,255,0.09), 0 8px 36px rgba(0,0,0,0.55)'
           : '0 4px 24px rgba(0,0,0,0.4)',
         transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
       }}>
@@ -614,9 +617,9 @@ function AgentPanel({
           title="对话历史"
           style={{
             flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
-            background: showHistory ? 'rgba(37,99,235,0.22)' : userMsgs.length > 0 ? 'rgba(255,255,255,0.05)' : 'transparent',
-            border: showHistory ? '1px solid rgba(59,130,246,0.45)' : '1px solid rgba(255,255,255,0.08)',
-            color: showHistory ? '#60a5fa' : userMsgs.length > 0 ? '#3d5068' : '#1a2535',
+            background: showHistory ? 'rgba(0,119,255,0.22)' : userMsgs.length > 0 ? 'rgba(255,255,255,0.05)' : 'transparent',
+            border: showHistory ? '1px solid rgba(0,119,255,0.45)' : '1px solid rgba(255,255,255,0.08)',
+            color: showHistory ? '#4DA3FF' : userMsgs.length > 0 ? '#3d5068' : '#1a2535',
             cursor: 'pointer', fontSize: 9, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.18s', userSelect: 'none',
@@ -637,7 +640,7 @@ function AgentPanel({
           style={{
             flex: 1, background: 'transparent', border: 'none',
             fontSize: 12.5, color: '#e2e8f0', outline: 'none',
-            padding: '4px 0', caretColor: '#3b82f6',
+            padding: '4px 0', caretColor: '#0077FF',
           }}
         />
 
@@ -646,7 +649,7 @@ function AgentPanel({
           <div style={{ display: 'flex', gap: 3, padding: '0 8px', flexShrink: 0, alignItems: 'center' }}>
             {[0, 1, 2].map(i => (
               <div key={i} style={{
-                width: 4, height: 4, borderRadius: '50%', background: '#3b82f6',
+                width: 4, height: 4, borderRadius: '50%', background: '#0077FF',
                 animation: `ai-dot 0.55s ease-in-out ${i * 0.15}s infinite alternate`,
               }} />
             ))}
@@ -660,14 +663,14 @@ function AgentPanel({
           style={{
             flexShrink: 0, width: 34, height: 34, borderRadius: '50%',
             background: input.trim() && !typing
-              ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)'
+              ? 'linear-gradient(135deg, #0062D6 0%, #0077FF 100%)'
               : 'rgba(255,255,255,0.05)',
             border: 'none',
             color: input.trim() && !typing ? '#fff' : '#1a2535',
             cursor: input.trim() && !typing ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 15, transition: 'all 0.2s',
-            boxShadow: input.trim() && !typing ? '0 2px 14px rgba(59,130,246,0.4)' : 'none',
+            boxShadow: input.trim() && !typing ? '0 2px 14px rgba(0,119,255,0.4)' : 'none',
             transform: input.trim() && !typing ? 'scale(1)' : 'scale(0.92)',
           }}
           onMouseEnter={e => { if (input.trim() && !typing) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'; }}
@@ -853,7 +856,7 @@ function GroupCard({ type, boards, cvs, highlighted, dimmed, onGroupClick, pos, 
       <MiniBusDiagram board={board} showSoft={cvs.showSoft} />
 
       <div style={{ padding: '3px 8px', borderTop: `1px solid #0f1a25`, display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
-        {ups.length > 0 && <span style={{ color: '#60a5fa' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
+        {ups.length > 0 && <span style={{ color: '#4DA3FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
         {downs.length > 0 && <span style={{ color: '#4ade80' }}>↓ {downs.length}×{[...new Set(downs.map(d => d.connType))].join('/')}</span>}
         {cvs.showSoft && board.soft.eventCount > 0 && <span style={{ color: '#fbbf24', marginLeft: 'auto' }}>{board.soft.eventCount}evt</span>}
       </div>
@@ -903,6 +906,7 @@ function ConnectionLines({
       const cp2x = tx - Math.abs(tx - fx) * 0.45;
 
       const d = `M ${fx} ${fy} C ${cp1x} ${fy} ${cp2x} ${ty} ${tx} ${ty}`;
+      // data-viz-exempt: 连线色 → 图例名反查
       const colorName = conn.color === '#3b82f6' || conn.color === '#60a5fa' ? 'blue'
         : conn.color === '#f97316' ? 'orange'
         : conn.color === '#ec4899' ? 'pink'
@@ -935,6 +939,7 @@ function ConnectionLines({
     >
       <defs>
         {['blue', 'orange', 'pink', 'purple', 'gray'].map(name => {
+          // data-viz-exempt: 图例名 → 连线色
           const cm: Record<string, string> = { blue: '#3b82f6', orange: '#f97316', pink: '#ec4899', purple: '#a78bfa', gray: '#475569' };
           return (
             <marker key={name} id={`arr-${name}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -1059,7 +1064,7 @@ function BoardNode({ board, x, y, cvs, onSelect }: {
       {board.desc && <div style={{ fontSize: 9, color: '#374151', padding: '2px 8px' }}>{board.desc}</div>}
       <MiniBusDiagram board={board} showSoft={cvs.showSoft} />
       <div style={{ padding: '3px 8px', borderTop: '1px solid #0f1a25', display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
-        {ups.length > 0 && <span style={{ color: '#60a5fa' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
+        {ups.length > 0 && <span style={{ color: '#4DA3FF' }}>↑ {ups.map(u => u.connType || u.linkWidth).join(' ')}</span>}
         {downs.length > 0 && <span style={{ color: '#4ade80' }}>↓ {downs.length}×{[...new Set(downs.map(d => d.connType))].join('/')}</span>}
         {cvs.showSoft && board.soft.eventCount > 0 && <span style={{ color: '#fbbf24', marginLeft: 'auto' }}>{board.soft.eventCount}evt</span>}
       </div>
@@ -1190,8 +1195,8 @@ function DetailPanel({ board, cvs, onClose }: { board: HwBoard; cvs: CVS; onClos
             <div style={{ fontSize: 10, color: '#4b6080', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>PCIe 连接器</div>
             {ups.map(bc => (
               <div key={bc.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', marginBottom: 3, background: '#0a1628', border: '1px solid #1e3a5f', borderRadius: 4, fontSize: 11 }}>
-                <span style={{ color: '#60a5fa' }}>↑</span>
-                <span style={{ color: '#60a5fa', padding: '0 4px', background: '#1e3a5f', borderRadius: 2, fontSize: 10 }}>Upstream</span>
+                <span style={{ color: '#4DA3FF' }}>↑</span>
+                <span style={{ color: '#4DA3FF', padding: '0 4px', background: '#1e3a5f', borderRadius: 2, fontSize: 10 }}>Upstream</span>
                 <span style={{ color: '#e2e8f0', flex: 1 }}>{bc.name}</span>
                 <span style={{ color: '#475569' }}>{bc.linkWidth}</span>
                 <span style={{ color: '#374151' }}>{bc.connType}</span>
@@ -1273,7 +1278,7 @@ function TimelinePanel({
       }}>
         <div style={{
           width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-          background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
+          background: 'linear-gradient(135deg, #0062D6, #7c3aed)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 9, color: '#fff',
         }}>✦</div>
@@ -1281,8 +1286,8 @@ function TimelinePanel({
         {entries.length > 0 && (
           <span style={{
             fontSize: 9, padding: '1px 6px', borderRadius: 999,
-            background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)',
-            color: '#3b82f6',
+            background: 'rgba(0,119,255,0.12)', border: '1px solid rgba(0,119,255,0.2)',
+            color: '#0077FF',
           }}>{entries.length} 步</span>
         )}
         <button
@@ -1297,14 +1302,14 @@ function TimelinePanel({
       <div style={{
         margin: '10px 12px 4px',
         padding: '6px 10px',
-        background: 'rgba(59,130,246,0.07)',
-        border: '1px solid rgba(59,130,246,0.18)',
+        background: 'rgba(0,119,255,0.07)',
+        border: '1px solid rgba(0,119,255,0.18)',
         borderRadius: 8,
         display: 'flex', alignItems: 'center', gap: 6,
         flexShrink: 0,
       }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 6px #3b82f6' }} />
-        <span style={{ fontSize: 10, color: '#60a5fa' }}>当前状态</span>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#0077FF', boxShadow: '0 0 6px #0077FF' }} />
+        <span style={{ fontSize: 10, color: '#4DA3FF' }}>当前状态</span>
         <span style={{ fontSize: 9, color: '#2d4a6a', marginLeft: 'auto' }}>{Math.round(cvs.scale * 100)}% · {cvs.highlightUids.length > 0 ? `${cvs.highlightUids.length}板高亮` : '全览'}</span>
       </div>
 
@@ -1327,13 +1332,13 @@ function TimelinePanel({
             <div key={entry.id} style={{ display: 'flex', paddingRight: 10 }}>
               {/* Timeline line + dot */}
               <div style={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: 1, flex: '0 0 12px', background: isLatest ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)' }} />
+                <div style={{ width: 1, flex: '0 0 12px', background: isLatest ? 'rgba(0,119,255,0.3)' : 'rgba(255,255,255,0.06)' }} />
                 <div style={{
                   width: isLatest ? 9 : 7, height: isLatest ? 9 : 7,
                   borderRadius: '50%', flexShrink: 0,
-                  background: isLatest ? '#3b82f6' : 'rgba(255,255,255,0.12)',
-                  border: isLatest ? '2px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.15)',
-                  boxShadow: isLatest ? '0 0 8px rgba(59,130,246,0.5)' : 'none',
+                  background: isLatest ? '#0077FF' : 'rgba(255,255,255,0.12)',
+                  border: isLatest ? '2px solid rgba(0,119,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                  boxShadow: isLatest ? '0 0 8px rgba(0,119,255,0.5)' : 'none',
                   transition: 'all 0.2s',
                 }} />
                 <div style={{ width: 1, flex: 1, background: 'rgba(255,255,255,0.06)', minHeight: 20 }} />
@@ -1352,7 +1357,7 @@ function TimelinePanel({
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
                 {/* User query */}
-                <div style={{ fontSize: 11, color: isLatest ? '#93c5fd' : '#475569', marginBottom: 4, lineHeight: 1.4, paddingRight: 4 }}>
+                <div style={{ fontSize: 11, color: isLatest ? '#4DA3FF' : '#475569', marginBottom: 4, lineHeight: 1.4, paddingRight: 4 }}>
                   {entry.userQuery.length > 28 ? entry.userQuery.slice(0, 28) + '…' : entry.userQuery}
                 </div>
 
@@ -1393,11 +1398,11 @@ function TimelinePanel({
                         onClick={() => onRevert(entry.after)}
                         style={{
                           flex: 1, fontSize: 9.5, padding: '5px 0', borderRadius: 6,
-                          background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.25)',
-                          color: '#60a5fa', cursor: 'pointer', transition: 'all 0.15s',
+                          background: 'rgba(0,119,255,0.1)', border: '1px solid rgba(0,119,255,0.25)',
+                          color: '#4DA3FF', cursor: 'pointer', transition: 'all 0.15s',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.2)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.1)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,119,255,0.1)'; }}
                         title="跳转到该步执行后的画布状态"
                       >⟳ 跳到此步</button>
                       <button
@@ -1578,11 +1583,11 @@ export function HardwareTopologyCanvas() {
         <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #1e2d3d' }}>
           <button
             onClick={() => setViewMode('grouped')}
-            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'grouped' ? '#1e3a5f' : 'transparent', border: 'none', color: viewMode === 'grouped' ? '#60a5fa' : '#475569' }}
+            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'grouped' ? '#1e3a5f' : 'transparent', border: 'none', color: viewMode === 'grouped' ? '#4DA3FF' : '#475569' }}
           >分组视图</button>
           <button
             onClick={() => setViewMode('expanded')}
-            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'expanded' ? '#1e3a5f' : 'transparent', border: '1px solid transparent', borderLeft: '1px solid #1e2d3d', color: viewMode === 'expanded' ? '#60a5fa' : '#475569' }}
+            style={{ padding: '3px 10px', fontSize: 10, cursor: 'pointer', background: viewMode === 'expanded' ? '#1e3a5f' : 'transparent', border: '1px solid transparent', borderLeft: '1px solid #1e2d3d', color: viewMode === 'expanded' ? '#4DA3FF' : '#475569' }}
           >展开视图</button>
         </div>
         <div style={{ flex: 1 }} />
@@ -1592,7 +1597,7 @@ export function HardwareTopologyCanvas() {
           { key: 'showSoft', label: '软件叠加', on: cvs.showSoft },
         ].map(({ key, label, on }) => (
           <button key={key} onClick={() => setCvs(c => ({ ...c, [key]: !on }))}
-            style={{ padding: '3px 10px', fontSize: 10, borderRadius: 4, cursor: 'pointer', background: on ? '#1e3a5f' : 'transparent', border: `1px solid ${on ? '#3b82f6' : '#1e2d3d'}`, color: on ? '#60a5fa' : '#374151' }}>
+            style={{ padding: '3px 10px', fontSize: 10, borderRadius: 4, cursor: 'pointer', background: on ? '#1e3a5f' : 'transparent', border: `1px solid ${on ? '#0077FF' : '#1e2d3d'}`, color: on ? '#4DA3FF' : '#374151' }}>
             {on ? '●' : '○'} {label}
           </button>
         ))}
@@ -1609,6 +1614,7 @@ export function HardwareTopologyCanvas() {
 
       {/* Legend */}
       <div style={{ padding: '4px 14px', borderBottom: '1px solid #0a1020', display: 'flex', gap: 14, flexWrap: 'wrap', flexShrink: 0, background: '#060a0f' }}>
+        {/* data-viz-exempt: 连线图例，与 BOARD_CONNECTIONS 同源 */}
         {[{ color: '#3b82f6', label: 'PCIe Hisport↔UBCDD (BCU→IEU)', dash: false }, { color: '#f97316', label: 'PCIe CEM↔UBC (IEU→SEU)', dash: false }, { color: '#ec4899', label: 'PCIe CEM (IEU/EXU→NIC)', dash: false }, { color: '#475569', label: 'I²C 管理总线', dash: true }].map(l => (
           <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#374151' }}>
             <svg width={20} height={6}><line x1="0" y1="3" x2="20" y2="3" stroke={l.color} strokeWidth={l.dash ? 1 : 1.5} strokeDasharray={l.dash ? '3,2' : undefined} /></svg>
@@ -1720,8 +1726,8 @@ export function HardwareTopologyCanvas() {
             transform: 'translateY(-50%)',
             width: 22,
             padding: '18px 0',
-            background: showTimeline ? 'rgba(37,99,235,0.18)' : 'rgba(9,14,24,0.82)',
-            border: `1px solid ${showTimeline ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            background: showTimeline ? 'rgba(0,119,255,0.18)' : 'rgba(9,14,24,0.82)',
+            border: `1px solid ${showTimeline ? 'rgba(0,119,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
             borderRight: showTimeline ? 'none' : undefined,
             borderRadius: showTimeline ? '8px 0 0 8px' : '8px 0 0 8px',
             cursor: 'pointer',
@@ -1731,19 +1737,19 @@ export function HardwareTopologyCanvas() {
             transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
             boxShadow: '-3px 0 16px rgba(0,0,0,0.3)',
           }}
-          onMouseEnter={e => { if (!showTimeline) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(59,130,246,0.3)'; }}
+          onMouseEnter={e => { if (!showTimeline) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,119,255,0.3)'; }}
           onMouseLeave={e => { if (!showTimeline) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
         >
           {/* Vertical text */}
-          <span style={{ fontSize: 8, color: showTimeline ? '#60a5fa' : '#2d3f52', writingMode: 'vertical-rl', letterSpacing: '0.08em', fontWeight: 600, textTransform: 'uppercase', userSelect: 'none' }}>
+          <span style={{ fontSize: 8, color: showTimeline ? '#4DA3FF' : '#2d3f52', writingMode: 'vertical-rl', letterSpacing: '0.08em', fontWeight: 600, textTransform: 'uppercase', userSelect: 'none' }}>
             {showTimeline ? '收起' : '时间轴'}
           </span>
           {historyEntries.length > 0 && (
             <span style={{
               fontSize: 9, width: 16, height: 16, borderRadius: '50%',
-              background: showTimeline ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.15)',
-              border: '1px solid rgba(59,130,246,0.3)',
-              color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: showTimeline ? 'rgba(0,119,255,0.3)' : 'rgba(0,119,255,0.15)',
+              border: '1px solid rgba(0,119,255,0.3)',
+              color: '#0077FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, flexShrink: 0,
             }}>{historyEntries.length}</span>
           )}

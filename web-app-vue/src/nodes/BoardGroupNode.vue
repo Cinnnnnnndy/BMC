@@ -189,6 +189,7 @@ const palette: Record<string, string> = {
   EXU:     '#a855f7',
   IEU:     '#06b6d4',
   SEU:     '#ec4899',
+  // data-viz-exempt: 板卡类型语义色
   NICCard: '#3b82f6',
   Unknown: '#6b7280',
 };
@@ -547,7 +548,7 @@ const accent = computed(() => palette[group.value.type] ?? '#6b7280');
   font-size: 10.5px;
 }
 .combo-item:hover { background: rgba(255,255,255,0.05); }
-.combo-item.is-active { background: rgba(79,110,247,0.18); }
+.combo-item.is-active { background: rgba(0, 119, 255,0.18); }
 .item-sn { overflow: hidden; text-overflow: ellipsis; }
 .item-pn { color: var(--text-secondary, #98a0b8); font-size: 9.5px; flex-shrink: 0; }
 .combo-empty { padding: 8px; text-align: center; font-size: 10.5px; color: var(--text-secondary, #98a0b8); }

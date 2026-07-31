@@ -175,6 +175,7 @@ export function buildMindmap(
       targetHandle: 'l',
       type:         'smoothstep',
       class:        'edge-trunk',
+      // data-viz-exempt: 脑图连线色
       style:        { stroke: '#818cf8', strokeWidth: 2, opacity: 0.9 },
     });
     exuY += nodeH(g) + NODE_V_GAP;

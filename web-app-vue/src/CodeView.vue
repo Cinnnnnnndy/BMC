@@ -117,6 +117,7 @@ function openCooling() {
   tab-size: 2;
 }
 .ln-c { color: #5a6178; font-style: italic; }
+/* data-viz-exempt: 代码关键字着色 */
 .k { color: #93c5fd; }
 .s { color: #a7f3d0; }
 .n { color: #fcd34d; }
@@ -131,13 +132,14 @@ function openCooling() {
   border-left: 2px solid transparent;
 }
 .field:hover { background: rgba(255,255,255,0.05); }
-.field.active { background: rgba(79,110,247,0.16); border-left-color: #4f6ef7; }
+.field.active { background: rgba(0,119,255,0.16); border-left-color: #0077FF; }
 .tag {
   font-size: 10.5px;
   padding: 0 6px;
   border-radius: 999px;
   margin-left: 6px;
 }
+/* data-viz-exempt: 分类标签色 */
 .tag-smc  { background: rgba(79,110,247,0.2);  color: #c7d2fe; }
 .tag-expr { background: rgba(167,139,250,0.2); color: #ddd6fe; }
 .tag-cool { background: rgba(52,211,153,0.2);  color: #a7f3d0; }

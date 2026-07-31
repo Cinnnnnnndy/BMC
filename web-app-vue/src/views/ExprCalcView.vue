@@ -35,6 +35,7 @@ const OPS: Record<string, OpDef> = {
 };
 const CAT_ORDER = ['arith','cast','string','custom'];
 const CAT_LABELS: Record<string, string> = { arith:'算术', cast:'转换', string:'字符串', custom:'自定义' };
+// data-viz-exempt：表达式分类语义色，非 UI 高亮色
 const CAT_COLOR: Record<string, string>  = { arith:'#4f6ef7', cast:'#f5b454', string:'#34d399', custom:'#a78bfa', vars:'#4f6ef7' };
 
 /* ─── State ─────────────────────────────────────────────────────────────── */
@@ -778,7 +779,7 @@ export default { name: 'ExprCalcView' };
 .qs-title { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); margin-bottom:8px; }
 .qs-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; }
 .qs-card { display:flex; flex-direction:column; gap:4px; padding:10px 12px; background:var(--bg-elev-3); border:none; border-radius:var(--radius); cursor:pointer; text-align:left; transition:background .15s; font-family:inherit; }
-.qs-card:hover { background:rgba(79,110,247,.10); }
+.qs-card:hover { background:rgba(0,119,255,.10); }
 .qs-card code { font-family:var(--font-mono); font-size:11.5px; color:var(--text); font-weight:600; }
 .qs-card span { font-size:11px; color:var(--text-dim); }
 
@@ -821,7 +822,7 @@ export default { name: 'ExprCalcView' };
 .no-vars-hint { padding:14px; text-align:center; color:var(--text-dim); font-size:12px; border:1px dashed var(--border-s); border-radius:var(--radius); font-family:var(--font-mono); }
 .inputs-list { display:flex; flex-direction:column; gap:8px; }
 .input-row { display:grid; grid-template-columns:56px 1fr auto; gap:10px; align-items:center; }
-.var-tag { font-family:var(--font-mono); font-size:13.5px; color:var(--accent); font-weight:600; background:var(--accent-soft); border:1px solid rgba(79,110,247,.3); padding:7px 0; border-radius:var(--radius); text-align:center; }
+.var-tag { font-family:var(--font-mono); font-size:13.5px; color:var(--accent); font-weight:600; background:var(--accent-soft); border:1px solid rgba(0,119,255,.3); padding:7px 0; border-radius:var(--radius); text-align:center; }
 .var-tag.error { background:rgba(240,101,112,.10); color:var(--err); border-color:rgba(240,101,112,.4); }
 .input-with-msg { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .input-with-msg input {
@@ -844,7 +845,7 @@ export default { name: 'ExprCalcView' };
 .pipeline { display:flex; flex-direction:column; gap:0; }
 .stage { display:grid; grid-template-columns:32px 1fr auto; gap:12px; align-items:center; padding:10px 12px; background:var(--bg-elev-2); border:1px solid var(--border); border-radius:var(--radius); transition:border-color .12s; }
 .stage:hover { border-color: var(--border-s); }
-.stage.input-stage { border-color:rgba(79,110,247,.4); background:rgba(79,110,247,.05); }
+.stage.input-stage { border-color:rgba(0,119,255,.4); background:rgba(0,119,255,.05); }
 .stage.stage-error { border-color:rgba(240,101,112,.5); background:rgba(240,101,112,.04); }
 
 .stage-num { width:22px; height:22px; border-radius:4px; background:var(--bg-elev-2); border:none; color:var(--text-mute); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; }
@@ -864,8 +865,8 @@ export default { name: 'ExprCalcView' };
 
 .final-result {
   margin-top:12px; padding:14px;
-  background:linear-gradient(135deg, rgba(79,110,247,.10), rgba(167,139,250,.04));
-  border:1px solid rgba(79,110,247,.35); border-radius:var(--radius);
+  background:linear-gradient(135deg, rgba(0,119,255,.10), rgba(167,139,250,.04));
+  border:1px solid rgba(0,119,255,.35); border-radius:var(--radius);
   display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
 }
 .final-lab { font-size:10.5px; color:var(--text-dim); margin-bottom:3px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; }
@@ -933,7 +934,7 @@ export default { name: 'ExprCalcView' };
 .hist-hdr { padding:10px 14px 7px; font-size:12px; font-weight:600; color:var(--accent); border-bottom:1px solid var(--border); }
 .hist-empty { padding:12px 14px; font-size:12px; color:var(--text-dim); }
 .hist-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid rgba(42,48,80,.5); background:none; border-left:none; border-right:none; border-top:none; width:100%; text-align:left; font-family:inherit; color:inherit; }
-.hist-item:hover { background:rgba(79,110,247,.12); }
+.hist-item:hover { background:rgba(0,119,255,.12); }
 .hist-expr { font-family:var(--font-mono); font-size:11.5px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .hist-time { font-size:10.5px; color:var(--text-dim); flex-shrink:0; }
 

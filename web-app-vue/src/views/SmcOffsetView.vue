@@ -32,6 +32,7 @@ const FIELD_TIP: Record<FieldKey, string> = {
   param: '参数 Param · [7:0] · 8 bit',
 };
 
+// data-viz-exempt：位域分段语义色，非 UI 高亮色
 const HUE_COLOR: Record<FieldKey, string> = {
   func: '#f59e6b', cmd: '#4f6ef7', ms: '#a78bfa', rw: '#34d399', param: '#f5b454'
 };
@@ -563,7 +564,7 @@ export default { name: 'SmcOffsetView' };
 }
 .offset-input-wrap:focus-within { background: var(--bg-elev-3); box-shadow: 0 0 0 2px var(--accent); }
 .offset-input-wrap.invalid { box-shadow: 0 0 0 2px var(--err); }
-.offset-input-wrap.synced { box-shadow: 0 0 0 1px rgba(79,110,247,.5); }
+.offset-input-wrap.synced { box-shadow: 0 0 0 1px rgba(0,119,255,.5); }
 .oiw-tag { display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.08em; }
 .sync { font-size: 10px; color: var(--text-dim); }
 .offset-input-wrap.synced .sync { color: var(--accent); }
@@ -618,6 +619,7 @@ export default { name: 'SmcOffsetView' };
 .bit-cell.boundary { border-right: 1px solid var(--border-s); }
 .bit-cell:last-child { border-right: 1px solid var(--border); }
 .bit-cell.hue-func.on  { background: rgba(245,158,107,.22); border-color: rgba(245,158,107,.5); color: #ffd0ad; }
+/* data-viz-exempt: hue-cmd 位域色 */
 .bit-cell.hue-cmd.on   { background: rgba(79,110,247,.22);  border-color: rgba(79,110,247,.5);  color: #b9c8ff; }
 .bit-cell.hue-ms.on    { background: rgba(167,139,250,.22); border-color: rgba(167,139,250,.5); color: #d8caff; }
 .bit-cell.hue-rw.on    { background: rgba(52,211,153,.22);  border-color: rgba(52,211,153,.5);  color: #9bf0c8; }

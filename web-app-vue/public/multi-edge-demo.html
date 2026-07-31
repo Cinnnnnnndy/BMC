@@ -13,7 +13,7 @@ body { background: #080a10; color: #e6e8ef; font-family: ui-sans-serif, -apple-s
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0; flex-wrap: wrap; }
 .tab-btn { all: unset; padding: 8px 18px 10px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.40); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; letter-spacing: 0.2px; }
 .tab-btn:hover { color: rgba(255,255,255,0.65); }
-.tab-btn.active { color: #e6e8ef; border-bottom-color: #818cf8; }
+.tab-btn.active { color: #e6e8ef; border-bottom-color: #0077FF; }
 .panel { display: none; }
 .panel.active { display: block; }
 .canvas-wrap { background: #0d0f18; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 28px 20px; position: relative; overflow: hidden; margin-bottom: 12px; }
@@ -26,7 +26,7 @@ body { background: #080a10; color: #e6e8ef; font-family: ui-sans-serif, -apple-s
 .ctrl-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
 .ctrl-btn { all: unset; padding: 5px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); font-size: 10.5px; color: rgba(255,255,255,0.65); cursor: pointer; transition: background .12s, color .12s; }
 .ctrl-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
-.ctrl-btn.active-btn { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.5); color: #a5b4fc; }
+.ctrl-btn.active-btn { background: rgba(0, 119, 255,0.18); border-color: rgba(0, 119, 255,0.5); color: #4DA3FF; }
 .ctrl-label { font-size: 10px; color: rgba(255,255,255,0.30); }
 .section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.50); letter-spacing: 0.5px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.07); }
 #tooltip { position: fixed; background: #1a1d2a; border: 1px solid rgba(255,255,255,0.15); border-radius: 7px; padding: 6px 10px; font-size: 10.5px; color: #e6e8ef; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 100; white-space: nowrap; }
@@ -314,6 +314,7 @@ function renderBendCompare(){
 // ── 4b: Realistic multi-target topology ──────────────────────────────
 // Connections distribution per target board
 const targets = [
+  /* data-viz-exempt: 板卡分类色 */
   { id:'baseboard', label:'Baseboard', sub:'BC83PRUG', badge:'BSB', color:'#818cf8', y:10,  h:56,
     conns:[{c:connections[10],bus:'Hisport_0'},{c:connections[11],bus:'Hisport_1'},{c:connections[12],bus:'Hisport_2'},{c:connections[13],bus:'Hisport_3'},{c:connections[18],bus:'Jtag_1'},{c:connections[19],bus:'Jtag_2'}] },
   { id:'m2',        label:'M.2',        sub:'BC83PRUG', badge:'M.2',  color:'#06b6d4', y:78,  h:44,

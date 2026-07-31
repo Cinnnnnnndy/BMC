@@ -386,11 +386,12 @@ function wakeAlarm() {
 // ── MiniMap colours ────────────────────────────────────────────────────
 const TYPE_COLOR: Record<string, string> = {
   BCU: '#22c55e', CLU: '#f59e0b', EXU: '#a855f7',
+  // data-viz-exempt: 板卡类型语义色
   IEU: '#06b6d4', SEU: '#ec4899', NICCard: '#3b82f6',
   Unknown: '#6b7280',
 };
 function miniColor(n: AnyNode) {
-  if (n.type === 'bmc') return '#4f6ef7';
+  if (n.type === 'bmc') return '#0077FF';
   const g = n.data?.group as BoardGroup | undefined;
   return TYPE_COLOR[g?.type ?? 'Unknown'] ?? '#6b7280';
 }
@@ -869,7 +870,7 @@ function catStateClass(cat: CatNode): string {
 }
 .hw-grp-row:hover { background: var(--state-hover); border-radius: var(--radius-md, 8px); }
 .hw-grp-row.is-active {
-  background: var(--state-selected, rgba(67, 105, 239, 0.14));
+  background: var(--state-selected, rgba(0,119,255, 0.14));
   border-radius: var(--radius-md, 8px);
   color: var(--foreground);
 }
@@ -919,7 +920,7 @@ function catStateClass(cat: CatNode): string {
   transition: background 0.12s, color 0.12s;
 }
 .hw-file-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-sub, #c3c9de); }
-.hw-file-row.is-current { color: #7c9aff; }
+.hw-file-row.is-current { color: #4DA3FF; }
 .hw-file-ic {
   width: 11px;
   height: 11px;
@@ -1038,7 +1039,7 @@ function catStateClass(cat: CatNode): string {
 .ov-soft-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: var(--radius-sm, 6px); background: var(--surface-2); }
 .ov-soft-sensor { display: flex; align-items: center; gap: 6px; }
 .ov-soft-kind { font-size: 9px; padding: 1px 6px; border-radius: var(--radius-pill, 999px); background: var(--surface-1); color: var(--foreground-muted); flex: none; }
-.ov-soft-kind.threshold { color: var(--primary, #4369ef); }
+.ov-soft-kind.threshold { color: var(--primary, #0077FF); }
 .ov-soft-name { font-size: 10.5px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .ov-soft-cnt { font-size: 9px; color: var(--foreground-muted); flex: none; }
 .ov-soft-events { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 4px; }
@@ -1065,6 +1066,7 @@ function catStateClass(cat: CatNode): string {
 
 /* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
 :deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {
+  /* data-viz-exempt: 连线色 */
   stroke: #818cf8 !important;
   stroke-width: 2px !important;
   opacity: 0.9;
@@ -1175,7 +1177,7 @@ function catStateClass(cat: CatNode): string {
   transition: background 0.12s;
 }
 .grp-item:hover       { background: rgba(255,255,255,0.04); }
-.grp-item.is-active   { background: rgba(79,110,247,0.22); }
+.grp-item.is-active   { background: rgba(0, 119, 255,0.22); }
 
 /* ── Unclassified list rows ── */
 .grp-item-unclassified { cursor: default; }
@@ -1190,7 +1192,7 @@ function catStateClass(cat: CatNode): string {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
-  background: rgba(79,110,247,0.18);
+  background: rgba(0, 119, 255,0.18);
   color: #c7d2fe;
   cursor: pointer;
   flex-shrink: 0;
@@ -1199,7 +1201,7 @@ function catStateClass(cat: CatNode): string {
   opacity: 0.35;
   cursor: not-allowed;
 }
-.unc-assign-btn:hover:not(:disabled) { background: rgba(79,110,247,0.3); }
+.unc-assign-btn:hover:not(:disabled) { background: rgba(0, 119, 255,0.3); }
 .unc-meta {
   margin-top: 3px;
   padding-left: 4px;
@@ -1218,8 +1220,8 @@ function catStateClass(cat: CatNode): string {
   margin-top: 6px;
   padding: 4px;
   border-radius: 6px;
-  background: rgba(79,110,247,0.08);
-  border: 1px solid rgba(79,110,247,0.3);
+  background: rgba(0, 119, 255,0.08);
+  border: 1px solid rgba(0, 119, 255,0.3);
   display: flex;
   flex-direction: column;
   gap: 3px;

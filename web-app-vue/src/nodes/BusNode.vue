@@ -41,6 +41,6 @@ const props = defineProps<NodeProps<BusData>>();
   outline: none;
 }
 .bus-node.is-selected {
-  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.6), 0 0 12px rgba(79, 110, 247, 0.3);
+  box-shadow: 0 0 0 2px rgba(0, 119, 255, 0.6), 0 0 12px rgba(0, 119, 255, 0.3);
 }
 </style>

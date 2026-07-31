@@ -6,9 +6,21 @@
   --ark-neutral-3: #1a1a1a;
   --ark-neutral-4: #343434;
 
+  /* ── Brand（唯一权威 · 写死）─────────────────────────────────────
+     品牌色 #0077FF —— 全项目高亮色 / 重点按钮的唯一取值。
+     禁止再引入旧 PTO 主蓝 / 私造 indigo / tailwind blue 等任何其它主蓝，
+     所有强调态一律引用下面这组 token（见 CLAUDE.md「品牌色」）。 */
+  --brand-primary:        #0077FF;
+  --brand-primary-hover:  #3291FE;  /* rgba(50,145,254,1)，同欢迎页「新建工程」hover */
+  --brand-primary-active: #0062D6;
+  --brand-primary-tint:   #4DA3FF;  /* 深底上的高亮文字/图标，唯一允许的派生浅色 */
+  --brand-primary-rgb:    0, 119, 255;
+  --brand-primary-soft:   rgba(0, 119, 255, 0.14);
+  --brand-primary-ring:   rgba(0, 119, 255, 0.42);
+
   /* Accent Palette */
-  --ark-blue-500: #4369efff;
-  --ark-blue-600: #5a92e6;
+  --ark-blue-500: var(--brand-primary);
+  --ark-blue-600: var(--brand-primary-hover);
   --ark-domain-aux: #7c8db8;
   --ark-green-500: #04d793ff;
   --ark-orange-500: #ffaa3bff;
@@ -72,7 +84,8 @@
   --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
   --easing-out: cubic-bezier(0, 0, 0.2, 1);
 
-  /* Highlight Ramps */
+  /* data-viz-exempt:start —— Highlight Ramps：PTO 设计系统原样搬运的语义色阶数据，
+     供图表/代码着色取样，不是 UI 高亮色。UI 高亮一律用 --brand-primary。 */
   --highlight-copy-blue-0: #F5F8FF;
   --highlight-copy-blue-100: #DDE8FD;
   --highlight-copy-blue-200: #B1CAFC;
@@ -150,6 +163,7 @@
   --highlight-mte-amber-900: #713F12;
   --highlight-mte-amber-1000: #422006;
   --highlight-mte-amber-source: #EAB308;
+  /* data-viz-exempt:end */
 }
 
 :root[data-theme='light'] {

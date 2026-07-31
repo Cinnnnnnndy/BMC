@@ -1267,6 +1267,7 @@ function HDDMesh({ comp, isSelected, effStatus }: SpecProps) {
       {/* Activity LED — front face, blinks blue (or red on error) */}
       <mesh ref={ledRef} position={[w * 0.43, dh * 0.32, -d / 2 - 0.01]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.026, 0.026, 0.012, 8]} />
+        {/* data-viz-exempt: 3D 节点状态色 */}
         <meshStandardMaterial
           color={effStatus === 'error' ? '#ef4444' : '#3b82f6'}
           emissive={effStatus === 'error' ? '#ef4444' : '#3b82f6'}

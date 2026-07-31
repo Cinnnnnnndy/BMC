@@ -230,6 +230,7 @@ export const initialEdges: Edge[] = [
 
   // 跨板卡蓝色连线（带编号标签）- 使用step避免过度弯曲
   { id: 'e_cross1', source: 'bus_lst1', target: 'bus_base1', type: 'step',
+    // data-viz-exempt:start —— 拓扑连线色
     style: { stroke: '#60a5fa', strokeWidth: 1.5 }, label: '11',
     labelStyle: { fill: '#fff', fontSize: 10 },
     labelBgStyle: { fill: '#1e1e2e', rx: 4 } },
@@ -237,6 +238,7 @@ export const initialEdges: Edge[] = [
     style: { stroke: '#60a5fa', strokeWidth: 1.5 }, label: '12' },
   { id: 'e_cross3', source: 'bus_smbus', target: 'bus_base3', type: 'step',
     style: { stroke: '#60a5fa', strokeWidth: 1.5 }, label: '13' },
+    // data-viz-exempt:end
 
   // Base_Board 内部 - 使用直线
   { id: 'e_base_eeprom', source: 'bus_base1', target: 'chip_base_eeprom0', type: 'straight', style: { stroke: '#e879a0', strokeWidth: 1.5 } },

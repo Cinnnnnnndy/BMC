@@ -37,6 +37,7 @@ const isHighlighted = computed(() =>
 const sw        = computed(() => (props.style?.strokeWidth as number) ?? 1.5);
 const baseOpacity = computed(() => (props.style?.opacity as number) ?? 0.88);
 const dasharray = computed(() => props.style?.strokeDasharray as string | undefined);
+// data-viz-exempt: 连线默认色
 const color     = computed(() => (props.style?.stroke as string) ?? '#818cf8');
 
 // Dim non-highlighted edges; transition for smooth feel.

@@ -27,7 +27,7 @@ export const METHOD_DESC: Record<SignMethod, string> = {
 };
 
 export const METHOD_HUE: Record<SignMethod, string> = {
-  self_sign: '#4369ef', server_sign: '#04d793', signserver: '#ffaa3b',
+  self_sign: '#0077FF', server_sign: '#04d793', signserver: '#ffaa3b',
 };
 
 export const DEMO_PROFILES: SignProfile[] = [

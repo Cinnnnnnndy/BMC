@@ -62,9 +62,9 @@ const C = {
   t28:     'rgba(255,255,255,.28)' as const,
   border:  'rgba(255,255,255,.06)' as const,
   border7: 'rgba(255,255,255,.07)' as const,
-  primary: '#4369ef' as const,
-  prim14:  'rgba(67,105,239,.14)' as const,
-  prim55:  'rgba(67,105,239,.55)' as const,
+  primary: '#0077FF' as const,
+  prim14:  'rgba(0,119,255,.14)' as const,
+  prim55:  'rgba(0,119,255,.55)' as const,
   amber:   'rgba(251,191,36,1)' as const,
   amberBg: 'rgba(251,191,36,.06)' as const,
 };
@@ -142,7 +142,7 @@ function ChipBtn({ children, onClick, primary, danger, disabled }: {
         cursor: disabled ? 'default' : 'pointer',
         fontSize: 11, fontFamily: 'inherit', fontWeight: 500,
         background: primary
-          ? (hover ? 'rgba(67,105,239,.28)' : 'rgba(67,105,239,.18)')
+          ? (hover ? 'rgba(0,119,255,.28)' : 'rgba(0,119,255,.18)')
           : danger
             ? (hover ? 'rgba(255,80,80,.18)' : 'rgba(255,80,80,.10)')
             : (hover ? C.s2h : C.s2),
@@ -596,7 +596,7 @@ export function WhiteBrandPanel() {
           padding: '7px 22px', borderRadius: 7, border: 'none',
           cursor: building ? 'default' : 'pointer', fontSize: 12,
           fontFamily: 'inherit', fontWeight: 600,
-          background: building ? 'rgba(67,105,239,.50)' : C.primary,
+          background: building ? 'rgba(0,119,255,.50)' : C.primary,
           color: '#fff', transition: 'background .12s',
           minWidth: 128,
         }}>

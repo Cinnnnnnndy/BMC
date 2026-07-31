@@ -93,6 +93,7 @@ const SW_CATEGORY_LABEL: Record<SwCategory, string> = {
 };
 
 const HW_CATEGORY_COLOR: Record<HwCategory, string> = {
+  // data-viz-exempt: 硬件/软件类型语义色
   chip: '#3b82f6',
   connector: '#8b5cf6',
   mux: '#06b6d4',
@@ -103,6 +104,7 @@ const SW_CATEGORY_COLOR: Record<SwCategory, string> = {
   component: '#10b981',
   event: '#ef4444',
   sensor: '#f97316',
+  // data-viz-exempt: 软件类型语义色
   firmware: '#6366f1',
   fru: '#84cc16',
   other: '#6b7280',
@@ -394,7 +396,7 @@ export function SoftwareHardwareAssociationView({ csr }: Props) {
               <>
                 {connectedHw.size > 0 && (
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, color: '#3b82f6', marginBottom: 4 }}>→ 硬件 ({connectedHw.size})</div>
+                    <div style={{ fontSize: 10, color: '#0077FF', marginBottom: 4 }}>→ 硬件 ({connectedHw.size})</div>
                     {[...connectedHw].map((id) => (
                       <div
                         key={id}

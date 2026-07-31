@@ -158,7 +158,7 @@ export function PipeExprView() {
 
         {/* 标题 */}
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#7c8cf8', margin: '0 0 4px', ...MONO }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#4DA3FF', margin: '0 0 4px', ...MONO }}>
             管道表达式计算器
           </h2>
           <p style={{ fontSize: 12.5, color: '#4a5a7a', margin: 0 }}>
@@ -174,7 +174,7 @@ export function PipeExprView() {
               border: '1px solid #1e2a40', background: '#0f1420', color: '#5a6a8a',
               transition: 'color .15s, border-color .15s',
             }}
-              onMouseOver={(e) => { (e.target as HTMLElement).style.color = '#7c8cf8'; }}
+              onMouseOver={(e) => { (e.target as HTMLElement).style.color = '#4DA3FF'; }}
               onMouseOut={(e) => { (e.target as HTMLElement).style.color = '#5a6a8a'; }}
             >{ex.label}</button>
           ))}
@@ -191,8 +191,8 @@ export function PipeExprView() {
               onChange={(e) => setExpr(e.target.value)}
               placeholder="$1 | add $2 | toHex 8"
               style={{
-                width: '100%', background: '#080d1a', border: '1px solid #4f6ef7',
-                borderRadius: 6, color: '#a5b4fc', fontSize: 15, fontWeight: 600,
+                width: '100%', background: '#080d1a', border: '1px solid #0077FF',
+                borderRadius: 6, color: '#4DA3FF', fontSize: 15, fontWeight: 600,
                 padding: '10px 14px', boxSizing: 'border-box', outline: 'none', ...MONO,
               }}
             />
@@ -238,23 +238,23 @@ export function PipeExprView() {
                     )}
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 14,
-                      background: isLast && !hasError ? 'rgba(79,110,247,0.07)' : 'transparent',
-                      border: isLast && !hasError ? '1px solid rgba(79,110,247,0.25)' : '1px solid transparent',
+                      background: isLast && !hasError ? 'rgba(0,119,255,0.07)' : 'transparent',
+                      border: isLast && !hasError ? '1px solid rgba(0,119,255,0.25)' : '1px solid transparent',
                       borderRadius: 6, padding: '10px 14px',
                     }}>
                       {/* 圆圈编号 */}
                       <div style={{
                         width: 24, height: 24, borderRadius: '50%',
-                        background: step.type === 'error' ? 'rgba(248,113,113,0.15)' : 'rgba(79,110,247,0.15)',
-                        border: `1px solid ${step.type === 'error' ? '#f87171' : '#4f6ef7'}`,
+                        background: step.type === 'error' ? 'rgba(248,113,113,0.15)' : 'rgba(0,119,255,0.15)',
+                        border: `1px solid ${step.type === 'error' ? '#f87171' : '#0077FF'}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, color: step.type === 'error' ? '#f87171' : '#4f6ef7',
+                        fontSize: 11, color: step.type === 'error' ? '#f87171' : '#0077FF',
                         fontWeight: 700, flexShrink: 0, ...MONO,
                       }}>
                         {i + 1}
                       </div>
                       {/* 操作名 */}
-                      <span style={{ fontSize: 13, color: '#7c8cf8', flex: '0 0 auto', minWidth: 160, ...MONO }}>
+                      <span style={{ fontSize: 13, color: '#4DA3FF', flex: '0 0 auto', minWidth: 160, ...MONO }}>
                         {step.op}
                       </span>
                       {/* 类型 */}
@@ -277,10 +277,10 @@ export function PipeExprView() {
         {final && !hasError && (
           <div style={{
             ...CARD, marginTop: 14,
-            background: 'rgba(79,110,247,0.08)',
-            border: '1px solid rgba(79,110,247,0.35)',
+            background: 'rgba(0,119,255,0.08)',
+            border: '1px solid rgba(0,119,255,0.35)',
           }}>
-            <div style={{ fontSize: 11, color: '#4f6ef7', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: '#0077FF', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>
               最终结果
             </div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#c4cadc', ...MONO }}>
@@ -319,7 +319,7 @@ export function PipeExprView() {
               ['sqrt',    '平方根'],
             ].map(([op, desc]) => (
               <div key={op as string} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
-                <code style={{ color: '#7c8cf8', ...MONO, flexShrink: 0 }}>{op as string}</code>
+                <code style={{ color: '#4DA3FF', ...MONO, flexShrink: 0 }}>{op as string}</code>
                 <span style={{ color: '#3a4a60' }}>{desc as string}</span>
               </div>
             ))}

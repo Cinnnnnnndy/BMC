@@ -156,8 +156,8 @@ export function CsrExportPanel({
             onDrop={e => { e.preventDefault(); setDragOver(false); setOemFile(e.dataTransfer.files[0] ?? null); }}
             style={{
               padding: '18px 12px', borderRadius: 7, textAlign: 'center', cursor: 'pointer',
-              background: dragOver ? 'rgba(67,105,239,.10)' : 'rgba(255,255,255,.05)',
-              border: `1.5px dashed ${dragOver ? 'rgba(67,105,239,.50)' : 'rgba(255,255,255,.10)'}`,
+              background: dragOver ? 'rgba(0,119,255,.10)' : 'rgba(255,255,255,.05)',
+              border: `1.5px dashed ${dragOver ? 'rgba(0,119,255,.50)' : 'rgba(255,255,255,.10)'}`,
               transition: 'background .1s, border-color .1s',
             }}
           >
@@ -252,11 +252,11 @@ export function CsrExportPanel({
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               border: 'none', background: 'none', cursor: 'pointer',
-              color: 'rgba(67,105,239,.80)', fontSize: 12, fontFamily: 'inherit', padding: 0,
+              color: 'rgba(0,119,255,.80)', fontSize: 12, fontFamily: 'inherit', padding: 0,
               transition: 'color .1s',
             }}
-            onMouseOver={e => (e.currentTarget.style.color = '#4369ef')}
-            onMouseOut={e => (e.currentTarget.style.color = 'rgba(67,105,239,.80)')}
+            onMouseOver={e => (e.currentTarget.style.color = '#0077FF')}
+            onMouseOut={e => (e.currentTarget.style.color = 'rgba(0,119,255,.80)')}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 11H13V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/>
@@ -312,7 +312,7 @@ export function CsrExportPanel({
           onClick={() => onExport?.(config())}
           style={{
             padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-            background: 'var(--primary, #4369ef)', color: '#fff',
+            background: 'var(--primary, #0077FF)', color: '#fff',
             fontSize: 12, fontWeight: 600, fontFamily: 'inherit', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', gap: 5,
           }}>

@@ -11,14 +11,14 @@
 
 .groupNode:hover {
   filter: brightness(1.05);
-  box-shadow: 0 12px 48px rgba(79, 110, 247, 0.3);
-  border-color: rgba(79, 110, 247, 0.4);
+  box-shadow: 0 12px 48px rgba(0, 119, 255, 0.3);
+  border-color: rgba(0, 119, 255, 0.4);
 }
 
 .groupNode.selected {
   filter: brightness(1.1);
-  box-shadow: 0 16px 64px rgba(79, 110, 247, 0.4);
-  border-color: rgba(79, 110, 247, 0.6);
+  box-shadow: 0 16px 64px rgba(0, 119, 255, 0.4);
+  border-color: rgba(0, 119, 255, 0.6);
 }
 
 .label {

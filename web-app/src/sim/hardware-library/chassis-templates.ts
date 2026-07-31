@@ -81,7 +81,7 @@ export const TAISHAN_200_2280: ChassisTemplate = {
       maxDimensionsMM: { width: 280, height: 10, depth: 280 },
       required: true,
       hotSwappable: false,
-      highlightColor: '#3b82f6',
+      highlightColor: '#0077FF',
     },
 
     // ── CPU Sockets (2×) ────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 /* ============================================================
    openUBMC Studio · Power & Fan Template
-   Dark theme, PTO primary blue accent (#4369ef)
+   Dark theme, brand blue accent (#0077FF)
    ============================================================ */
 
 :root {
@@ -14,9 +14,9 @@
   --text-mute:    #98a0b8;
   --text-dim:     #5a6280;
   --placeholder:  #343549;
-  --accent:       #4369ef;
-  --accent-hi:    #5a92e6;
-  --accent-soft:  rgba(67,105,239,0.14);
+  --accent:       #0077FF;   /* brand（写死）*/
+  --accent-hi:    #3291FE;
+  --accent-soft:  rgba(0,119,255,0.14);
   --ok:           #04d793;
   --warn:         #f5b454;
   --err:          #f06570;
@@ -67,7 +67,7 @@ a { color: inherit; text-decoration: none; }
 }
 .tabbar .brand .dot {
   width: 8px; height: 8px; border-radius: 2px;
-  background: linear-gradient(135deg, #34d399 0%, #4f6ef7 100%);
+  background: linear-gradient(135deg, #34d399 0%, #0077FF 100%);
 }
 .tabs { display: flex; align-items: stretch; }
 .tab {
@@ -599,6 +599,7 @@ a { color: inherit; text-decoration: none; }
 }
 .pill:hover { border-color: var(--border-strong); color: var(--text); }
 .pill.on { color: #fff; font-weight: 500; background: #4b5772; border-color: #4b5772; }
+/* data-viz-exempt:start —— 调控策略分类色 */
 .pill.p-green.on  { background: #1f9e6b; border-color: #1f9e6b; }
 .pill.p-blue.on   { background: #3b82f6; border-color: #3b82f6; }
 .pill.p-amber.on  { background: #c9851a; border-color: #c9851a; }
@@ -606,6 +607,7 @@ a { color: inherit; text-decoration: none; }
 .pill.p-orange.on { background: #db7632; border-color: #db7632; }
 .pill.p-purple.on { background: #8257e6; border-color: #8257e6; }
 .pill.p-cyan.on   { background: #0e96a6; border-color: #0e96a6; }
+/* data-viz-exempt:end */
 
 /* ── One-line tool intro bar ── */
 .intro-bar {

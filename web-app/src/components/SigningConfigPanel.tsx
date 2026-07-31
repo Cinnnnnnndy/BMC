@@ -103,7 +103,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
   const tabBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: '10px 18px',
     borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-    borderBottom: `2px solid ${active ? 'var(--primary,#4369ef)' : 'transparent'}`,
+    borderBottom: `2px solid ${active ? 'var(--primary, #0077FF)' : 'transparent'}`,
     background: 'transparent',
     fontSize: 13, fontFamily: 'inherit', cursor: 'pointer',
     color: active ? 'rgba(255,255,255,.90)' : 'rgba(255,255,255,.42)',
@@ -145,7 +145,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
             <button onClick={handleNew} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-              background: 'var(--primary,#4369ef)', color: '#fff',
+              background: 'var(--primary, #0077FF)', color: '#fff',
               fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
             }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -169,7 +169,7 @@ export function SigningConfigPanel({ profiles, onProfilesChange }: Props) {
                 <div style={{ fontSize: 13 }}>尚无签名配置</div>
                 <button onClick={handleNew} style={{
                   padding: '7px 18px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                  background: 'var(--primary,#4369ef)', color: '#fff', fontSize: 13, fontFamily: 'inherit',
+                  background: 'var(--primary, #0077FF)', color: '#fff', fontSize: 13, fontFamily: 'inherit',
                 }}>新建签名配置</button>
               </div>
             ) : profiles.map((p, idx) => {

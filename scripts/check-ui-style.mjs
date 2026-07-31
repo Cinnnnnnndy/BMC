@@ -7,7 +7,7 @@
  *
  * 规则：
  *  R1 必须包含全局深色滚动条约束块（::-webkit-scrollbar + scrollbar-width: thin）
- *  R2 禁用游离配色 —— AI/agent 强调色只允许 #a78bfa（紫）/#4369ef（蓝），
+ *  R2 禁用游离配色 —— AI/agent 强调色只允许 #a78bfa（紫）/#0077FF（品牌蓝），
  *     禁止再私造 indigo/violet 系（#4F46E5、#5b8af5、#6159ef、#7c3aed …）
  *  R3 面型图标优先 —— AI/agent 入口图标必须是 fill 型 ✦ 四角星，
  *     检测存量描边星形（stroke 星 path）作为回归信号
@@ -61,7 +61,7 @@ for (const f of files) {
   // R2 游离配色
   const lower = src.toLowerCase();
   for (const c of BANNED_COLORS) {
-    if (lower.includes(c)) problems.push(`R2 使用了禁用配色 ${c} —— AI/agent 强调色只允许 #a78bfa / #4369ef`);
+    if (lower.includes(c)) problems.push(`R2 使用了禁用配色 ${c} —— AI/agent 强调色只允许 #a78bfa / #0077FF（品牌色）`);
   }
 
   // R3 描边星形图标（AI 入口应为 fill 型 ✦）

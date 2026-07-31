@@ -14,7 +14,7 @@ function inputSt(focused: boolean): React.CSSProperties {
     width: '100%', padding: '7px 10px', borderRadius: 6,
     fontFamily: 'inherit', fontSize: 12,
     background: 'rgba(255,255,255,.06)',
-    border: `1px solid ${focused ? 'rgba(67,105,239,.55)' : 'rgba(255,255,255,.07)'}`,
+    border: `1px solid ${focused ? 'rgba(0,119,255,.55)' : 'rgba(255,255,255,.07)'}`,
     color: 'rgba(255,255,255,.88)', outline: 'none', boxSizing: 'border-box' as const,
   };
 }
@@ -160,7 +160,7 @@ export function SigningConfigEditor({ profiles, onProfilesChange, editId }: Prop
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '7px 24px',
-          background: 'rgba(67,105,239,.10)', borderBottom: '1px solid rgba(67,105,239,.18)',
+          background: 'rgba(0,119,255,.10)', borderBottom: '1px solid rgba(0,119,255,.18)',
           flexShrink: 0,
         }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,.60)' }}>有未保存的更改</span>
@@ -172,7 +172,7 @@ export function SigningConfigEditor({ profiles, onProfilesChange, editId }: Prop
             }}>取消修改</button>
             <button onClick={handleSave} style={{
               padding: '3px 10px', borderRadius: 5, border: 'none', cursor: 'pointer',
-              background: 'var(--primary,#4369ef)', color: '#fff',
+              background: 'var(--primary, #0077FF)', color: '#fff',
               fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
             }}>保存</button>
           </div>
@@ -274,7 +274,7 @@ export function SigningConfigEditor({ profiles, onProfilesChange, editId }: Prop
         <button onClick={handleSave} disabled={!dirty} style={{
           padding: '7px 22px', borderRadius: 7, border: 'none',
           cursor: dirty ? 'pointer' : 'default',
-          background: dirty ? 'var(--primary,#4369ef)' : 'rgba(255,255,255,.07)',
+          background: dirty ? 'var(--primary, #0077FF)' : 'rgba(255,255,255,.07)',
           color: dirty ? '#fff' : 'rgba(255,255,255,.30)',
           fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
           transition: 'background .15s, color .15s',

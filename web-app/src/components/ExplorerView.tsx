@@ -397,13 +397,14 @@ function Tooltip({ tip }: { tip: TooltipState }) {
     <div style={{
       position: 'fixed', left, top, zIndex: 9999, pointerEvents: 'none',
       width: 310, padding: '8px 12px',
-      background: '#1a1a2e', border: '1px solid rgba(79,110,247,0.35)',
+      background: '#1a1a2e', border: '1px solid rgba(0,119,255,0.35)',
       borderRadius: 6, boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
     }}>
       <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 7 }}>
         北向接口映射 · <span style={{ color: '#9cdcfe', fontFamily: 'ui-monospace, monospace' }}>{key}</span>
       </div>
       {([
+        /* data-viz-exempt: 北向协议分类色 */
         ['Redfish', nb.redfish, '#60a5fa'],
         ['SNMP', nb.snmp, '#a78bfa'],
         ['IPMI', nb.ipmi, '#34d399'],

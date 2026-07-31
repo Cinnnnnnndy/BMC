@@ -9,6 +9,9 @@ interface Props {
   onOpenView?: (viewId: string) => void;
 }
 
+/* data-viz-exempt:file —— 本文件的颜色全部是卡片缩略图插画 + 每卡分类 accent（示意色），
+   不是 UI 高亮色。全局高亮/重点按钮请用品牌色 #0077FF（见 CLAUDE.md「品牌色」）。 */
+
 /* ─── View entry definitions ─── */
 interface ViewEntry {
   id: string;
