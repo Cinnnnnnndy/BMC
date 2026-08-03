@@ -108,7 +108,7 @@ CSR 核心包含：
 
 | Skill | 路径 | 用途 |
 |-------|------|------|
-| **design-system** | `.claude/skills/design-system/` | 暗色 IDE 设计系统完整参考（配色/布局/组件/脚手架/R1-R8 规则） |
+| **design-system** | `.claude/skills/design-system/` | 暗色 IDE 设计系统完整参考（配色/布局/组件/脚手架/R1-R8 规则）+ PTO Design System 原始指南 |
 | **public-page-scaffold** | `.claude/skills/public-page-scaffold/` | 新建 public/ 页面时自动填充 boilerplate，消除 R1/R2 违规源头 |
 
 视觉约束自动检查：`node scripts/check-ui-style.mjs`（R1-R8 规则，PostToolUse hook 自动运行）。

@@ -9,6 +9,9 @@ design system, 设计系统, 设计手册, design playbook, 视觉规范, 配色
 ## 设计手册
 完整的交互式设计手册发布在 `.claude/skills/design-system/design-playbook.html`，包含可视化线框图、配色色板、组件规格表和 9 种页面脚手架画廊。
 
+## PTO Design System 原始参考
+PTO 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/design-system/PTO_Design_System_Guide.html`，包含原始 token 定义、组件 pattern、布局规范。在浏览器中打开即可查阅。
+
 ---
 
 ## 一、三条元规则
@@ -255,3 +258,202 @@ design system, 设计系统, 设计手册, design playbook, 视觉规范, 配色
 - Q2 这个操作按钮在浏览态需要吗？→ 不需要默认隐藏
 - Q3 这个功能入口在别处已经有了吗？→ 有就删掉
 - Q4 这一级标题和上一级有区分度吗？→ 没有就合并
+
+---
+
+## 附录：PTO Design System 完整 Token 参考
+
+以下 token 摘录自 `PTO_Design_System_Guide.html`（原始 Claude Design 导出）。项目中所有自定义值**必须引用这些 token**，不得私造。
+
+### A. 原始色板（Ark Primitives）
+
+| Token | 值 | 说明 |
+|-------|------|------|
+| `--ark-neutral-0` | `#0b0b0b` | 最深底 |
+| `--ark-neutral-1` | `#101010` | 页面底 = `--background` |
+| `--ark-neutral-2` | `#141414` | 提升底 |
+| `--ark-neutral-3` | `#1a1a1a` | 中灰 |
+| `--ark-neutral-4` | `#343434` | 亮灰 |
+| `--ark-blue-500` | `#4369ef` | 原始蓝（**项目中已替换为 `#0077FF`**） |
+| `--ark-blue-600` | `#5a92e6` | 蓝 hover |
+| `--ark-domain-aux` | `#7c8db8` | 辅助色 |
+| `--ark-green-500` | `#04d793` | 成功绿 |
+| `--ark-orange-500` | `#ffaa3b` | 警告橙 |
+| `--ark-red-500` | `#ff4b7b` | 危险红 |
+
+### B. 语义 Token（Surface / Foreground / Border / State）
+
+```css
+/* 表面 */
+--background: var(--ark-neutral-1);           /* #101010 */
+--background-elevated: var(--ark-neutral-2);  /* #141414 */
+--surface-1: #161616;
+--surface-2: #1c1c1c;
+--surface-3: #262626;
+--surface-4: #313131;
+
+/* 前景文字 */
+--foreground:           rgba(255, 255, 255, 0.90);
+--foreground-secondary: rgba(255, 255, 255, 0.60);
+--foreground-muted:     rgba(255, 255, 255, 0.40);
+--foreground-disabled:  rgba(255, 255, 255, 0.25);
+
+/* 边框 */
+--border-subtle:  rgba(255, 255, 255, 0.06);
+--border-default: rgba(255, 255, 255, 0.10);
+--border-strong:  rgba(255, 255, 255, 0.16);
+
+/* 语义色 */
+--primary: var(--ark-blue-500);
+--primary-hover: var(--ark-blue-600);
+--primary-foreground: #ffffff;
+--accent: var(--ark-domain-aux);
+--success: var(--ark-green-500);
+--warning: var(--ark-orange-500);
+--danger: var(--ark-red-500);
+
+/* 状态叠层 */
+--state-hover:    rgba(255, 255, 255, 0.06);
+--state-press:    rgba(255, 255, 255, 0.10);
+--state-muted:    rgba(255, 255, 255, 0.06);
+--state-selected: rgba(67, 105, 239, 0.14);
+--state-focus:    rgba(67, 105, 239, 0.20);
+--focus-ring:     rgba(67, 105, 239, 0.42);
+
+/* 禁用态 */
+--surface-disabled: rgba(255, 255, 255, 0.04);
+--border-disabled:  rgba(255, 255, 255, 0.06);
+
+/* 语义色背景 */
+--tone-critical-bg:   color-mix(in srgb, var(--danger) 14%, transparent);
+--tone-warning-bg:    color-mix(in srgb, var(--warning) 16%, transparent);
+--tone-info-bg:       color-mix(in srgb, var(--primary) 16%, transparent);
+--tone-blue-strong:   color-mix(in srgb, var(--primary) 28%, transparent);
+--tone-green-strong:  color-mix(in srgb, var(--success) 22%, transparent);
+--tone-warning-strong:color-mix(in srgb, var(--warning) 22%, transparent);
+```
+
+### C. 排版（Typography）
+
+```css
+--font-sans: 'Inter', 'Source Han Sans SC', 'PingFang SC', 'Noto Sans SC', sans-serif;
+--font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+--font-size-display-lg: 28px;
+--font-size-title-md:   20px;
+--font-size-title-sm:   16px;
+--font-size-body-md:    14px;
+--font-size-body-sm:    12px;
+--font-size-label-xs:   11px;
+
+--font-weight-bold:     700;
+--font-weight-semibold: 600;
+--font-weight-medium:   500;
+
+--line-height-display: 1.25;
+--line-height-body:    1.5;
+--line-height-label:   1.2;
+
+--letter-spacing-body:  0;
+--letter-spacing-label: 0.5px;
+```
+
+### D. 间距 / 圆角 / 阴影 / 层级 / 动效
+
+```css
+/* 间距 */
+--space-1: 4px;   --space-2: 8px;   --space-3: 12px;
+--space-4: 16px;  --space-5: 20px;  --space-6: 24px;
+
+/* 圆角 */
+--radius-sm: 6px;    --radius-md: 8px;    --radius-lg: 12px;
+--radius-xl: 16px;   --radius-pill: 999px;
+
+/* 阴影 */
+--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.28);
+--shadow-md: 0 6px 18px rgba(0, 0, 0, 0.34);
+--shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.42);
+
+/* 层级 */
+--z-base: 0;      --z-raised: 10;     --z-dropdown: 100;
+--z-overlay: 200;  --z-modal: 300;     --z-toast: 400;
+
+/* 动效 */
+--duration-fast: 100ms;  --duration-base: 200ms;  --duration-slow: 350ms;
+--easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+--easing-out:     cubic-bezier(0, 0, 0.2, 1);
+```
+
+### E. 组件 Token
+
+```css
+/* 按钮 — 尺寸 */
+--button-height-sm: 30px;   --button-height-md: 36px;   --button-height-lg: 42px;
+--button-radius: var(--radius-lg);
+--button-padding-x-sm: var(--space-2);
+--button-padding-x-md: var(--space-3);
+--button-padding-x-lg: var(--space-4);
+--button-gap: 6px;
+--button-font: 500 12px / 1 var(--font-sans);
+
+/* 按钮 — Solid */
+--button-solid-bg:       var(--foreground);
+--button-solid-bg-hover: color-mix(in srgb, var(--foreground) 88%, transparent);
+--button-solid-bg-press: color-mix(in srgb, var(--foreground) 80%, transparent);
+--button-solid-fg:       var(--background);
+
+/* 按钮 — Secondary */
+--button-secondary-bg:       color-mix(in srgb, var(--surface-2) 92%, white 3%);
+--button-secondary-bg-hover: var(--surface-3);
+--button-secondary-border:   var(--border-subtle);
+--button-secondary-fg:       var(--foreground);
+--button-secondary-shadow:   inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 8px rgba(0,0,0,0.16);
+
+/* 按钮 — Ghost */
+--button-ghost-bg-hover: var(--state-hover);
+--button-ghost-bg-press: var(--state-press);
+--button-ghost-fg:       var(--foreground-secondary);
+--button-ghost-fg-hover: var(--foreground);
+
+/* 按钮通用 */
+--button-focus-ring: var(--focus-ring);
+--button-disabled-opacity: 0.42;
+
+/* 输入框 */
+--input-height-md: 34px;
+--input-radius: var(--radius-md);
+--input-border: var(--border-default);
+
+/* 工具栏 */
+--comp-toolbar-height: 44px;
+--comp-toolbar-bg: color-mix(in srgb, var(--background) 92%, black);
+--comp-toolbar-border: var(--border-subtle);
+```
+
+### F. IDE 框架 Token
+
+```css
+--ide-frame-page-bg: var(--background);
+--ide-frame-pane-bg: var(--surface-1);
+--ide-frame-pane-border: var(--border-subtle);
+--ide-frame-control-bg: color-mix(in srgb, var(--ide-frame-page-bg) 28%, transparent);
+--ide-frame-selected-bg: color-mix(in srgb, var(--foreground) 8%, transparent);
+--ide-frame-header-height: 32px;
+--ide-frame-title-font: 600 12.5px / 1.2 var(--font-sans);
+--ide-frame-meta-font: 500 11px / 1.35 var(--font-mono);
+```
+
+### G. 高亮色阶（Highlight Ramps）
+
+PTO 定义了 6 组完整色阶（0-1000），用于代码高亮、数据可视化等场景：
+
+| 色阶名 | Source 色 | 用途 |
+|--------|-----------|------|
+| `copy-blue` | `#3577F6` | 蓝色系高亮 |
+| `l0a-violet` | `#A855F7` | 紫色系高亮 |
+| `l0b-deep-violet` | `#4F46E5` | 深紫色高亮 |
+| `accum-orange` | `#F97316` | 橙色系高亮 |
+| `ub-green` | `#87C80F` | 绿色系高亮 |
+| `mte-amber` | `#EAB308` | 琥珀色高亮 |
+
+每组包含 `--highlight-{name}-{0..1000}` 共 11 级（0 最亮 → 1000 最暗），完整值见 `PTO_Design_System_Guide.html`。
