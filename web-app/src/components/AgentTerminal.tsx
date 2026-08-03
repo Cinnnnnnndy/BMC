@@ -137,6 +137,78 @@ const AGENT_TASKS: AgentTask[] = [
     view: 'topology', viewLabel: '拓扑视图',
   },
   {
+    keys: ['校验修复', '修复校验', '修复 warning', '修复警告', 'fix csr', 'autofix'],
+    title: 'CSR 校验 + 自动修复',
+    tools: [['csr_validate', 143], ['csr_resolve_unused_objects', 420], ['csr_validate', 96]],
+    out: [
+      '首轮校验：0 errors / 2 warnings（Scanner_TMP75_CH2、Event_SysBoot_Unused 未被引用）',
+      '自动修复：移除 Scanner_TMP75_CH2（无关联 ThresholdSensor）· 保留 Event_SysBoot_Unused（已标记 @keep）',
+      '复验：0 errors / 1 warning（@keep 项不计入阻塞）',
+    ],
+    ok: '校验已通过，1 处未引用对象已移除，CSR 已回写',
+    view: 'topology', viewLabel: '拓扑视图',
+  },
+  {
+    keys: ['节点诊断', '不可达', '离线诊断', '连接诊断'],
+    title: 'BMC 节点连通性诊断',
+    tools: [['bmc_remote_list_connections', 24], ['bmc_remote_ssh_exec', 310], ['bmc_remote_check_health', 180]],
+    out: [
+      '诊断目标：BMC-A03（192.168.1.102）· 状态 unreachable',
+      'ping 192.168.1.102 → 超时（3/3 丢包）· traceroute 第 3 跳丢失',
+      '结论：目标主机不在线或网络路由不可达（非 SSH 端口问题）',
+    ],
+    ok: '诊断完成：BMC-A03 物理不可达，建议检查网线/电源 或联系机房',
+    view: 'bmcEnv', viewLabel: 'BMC 环境管理',
+  },
+  {
+    keys: ['容器恢复', '容器诊断', 'docker 异常', 'docker 修复'],
+    title: 'Docker 编译容器诊断恢复',
+    tools: [['bmc_remote_ssh_exec', 240], ['bmc_remote_macro_run', 560]],
+    out: [
+      'docker ps -a → openubmc-build-3 Exited (137) 2h ago（OOM killed）',
+      'docker start openubmc-build-3 → started · docker inspect healthcheck → healthy',
+    ],
+    ok: '容器 openubmc-build-3 已恢复运行（OOM 原因：编译并发数过高，建议调低 -j 参数）',
+    view: 'bmcEnv', viewLabel: 'BMC 环境管理',
+  },
+  {
+    keys: ['演练', '仿真验证', 'drill', '验证事件'],
+    title: '事件仿真演练（端到端验证）',
+    tools: [['csr_validate', 87], ['sim_focus', 15], ['sim_inject_fault', 22], ['csr_analyze_expr', 19]],
+    out: [
+      '校验 Event_CPU0_OverTemp：Reading → Scanner_TMP112_CH1 ✓ · Condition temp_above_upper_critical(85℃) ✓',
+      '仿真注入：TMP112_CH1 value 45℃ → 90℃（越过阈值 85℃）',
+      '事件触发验证：Event_CPU0_OverTemp fired ✓ · SEL 记录生成 ✓ · 告警链路 Scanner→Sensor→Event 完整',
+    ],
+    ok: '演练通过：CPU0 过温事件端到端链路验证完整，配置有效',
+    view: 'simulator', viewLabel: '仿真调试',
+  },
+  {
+    keys: ['挂载芯片', '添加芯片', '器件挂载', '添加器件', '新增芯片'],
+    title: '器件挂载 + 配置骨架生成',
+    tools: [['csr_list_chip_types', 33], ['csr_list_bus_types', 29], ['csr_validate', 90]],
+    out: [
+      '器件识别：TMP112（温度传感器）· I²C 地址 0x48 · 温度寄存器 offset 0x00 · 12-bit 分辨率',
+      '骨架生成：+ Chip_TMP112_1 → I2C_3 · + Scanner_TMP112_1(offset=0x00, size=2, period=5000ms)',
+      '+ ThresholdSensor_TMP112_1(upperCritical=85, upperNoncritical=75, lowerNoncritical=10)',
+      '+ Event_TMP112_1_OverTemp(reading=Scanner_TMP112_1, condition=temp_above_upper_critical)',
+    ],
+    ok: '已生成 Chip + Scanner + ThresholdSensor + Event 完整骨架，画布已包含新增节点',
+    view: 'topology', viewLabel: '拓扑视图',
+  },
+  {
+    keys: ['出包检查', '出包前', 'pre-export', '导出检查'],
+    title: '出包前置检查（全量）',
+    tools: [['csr_validate', 143], ['binary_mask_validate', 24], ['csr_analyze_expr', 36]],
+    out: [
+      '校验：0 errors / 0 warnings',
+      '签名配置：profile default 有效 · OEM 文件路径存在 ✓',
+      '管道表达式：12 条全部求值通过 · 无 dynamic 悬空引用',
+      '版本一致性：formatVersion 2.1 · dataVersion 匹配 SDK openubmc-24.03 ✓',
+    ],
+    ok: '出包检查全部通过，可安全导出',
+  },
+  {
     keys: ['smc', '偏移'],
     title: 'SMC 偏移量编码',
     tools: [['binary_mask_encode', 8]],
@@ -200,13 +272,13 @@ const OPEN_ALIASES: Record<string, { view: string; label: string }> = {
 };
 
 const MCP_SUMMARY: string[] = [
-  '已接入 7 个 MCP Server · 26 个工具',
+  '已接入 7 个 MCP Server · 30 个工具',
   'setup        环境引导    verify_all · check_ssh · check_toolchain · configure_conan_remote · clone_manifest · install_sdk · run_init · check_platform',
   'bmc-remote   连接/巡检   list_connections · add_connection · set_auto_check · check_health · macro_run · ssh_exec',
-  'csr          配置校验    validate · list_bus_types · list_chip_types · analyze_expr',
+  'csr          配置校验    validate · list_bus_types · list_chip_types · analyze_expr · resolve_unused_objects · generate_skeleton',
   'localview    接口路径    search_paths · search_paths_fuzzy · get_path_node',
   'binary-mask  位域计算    encode · validate',
-  'sim          数字孪生    focus · inject_fault',
+  'sim          数字孪生    focus · inject_fault · verify_event_chain',
   'cooling      能效调速    update_curve',
 ];
 
@@ -218,7 +290,13 @@ const HELP_LINES: string[] = [
   '  views              列出可打开的视图',
   '  clear              清屏',
   '  exit               关闭终端',
-  '示例：agent 诊断安装环境 ・ agent 巡检在线 BMC ・ agent 给 CPU0 加过温事件 ・ agent 校验当前 CSR',
+  '示例：',
+  '  agent 校验修复当前 CSR        校验 + 自动修复未引用对象',
+  '  agent 演练 CPU0 过温          端到端仿真验证事件配置',
+  '  agent 挂载芯片 TMP112 到 I2C  生成 Chip+Scanner+Sensor+Event 骨架',
+  '  agent 出包前检查              校验 + 签名 + 表达式 + 版本一致性',
+  '  agent 节点诊断 BMC-A03        诊断不可达节点',
+  '  agent 巡检在线 BMC            批量巡检所有 BMC',
 ];
 
 const GREETING: string[] = [

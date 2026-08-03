@@ -1110,32 +1110,45 @@ export default function App() {
   }
 
   // ── Tab 行上下文动作（原顶栏全局按钮，按 IDE editor-title-actions 惯例下放） ──
-  const CONTEXT_AGENT: Partial<Record<ViewId, { label: string; cmd: string; title: string }>> = {
-    bmcEnv:   { label: '巡检', cmd: 'agent 巡检在线 BMC',  title: 'agent 巡检在线 BMC（bmc-remote MCP）' },
-    topology: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
-    vueTopo:  { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
-    event:    { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
-    eventDefManager: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
-    sensor:   { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+  const CONTEXT_AGENT: Partial<Record<ViewId, { label: string; cmd: string; title: string }[]>> = {
+    bmcEnv:   [{ label: '巡检', cmd: 'agent 巡检在线 BMC',  title: 'agent 巡检在线 BMC（bmc-remote MCP）' }],
+    topology: [
+      { label: '校验修复', cmd: 'agent 校验修复当前 CSR', title: 'agent 校验 + 自动修复未引用对象' },
+      { label: '出包检查', cmd: 'agent 出包前检查', title: '校验 + 签名 + 表达式 + 版本一致性' },
+    ],
+    vueTopo:  [
+      { label: '校验修复', cmd: 'agent 校验修复当前 CSR', title: 'agent 校验 + 自动修复未引用对象' },
+      { label: '出包检查', cmd: 'agent 出包前检查', title: '校验 + 签名 + 表达式 + 版本一致性' },
+    ],
+    event:    [
+      { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+      { label: '演练', cmd: 'agent 演练 CPU0 过温', title: '端到端仿真验证事件配置' },
+    ],
+    eventDefManager: [{ label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' }],
+    sensor:   [
+      { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+      { label: '演练', cmd: 'agent 演练 CPU0 过温', title: '端到端仿真验证传感器配置' },
+    ],
+    simulator: [{ label: '演练', cmd: 'agent 演练 CPU0 过温', title: '端到端仿真验证事件配置' }],
   };
   const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'eventDefManager', 'sensor', 'association', 'boardTopology', 'simulator']);
 
   function renderTabActions(viewId: ViewId): React.ReactNode {
-    const agentAct = CONTEXT_AGENT[viewId];
+    const agentActs = CONTEXT_AGENT[viewId];
     const canSave = csr !== null && CSR_SAVE_VIEWS.has(viewId);
     const isTopo = viewId === 'vueTopo';
-    // vueTopo buttons are rendered as canvas overlay — skip tab bar
     if (isTopo) return null;
-    if (!agentAct && !canSave) return null;
+    if (!agentActs && !canSave) return null;
     return (
       <>
-        {agentAct && (
+        {agentActs?.map((act, i) => (
           <button
+            key={i}
             className="ide-tab-action-btn"
-            title={agentAct.title}
-            onClick={e => { e.stopPropagation(); runQuickAction(agentAct.cmd); }}
-          >{agentAct.label}</button>
-        )}
+            title={act.title}
+            onClick={e => { e.stopPropagation(); runQuickAction(act.cmd); }}
+          >{act.label}</button>
+        ))}
         {isTopo && (
           <button
             className={`ide-tab-action-btn${csrExportOpen ? ' ide-tab-action-btn--primary' : ''}`}
@@ -1420,7 +1433,7 @@ export default function App() {
             <svg viewBox="0 0 24 24" className="ide-status-icon"><rect x="2" y="9" width="4" height="4" /><rect x="7" y="9" width="4" height="4" /><rect x="12" y="9" width="4" height="4" /><rect x="7" y="4" width="4" height="4" /><path d="M2 15c2 3 6 5 10 5 5 0 9-2.5 10-7-1.2.4-2.6.4-3.5-.3" /></svg>
             Docker 2/3
           </button>
-          <button className="ide-status-item" onClick={() => setTermOpen(true)} title="问题统计 · 打开输出面板">
+          <button className="ide-status-item" onClick={() => csr ? runQuickAction('agent 校验修复当前 CSR') : setTermOpen(true)} title={csr ? '问题统计 · 点击校验修复' : '问题统计 · 打开输出面板'}>
             <svg viewBox="0 0 24 24" className="ide-status-icon"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
             0
             <svg viewBox="0 0 24 24" className="ide-status-icon"><path d="M12 3L2 20h20L12 3z" /><path d="M12 10v4M12 17.5v.01" /></svg>
