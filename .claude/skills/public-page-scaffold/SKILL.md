@@ -72,15 +72,14 @@ description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充�
   /* 边框 */
   --border-default: rgba(255,255,255,.10);
   --border-subtle: rgba(255,255,255,.06);
-  /* 主色（只用这几个，禁止私造 indigo/violet） */
-  --primary: #4369ef;
+  /* 品牌主色（#0077FF 是唯一主色，禁止 #4369ef 及其他私造 indigo/violet） */
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
   --success: #04d793;
   --accent-purple: #a78bfa;
-  --cta-blue: #0077FF;
-  --cta-blue-hover: rgba(50,145,254,1);
   /* 状态 */
   --state-hover: rgba(255,255,255,.06);
-  --state-selected: rgba(67,105,239,.14);
+  --state-selected: rgba(0,119,255,.14);
   /* 字体 */
   --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
   --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
@@ -224,7 +223,8 @@ body {
   --foreground-muted: rgba(255,255,255,.40);
   --border-default: rgba(255,255,255,.10);
   --border-subtle: rgba(255,255,255,.06);
-  --primary: #4369ef;
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
   --success: #04d793;
   --accent-purple: #a78bfa;
   --state-hover: rgba(255,255,255,.06);
@@ -330,8 +330,8 @@ html, body {
   --border-subtle: rgba(255,255,255,.06);
   --border-default: rgba(255,255,255,.10);
   --border-strong: rgba(255,255,255,.16);
-  --primary: #4369ef;
-  --primary-hover: #5a92e6;
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
   --success: #04d793;
   --warning: #ffaa3b;
   --danger: #ff4b7b;
@@ -418,7 +418,7 @@ html,body {
 .tag-success { background: color-mix(in srgb, #04d793 14%, transparent); color: var(--success); }
 .tag-warning { background: color-mix(in srgb, #ffaa3b 16%, transparent); color: var(--warning); }
 .tag-danger  { background: color-mix(in srgb, #ff4b7b 14%, transparent); color: var(--danger); }
-.tag-info    { background: color-mix(in srgb, #4369ef 16%, transparent); color: var(--primary); }
+.tag-info    { background: color-mix(in srgb, #0077FF 16%, transparent); color: var(--primary); }
 </style>
 </head>
 <body>

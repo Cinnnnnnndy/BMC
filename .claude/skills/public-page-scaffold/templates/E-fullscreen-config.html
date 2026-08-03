@@ -23,10 +23,8 @@
   --foreground-muted: rgba(255,255,255,.40);
   --border-default: rgba(255,255,255,.10);
   --border-subtle: rgba(255,255,255,.06);
-  --primary: #4369ef;
-  --primary-hover: #3457d5;
-  --cta: #0077FF;
-  --cta-hover: rgba(50,145,254,1);
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
   --success: #04d793;
   --warning: #ffaa3b;
   --accent-purple: #a78bfa;
@@ -92,7 +90,7 @@ html, body {
   white-space: nowrap;
 }
 .step-item.active {
-  background: var(--cta);
+  background: var(--primary);
   color: #fff;
 }
 .step-item.done {
@@ -287,10 +285,10 @@ html, body {
 }
 .btn-ghost:hover { background: rgba(255,255,255,.10); color: var(--foreground); }
 .btn-primary {
-  background: var(--cta);
+  background: var(--primary);
   color: #fff;
 }
-.btn-primary:hover { background: var(--cta-hover); }
+.btn-primary:hover { background: var(--primary-hover); }
 .btn svg { display: block; }
 
 /* ── 响应式 ── */

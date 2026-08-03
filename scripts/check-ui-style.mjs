@@ -25,6 +25,7 @@ const PUB = join(ROOT, 'web-app/public');
 const SKIP_DIRS = new Set(['vue-topo', 'csr-topo-ext', '3d-viewer', 'setup-wizard', 'images', 'samples', 'welcome']);
 
 const BANNED_COLORS = [
+  '#4369ef', '#3457d5', '#5a92e6',
   '#4f46e5', '#5b8af5', '#7a9ff7', '#6159ef', '#7c3aed', '#8b5cf6',
   '#6366f1', '#818cf8', '#a5b4fc', '#3dd68c',
 ];

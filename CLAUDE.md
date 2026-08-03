@@ -36,8 +36,8 @@
 1. **PTO token 值**（新页面直接复制这组 `:root`，不要自拟数值）：
    - 表面：`--background #101010` `--surface-1 #161616` `--surface-2 #1c1c1c` `--surface-3 #262626`；欢迎页卡片底 `#111113`
    - 文字：`rgba(255,255,255,.90 / .60 / .40)`
-   - 主色 `#4369ef`（hover `#3457d5`）、成功 `#04d793`、紫 `#a78bfa`；欢迎页主 CTA 用 `#0077FF`（hover `rgba(50,145,254,1)`）胶囊
-   - **禁用**（checker R2 强制）：`#4F46E5 #5b8af5 #6159ef #7c3aed #8b5cf6 #6366f1` 等私造 indigo/violet
+   - 品牌主色 `#0077FF`（hover `#0063D1`）、成功 `#04d793`、紫 `#a78bfa`
+   - **禁用**（checker R2 强制）：`#4369ef #3457d5 #4F46E5 #5b8af5 #6159ef #7c3aed #8b5cf6 #6366f1` 等私造 indigo/violet/旧蓝
 2. **减少描边**：卡片/按钮/chip/输入框一律用填充色分层（`--surface-*` 或 `rgba(255,255,255,.06)`），禁止 1px 白色描边框线（每页面上限 2 处，checker R4）；列表行分隔用 `border-bottom: 1px solid rgba(255,255,255,.06)` 细线。
 3. **面型图标**：图标优先 `fill="currentColor"`（面型），少用描边（stroke）图标。AI/agent 相关入口统一用 ✦ 四角星面型图标（`M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z`）+ 紫色 `#a78bfa`（同 ai-assist 面板头），禁止描边星形/机器人/对话泡等自创图标。
 4. **胶囊造型**：按钮/chip/输入框 `border-radius: 100px`（同欢迎页「新建工程」）；卡片 `border-radius: 16px`。
