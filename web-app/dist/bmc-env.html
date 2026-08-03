@@ -268,6 +268,14 @@ body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select
 .ci.danger:hover{background:var(--tone-critical-bg)}
 .ci-sub{margin-left:auto;font:var(--text-label);color:var(--foreground-muted)}
 
+/* ── Agent Fix Button (inline in tree rows) ── */
+.agent-fix-btn{height:20px;padding:0 8px;border:none;border-radius:var(--radius-pill);background:color-mix(in srgb,#a78bfa 16%,transparent);color:#a78bfa;font:var(--text-label);cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:3px;transition:background var(--duration-fast),color var(--duration-fast)}
+.agent-fix-btn:hover{background:color-mix(in srgb,#a78bfa 28%,transparent);color:#c4b5fd}
+.agent-fix-banner{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:color-mix(in srgb,#a78bfa 10%,transparent);border-radius:var(--radius-md);margin-top:var(--space-3);cursor:pointer;transition:background var(--duration-fast)}
+.agent-fix-banner:hover{background:color-mix(in srgb,#a78bfa 18%,transparent)}
+.agent-fix-banner svg{color:#a78bfa;flex-shrink:0}
+.agent-fix-banner span{font:var(--text-body-sm);color:#a78bfa}
+
 /* ── Tooltip ── */
 .tip{position:fixed;background:var(--surface-3);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font:var(--text-body-sm);color:var(--foreground);max-width:260px;pointer-events:none;z-index:400;box-shadow:var(--shadow-md);white-space:pre-line;line-height:1.65}
 .tip.hidden{display:none}
@@ -410,6 +418,7 @@ body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select
           <div class="dot unreachable" onmouseenter="showTip(event,'✕ SSH Port 22 不可达\n上次探测：3 秒前\n注意：探测始终走 SSH 22\n与连接协议无关')" onmouseleave="hideTip()"></div>
           <span class="c-name">BMC-A03</span>
           <span class="c-host">192.168.1.102</span>
+          <button class="agent-fix-btn" onclick="event.stopPropagation();dispatchAgent('agent 节点诊断 BMC-A03')" title="让 agent 诊断连通性">✦ 诊断</button>
         </div>
       </div>
 
@@ -502,7 +511,7 @@ body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select
         <div class="stat-grid">
           <div class="stat-card"><div class="s-val" style="color:var(--foreground)">5</div><div class="s-lbl">总连接数</div></div>
           <div class="stat-card"><div class="s-val" style="color:var(--success)">3</div><div class="s-lbl">SSH 可达</div></div>
-          <div class="stat-card"><div class="s-val" style="color:var(--danger)">1</div><div class="s-lbl">不可达</div></div>
+          <div class="stat-card" style="cursor:pointer" onclick="dispatchAgent('agent 节点诊断 不可达节点')"><div class="s-val" style="color:var(--danger)">1</div><div class="s-lbl">不可达 <span style="font-size:10px;color:#a78bfa;margin-left:4px">✦ 诊断</span></div></div>
           <div class="stat-card"><div class="s-val" style="color:var(--accent)">1</div><div class="s-lbl">已建立会话</div></div>
         </div>
         <div class="recent-box">
@@ -516,6 +525,7 @@ body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select
             <span class="rr-name">推送网络配置</span>
             <span class="rr-scope">网络测试组 · 2 台</span>
             <span class="rr-err"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-x"/></svg>命令 1 失败（1 台）</span>
+            <button class="agent-fix-btn" onclick="dispatchAgent('agent 巡检在线 BMC')" title="让 agent 诊断失败原因">✦ 诊断</button>
           </div>
           <div class="recent-row">
             <span class="rr-name">批量重启 bmc-service</span>
@@ -803,6 +813,7 @@ body.rp-is-resizing,body.rp-is-resizing *{cursor:ns-resize!important;user-select
 <div class="notif hidden" id="notif">
   <div class="notif-hd"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#i-alert"/></svg>BMC-A03 已下电</div>
   <div class="notif-body">实验室 A · 192.168.1.102<br>SSH Port 22 不可达</div>
+  <div style="margin-top:8px"><button class="agent-fix-btn" onclick="dispatchAgent('agent 节点诊断 BMC-A03')" style="width:100%;justify-content:center">✦ 让 agent 诊断</button></div>
 </div>
 
 <script>
@@ -815,6 +826,10 @@ const CONNS={
 };
 const SC={connected:'var(--success)',reachable:'var(--success)',unreachable:'var(--danger)',checking:'var(--warning)'};
 const SL={connected:'已建立 SSH 会话',reachable:'SSH Port 22 可达（未建立会话）',unreachable:'SSH Port 22 不可达',checking:'正在探测 SSH Port 22...'};
+
+function dispatchAgent(cmd){
+  window.parent.postMessage({type:'ai-run-agent',cmd:cmd},'*');
+}
 
 let currentView='summary';
 function allViews(){return['summary','conn-detail','conn-form','macro-form']}
@@ -865,6 +880,11 @@ function selectConn(id){
       </div>
       <div class="probe-note" style="margin-top:var(--space-3)"><strong>探测协议：SSH Port 22</strong><br>连通性检测始终使用 SSH Port 22，与接入协议（${c.proto}）无关。${c.proto==='Telnet'?'<br><strong style="color:var(--danger)">注意：</strong>Telnet-only 设备若未开放 SSH 22，将持续显示「不可达」。':''}</div>
     </div>
+    ${c.status==='unreachable'?`
+    <div class="agent-fix-banner" onclick="dispatchAgent('agent 节点诊断 ${c.name}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+      <span>让 agent 诊断连通性问题</span>
+    </div>`:''}
     <div class="cd-section">操作</div>
     <div class="action-grid">
       <button class="btn btn-primary" style="height:30px;font-size:11px"><svg width="11" height="11" viewBox="0 0 24 24"><use href="#i-terminal"/></svg>SSH</button>

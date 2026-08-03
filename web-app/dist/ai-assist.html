@@ -558,6 +558,49 @@ const SCENARIOS = [
         text: '已更新 `cpu_zone` 曲线锚点：\n```\n50℃ → 40%\n60℃ → 80%   (原 55%)\n75℃ → 100%\n```\nYAML 已同步，可在「能效调速配置」视图预览曲线并导出。' },
     ],
   },
+  {
+    id: 'sc-autofix', icon: 'wrench', title: 'CSR 校验 + 自动修复', view: 'topology', time: '今天 10:15',
+    messages: [
+      { role: 'user', text: '校验一下当前 CSR，有问题直接帮我修' },
+      { role: 'ai', tools: ['csr_validate'],
+        text: '首轮校验结果：\n```\n0 errors / 2 warnings\n  ⚠ Scanner_TMP75_CH2 未被任何 ThresholdSensor 引用\n  ⚠ Event_SysBoot_Unused 未被任何链路引用\n```\n这两项是否需要自动处理？Scanner_TMP75_CH2 无关联传感器，可安全移除；Event_SysBoot_Unused 如果是保留项可以标记 @keep 跳过。' },
+      { role: 'user', text: '移掉 Scanner，Event 那个留着' },
+      { role: 'ai', tools: ['csr_resolve_unused_objects', 'csr_validate'],
+        text: '已移除 `Scanner_TMP75_CH2`（无关联 ThresholdSensor）。\n`Event_SysBoot_Unused` 已标记 @keep，后续校验将跳过。\n\n复验结果：0 errors / 1 warning（@keep 项，不阻塞出包） ✓\nCSR 已回写，可在「拓扑视图」确认。' },
+    ],
+  },
+  {
+    id: 'sc-drill', icon: 'bolt', title: '事件仿真演练（端到端验证）', view: 'simulator', time: '今天 11:30',
+    messages: [
+      { role: 'user', text: '帮我验证一下 CPU0 过温事件配置对不对，走一遍仿真' },
+      { role: 'ai', tools: ['csr_validate', 'sim_focus', 'sim_inject_fault', 'csr_analyze_expr'],
+        text: '端到端演练完成：\n\n**1. 配置校验**\n`Event_CPU0_OverTemp` → Reading 引用 `Scanner_TMP112_CH1` ✓ → Condition `temp_above_upper_critical(85℃)` ✓\n\n**2. 仿真注入**\n`TMP112_CH1` 温度从 45℃ 拉至 90℃（越过阈值 85℃）\n\n**3. 触发验证**\n`Event_CPU0_OverTemp` fired ✓ · SEL 记录生成 ✓\n告警链路 Scanner → ThresholdSensor → Event 完整闭合。\n\n结论：**配置有效**，可放心出包。仿真视图已聚焦到温度注入点。' },
+    ],
+  },
+  {
+    id: 'sc-mount', icon: 'nodes', title: '器件挂载 + 配置骨架生成', view: 'topology', time: '昨天 16:20',
+    messages: [
+      { role: 'user', text: '在 I2C_3 下面挂一颗 TMP112，帮我把 Scanner、传感器、过温事件都建好' },
+      { role: 'ai', tools: ['csr_list_chip_types', 'csr_list_bus_types', 'csr_validate'],
+        text: '已根据 TMP112 器件规格生成完整配置骨架：\n\n```\n+ Chip_TMP112_1      → I2C_3（地址 0x48）\n+ Scanner_TMP112_1   → offset 0x00 · size 2 · period 5000ms\n+ ThresholdSensor_TMP112_1\n    upperCritical: 85℃\n    upperNoncritical: 75℃\n    lowerNoncritical: 10℃\n+ Event_TMP112_1_OverTemp\n    reading: Scanner_TMP112_1\n    condition: temp_above_upper_critical\n```\n\ncsr_validate 通过（0 errors）。「拓扑视图」画布已包含新增节点，阈值可在「传感器配置」中微调。\n\n提示：可以用 `agent 演练 TMP112 过温` 做一次端到端仿真验证。' },
+    ],
+  },
+  {
+    id: 'sc-preexport', icon: 'grid', title: '出包前置检查', view: 'topology', time: '昨天 17:00',
+    messages: [
+      { role: 'user', text: '准备出包了，帮我全面检查一遍' },
+      { role: 'ai', tools: ['csr_validate', 'binary_mask_validate', 'csr_analyze_expr'],
+        text: '出包前置检查完成（4 项）：\n```\n✓ CSR 校验        0 errors / 0 warnings\n✓ 签名配置        profile default 有效 · OEM 文件路径存在\n✓ 管道表达式      12 条全部求值通过 · 无悬空引用\n✓ 版本一致性      formatVersion 2.1 · SDK openubmc-24.03\n```\n全部通过，可安全导出。点击「出包」或在终端执行 `agent 出包` 开始导出。' },
+    ],
+  },
+  {
+    id: 'sc-node-diag', icon: 'server', title: 'BMC 节点连通性诊断', view: 'bmcEnv', time: '昨天 10:45',
+    messages: [
+      { role: 'user', text: 'BMC-A03 一直显示不可达，帮我看看什么问题' },
+      { role: 'ai', tools: ['bmc_remote_list_connections', 'bmc_remote_ssh_exec', 'bmc_remote_check_health'],
+        text: '诊断结果：\n\n```\n目标：BMC-A03（192.168.1.102）\n1. ping 192.168.1.102  → 超时（3/3 丢包）\n2. traceroute          → 第 3 跳（10.0.0.1 网关）后无响应\n3. ARP 表              → 无对应 MAC 条目\n```\n\n**结论：目标主机不在线**——不是 SSH 端口问题，是物理层/网络层不可达。\n\n建议：\n1. 检查 BMC-A03 电源指示灯是否亮起\n2. 检查交换机端口 link 灯\n3. 如果近期有机房搬迁，确认网线是否重新接好\n\n需要我对同组其他节点做一次健康巡检吗？' },
+    ],
+  },
 ];
 
 // ── 关键词规则（在线 mock 回复） ──────────────────────────────
