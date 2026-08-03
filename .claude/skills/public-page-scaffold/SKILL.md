@@ -17,9 +17,9 @@ description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充�
 **适用场景**：welcome、install-entry 等全屏居中的引导/入口页面
 **特征**：蓝紫渐变背景、居中卡片布局、大标题 + CTA 按钮
 
-### B. IDE 内嵌面板页面
-**适用场景**：ai-assist、ai-install、install-guide 等嵌入 IDE pane 的工具面板
-**特征**：实底 `#101010`、100vh 面板布局、紧凑排版、可能有 postMessage 联动
+### B. 智能助手面板
+**适用场景**：ai-assist、ai-install、install-guide 等嵌入 IDE pane 的 AI 助手面板
+**特征**：实底 `#101010`、100vh 面板、对话气泡 + 建议按钮 + 输入区、紫色 ✦ 四角星、postMessage 联动
 
 ### C. 数据管理页面
 **适用场景**：bmc-env、release-notes 等数据密集的列表/表格页面
@@ -197,7 +197,7 @@ body {
 </html>
 ```
 
-## 类型 B 模板：IDE 内嵌面板页面
+## 类型 B 模板：智能助手面板
 
 ```html
 <!DOCTYPE html>
@@ -484,7 +484,7 @@ window.parent.postMessage({
 | 模板 | 文件 | 用途 |
 |------|------|------|
 | A | `templates/A-fullscreen-welcome.html` | 全屏欢迎/引导页 |
-| B | `templates/B-ide-panel.html` | IDE 内嵌面板 |
+| B | `templates/B-ai-assistant-panel.html` | 智能助手面板 |
 | C | `templates/C-data-management.html` | 数据管理页 |
 | D | `templates/D-modal-dialog.html` | 弹窗 / QuickPick / 完成态 |
 | E | `templates/E-fullscreen-config.html` | 全屏配置向导 |
