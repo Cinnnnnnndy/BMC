@@ -12,6 +12,31 @@ design system, 设计系统, 设计手册, design playbook, 视觉规范, 配色
 ## PTO Design System 原始参考
 PTO 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/design-system/PTO_Design_System_Guide.html`，包含原始 token 定义、组件 pattern、布局规范。在浏览器中打开即可查阅。
 
+## 参考文件与资源
+
+从 PTO Design System 移植的权威参考，按用途分类：
+
+**速查与规范**
+- `references/quick-reference.md`：token 和 class 速查表
+- `references/pto-design-system-map.md`：元素分类规则（UI 元素 → 设计系统部件映射）
+- `references/DESIGN.md`：设计系统完整规范（theme、surface、palette、typography、spacing、component、governance）
+
+**改造与审批**
+- `references/retrofit-container-audit.md`：改造时删除 legacy container decoration 的强制规则
+- `references/preview-gate.md`：新增视觉样式的审批流程
+
+**Token CSS 源文件**
+- `tokens/foundation.css`：基础色板、排版、间距、圆角、阴影、层级、动效变量
+- `tokens/semantic.css`：语义 token（surface、foreground、border、state、功能色）
+- `tokens/components.css`：组件级 token（按钮、输入框、工具栏等）
+
+**组件样式**
+- `css/style.css`：完整组件 class 实现（按钮、badge、card、input、toolbar 等 HTML class）
+
+**审计脚本**
+- `audit-theme.mjs`：验证 theme token 使用是否正确
+- `audit-typography.mjs`：验证排版（14px 正文基线、12px UI 最小值、未批准的 11px 以下字号）
+
 ---
 
 ## 一、三条元规则
@@ -258,6 +283,185 @@ PTO 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/
 - Q2 这个操作按钮在浏览态需要吗？→ 不需要默认隐藏
 - Q3 这个功能入口在别处已经有了吗？→ 有就删掉
 - Q4 这一级标题和上一级有区分度吗？→ 没有就合并
+
+---
+
+## 十三、Pattern-first 工作流
+
+所有 BMC 页面 = 选定的页面外壳 + 设计系统 token/组件组合。产品页只负责业务数据和 domain logic，不要新造按钮、徽章、卡片、配色或间距语言。
+
+可读性基线：正文、描述、帮助文案使用 14px/1.5；紧凑控件、表格、树、表单 label 不低于 12px；11px 只用于短 badge、eyebrow 等 micro label，不得承载正文。低于 11px 默认禁止。不要用 `zoom`、`transform: scale(...)` 或更小字号解决拥挤——应调整布局、换行、截断或滚动。
+
+### 工作流 A：需求拆解（新建页面）
+
+写代码前先列出页面需要的 UI 部件，逐一映射到现有组件：
+
+1. 判断页面类型 → 选脚手架（第八节 A-I）
+2. 列出所有 UI 元素：header/toolbar、buttons、toggle、chip、labels/badges、card、input、data-viz
+3. 用第七节「已验证的组件模式」和附录 token 做映射，标注每个元素对应的 class/token
+4. 判断背景：全屏欢迎系 → 蓝紫渐变；嵌入 IDE pane → 实底 `#101010`
+5. 判断 postMessage 联动需求：是否需要向 AgentTerminal 派发任务
+
+映射完成后进入工作流 C 构建页面。
+
+### 工作流 B：Shell-first 改造（改造已有页面）
+
+已有 HTML/CSS 页面需要迁移到 BMC 设计系统时：
+
+1. 自上而下阅读页面，列出所有视觉元素：buttons、inputs、panels、badges、surfaces、hard-coded colors
+2. 判断页面是否已符合 BMC 框架。没有时，第一步是接入正确的外壳（IDE pane 或 welcome 系），不要只改色保留旧结构
+3. 对每个元素，用附录 token、第七节组件模式做映射
+4. 执行 container decoration audit：每个 card、panel、list item 都检查，删除私造的 border、shadow、gradient、accent bar
+5. **先给用户看迁移表，再动手**：
+
+   | 原页面元素 | BMC 等价物 | 使用的 class / token | 需要删除的 legacy 装饰 |
+   |---|---|---|---|
+   | `<button class="cta">` | capsule-btn | `.capsule-btn` + `#0077FF` | 私有 shadow / gradient |
+   | `background: #1a1a1a` | surface-2 | `var(--surface-2)` | 硬编码颜色 |
+   | `border: 1px solid white` | fill 分层 | `var(--surface-3)` 或 `rgba(255,255,255,.06)` | 白描边 |
+
+6. 用户确认后，替换 HTML class 和 inline styles，把 hard-coded 值改成 token
+7. 删除 legacy container decoration——不要把私有 border 换成 token 色后继续保留
+8. 用工作流 C 做最终检查
+9. 最终回复列出：使用了哪些 token/class、删除了哪些 legacy 装饰、哪些元素没有等价物需用户决策
+
+### 工作流 C：统一页面构建流程
+
+无论页面是 welcome、数据管理、AI 面板还是配置向导，都按此流程：
+
+**Step 1 — 选页面外壳**
+
+| 页面类型 | 外壳 | 背景 |
+|---|---|---|
+| 全屏欢迎系（welcome、install-entry） | 脚手架 A | 蓝紫渐变 + `#181B20` |
+| AI 面板（ai-assist） | 脚手架 B，嵌入 IDE pane | 实底 `#101010` |
+| 数据管理（bmc-env） | 脚手架 C，嵌入 IDE pane | 实底 `#101010` |
+| 配置向导（setup-wizard） | 脚手架 E | 按场景 |
+| 抽屉/通知 | 脚手架 F | 遮罩 + `var(--surface-1)` |
+
+**Step 2 — 映射内容到组件**
+
+用第七节组件表和附录 E 组件 token 组合页面内容。domain-specific 布局用 flex/grid，不要新造视觉语言。
+
+**Step 3 — 必须包含的基础设施**
+
+每个独立 HTML 页面（`web-app/public/*.html`）必须包含：
+- 完整 `:root` token 声明（至少 `--background`、`--surface-1`、`--primary`）（R6）
+- 深色滚动条全局规则（R1）
+- iframe 不继承宿主样式，所以每个页面都要自带
+
+**Step 4 — 运行自动检查**
+
+```bash
+node scripts/check-ui-style.mjs web-app/public/<页面>.html
+```
+
+R1-R8 全部通过才能提交。PostToolUse hook 会在每次 Write/Edit 后自动运行。
+
+**Step 5 — 浏览器验证**
+
+启动 dev server，在浏览器中验证：
+- 金色路径和边缘情况
+- 100% zoom 下字号是否可读
+- 暗色滚动条是否生效
+- postMessage 联动是否正常
+
+---
+
+## 十四、IDE Frame 接入检查清单
+
+每个嵌入 IDE 的页面，在写业务内容前先检查：
+
+- [ ] **背景**：实底 `#101010`，禁止蓝紫渐变（R5）
+- [ ] **:root token**：声明 `--background`、`--surface-1`、`--primary`（R6）
+- [ ] **滚动条**：自带完整深色滚动条规则（R1）
+- [ ] **Topbar 安全距离**：`position: absolute/fixed` 元素避开 topbar 48px 高度
+- [ ] **Pane 样式**：实底 `var(--background)` + 圆角 + 边框，禁止半透明玻璃底
+- [ ] **分屏手柄**：引用 `--ide-frame-pane-inset-*` token，不要写死数值
+- [ ] **Tab Row**：33px 高，tab 25px 高，max-width 168px
+- [ ] **postMessage**：如需联动终端，cmd 格式 `agent <关键词>`，关键词命中 AgentTerminal 词表
+
+---
+
+## 十五、硬性规则汇编
+
+以下规则由 R1-R8 自动检查或 CLAUDE.md 硬约束强制执行：
+
+**配色**
+- 禁用蓝紫系私造色（R2）和私造绿色（R8），只用二、配色系统中列出的色值
+- 品牌主色 `#0077FF`（hover `#0063D1`），AI 紫 `#a78bfa`，成功绿 `#04d793`
+
+**造型**
+- 按钮/chip/输入框 `border-radius: 100px`（R7），卡片 `16px`
+- 填充优先减少描边，每页白描边上限 2 处（R4）
+- 面型图标 `fill="currentColor"`，AI 入口统一 ✦ 四角星（R3）
+
+**布局**
+- 嵌入 IDE 页面实底 `#101010`，禁止蓝紫渐变（R5）
+- 每个独立 HTML 页面 `:root` 必须声明核心 token（R6）
+- 深色滚动条规则每个独立页面自带（R1）
+
+**组件纪律**
+- 不要创建私有 button/toggle/badge/card 系统
+- 有现成 token 时不要 hard-code colors、radii、shadows、font sizes、spacing
+- 不要保留 legacy card/panel decoration 后只把颜色换成 token
+- generic cards/panels 不要保留 `border-left`、inset `box-shadow`、accent bar，除非它们编码业务数据
+- 不要把 border/outline 作为主要视觉语言——优先用 fills、spacing、typography、opacity
+
+**排版**
+- 正文、描述、帮助文案 ≥ 14px
+- 紧凑控件、表格、树 ≥ 12px
+- 11px 只用于 micro label
+- 不要用缩放解决拥挤
+
+---
+
+## 十六、常见失败模式
+
+- 从空白 HTML/CSS 造页面，跳过现有脚手架和组件体系
+- 嵌入 IDE 的页面用了蓝紫渐变背景
+- 每个 card、panel、button 都加白描边，变成 border-heavy 页面
+- 为了塞下更多内容把正文降到 12px 或更小
+- 只改色值保留 legacy 结构，没有真正接入设计系统
+- 私造绿色/蓝紫色代替系统功能色
+- 用 `border-radius: 8px/12px` 代替胶囊 `100px`
+- iframe 页面没有自带滚动条规则和 `:root` token
+- postMessage cmd 格式不对或关键词没命中 AgentTerminal 词表
+- 用 `zoom`/`scale` 解决拥挤而不是调整布局
+- legacy card borders、left rails、pseudo-elements 只是换成 token 色后继续保留
+- 在组件内联样式里写 IDE 框架级样式，没有放进 `ide-frame.css`
+- 使用 `#4369ef` 等已禁用旧蓝色代替品牌色 `#0077FF`
+
+---
+
+## 十七、缺失样式审批门
+
+工作流 A/C 中，如果现有设计系统无法满足需求：
+
+1. **停止**——不要直接在业务页面里私造样式
+2. 创建 preview 文件展示：
+   - 最接近的现有组件/pattern
+   - 提议的新 pattern
+   - normal / hover / active / selected 状态覆盖
+   - 使用了哪些 token
+   - 当前系统为什么不够
+3. 等用户明确批准
+4. 批准后，先把新 pattern 吸收到共享设计系统（更新 `check-ui-style.mjs` 规则），再由业务页面消费
+
+---
+
+## 十八、最终回复清单
+
+完成 UI 工作后，回复必须说明：
+
+- 选用了哪种脚手架（A-I）和页面外壳
+- 复用了哪些现有组件和 token
+- 背景选择（渐变 vs 实底）及原因
+- R1-R8 自动检查结果（全部通过 / 哪些修复了）
+- 如果是改造：完整迁移表 + 删除了哪些 legacy 装饰
+- 哪些需求超出现有系统，是否创建了 preview page
+- postMessage 联动是否配置（如适用）
+- 排版审计：正文 computed font size、最小 UI 字号
 
 ---
 
