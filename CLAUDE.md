@@ -47,6 +47,10 @@
 6. **公告条位置**：message-bar 等公告类元素放在内容区上方（GET STARTED 之后、功能区之前），不要沉底。
 7. **空状态**：列表/状态区无真实数据时用演示数据兜底展示（参照 ai-assist 示例场景），不允许留空白占位文案。
 8. **终端联动**：向导/工作台派发任务必须走 postMessage `{ type:'ai-run-agent', cmd:'agent <任务描述>' }`——cmd 必须是 `agent <关键词>` 格式且关键词能命中 AgentTerminal AGENT_TASKS 词表（词表按数组顺序 find 首个命中，新词条注意排序）；页内模拟终端块只做摘要，并加「⤷ 完整执行过程见底部 agent 终端」注记。
+9. **嵌入页禁渐变**（checker R5 强制）：嵌入 IDE pane 的页面（如 ai-install、ai-assist）禁止使用蓝紫渐变背景，必须用实底 `#101010`。渐变只用于全屏欢迎系页面。
+10. **:root token 完整声明**（checker R6 强制）：每个独立 HTML 页面必须在 `:root` 中至少声明 `--background`、`--surface-1`、`--primary` 三个 token。
+11. **胶囊造型强制**（checker R7 强制）：按钮/chip/输入框 `border-radius` 只允许 `100px` 或 `999px`（胶囊），禁止 `8px`/`12px` 等非胶囊圆角值。卡片圆角 `16px` 不受此规则约束。
+12. **禁用私造绿色**（checker R8 强制）：成功色只允许 `#04d793`，禁止 `#3dd68c`、`#10b981`、`#34d399` 等私造绿色。
 
 ## 提交身份（对整个仓库、所有子项目一律生效）
 
