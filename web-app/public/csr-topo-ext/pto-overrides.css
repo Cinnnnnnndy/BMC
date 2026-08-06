@@ -358,7 +358,7 @@ html.dark {
 
 /* a. 填写说明（两行，pre-line 断行；无 emoji，风格同 ⑤ 空状态） */
 .scrollable-content[data-v-896f735b]::before {
-  content: '怎么填：只有「文件夹路径」需要你选 —— 指向本机上该仓库的代码目录，选完即可点「确定」保存。\A仓库地址 / 分支信息 / 描述信息都可以留空；填了仓库地址才能用「一键导入代码仓」自动克隆并回填路径，仓库名按所选文件夹自动命名。';
+  content: '怎么填：给每个仓库选一个「文件夹路径」—— 指向本机上该仓库的代码目录，选完即可点「确定」保存，仓库名按所选文件夹自动命名。\A仓库地址 / 分支信息 / 描述信息都是选填，第一次配置可以先不管；要登记它们、或想用「一键导入代码仓」自动克隆时，点「更多选项」展开。';
   display: block;
   margin: 4px 0 0;
   padding: 10px 14px;
@@ -494,4 +494,145 @@ html.dark {
   font-size: 12px;
   color: var(--warning);
   background: color-mix(in srgb, var(--warning) 14%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ⑩ 仓库表：必填列前置 + 选填列收进「更多选项」
+   ───────────────────────────────────────────────────────────────────
+   反馈：文件夹路径要排到最前面加强，其余三列第一次配置不该占版面。
+   列序改为  文件夹路径 → 仓库名 →〔仓库地址 / 分支信息 / 描述信息〕→ 操作。
+   HTML 里的 <th>/<td> 顺序改不了（在 bundle 里），所以把表格改成 grid 行
+   （table/thead/tbody → block，tr → grid，单元格 → flex），再用 order 重排。
+   收放由 <html data-csr-optional-cols> 控制，属性由 settings-enhance.js 的
+   「更多选项」开关切换；off（默认）时三个选填列连同依赖仓库地址的
+   「一键导入代码仓」一起隐藏。脚本没跑到 = 属性缺省 = 六列全展开（原布局）。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 表格容器降级为块级，行接管列布局 */
+.folder-table[data-v-896f735b],
+.folder-table[data-v-896f735b] thead,
+.folder-table[data-v-896f735b] tbody {
+  display: block;
+}
+.folder-table[data-v-896f735b] tr {
+  display: grid;
+  align-items: stretch;
+  grid-template-columns:
+    minmax(240px, 2.2fr) minmax(110px, 1fr)
+    minmax(150px, 1.5fr) minmax(96px, 0.9fr) minmax(110px, 1.1fr)
+    68px;
+}
+/* 收起态只剩三列，补一根弹性空列把「操作」顶回右边缘，
+   免得必填列被拉成横贯全宽的长条 */
+:root[data-csr-optional-cols='off'] .folder-table[data-v-896f735b] tr {
+  grid-template-columns: minmax(260px, 2.6fr) minmax(130px, 1fr) 1fr 68px;
+}
+:root[data-csr-optional-cols='off'] .folder-table[data-v-896f735b] .col-action {
+  grid-column: 4;
+}
+/* 表头底色改画在整行上：grid 列之间不再出现断带 */
+.folder-table[data-v-896f735b] thead tr {
+  background: var(--surface-2);
+}
+.folder-table th[data-v-896f735b] {
+  background: transparent;
+}
+
+/* 单元格：脱掉 table-cell 的宽度约束（源码给了 min-width / max-width:200px，
+   同特异性靠后置顺序覆盖），交给 grid-template-columns 统一定宽 */
+.folder-table th.col-folder-path[data-v-896f735b],
+.folder-table th.col-repo-name[data-v-896f735b],
+.folder-table th.col-repo-url[data-v-896f735b],
+.folder-table th.col-branch[data-v-896f735b],
+.folder-table th.col-description[data-v-896f735b],
+.folder-table th.col-action[data-v-896f735b],
+.folder-table td.col-folder-path[data-v-896f735b],
+.folder-table td.col-repo-name[data-v-896f735b],
+.folder-table td.col-repo-url[data-v-896f735b],
+.folder-table td.col-branch[data-v-896f735b],
+.folder-table td.col-description[data-v-896f735b],
+.folder-table td.col-action[data-v-896f735b] {
+  display: flex;
+  align-items: center;
+  /* 源码给 th 定了 width:12%/20%/30%，grid 里会阻止单元格铺满列 */
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: var(--table-row-height);
+  border-bottom: none;
+}
+.folder-table th.col-action[data-v-896f735b],
+.folder-table td.col-action[data-v-896f735b] {
+  justify-content: center;
+}
+/* 行分隔线从单元格挪到整行，避免 grid 列之间断线 */
+.folder-table[data-v-896f735b] tbody tr {
+  border-bottom: 1px solid var(--table-border);
+}
+
+/* 列序：必填的文件夹路径排第一，自动带出的仓库名跟在后面 */
+.folder-table[data-v-896f735b] .col-folder-path {
+  order: 1;
+}
+.folder-table[data-v-896f735b] .col-repo-name {
+  order: 2;
+}
+.folder-table[data-v-896f735b] .col-repo-url {
+  order: 3;
+}
+.folder-table[data-v-896f735b] .col-branch {
+  order: 4;
+}
+.folder-table[data-v-896f735b] .col-description {
+  order: 5;
+}
+.folder-table[data-v-896f735b] .col-action {
+  order: 6;
+}
+
+/* 收起态：三个选填列 + 只对仓库地址生效的「一键导入代码仓」一并隐藏
+   （.config-add-btn:nth-of-type(2) = 一键导入；开关按钮追加在其后，不影响计数） */
+:root[data-csr-optional-cols='off'] .folder-table .col-repo-url,
+:root[data-csr-optional-cols='off'] .folder-table .col-branch,
+:root[data-csr-optional-cols='off'] .folder-table .col-description,
+:root[data-csr-optional-cols='off'] .repo-section-actions .config-add-btn:nth-of-type(2) {
+  display: none;
+}
+
+/* 「更多选项」开关：PTO secondary，展开态提亮 + 箭头翻转 */
+.csr-optional-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--button-height-sm);
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--button-radius);
+  background: var(--surface-2);
+  color: var(--foreground-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.csr-optional-toggle:hover {
+  background: var(--surface-3);
+  color: var(--foreground);
+}
+.csr-optional-toggle::after {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  transition: transform 0.15s ease;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.2 2.4 5.6 3.8 4.2 8 8.4l4.2-4.2 1.4 1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.2 2.4 5.6 3.8 4.2 8 8.4l4.2-4.2 1.4 1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+:root[data-csr-optional-cols='on'] .csr-optional-toggle {
+  background: var(--surface-3);
+  color: var(--foreground);
+}
+:root[data-csr-optional-cols='on'] .csr-optional-toggle::after {
+  transform: rotate(180deg);
 }

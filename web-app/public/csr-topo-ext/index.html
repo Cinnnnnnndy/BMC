@@ -9,6 +9,9 @@
     <link rel="stylesheet" crossorigin href="./assets/index.css">
     <!-- PTO override layer — 必须位于 bundle CSS 之后（同特异性靠顺序取胜） -->
     <link rel="stylesheet" href="./pto-overrides.css">
+    <!-- 设置弹窗「更多选项」开关：只往标题行加一个按钮 + 切 <html> 上的 data 属性，
+         样式在 pto-overrides.css ⑩ 节；bundle 本体不动 -->
+    <script defer src="./settings-enhance.js"></script>
     <style>
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
