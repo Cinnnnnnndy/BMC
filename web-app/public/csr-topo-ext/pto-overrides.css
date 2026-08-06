@@ -74,7 +74,9 @@ html.dark {
 
 /* ── ② 弹窗容器与标题栏（C7 · 填充优先修订：去描边，靠海拔面+阴影分层） ── */
 .modal-content[data-v-896f735b] {
-  width: min(1080px, 92vw);
+  /* 「配置管理」默认折叠后内容只剩两三行，1080px 宽会横成一条；收到 880px
+     后 6 列仍够排（列最小宽合计 698px < 内宽 848px），高宽比才不至于失衡 */
+  width: min(880px, 92vw);
   background: var(--background-elevated);
   border: none;
   box-shadow: var(--shadow-lg);
@@ -474,9 +476,11 @@ html.dark {
 .folder-table[data-v-896f735b] tr {
   display: grid;
   align-items: stretch;
+  /* 必填列拿最大的 fr；其余压到够用即可，最小宽合计 698px 保证 880px 弹窗
+     里不出现横向滚动 */
   grid-template-columns:
-    minmax(240px, 2.2fr) minmax(110px, 1fr)
-    minmax(150px, 1.5fr) minmax(96px, 0.9fr) minmax(110px, 1.1fr)
+    minmax(220px, 2.6fr) minmax(96px, 0.9fr)
+    minmax(130px, 1.4fr) minmax(88px, 0.8fr) minmax(96px, 1fr)
     68px;
 }
 /* 表头底色改画在整行上：grid 列之间不再出现断带 */
