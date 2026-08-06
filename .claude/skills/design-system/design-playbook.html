@@ -1,0 +1,1992 @@
+<title>暗色 IDE Demo 设计手册</title>
+<style>
+  :root {
+    --bg: #0c0d0f;
+    --surface: #141518;
+    --surface-2: #1b1c21;
+    --surface-3: #232429;
+    --text-1: rgba(255,255,255,0.91);
+    --text-2: rgba(255,255,255,0.56);
+    --text-3: rgba(255,255,255,0.34);
+    --accent: #0077FF;
+    --accent-soft: rgba(0,119,255,0.13);
+    --purple: #a78bfa;
+    --purple-soft: rgba(167,139,250,0.11);
+    --green: #04d793;
+    --green-soft: rgba(4,215,147,0.10);
+    --orange: #f0a243;
+    --orange-soft: rgba(240,162,67,0.10);
+    --red: #ef5f5f;
+    --red-soft: rgba(239,95,95,0.09);
+    --border: rgba(255,255,255,0.06);
+    --mono: 'SF Mono','Cascadia Code','Fira Code',monospace;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f5f7; --surface: #fff; --surface-2: #f0f1f4; --surface-3: #e6e7eb;
+      --text-1: rgba(0,0,0,0.87); --text-2: rgba(0,0,0,0.52); --text-3: rgba(0,0,0,0.30);
+      --accent: #0063D1; --accent-soft: rgba(0,99,209,0.07);
+      --purple-soft: rgba(167,139,250,0.07); --green-soft: rgba(4,215,147,0.06);
+      --orange-soft: rgba(240,162,67,0.07); --red-soft: rgba(239,95,95,0.06);
+      --border: rgba(0,0,0,0.06);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f5f7; --surface: #fff; --surface-2: #f0f1f4; --surface-3: #e6e7eb;
+    --text-1: rgba(0,0,0,0.87); --text-2: rgba(0,0,0,0.52); --text-3: rgba(0,0,0,0.30);
+    --accent: #0063D1; --accent-soft: rgba(0,99,209,0.07);
+    --purple-soft: rgba(167,139,250,0.07); --green-soft: rgba(4,215,147,0.06);
+    --orange-soft: rgba(240,162,67,0.07); --red-soft: rgba(239,95,95,0.06);
+    --border: rgba(0,0,0,0.06);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0d0f; --surface: #141518; --surface-2: #1b1c21; --surface-3: #232429;
+    --text-1: rgba(255,255,255,0.91); --text-2: rgba(255,255,255,0.56); --text-3: rgba(255,255,255,0.34);
+    --accent: #0077FF; --accent-soft: rgba(0,119,255,0.13);
+    --purple-soft: rgba(167,139,250,0.11); --green-soft: rgba(4,215,147,0.10);
+    --orange-soft: rgba(240,162,67,0.10); --red-soft: rgba(239,95,95,0.09);
+    --border: rgba(255,255,255,0.06);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); border-radius:3px; }
+  * { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.14) transparent; }
+
+  body { background:var(--bg); color:var(--text-1); font:15px/1.7 var(--sans); -webkit-font-smoothing:antialiased; }
+
+  .page { max-width:780px; margin:0 auto; padding:52px 28px 72px; }
+
+  header { margin-bottom:44px; }
+  .badge { font:11px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); margin-bottom:10px; }
+  h1 { font-size:26px; font-weight:720; letter-spacing:-.025em; line-height:1.2; margin-bottom:8px; }
+  .lead { color:var(--text-2); font-size:14.5px; max-width:580px; }
+
+  .sec { margin-bottom:42px; }
+  .sec h2 { font-size:17px; font-weight:660; letter-spacing:-.01em; margin-bottom:5px; }
+  .sec .sec-sub { font-size:13.5px; color:var(--text-2); margin-bottom:18px; }
+
+  .rules { display:flex; flex-direction:column; gap:2px; }
+  .rule {
+    background:var(--surface);
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:36px 1fr;
+    gap:14px;
+    align-items:start;
+  }
+  .rule:first-child { border-radius:10px 10px 3px 3px; }
+  .rule:last-child { border-radius:3px 3px 10px 10px; }
+  .rule:only-child { border-radius:10px; }
+  .rule:not(:first-child):not(:last-child) { border-radius:3px; }
+  .rule-num {
+    width:36px; height:36px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font:13px/1 var(--mono); font-weight:700;
+  }
+  .rule-body h3 { font-size:14px; font-weight:640; margin-bottom:3px; }
+  .rule-body p { font-size:13px; color:var(--text-2); line-height:1.55; }
+  .rule-body code {
+    font:12px var(--mono);
+    background:var(--surface-2);
+    padding:2px 6px;
+    border-radius:4px;
+  }
+
+  .rule.t-core .rule-num { background:var(--accent-soft); color:var(--accent); }
+  .rule.t-vis .rule-num { background:var(--purple-soft); color:var(--purple); }
+  .rule.t-flow .rule-num { background:var(--green-soft); color:var(--green); }
+  .rule.t-warn .rule-num { background:var(--orange-soft); color:var(--orange); }
+  .rule.t-err .rule-num { background:var(--red-soft); color:var(--red); }
+
+  .vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .vs-card {
+    background:var(--surface);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .vs-card .vs-label {
+    font:11px/1 var(--mono);
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .vs-card.vs-do .vs-label { color:var(--green); }
+  .vs-card.vs-dont .vs-label { color:var(--red); }
+  .vs-card ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .vs-card li {
+    font-size:13px; color:var(--text-2); line-height:1.45;
+    padding-left:16px; position:relative;
+  }
+  .vs-card.vs-do li::before { content:''; position:absolute; left:0; top:7px; width:6px; height:6px; border-radius:50%; background:var(--green); opacity:.5; }
+  .vs-card.vs-dont li::before { content:''; position:absolute; left:0; top:7px; width:6px; height:6px; border-radius:50%; background:var(--red); opacity:.5; }
+
+  .swatch-row { display:flex; gap:6px; flex-wrap:wrap; margin:12px 0; }
+  .swatch { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .swatch-dot { width:40px; height:28px; border-radius:6px; }
+  .swatch-name { font:10px var(--mono); color:var(--text-3); }
+  .banned-row { display:flex; gap:4px; flex-wrap:wrap; margin:8px 0; }
+  .banned-chip {
+    font:10px var(--mono); padding:3px 8px; border-radius:100px;
+    background:var(--red-soft); color:var(--red); text-decoration:line-through;
+  }
+
+  .comp-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .comp-card { background:var(--surface); border-radius:10px; padding:16px 18px; }
+  .comp-card .cc-name { font:12px var(--mono); color:var(--purple); margin-bottom:6px; }
+  .comp-card .cc-spec { font-size:12px; color:var(--text-2); line-height:1.5; }
+  .comp-card .cc-spec strong { color:var(--text-1); font-weight:600; }
+
+  .divider { border:none; border-top:1px solid var(--border); margin:36px 0; }
+  .footer { color:var(--text-3); font-size:11px; margin-top:40px; }
+
+  /* ═══ Scaffold Gallery ═══ */
+  .scaffold-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .scaffold-card {
+    background:var(--surface);
+    border-radius:10px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .scaffold-card.full-width {
+    grid-column: 1 / -1;
+  }
+  .sc-preview {
+    height:140px;
+    background:var(--surface-2);
+    position:relative;
+    overflow:hidden;
+    padding:10px;
+    display:flex;
+  }
+  .scaffold-card.full-width .sc-preview {
+    height:120px;
+  }
+  .sc-info { padding:14px 16px; }
+  .sc-tag {
+    font:10px/1 var(--mono);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-3);
+    margin-bottom:5px;
+  }
+  .sc-name {
+    font-size:14px;
+    font-weight:640;
+    color:var(--text-1);
+    margin-bottom:4px;
+  }
+  .sc-desc {
+    font-size:12px;
+    color:var(--text-2);
+    line-height:1.45;
+  }
+  .sc-specs {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    margin-top:8px;
+  }
+  .sc-spec {
+    font:10px var(--mono);
+    padding:3px 7px;
+    border-radius:100px;
+    background:var(--surface-2);
+    color:var(--text-3);
+  }
+
+  /* ── Wireframe: A Welcome ── */
+  .wf-welcome-bg {
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(100,120,255,0.12) 0%, transparent 50%),
+      radial-gradient(circle at 60% 110%, rgba(50,70,230,0.15) 0%, transparent 60%),
+      var(--surface-2);
+  }
+  .wf-welcome-card {
+    position:absolute;
+    left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:65%; height:52%;
+    background:var(--surface);
+    border-radius:6px;
+    opacity:.85;
+  }
+  .wf-welcome-title {
+    position:absolute;
+    left:50%; top:18%;
+    transform:translateX(-50%);
+    width:35%; height:5px;
+    background:var(--text-3);
+    border-radius:3px;
+  }
+  .wf-welcome-sub {
+    position:absolute;
+    left:50%; top:26%;
+    transform:translateX(-50%);
+    width:50%; height:3px;
+    background:var(--surface-3);
+    border-radius:2px;
+  }
+  .wf-welcome-btn {
+    position:absolute;
+    left:50%; top:75%;
+    transform:translateX(-50%);
+    width:22%; height:10px;
+    background:var(--accent);
+    border-radius:100px;
+    opacity:.7;
+  }
+
+  /* ── Wireframe: B Panel ── */
+  .wf-panel-shell {
+    position:absolute; inset:0;
+    background:var(--surface-2);
+    display:flex;
+    flex-direction:column;
+  }
+  .wf-panel-header {
+    height:20px;
+    background:var(--surface);
+    display:flex;
+    align-items:center;
+    padding:0 8px;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .wf-panel-dot { width:6px; height:6px; border-radius:50%; background:var(--purple); opacity:.6; }
+  .wf-panel-title-bar { width:40px; height:3px; background:var(--text-3); border-radius:2px; }
+  .wf-panel-body {
+    flex:1;
+    padding:6px 8px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .wf-bubble { display:flex; gap:4px; align-items:flex-start; }
+  .wf-bubble-av { width:10px; height:10px; border-radius:50%; background:var(--surface-3); flex-shrink:0; }
+  .wf-bubble-msg { height:14px; border-radius:0 4px 4px 4px; background:var(--surface); flex:1; max-width:70%; }
+  .wf-bubble.user { flex-direction:row-reverse; }
+  .wf-bubble.user .wf-bubble-msg { border-radius:4px 4px 0 4px; background:var(--accent); opacity:.5; max-width:55%; }
+  .wf-panel-input { height:16px; background:var(--surface); border-radius:4px; margin:0 8px 6px; flex-shrink:0; }
+
+  /* ── Wireframe: C Data ── */
+  .wf-data-shell { position:absolute; inset:0; display:flex; background:var(--surface-2); }
+  .wf-data-sidebar { width:28%; background:var(--surface); padding:8px 6px; display:flex; flex-direction:column; gap:4px; }
+  .wf-data-tree-item { height:8px; background:var(--surface-2); border-radius:3px; }
+  .wf-data-tree-item.active { background:var(--accent-soft); }
+  .wf-data-main { flex:1; padding:8px; display:flex; flex-direction:column; gap:5px; }
+  .wf-data-stat-row { display:flex; gap:4px; height:20px; }
+  .wf-data-stat { flex:1; background:var(--surface); border-radius:3px; }
+  .wf-data-table-head { height:10px; background:var(--surface); border-radius:3px 3px 0 0; }
+  .wf-data-table-row { height:8px; background:var(--surface); opacity:.6; margin-top:1px; }
+  .wf-data-table-row:last-child { border-radius:0 0 3px 3px; }
+
+  /* ── Wireframe: D Modal ── */
+  .wf-modal-bg { position:absolute; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; }
+  .wf-modal-card { width:55%; height:55%; background:var(--surface); border-radius:6px; padding:8px; display:flex; flex-direction:column; gap:4px; }
+  .wf-modal-title-row { display:flex; justify-content:space-between; align-items:center; }
+  .wf-modal-title { width:40%; height:5px; background:var(--text-3); border-radius:2px; }
+  .wf-modal-x { width:8px; height:8px; border-radius:2px; background:var(--surface-2); }
+  .wf-modal-body { flex:1; background:var(--surface-2); border-radius:3px; }
+  .wf-modal-footer { display:flex; gap:4px; justify-content:flex-end; }
+  .wf-modal-btn { height:10px; width:28%; border-radius:100px; }
+  .wf-modal-btn-ghost { background:var(--surface-2); }
+  .wf-modal-btn-primary { background:var(--accent); opacity:.6; }
+
+  /* ── Wireframe: E Wizard ── */
+  .wf-wizard-shell { position:absolute; inset:0; display:flex; flex-direction:column; background:var(--surface-2); }
+  .wf-wizard-topbar { height:20px; background:var(--surface); display:flex; align-items:center; justify-content:center; gap:4px; padding:0 8px; flex-shrink:0; }
+  .wf-wizard-step { height:8px; border-radius:100px; }
+  .wf-wizard-step.done { background:var(--green-soft); }
+  .wf-wizard-step.active { background:var(--accent); opacity:.6; }
+  .wf-wizard-step.pending { background:var(--surface-3); }
+  .wf-wizard-connector { width:10px; height:1px; background:var(--surface-3); }
+  .wf-wizard-body { flex:1; display:flex; justify-content:center; padding:8px; }
+  .wf-wizard-content { width:65%; display:flex; flex-direction:column; gap:4px; }
+  .wf-wizard-card { background:var(--surface); border-radius:4px; height:22px; padding:4px 6px; display:flex; align-items:center; gap:4px; }
+  .wf-wizard-card-num { width:10px; height:10px; border-radius:3px; background:var(--accent-soft); flex-shrink:0; }
+  .wf-wizard-card-text { height:3px; background:var(--surface-2); border-radius:2px; flex:1; }
+  .wf-wizard-footer { height:18px; background:var(--surface); display:flex; align-items:center; justify-content:flex-end; gap:3px; padding:0 8px; flex-shrink:0; }
+  .wf-wizard-nav-btn { height:8px; width:20%; border-radius:100px; }
+
+  /* ── Wireframe: F Drawer ── */
+  .wf-drawer-shell { position:absolute; inset:0; display:flex; flex-direction:column; background:var(--surface-2); }
+  .wf-drawer-main { flex:1; padding:8px; display:flex; flex-direction:column; gap:4px; }
+  .wf-drawer-bottom { background:var(--surface); border-top:1px solid var(--border); display:flex; flex-direction:column; }
+  .wf-drawer-handle { height:14px; display:flex; align-items:center; padding:0 8px; gap:4px; }
+  .wf-drawer-handle-text { width:35px; height:3px; background:var(--text-3); border-radius:2px; }
+  .wf-drawer-handle-arrow { width:6px; height:6px; margin-left:auto; background:var(--surface-3); border-radius:1px; }
+  .wf-drawer-body-content { height:40px; background:var(--surface-2); margin:0 8px 6px; border-radius:3px; }
+  .wf-drawer-side {
+    position:absolute; right:0; top:0; bottom:56px;
+    width:35%; background:var(--surface); box-shadow:-4px 0 12px rgba(0,0,0,.2);
+    border-left:1px solid var(--border); padding:6px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .wf-drawer-side-header { height:12px; display:flex; align-items:center; justify-content:space-between; }
+  .wf-drawer-side-row { display:flex; gap:4px; align-items:center; }
+  .wf-drawer-side-label { width:25px; height:3px; background:var(--surface-3); border-radius:2px; }
+  .wf-drawer-side-val { width:40px; height:3px; background:var(--text-3); border-radius:2px; }
+  .wf-toast {
+    position:absolute; bottom:8px; right:8px;
+    width:35%; height:22px; background:var(--surface); border-radius:4px;
+    box-shadow:0 2px 8px rgba(0,0,0,.3); padding:3px 5px;
+    display:flex; align-items:center; gap:3px;
+  }
+  .wf-toast-dot { width:5px; height:5px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .wf-toast-text { height:3px; background:var(--text-3); border-radius:2px; flex:1; }
+
+  /* ── Wireframe: G Loading ── */
+  .wf-skeleton-block {
+    width:80%; height:8px; background:var(--surface-3); border-radius:3px;
+    position:relative; overflow:hidden;
+  }
+  .wf-skeleton-block::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg, transparent 25%, rgba(255,255,255,.04) 50%, transparent 75%);
+    background-size:200% 100%;
+    animation:wf-shimmer 1.5s ease infinite;
+  }
+  .wf-skeleton-block.w-short { width:50%; }
+  .wf-skeleton-block.w-mid { width:65%; }
+  @keyframes wf-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .wf-empty-icon { width:22px; height:22px; border-radius:50%; background:var(--surface-3); opacity:.5; }
+  .wf-empty-text { width:45%; height:4px; background:var(--text-3); border-radius:2px; }
+  .wf-empty-sub { width:60%; height:3px; background:var(--surface-3); border-radius:2px; }
+  .wf-empty-btn { width:30%; height:8px; background:var(--accent); border-radius:100px; opacity:.4; }
+  .wf-progress-track { width:70%; height:4px; background:var(--surface-3); border-radius:2px; overflow:hidden; margin-top:4px; }
+  .wf-progress-fill { width:60%; height:100%; background:var(--accent); border-radius:2px; opacity:.7; }
+
+  /* ═══ IDE Frame Layout Wireframe ═══ */
+  .ide-layout-diagram {
+    background:var(--surface);
+    border-radius:10px;
+    padding:16px;
+    position:relative;
+    height:420px;
+    overflow:hidden;
+    font-family:var(--mono);
+  }
+  .ide-lbl {
+    font-size:8px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--text-3);
+    position:absolute;
+    white-space:nowrap;
+  }
+  .ide-frame-box {
+    position:absolute;
+    border-radius:8px;
+    border:1px solid var(--border);
+  }
+  .ide-topbar-wf {
+    position:absolute;
+    top:0; left:0; right:0;
+    height:32px;
+    background:var(--surface-2);
+    border-radius:8px 8px 0 0;
+    display:flex; align-items:center; padding:0 10px; gap:6px;
+  }
+  .ide-topbar-logo { width:14px; height:14px; border-radius:3px; background:var(--accent); opacity:.5; flex-shrink:0; }
+  .ide-topbar-title { width:80px; height:4px; background:var(--text-3); border-radius:2px; }
+  .ide-topbar-center { width:100px; height:4px; background:var(--surface-3); border-radius:2px; margin:0 auto; }
+  .ide-topbar-actions { display:flex; gap:3px; margin-left:auto; }
+  .ide-topbar-act { width:12px; height:12px; border-radius:3px; background:var(--surface-3); }
+
+  .ide-rail-wf {
+    position:absolute;
+    top:36px; left:0;
+    width:32px; bottom:18px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 0;
+  }
+  .ide-rail-btn { width:16px; height:16px; border-radius:4px; background:var(--surface-3); }
+  .ide-rail-btn.active { background:var(--accent-soft); }
+  .ide-rail-spacer { flex:1; }
+
+  .ide-workarea-wf {
+    position:absolute;
+    top:36px; left:36px; right:0; bottom:18px;
+  }
+  .ide-pane-wf {
+    position:absolute;
+    background:var(--surface-2);
+    border-radius:6px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .ide-pane-tabs {
+    height:16px; background:var(--surface); display:flex; align-items:center; gap:2px; padding:0 4px; flex-shrink:0;
+  }
+  .ide-pane-tab { height:10px; padding:0 6px; border-radius:3px 3px 0 0; background:var(--surface-2); }
+  .ide-pane-tab.active { background:var(--surface-3); }
+  .ide-pane-content { flex:1; display:flex; align-items:center; justify-content:center; }
+  .ide-pane-content-text { font-size:8px; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+
+  .ide-handle-wf {
+    position:absolute;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ide-handle-pill { background:rgba(255,255,255,0.12); border-radius:100px; }
+  .ide-handle-wf.h { width:6px; cursor:col-resize; }
+  .ide-handle-wf.h .ide-handle-pill { width:3px; height:28px; }
+  .ide-handle-wf.v { height:6px; cursor:row-resize; }
+  .ide-handle-wf.v .ide-handle-pill { height:3px; width:28px; }
+
+  .ide-terminal-wf {
+    position:absolute;
+    background:var(--surface-2);
+    border-radius:6px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .ide-terminal-header {
+    height:14px; background:var(--surface); display:flex; align-items:center; padding:0 6px; gap:4px; flex-shrink:0;
+  }
+
+  .ide-ai-panel-wf {
+    position:absolute;
+    background:var(--surface-2);
+    border-radius:6px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .ide-ai-header {
+    height:16px; background:var(--surface); display:flex; align-items:center; padding:0 6px; gap:3px; flex-shrink:0;
+  }
+  .ide-ai-dot { width:6px; height:6px; border-radius:50%; background:var(--purple); opacity:.5; }
+  .ide-ai-bubble-row { display:flex; gap:3px; align-items:flex-start; }
+  .ide-ai-av { width:8px; height:8px; border-radius:50%; background:var(--surface-3); flex-shrink:0; }
+  .ide-ai-bub { height:10px; border-radius:0 3px 3px 3px; background:var(--surface); flex:1; max-width:70%; }
+
+  .ide-statusbar-wf {
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height:16px;
+    background:var(--surface-2);
+    border-radius:0 0 8px 8px;
+    display:flex; align-items:center; padding:0 8px; gap:4px;
+  }
+  .ide-sb-dot { width:4px; height:4px; border-radius:50%; background:var(--green); }
+  .ide-sb-text { width:20px; height:2.5px; background:var(--text-3); border-radius:1px; }
+
+  .ide-hint-wf {
+    position:absolute;
+    background:var(--surface);
+    border-radius:6px;
+    padding:6px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .ide-hint-title { font-size:7px; color:var(--text-3); text-transform:uppercase; letter-spacing:.04em; }
+  .ide-hint-pill { height:8px; border-radius:100px; background:rgba(255,255,255,0.06); }
+
+  /* ═══ Spec Table ═══ */
+  .spec-table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+    margin-top:12px;
+  }
+  .spec-table th {
+    text-align:left;
+    font:11px var(--mono);
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--text-3);
+    padding:6px 8px;
+    border-bottom:1px solid var(--border);
+  }
+  .spec-table td {
+    padding:7px 8px;
+    border-bottom:1px solid var(--border);
+    color:var(--text-2);
+    vertical-align:top;
+  }
+  .spec-table td:first-child { color:var(--text-1); font-weight:600; }
+  .spec-table code {
+    font:11px var(--mono);
+    background:var(--surface-2);
+    padding:1px 5px;
+    border-radius:3px;
+  }
+  .spec-table tr:last-child td { border-bottom:none; }
+
+  /* ═══ Wireframe: H Explorer ═══ */
+  .wf-explorer-shell {
+    position:absolute; inset:0; display:flex; background:var(--surface-2);
+  }
+  .wf-explorer-left {
+    width:38%; background:var(--surface); display:flex; flex-direction:column;
+    border-right:1px solid var(--border);
+  }
+  .wf-explorer-header {
+    height:18px; display:flex; align-items:center; padding:0 6px;
+    border-bottom:1px solid var(--border); flex-shrink:0; gap:4px;
+  }
+  .wf-explorer-header-title {
+    font:7px var(--mono); color:var(--text-3); text-transform:uppercase; letter-spacing:.04em;
+  }
+  .wf-explorer-header-btns { margin-left:auto; display:flex; gap:2px; }
+  .wf-explorer-header-btn { width:10px; height:10px; border-radius:3px; background:var(--surface-2); }
+  .wf-explorer-tree { flex:1; padding:4px 0; display:flex; flex-direction:column; gap:1px; overflow:hidden; }
+  .wf-tree-row {
+    display:flex; align-items:center; gap:3px; height:11px; padding:0 6px;
+  }
+  .wf-tree-row.sel { background:rgba(255,255,255,0.08); }
+  .wf-tree-chevron { width:5px; height:5px; flex-shrink:0; }
+  .wf-tree-chevron svg { width:5px; height:5px; }
+  .wf-tree-icon { width:6px; height:6px; border-radius:1px; flex-shrink:0; }
+  .wf-tree-label { height:2.5px; border-radius:1px; flex:1; max-width:70%; }
+  .wf-explorer-section {
+    flex-shrink:0; border-top:1px solid var(--border);
+  }
+  .wf-explorer-section-header {
+    height:14px; display:flex; align-items:center; gap:3px; padding:0 6px;
+    cursor:pointer;
+  }
+  .wf-explorer-section-title {
+    font:6px var(--mono); color:var(--text-3); text-transform:uppercase; letter-spacing:.04em;
+  }
+  .wf-explorer-section-body { padding:3px 6px; display:flex; flex-wrap:wrap; gap:2px; }
+  .wf-explorer-pill { height:8px; border-radius:100px; background:rgba(255,255,255,0.06); }
+
+  .wf-explorer-right {
+    flex:1; display:flex; flex-direction:column; background:var(--bg);
+  }
+  .wf-explorer-tab-bar {
+    height:14px; display:flex; align-items:center; padding:0 6px; gap:3px;
+    background:var(--surface); flex-shrink:0;
+  }
+  .wf-explorer-tab { height:10px; padding:0 5px; border-radius:3px 3px 0 0; }
+  .wf-explorer-tab.active { background:var(--surface-2); }
+  .wf-explorer-tab.inactive { background:transparent; }
+  .wf-explorer-code {
+    flex:1; padding:4px 0; display:flex; flex-direction:column; gap:1px;
+  }
+  .wf-code-line {
+    display:flex; align-items:center; gap:4px; height:7px; padding:0 6px;
+  }
+  .wf-code-gutter { width:12px; text-align:right; flex-shrink:0; }
+  .wf-code-gutter-num { height:2px; width:6px; background:var(--text-3); border-radius:1px; margin-left:auto; opacity:.5; }
+  .wf-code-text { height:2.5px; border-radius:1px; }
+
+  /* ═══ Wireframe: I Config Drawer ═══ */
+  .wf-config-shell {
+    position:absolute; inset:0; display:flex; background:var(--surface-2);
+  }
+  .wf-config-backdrop {
+    position:absolute; inset:0; background:rgba(0,0,0,0.25);
+  }
+  .wf-config-left-content {
+    width:40%; padding:8px; display:flex; flex-direction:column; gap:3px;
+  }
+  .wf-config-drawer {
+    position:absolute; top:0; right:0; bottom:0; width:65%;
+    background:var(--surface); display:flex; flex-direction:column;
+    box-shadow:-4px 0 16px rgba(0,0,0,.3);
+  }
+  .wf-config-drawer-header {
+    height:18px; display:flex; align-items:center; gap:4px; padding:0 8px;
+    background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .wf-config-drawer-badge {
+    height:8px; padding:0 5px; border-radius:100px;
+    background:var(--accent-soft); font:6px var(--mono); color:var(--accent);
+    display:flex; align-items:center;
+  }
+  .wf-config-drawer-title { width:40px; height:3px; background:var(--text-3); border-radius:1.5px; }
+  .wf-config-drawer-close { width:10px; height:10px; border-radius:3px; background:var(--surface-2); margin-left:auto; }
+  .wf-config-drawer-body { flex:1; display:flex; overflow:hidden; }
+  .wf-config-sidebar {
+    width:34%; border-right:1px solid var(--border); padding:5px;
+    display:flex; flex-direction:column; gap:3px; overflow:hidden;
+  }
+  .wf-config-sidebar-label {
+    font:5px var(--mono); color:var(--text-3); text-transform:uppercase; letter-spacing:.04em;
+    padding:2px 3px;
+  }
+  .wf-config-device-card {
+    padding:4px 5px; border-radius:4px; display:flex; flex-direction:column; gap:1px;
+  }
+  .wf-config-device-card.active {
+    background:var(--accent-soft); border:1px solid rgba(0,119,255,0.25);
+  }
+  .wf-config-device-card.inactive {
+    background:var(--surface-2); border:1px solid var(--border);
+  }
+  .wf-config-device-type { height:2px; width:20px; background:var(--text-3); border-radius:1px; }
+  .wf-config-device-name { height:2.5px; width:40px; background:var(--text-2); border-radius:1px; }
+  .wf-config-main {
+    flex:1; padding:6px 8px; display:flex; flex-direction:column; gap:4px; overflow:hidden;
+  }
+  .wf-config-main-title { height:3.5px; width:50px; background:var(--text-1); border-radius:1.5px; }
+  .wf-config-main-sub { height:2px; width:80px; background:var(--text-3); border-radius:1px; }
+  .wf-config-quantity-card {
+    border-radius:4px; background:var(--surface-2); overflow:hidden;
+  }
+  .wf-config-q-header {
+    height:14px; display:flex; align-items:center; gap:3px; padding:0 5px;
+  }
+  .wf-config-q-label { height:2.5px; border-radius:1px; background:var(--text-1); }
+  .wf-config-q-tag { height:7px; padding:0 4px; border-radius:100px; background:var(--surface-3);
+    font:5px var(--mono); color:var(--text-3); display:flex; align-items:center; }
+  .wf-config-q-action { font:5px var(--mono); color:var(--accent); margin-left:auto; }
+  .wf-config-q-body {
+    padding:3px 5px 5px; border-top:1px solid var(--border);
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .wf-config-form-row {
+    display:flex; align-items:center; gap:4px;
+  }
+  .wf-config-form-label { width:22px; height:2px; background:var(--text-3); border-radius:1px; flex-shrink:0; }
+  .wf-config-form-input { flex:1; height:8px; background:var(--bg); border:1px solid var(--border); border-radius:2px; }
+  .wf-config-form-btn { height:8px; padding:0 8px; border-radius:100px; background:var(--accent); opacity:.6; }
+
+  @media (max-width:600px) {
+    .page { padding:32px 16px 48px; }
+    .vs-grid, .comp-grid, .scaffold-grid { grid-template-columns:1fr; }
+    .rule { grid-template-columns:28px 1fr; gap:10px; }
+    .rule-num { width:28px; height:28px; font-size:11px; }
+    .scaffold-card.full-width { grid-column:auto; }
+  }
+</style>
+
+<div class="page">
+
+<header>
+  <div class="badge">BMC-01 &middot; Design Playbook v5</div>
+  <h1>暗色 IDE Demo 设计手册</h1>
+  <p class="lead">从 54 次提交、25 次 polish、3 次架构重构中提炼出的设计决策、组件规格与页面脚手架。写给下一次做类似项目的设计师。</p>
+</header>
+
+<!-- ═══════════ 元规则 ═══════════ -->
+<section class="sec">
+  <h2>三条元规则</h2>
+  <p class="sec-sub">所有具体经验的上位原则。</p>
+  <div class="rules">
+    <div class="rule t-core">
+      <div class="rule-num">01</div>
+      <div class="rule-body">
+        <h3>做减法比做加法难，但更重要</h3>
+        <p>60% 的 polish 提交是在删东西——删按钮、删标签、删描边、删统计条、收提示进 hover。新组件上线时先只放必要信息，后续按需加回来。</p>
+      </div>
+    </div>
+    <div class="rule t-core">
+      <div class="rule-num">02</div>
+      <div class="rule-body">
+        <h3>布局方案必须同时回答「全局」和「局部」</h3>
+        <p>报警配置经历了浮层卡→泳道→节点图→泳道+浮层卡四次迭代。类似配置型 UI 应在概念设计阶段就把「全局概览」与「单项深编辑」两个维度画出来。</p>
+      </div>
+    </div>
+    <div class="rule t-core">
+      <div class="rule-num">03</div>
+      <div class="rule-body">
+        <h3>视觉约束必须自动化</h3>
+        <p>色值禁用列表、描边上限、滚动条规则——只写在文档里会不断被违反。用 <code>check-ui-style.mjs</code> + PostToolUse hook 实现自动拦截。当一个问题出现第 2 次，写进文档；第 3 次，写成自动检查。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 视觉原则 ═══════════ -->
+<section class="sec">
+  <h2>视觉原则</h2>
+  <p class="sec-sub">暗色 IDE 主题下反复验证过的视觉决策。</p>
+  <div class="rules">
+    <div class="rule t-vis">
+      <div class="rule-num">填充</div>
+      <div class="rule-body">
+        <h3>填充优先，减少描边（Fill over Stroke）</h3>
+        <p>卡片/按钮/chip 用 <code>--surface-*</code> 灰阶分层替代 border。每页白描边上限 2 处（R4 自动检查）。分隔线用 <code>rgba(255,255,255,.06)</code> 的 border-bottom 细线。Tag 背景用 <code>color-mix(in srgb, var(--color) 20%, transparent)</code>。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">图标</div>
+      <div class="rule-body">
+        <h3>面型图标，统一 AI 标识</h3>
+        <p>图标用 <code>fill="currentColor"</code> 面型。AI/agent 入口统一四角星面型 + <code>#a78bfa</code> 紫色，path 固定为 <code>M12 2l1.9 6.1L20 10...</code>。禁止描边星形、机器人、对话泡（R3 自动检查）。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">文字</div>
+      <div class="rule-body">
+        <h3>三级透明度文本体系</h3>
+        <p>主文本 <code>.90</code>、辅助 <code>.60</code>、弱化 <code>.40</code>。标题 20px/700，section 16px/650，卡片标题 14px/600，正文 13px/400，标签 12px/500。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">造型</div>
+      <div class="rule-body">
+        <h3>胶囊 + 大圆角</h3>
+        <p>按钮/chip/输入框 <code>border-radius: 100px</code>；卡片 <code>16px</code>；IDE 面板 <code>8px</code>。Pane 实底 <code>var(--background)</code>，禁止半透明玻璃底。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 配色 ═══════════ -->
+<section class="sec">
+  <h2>配色系统</h2>
+  <p class="sec-sub">四级灰阶表面 + 限定功能色。</p>
+  <div style="background:var(--surface);border-radius:10px;padding:18px 20px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;">Surface Scale</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-dot" style="background:#101010;"></div><span class="swatch-name">#101010</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#161616;"></div><span class="swatch-name">#161616</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#1c1c1c;"></div><span class="swatch-name">#1c1c1c</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#262626;"></div><span class="swatch-name">#262626</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#313131;"></div><span class="swatch-name">#313131</span></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin:14px 0 10px;">Function Colors</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-dot" style="background:#0077FF;"></div><span class="swatch-name">主色</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#a78bfa;"></div><span class="swatch-name">AI/紫</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#04d793;"></div><span class="swatch-name">成功</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#0077FF;"></div><span class="swatch-name">CTA</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#ffaa3b;"></div><span class="swatch-name">警告</span></div>
+      <div class="swatch"><div class="swatch-dot" style="background:#ff4b7b;"></div><span class="swatch-name">危险</span></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin:14px 0 8px;">Banned Colors (R2)</div>
+    <div class="banned-row">
+      <span class="banned-chip">#4369ef</span>
+      <span class="banned-chip">#3457d5</span>
+      <span class="banned-chip">#5a92e6</span>
+      <span class="banned-chip">#4F46E5</span>
+      <span class="banned-chip">#5b8af5</span>
+      <span class="banned-chip">#6159ef</span>
+      <span class="banned-chip">#7c3aed</span>
+      <span class="banned-chip">#8b5cf6</span>
+      <span class="banned-chip">#6366f1</span>
+      <span class="banned-chip">#818cf8</span>
+      <span class="banned-chip">#a5b4fc</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ IDE 框架布局 ═══════════ -->
+<section class="sec">
+  <h2>IDE 框架布局</h2>
+  <p class="sec-sub">整个应用的骨架结构。所有页面内容运行在这个 shell 之内。</p>
+
+  <!-- 交互式布局图 -->
+  <div class="ide-layout-diagram">
+    <!-- Topbar 48px -->
+    <div class="ide-topbar-wf">
+      <div class="ide-topbar-logo"></div>
+      <div class="ide-topbar-title"></div>
+      <div class="ide-topbar-center"></div>
+      <div class="ide-topbar-actions">
+        <div class="ide-topbar-act"></div>
+        <div class="ide-topbar-act"></div>
+        <div class="ide-topbar-act"></div>
+      </div>
+    </div>
+
+    <!-- Activity Rail 48px -->
+    <div class="ide-rail-wf">
+      <div class="ide-rail-btn active"></div>
+      <div class="ide-rail-btn"></div>
+      <div class="ide-rail-btn"></div>
+      <div class="ide-rail-btn"></div>
+      <div class="ide-rail-spacer"></div>
+      <div class="ide-rail-btn" style="border-radius:50%;"></div>
+      <div class="ide-rail-btn"></div>
+    </div>
+
+    <!-- Workarea -->
+    <div class="ide-workarea-wf">
+      <!-- Pane A (top-left, main content) -->
+      <div class="ide-pane-wf" style="top:0;left:0;right:calc(35% + 10px);bottom:calc(30% + 10px);">
+        <div class="ide-pane-tabs">
+          <div class="ide-pane-tab active" style="width:36px;"></div>
+          <div class="ide-pane-tab" style="width:28px;"></div>
+        </div>
+        <div class="ide-pane-content">
+          <div class="ide-pane-content-text">Leaf Pane (iframe)</div>
+        </div>
+      </div>
+
+      <!-- Split handle (vertical between main and terminal) -->
+      <div class="ide-handle-wf v" style="left:0;right:calc(35% + 10px);bottom:calc(30% + 2px);height:6px;">
+        <div class="ide-handle-pill"></div>
+      </div>
+
+      <!-- Terminal dock (bottom) -->
+      <div class="ide-terminal-wf" style="left:0;right:calc(35% + 10px);bottom:0;height:30%;">
+        <div class="ide-terminal-header">
+          <div style="width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.5;"></div>
+          <div style="width:30px;height:3px;background:var(--text-3);border-radius:2px;"></div>
+        </div>
+        <div style="flex:1;padding:4px 6px;">
+          <div style="font:7px var(--mono);color:var(--green);opacity:.6;line-height:1.8;">$ agent 巡检在线 BMC<br><span style="color:var(--text-3);">▸ 正在扫描 5 台设备...</span></div>
+        </div>
+      </div>
+
+      <!-- Split handle (horizontal between panes and AI panel) -->
+      <div class="ide-handle-wf h" style="right:calc(35% + 2px);top:0;bottom:0;width:6px;">
+        <div class="ide-handle-pill"></div>
+      </div>
+
+      <!-- AI Assist Panel (right) -->
+      <div class="ide-ai-panel-wf" style="top:0;right:0;bottom:0;width:35%;">
+        <div class="ide-ai-header">
+          <div class="ide-ai-dot"></div>
+          <div style="width:40px;height:3px;background:var(--text-3);border-radius:2px;"></div>
+        </div>
+        <div style="flex:1;padding:5px 6px;display:flex;flex-direction:column;gap:4px;">
+          <div class="ide-ai-bubble-row">
+            <div class="ide-ai-av"></div>
+            <div class="ide-ai-bub"></div>
+          </div>
+          <div class="ide-ai-bubble-row" style="flex-direction:row-reverse;">
+            <div class="ide-ai-av"></div>
+            <div class="ide-ai-bub" style="border-radius:3px 3px 0 3px;background:var(--accent);opacity:.4;max-width:55%;"></div>
+          </div>
+          <div class="ide-ai-bubble-row">
+            <div class="ide-ai-av"></div>
+            <div class="ide-ai-bub" style="height:16px;"></div>
+          </div>
+        </div>
+        <div style="height:14px;background:var(--surface);border-radius:3px;margin:0 6px 5px;flex-shrink:0;"></div>
+      </div>
+    </div>
+
+    <!-- RepoHint Popover (bottom-left) -->
+    <div class="ide-hint-wf" style="left:38px;bottom:22px;width:90px;">
+      <div class="ide-hint-title">操作建议</div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:1px;">
+        <div style="width:12px;height:12px;border-radius:3px;background:rgba(255,255,255,0.06);flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="width:90%;height:2.5px;background:var(--text-3);border-radius:1px;"></div>
+          <div style="width:60%;height:2px;background:var(--surface-3);border-radius:1px;margin-top:2px;"></div>
+        </div>
+      </div>
+      <div class="ide-hint-pill" style="width:70%;"></div>
+      <div class="ide-hint-pill" style="width:55%;"></div>
+      <div class="ide-hint-pill" style="width:80%;"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="ide-statusbar-wf">
+      <div class="ide-sb-dot"></div>
+      <div class="ide-sb-text"></div>
+      <div class="ide-sb-text" style="width:14px;"></div>
+      <div style="flex:1;"></div>
+      <div class="ide-sb-text" style="width:30px;"></div>
+      <div class="ide-sb-text" style="width:16px;"></div>
+    </div>
+
+    <!-- Labels -->
+    <div class="ide-lbl" style="top:10px;left:110px;">Topbar · 48px</div>
+    <div class="ide-lbl" style="top:52px;left:2px;writing-mode:vertical-lr;">Rail 48px</div>
+    <div class="ide-lbl" style="bottom:2px;right:10px;">Status Strip · 24px</div>
+  </div>
+
+  <!-- 尺寸规格表 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:12px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">区域尺寸</div>
+    <table class="spec-table">
+      <tr><th>区域</th><th>尺寸</th><th>说明</th></tr>
+      <tr><td>Topbar</td><td><code>min-height: 48px</code></td><td>品牌 Logo + 工程名 + 窗口操作（终端/主题/AI 面板切换）</td></tr>
+      <tr><td>Activity Rail</td><td><code>width: 48px</code></td><td>垂直图标栏，30&times;30 按钮，底部罗盘/头像/设置</td></tr>
+      <tr><td>Workarea</td><td><code>flex: 1</code></td><td>递归分屏树，每个叶子节点是一个带 tab 的 iframe pane</td></tr>
+      <tr><td>AI 助手面板</td><td><code>min 260px / max 680px</code></td><td>右侧可拖拽，默认 ~40% 屏宽</td></tr>
+      <tr><td>Terminal Dock</td><td><code>默认 240px</code></td><td>底部 Agent 终端，min 140px / max 600px</td></tr>
+      <tr><td>Status Strip</td><td><code>min-height: 24px</code></td><td>左：BMC/SSH/Docker/问题数；右：工程名/MCP/终端切换</td></tr>
+      <tr><td>Tab Row</td><td><code>height: 33px</code></td><td>叶子 pane 内的标签栏，tab 25px 高，max-width 168px</td></tr>
+    </table>
+  </div>
+
+  <!-- 间距 Token -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">Spacing Tokens</div>
+    <table class="spec-table">
+      <tr><th>Token</th><th>值</th><th>用途</th></tr>
+      <tr><td><code>--ide-frame-pane-inset-top</code></td><td><code>6px</code></td><td>Workarea 上内边距</td></tr>
+      <tr><td><code>--ide-frame-pane-inset-h</code></td><td><code>8px</code></td><td>Pane 之间水平间隙 = 拖动手柄宽度</td></tr>
+      <tr><td><code>--ide-frame-pane-inset-bottom</code></td><td><code>8px</code></td><td>Workarea 下内边距</td></tr>
+      <tr><td><code>--ide-frame-header-height</code></td><td><code>32px</code></td><td>Pane 头高度</td></tr>
+    </table>
+  </div>
+
+  <!-- 分屏逻辑 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">分屏树（Split Pane）逻辑</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>Workarea 内容是一棵<strong style="color:var(--text-1);">递归分屏树</strong>，数据模型：</p>
+      <div style="background:var(--surface-2);border-radius:6px;padding:10px 12px;margin:8px 0;font:12px var(--mono);color:var(--text-2);line-height:1.7;overflow-x:auto;">
+        <span style="color:var(--purple);">LeafPane</span> = { kind: 'leaf', tabs: TabEntry[], activeTabId }<br>
+        <span style="color:var(--purple);">SplitPane</span> = { kind: 'split', dir: '<span style="color:var(--accent);">h</span>' | '<span style="color:var(--accent);">v</span>', ratio: 0-1, a: PaneNode, b: PaneNode }<br>
+        <span style="color:var(--purple);">PaneNode</span> = LeafPane | SplitPane
+      </div>
+      <p style="margin-top:8px;"><strong style="color:var(--text-1);">拖动手柄</strong>：透明间隙 <code>var(--ide-frame-pane-inset-h)</code> + 居中 4&times;44px 胶囊，hover 时 45% 白 + 56px 高。<code>::before</code> 扩展抓取区 &plusmn;5px。ratio 限制 [0.1, 0.9]。</p>
+      <p style="margin-top:6px;"><strong style="color:var(--text-1);">Tab 拖拽分屏</strong>：拖动 tab 到另一个 pane 时显示 5 个 DropZone（中/左/右/上/下），放入中间合并标签，放入四边创建新 SplitPane（50/50）。</p>
+      <p style="margin-top:6px;"><strong style="color:var(--text-1);">叶子 Pane</strong>：实底 <code>var(--background)</code> + 圆角 <code>var(--radius-md)</code> + 边框 + 阴影。iframe 加载页面内容，不继承宿主 CSS。</p>
+    </div>
+  </div>
+
+  <!-- 操作提示弹窗 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">左下角操作提示（RepoHintPopover）</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>左下角 Activity Rail 的<strong style="color:var(--text-1);">罗盘按钮</strong>（切仓时自动弹出）触发一个浮层弹窗：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">结构</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.55;">
+            &bull; 标题栏「操作建议」+ 关闭按钮<br>
+            &bull; 仓身份（图标 + 仓库名 + 描述）<br>
+            &bull; 分组功能清单（胶囊 pill 按钮）<br>
+            &bull; Pill 点击 → 派发 agent 任务 或 打开视图
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">规格</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.55;">
+            &bull; 宽 <code>288px</code>，<code>position: fixed</code><br>
+            &bull; 底色 <code>#161616</code>，<code>border-radius: 12px</code><br>
+            &bull; 阴影 <code>0 10px 34px rgba(0,0,0,.5)</code><br>
+            &bull; Pill：<code>radius 100px</code>，<code>rgba(.06)</code> 底
+          </div>
+        </div>
+      </div>
+      <p>关闭：点空白 / Esc / 窗口失焦（iframe 偷走焦点时靠 <code>window blur</code> 兜底）。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 资源管理器 ═══════════ -->
+<section class="sec">
+  <h2>资源管理器（ExplorerView）</h2>
+  <p class="sec-sub">左侧 280px 固定面板，文件树 + 可折叠功能区。Activity Rail 点击「文件夹」图标激活。</p>
+
+  <!-- 交互式布局图 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px;position:relative;height:260px;overflow:hidden;">
+    <div class="wf-explorer-shell">
+      <!-- Left panel -->
+      <div class="wf-explorer-left">
+        <div class="wf-explorer-header">
+          <span class="wf-explorer-header-title">资源管理器</span>
+          <div class="wf-explorer-header-btns">
+            <div class="wf-explorer-header-btn" style="background:rgba(255,255,255,0.10);"></div>
+            <div class="wf-explorer-header-btn"></div>
+          </div>
+        </div>
+        <!-- Section label -->
+        <div style="height:13px;display:flex;align-items:center;gap:2px;padding:0 6px;">
+          <div style="width:4px;height:4px;border-left:2px solid var(--text-3);border-bottom:2px solid var(--text-3);transform:rotate(-45deg);opacity:.5;"></div>
+          <span style="font:6px var(--mono);color:var(--text-3);letter-spacing:.04em;">VPD-MAIN</span>
+        </div>
+        <!-- Tree -->
+        <div class="wf-explorer-tree">
+          <div class="wf-tree-row" style="padding-left:6px;">
+            <div class="wf-tree-icon" style="background:var(--accent);opacity:.4;"></div>
+            <div class="wf-tree-label" style="background:var(--text-2);max-width:55%;"></div>
+          </div>
+          <div class="wf-tree-row sel" style="padding-left:14px;">
+            <div class="wf-tree-icon" style="background:#ce9178;opacity:.5;"></div>
+            <div class="wf-tree-label" style="background:var(--text-1);max-width:50%;"></div>
+          </div>
+          <div class="wf-tree-row" style="padding-left:14px;">
+            <div class="wf-tree-icon" style="background:#4ec9b0;opacity:.5;"></div>
+            <div class="wf-tree-label" style="background:var(--text-2);max-width:45%;"></div>
+          </div>
+          <div class="wf-tree-row" style="padding-left:6px;">
+            <div class="wf-tree-icon" style="background:var(--accent);opacity:.4;"></div>
+            <div class="wf-tree-label" style="background:var(--text-2);max-width:40%;"></div>
+          </div>
+          <div class="wf-tree-row" style="padding-left:20px;">
+            <div class="wf-tree-icon" style="background:#89d7e9;opacity:.5;"></div>
+            <div class="wf-tree-label" style="background:var(--text-2);max-width:60%;"></div>
+          </div>
+          <div class="wf-tree-row" style="padding-left:20px;">
+            <div class="wf-tree-icon" style="background:#ce9178;opacity:.5;"></div>
+            <div class="wf-tree-label" style="background:var(--text-2);max-width:35%;"></div>
+          </div>
+        </div>
+        <!-- Collapsible section: Template Browser -->
+        <div class="wf-explorer-section">
+          <div class="wf-explorer-section-header">
+            <div style="width:4px;height:4px;border-left:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);transform:rotate(-45deg);opacity:.5;"></div>
+            <span class="wf-explorer-section-title">模版浏览器</span>
+          </div>
+          <div class="wf-explorer-section-body">
+            <div class="wf-explorer-pill" style="width:30px;"></div>
+            <div class="wf-explorer-pill" style="width:22px;"></div>
+            <div class="wf-explorer-pill" style="width:26px;"></div>
+            <div class="wf-explorer-pill" style="width:18px;"></div>
+            <div class="wf-explorer-pill" style="width:24px;"></div>
+          </div>
+        </div>
+        <!-- Collapsible section: Timeline -->
+        <div class="wf-explorer-section">
+          <div class="wf-explorer-section-header">
+            <div style="width:4px;height:4px;border-left:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);transform:rotate(225deg);opacity:.5;"></div>
+            <span class="wf-explorer-section-title">Timeline</span>
+          </div>
+        </div>
+      </div>
+      <!-- Right code pane -->
+      <div class="wf-explorer-right">
+        <div class="wf-explorer-tab-bar">
+          <div class="wf-explorer-tab active" style="width:30px;"></div>
+          <div class="wf-explorer-tab inactive" style="width:24px;"></div>
+        </div>
+        <div class="wf-explorer-code">
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:30%;background:#569cd6;opacity:.4;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:55%;background:#9cdcfe;opacity:.35;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:45%;background:#ce9178;opacity:.3;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:60%;background:#9cdcfe;opacity:.35;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:35%;background:#b5cea8;opacity:.3;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:50%;background:#9cdcfe;opacity:.35;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:25%;background:#6a9955;opacity:.3;"></div></div>
+          <div class="wf-code-line"><div class="wf-code-gutter"><div class="wf-code-gutter-num"></div></div><div class="wf-code-text" style="width:42%;background:#ce9178;opacity:.3;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结构规格 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:12px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">左面板结构</div>
+    <table class="spec-table">
+      <tr><th>区域</th><th>尺寸</th><th>样式</th></tr>
+      <tr><td>面板宽度</td><td><code>280px</code>，<code>flexShrink: 0</code></td><td><code>var(--surface-2)</code> 底 + <code>border-right: 1px solid var(--border-subtle)</code></td></tr>
+      <tr><td>面板头</td><td><code>height: 44px</code></td><td><code>500 11px</code> 大写 + <code>0.06em</code> 字距 + <code>--foreground-secondary</code></td></tr>
+      <tr><td>功能按钮</td><td><code>padding: 5px</code></td><td>Active: <code>rgba(255,255,255,0.10)</code> 底 + <code>8px</code> radius；Inactive: 透明</td></tr>
+      <tr><td>Section Label</td><td><code>height: 32px</code></td><td>10x10 chevron + 大写标题 + <code>--foreground-muted</code></td></tr>
+      <tr><td>树区</td><td><code>flex: 1</code>，<code>minHeight: 60px</code></td><td><code>overflowY: auto</code></td></tr>
+      <tr><td>ExplorerSection</td><td>头 <code>30px</code>，<code>maxHeight: 42%</code></td><td>可折叠 + <code>border-top</code> 分割</td></tr>
+    </table>
+  </div>
+
+  <!-- 树节点规格 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">TreeItem 节点</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>递归 <code>TreeItem</code> 组件，数据模型：</p>
+      <div style="background:var(--surface-2);border-radius:6px;padding:10px 12px;margin:8px 0;font:12px var(--mono);color:var(--text-2);line-height:1.7;overflow-x:auto;">
+        <span style="color:var(--purple);">FileNode</span> = { name, type: '<span style="color:var(--accent);">file</span>' | '<span style="color:var(--accent);">dir</span>', fileId?, lang?, children? }
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">布局</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.55;">
+            &bull; 缩进 = <code>8 + depth &times; 14px</code> 左 padding<br>
+            &bull; 行高 <code>lineHeight: 1.6</code>，垂直 padding <code>2px</code><br>
+            &bull; 字号 <code>12.5px</code>，gap <code>4px</code><br>
+            &bull; 目录默认展开 <code>depth &lt; 2</code>
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">状态 &amp; 图标</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.55;">
+            &bull; 选中：<code>rgba(255,255,255,0.08)</code> + <code>--foreground</code> 色<br>
+            &bull; Hover：<code>rgba(255,255,255,0.04)</code><br>
+            &bull; Chevron：12&times;12 SVG，rotate(90&deg;) 展开，<code>0.12s</code><br>
+            &bull; 文件图标按 lang 着色（py/md/sr/默认）
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部折叠区 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">底部可折叠功能区</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">模版浏览器</div>
+          <div style="font-size:12px;line-height:1.55;">
+            分组展示模版 pill 按钮（<code>ChipButton</code>），点击派发 <code>onRunAgent</code> 或 <code>onOpenView</code>。<br>
+            Pill：<code>radius 100px</code>，<code>rgba(.06)</code> 底，<code>11.5px/600</code>
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">Timeline</div>
+          <div style="font-size:12px;line-height:1.55;">
+            最近变更记录：圆点 + 描述文本 + 时间戳。<br>
+            默认折叠（<code>defaultOpen: false</code>）
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧代码面板 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">右侧代码面板（CodePane）</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>选中文件后右侧显示语法高亮代码预览：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">代码区</div>
+          <div style="font-size:12px;line-height:1.55;">
+            &bull; 字体 <code>ui-monospace, JetBrains Mono, Menlo</code><br>
+            &bull; 字号 <code>12.5px</code>，行高 <code>1.7</code><br>
+            &bull; 行号 <code>11px</code>，<code>min-width: 28px</code><br>
+            &bull; 代码行 <code>paddingLeft: 18px</code>
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:4px;">诊断 &amp; 提示</div>
+          <div style="font-size:12px;line-height:1.55;">
+            &bull; Error：<code>wavy #f87171</code> 下划线<br>
+            &bull; Warning：<code>wavy #fbbf24</code> 下划线<br>
+            &bull; 北向映射：<code>dotted rgba(148,163,184,.38)</code><br>
+            &bull; Tooltip：<code>#1a1a2e</code> 底，<code>radius 6px</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 配置抽屉 ═══════════ -->
+<section class="sec">
+  <h2>配置抽屉（Config Drawer）</h2>
+  <p class="sec-sub">右侧滑入式面板。核心模式是「遮罩 + 固定面板 + Header」外壳，内部布局按场景自由组合。</p>
+
+  <!-- 交互式布局图：展示通用外壳，内部用虚线分区暗示灵活性 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px;position:relative;height:260px;overflow:hidden;">
+    <div class="wf-config-shell">
+      <!-- Dimmed background content -->
+      <div class="wf-config-left-content">
+        <div style="height:4px;width:45%;background:var(--surface-3);border-radius:2px;"></div>
+        <div style="height:3px;width:60%;background:var(--surface-3);border-radius:2px;opacity:.5;"></div>
+        <div style="height:3px;width:35%;background:var(--surface-3);border-radius:2px;opacity:.5;"></div>
+        <div style="height:3px;width:50%;background:var(--surface-3);border-radius:2px;opacity:.3;margin-top:2px;"></div>
+        <div style="height:3px;width:40%;background:var(--surface-3);border-radius:2px;opacity:.3;"></div>
+      </div>
+      <div class="wf-config-backdrop"></div>
+      <!-- Drawer — generic shell -->
+      <div class="wf-config-drawer">
+        <div class="wf-config-drawer-header">
+          <div class="wf-config-drawer-badge">配置</div>
+          <div class="wf-config-drawer-title"></div>
+          <div style="font:6px var(--mono);color:var(--text-3);">副标题</div>
+          <div class="wf-config-drawer-close"></div>
+        </div>
+        <!-- Body: 用虚线框标注内容区是灵活的 -->
+        <div style="flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;overflow:hidden;">
+          <!-- 内容区虚线提示 -->
+          <div style="flex:1;border:1px dashed rgba(255,255,255,0.10);border-radius:6px;display:flex;flex-direction:column;padding:6px;gap:4px;">
+            <div style="font:6px var(--mono);color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">内部布局自由组合</div>
+            <!-- 示例：可展开卡片列表 -->
+            <div class="wf-config-quantity-card">
+              <div class="wf-config-q-header">
+                <div class="wf-config-q-label" style="width:30px;"></div>
+                <div class="wf-config-q-tag">配置项</div>
+                <span style="font:5px var(--mono);color:var(--green);">已配置</span>
+                <div class="wf-config-q-action">编辑</div>
+              </div>
+            </div>
+            <div class="wf-config-quantity-card" style="border:1px solid rgba(0,119,255,0.25);">
+              <div class="wf-config-q-header">
+                <div class="wf-config-q-label" style="width:25px;"></div>
+                <div class="wf-config-q-tag">配置项</div>
+                <div class="wf-config-q-action">收起</div>
+              </div>
+              <div class="wf-config-q-body">
+                <div class="wf-config-form-row">
+                  <div class="wf-config-form-label"></div>
+                  <div class="wf-config-form-input"></div>
+                </div>
+                <div class="wf-config-form-row">
+                  <div class="wf-config-form-label"></div>
+                  <div class="wf-config-form-input"></div>
+                </div>
+                <div style="display:flex;gap:3px;margin-top:2px;">
+                  <div class="wf-config-form-btn"></div>
+                </div>
+              </div>
+            </div>
+            <div class="wf-config-quantity-card">
+              <div class="wf-config-q-header">
+                <div class="wf-config-q-label" style="width:22px;"></div>
+                <div class="wf-config-q-tag">配置项</div>
+                <div class="wf-config-q-action">+ 添加</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 外壳规格（必须遵守） -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:12px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;">外壳规格（所有抽屉必须遵守）</div>
+    <table class="spec-table">
+      <tr><th>属性</th><th>值</th><th>说明</th></tr>
+      <tr><td>定位</td><td><code>position: fixed; top:0; right:0; bottom:0</code></td><td>从右侧边缘覆盖</td></tr>
+      <tr><td>宽度</td><td><code>min(58-72vw, 780-920px)</code></td><td>按内容复杂度选择区间，见变体表</td></tr>
+      <tr><td>背景</td><td><code>var(--surface-1)</code></td><td>消费 PTO token</td></tr>
+      <tr><td>边框</td><td><code>borderLeft: 1px solid var(--border-default)</code></td><td>左侧分割线</td></tr>
+      <tr><td>阴影</td><td><code>var(--shadow-lg)</code></td><td>PTO shadow token</td></tr>
+      <tr><td>层级</td><td><code>z-index: 100</code></td><td>遮罩 90 + 面板 100</td></tr>
+      <tr><td>遮罩</td><td><code>rgba(0,0,0,0.35)</code></td><td>点击遮罩关闭抽屉</td></tr>
+      <tr><td>Header</td><td><code>padding: 12px 16px</code></td><td>Pill 徽章 + 标题（14px/500）+ 副标题 + 关闭按钮</td></tr>
+    </table>
+  </div>
+
+  <!-- 内部布局：可选模式 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">内部布局（按场景选择，不固定）</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>外壳内的 body 是 <code>flex: 1; overflow: hidden</code>，内部布局按场景组合：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--accent);margin-bottom:4px;">单栏详情</div>
+          <div style="font-size:12px;line-height:1.55;">
+            整个 body 就是一个滚动内容区。适合硬件拓扑详情、整机视图等纯展示场景。<br>
+            <code>overflowY: auto; padding: 16px</code>
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--accent);margin-bottom:4px;">两栏 master-detail</div>
+          <div style="font-size:12px;line-height:1.55;">
+            左侧列表（<code>width: 220px</code>）+ 右侧表单。适合板卡告警等需要「选对象 → 编配置」的场景。<br>
+            <code>display: flex</code>
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--accent);margin-bottom:4px;">卡片列表 + 展开编辑</div>
+          <div style="font-size:12px;line-height:1.55;">
+            垂直堆叠可展开卡（<code>radius-lg + surface-2</code> 底），点击展开内联表单。展开态边框 <code>color-mix(primary 40%)</code>。
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--accent);margin-bottom:4px;">表格 / 数据视图</div>
+          <div style="font-size:12px;line-height:1.55;">
+            内容区直接放表格或数据网格。适合查看对象生成结果、属性批量编辑等数据密集场景。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 表单组件（可选复用件） -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">可复用的表单组件</div>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+      <p>以下组件在抽屉内部按需组合，不是抽屉的必需件：</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">Labeled 表单行</div>
+          <div style="font-size:12px;line-height:1.55;">
+            Label 宽 <code>96px</code> 固定，<code>12px</code> 字号，<code>--foreground-secondary</code> 色。右侧 <code>flex: 1</code> 放输入控件。Info 圆点 <code>14&times;14</code> <code>radius-pill</code>。
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">KnowSelect 智能下拉</div>
+          <div style="font-size:12px;line-height:1.55;">
+            全宽 <code>select</code>，<code>padding: 6px 8px</code>。<code>var(--surface-1)</code> 底 + <code>radius-sm</code>。带推荐标识和说明文字。
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">可展开配置卡</div>
+          <div style="font-size:12px;line-height:1.55;">
+            <code>radius-lg</code> + <code>surface-2</code> 底。展开态：<code>border: 1px solid color-mix(primary 40%)</code>。头部有「已配置」/「编辑」/「收起」/「+ 添加」四态。
+          </div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:6px;padding:10px;">
+          <div style="font:10px var(--mono);color:var(--purple);margin-bottom:4px;">生成预览区</div>
+          <div style="font-size:12px;line-height:1.55;">
+            操作结果展示。<code>surface-1</code> 底 + <code>radius-md</code> + <code>border-subtle</code> 边框。展示创建/复用的 key pill + 警告行。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 四种变体 -->
+  <div style="background:var(--surface);border-radius:10px;padding:16px 18px;margin-top:10px;">
+    <div style="font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">项目中的 4 种变体</div>
+    <table class="spec-table">
+      <tr><th>组件</th><th>宽度</th><th>内部布局</th><th>特殊</th></tr>
+      <tr><td>BoardAlarmDrawer</td><td><code>min(70vw, 900px)</code></td><td>两栏 master-detail</td><td>左 220px 器件列表 + 右知识库表单</td></tr>
+      <tr><td>HardwareTopologyView</td><td><code>min(65vw, 860px)</code></td><td>单栏详情</td><td><code>#0d1117</code> 底色</td></tr>
+      <tr><td>HardwareTopologyCanvas</td><td><code>min(58vw, 780px)</code></td><td>单栏详情</td><td>CSS slide-in <code>translateX(24px)</code></td></tr>
+      <tr><td>ServerAssociationView</td><td><code>min(72%, 920px)</code></td><td>单栏详情</td><td>带 <code>2px</code> 品牌色边框</td></tr>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 页面脚手架画廊 ═══════════ -->
+<section class="sec">
+  <h2>页面脚手架画廊</h2>
+  <p class="sec-sub">9 种已验证的页面原型。A-G 有生产级模板（<code>.claude/skills/public-page-scaffold/templates/</code>），H-I 是 React 组件级脚手架。A-C 是页面级骨架，D-G 是覆盖层 / 状态组件，H-I 是 IDE 内置面板。</p>
+
+  <div class="scaffold-grid">
+
+    <!-- A: Fullscreen Welcome -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div class="wf-welcome-bg"></div>
+        <div class="wf-welcome-title"></div>
+        <div class="wf-welcome-sub"></div>
+        <div class="wf-welcome-card"></div>
+        <div class="wf-welcome-btn"></div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template A</div>
+        <div class="sc-name">全屏欢迎页</div>
+        <div class="sc-desc">蓝紫渐变背景 + 居中卡片网格 + CTA 胶囊按钮。用于 welcome、install-entry 等引导入口。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">gradient bg</span>
+          <span class="sc-spec">#111113 card</span>
+          <span class="sc-spec">#0077FF CTA</span>
+          <span class="sc-spec">16px radius</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: AI Assistant Panel -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div class="wf-panel-shell">
+          <div class="wf-panel-header">
+            <div class="wf-panel-dot"></div>
+            <div class="wf-panel-title-bar"></div>
+          </div>
+          <div class="wf-panel-body">
+            <div class="wf-bubble"><div class="wf-bubble-av"></div><div class="wf-bubble-msg"></div></div>
+            <div class="wf-bubble user"><div class="wf-bubble-av"></div><div class="wf-bubble-msg"></div></div>
+            <div class="wf-bubble"><div class="wf-bubble-av"></div><div class="wf-bubble-msg" style="max-width:80%;height:20px;"></div></div>
+          </div>
+          <div class="wf-panel-input"></div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template B</div>
+        <div class="sc-name">智能助手面板</div>
+        <div class="sc-desc">实底 #101010 + 100vh 面板 + 紫色 ✦ 四角星 + 对话气泡 + 建议 chip + 输入区。用于 ai-assist 等 AI 助手面板。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">#101010 solid</span>
+          <span class="sc-spec">42px header</span>
+          <span class="sc-spec">chat bubbles</span>
+          <span class="sc-spec">postMessage</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Data Management -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div class="wf-data-shell">
+          <div class="wf-data-sidebar">
+            <div class="wf-data-tree-item active"></div>
+            <div class="wf-data-tree-item"></div>
+            <div class="wf-data-tree-item"></div>
+            <div class="wf-data-tree-item"></div>
+            <div class="wf-data-tree-item"></div>
+          </div>
+          <div class="wf-data-main">
+            <div class="wf-data-stat-row">
+              <div class="wf-data-stat"></div>
+              <div class="wf-data-stat"></div>
+              <div class="wf-data-stat"></div>
+            </div>
+            <div class="wf-data-table-head"></div>
+            <div class="wf-data-table-row"></div>
+            <div class="wf-data-table-row"></div>
+            <div class="wf-data-table-row"></div>
+            <div class="wf-data-table-row"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template C</div>
+        <div class="sc-name">数据管理页</div>
+        <div class="sc-desc">侧栏树导航 + 统计卡 + 数据表 + 标签系统。用于 bmc-env 等数据密集页面。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">sidebar + main</span>
+          <span class="sc-spec">stat cards</span>
+          <span class="sc-spec">data table</span>
+          <span class="sc-spec">color-mix tags</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- D: Modal & Dialog -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div style="position:absolute;inset:0;background:var(--surface-2);padding:8px;display:flex;flex-direction:column;gap:3px;">
+          <div style="height:4px;width:40%;background:var(--surface-3);border-radius:2px;"></div>
+          <div style="height:4px;width:70%;background:var(--surface-3);border-radius:2px;"></div>
+          <div style="height:4px;width:55%;background:var(--surface-3);border-radius:2px;"></div>
+        </div>
+        <div class="wf-modal-bg">
+          <div class="wf-modal-card">
+            <div class="wf-modal-title-row">
+              <div class="wf-modal-title"></div>
+              <div class="wf-modal-x"></div>
+            </div>
+            <div class="wf-modal-body"></div>
+            <div class="wf-modal-footer">
+              <div class="wf-modal-btn wf-modal-btn-ghost"></div>
+              <div class="wf-modal-btn wf-modal-btn-primary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template D</div>
+        <div class="sc-name">弹窗 / 对话框</div>
+        <div class="sc-desc">确认弹窗 + QuickPick 命令面板 + 完成态蒙层。含 backdrop、警告条、目标列表。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">rgba(0,0,0,.55)</span>
+          <span class="sc-spec">480px card</span>
+          <span class="sc-spec">QuickPick</span>
+          <span class="sc-spec">done overlay</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- E: Fullscreen Config -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div class="wf-wizard-shell">
+          <div class="wf-wizard-topbar">
+            <div class="wf-wizard-step done" style="width:30px;"></div>
+            <div class="wf-wizard-connector"></div>
+            <div class="wf-wizard-step active" style="width:30px;"></div>
+            <div class="wf-wizard-connector"></div>
+            <div class="wf-wizard-step pending" style="width:30px;"></div>
+          </div>
+          <div class="wf-wizard-body">
+            <div class="wf-wizard-content">
+              <div style="height:4px;width:45%;background:var(--text-3);border-radius:2px;"></div>
+              <div style="height:3px;width:65%;background:var(--surface-3);border-radius:2px;margin-bottom:2px;"></div>
+              <div class="wf-wizard-card"><div class="wf-wizard-card-num"></div><div class="wf-wizard-card-text"></div></div>
+              <div class="wf-wizard-card"><div class="wf-wizard-card-num"></div><div class="wf-wizard-card-text"></div></div>
+              <div class="wf-wizard-card"><div class="wf-wizard-card-num"></div><div class="wf-wizard-card-text"></div></div>
+            </div>
+          </div>
+          <div class="wf-wizard-footer">
+            <div class="wf-wizard-nav-btn" style="background:var(--surface-2);"></div>
+            <div class="wf-wizard-nav-btn" style="background:var(--accent);opacity:.6;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template E</div>
+        <div class="sc-name">全屏配置向导</div>
+        <div class="sc-desc">步骤条 pill + 可折叠配置卡（grid-template-rows 动画）+ 底部导航。用于 setup-wizard。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">step bar pills</span>
+          <span class="sc-spec">collapsible cards</span>
+          <span class="sc-spec">form elements</span>
+          <span class="sc-spec">prev/next nav</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- F: Drawer -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div class="wf-drawer-shell">
+          <div class="wf-drawer-main">
+            <div style="height:4px;width:50%;background:var(--surface-3);border-radius:2px;"></div>
+            <div style="height:4px;width:35%;background:var(--surface-3);border-radius:2px;"></div>
+          </div>
+          <div class="wf-drawer-side">
+            <div class="wf-drawer-side-header">
+              <div style="width:30px;height:3px;background:var(--text-3);border-radius:2px;"></div>
+              <div style="width:6px;height:6px;background:var(--surface-3);border-radius:1px;"></div>
+            </div>
+            <div class="wf-drawer-side-row"><div class="wf-drawer-side-label"></div><div class="wf-drawer-side-val"></div></div>
+            <div class="wf-drawer-side-row"><div class="wf-drawer-side-label"></div><div class="wf-drawer-side-val"></div></div>
+            <div class="wf-drawer-side-row"><div class="wf-drawer-side-label"></div><div class="wf-drawer-side-val"></div></div>
+          </div>
+          <div class="wf-drawer-bottom">
+            <div class="wf-drawer-handle"><div class="wf-drawer-handle-text"></div><div class="wf-drawer-handle-arrow"></div></div>
+            <div class="wf-drawer-body-content"></div>
+          </div>
+          <div class="wf-toast"><div class="wf-toast-dot"></div><div class="wf-toast-text"></div></div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template F</div>
+        <div class="sc-name">抽屉 / 通知 / 右键菜单</div>
+        <div class="sc-desc">底部抽屉 + 侧边详情 + Toast 通知（slideup + 4s）+ 右键菜单（cursor 定位）。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">bottom .25s</span>
+          <span class="sc-spec">side .22s</span>
+          <span class="sc-spec">toast 4s</span>
+          <span class="sc-spec">context menu</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- H: Explorer -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div style="position:absolute;inset:0;display:flex;background:var(--surface-2);">
+          <div style="width:38%;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;">
+            <div style="height:16px;display:flex;align-items:center;padding:0 6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+              <span style="font:6px var(--mono);color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;">资源管理器</span>
+            </div>
+            <div style="flex:1;padding:4px 0;display:flex;flex-direction:column;gap:1px;">
+              <div style="display:flex;align-items:center;gap:2px;height:9px;padding:0 4px;">
+                <div style="width:5px;height:5px;border-radius:1px;background:var(--accent);opacity:.4;"></div>
+                <div style="height:2px;width:35%;background:var(--text-2);border-radius:1px;"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:2px;height:9px;padding:0 4px 0 10px;background:rgba(255,255,255,0.08);">
+                <div style="width:5px;height:5px;border-radius:1px;background:#ce9178;opacity:.5;"></div>
+                <div style="height:2px;width:40%;background:var(--text-1);border-radius:1px;"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:2px;height:9px;padding:0 4px 0 10px;">
+                <div style="width:5px;height:5px;border-radius:1px;background:#4ec9b0;opacity:.5;"></div>
+                <div style="height:2px;width:30%;background:var(--text-2);border-radius:1px;"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:2px;height:9px;padding:0 4px;">
+                <div style="width:5px;height:5px;border-radius:1px;background:var(--accent);opacity:.4;"></div>
+                <div style="height:2px;width:28%;background:var(--text-2);border-radius:1px;"></div>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding:3px 5px;">
+              <div style="font:5px var(--mono);color:var(--text-3);text-transform:uppercase;margin-bottom:2px;">模版浏览器</div>
+              <div style="display:flex;gap:2px;flex-wrap:wrap;">
+                <div style="height:6px;width:20px;border-radius:100px;background:rgba(255,255,255,0.06);"></div>
+                <div style="height:6px;width:16px;border-radius:100px;background:rgba(255,255,255,0.06);"></div>
+                <div style="height:6px;width:22px;border-radius:100px;background:rgba(255,255,255,0.06);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;">
+            <div style="height:12px;background:var(--surface);display:flex;align-items:center;padding:0 4px;gap:2px;flex-shrink:0;">
+              <div style="height:8px;width:22px;border-radius:2px 2px 0 0;background:var(--surface-2);"></div>
+            </div>
+            <div style="flex:1;padding:4px;display:flex;flex-direction:column;gap:1px;">
+              <div style="display:flex;gap:3px;height:5px;"><div style="width:8px;"></div><div style="height:2px;width:35%;background:#569cd6;opacity:.4;border-radius:1px;"></div></div>
+              <div style="display:flex;gap:3px;height:5px;"><div style="width:8px;"></div><div style="height:2px;width:50%;background:#9cdcfe;opacity:.35;border-radius:1px;"></div></div>
+              <div style="display:flex;gap:3px;height:5px;"><div style="width:8px;"></div><div style="height:2px;width:40%;background:#ce9178;opacity:.3;border-radius:1px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Pattern H</div>
+        <div class="sc-name">资源管理器</div>
+        <div class="sc-desc">280px 固定左面板 + 文件树（14px/depth 缩进）+ ExplorerSection 折叠区 + 右侧 CodePane 代码预览。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">280px panel</span>
+          <span class="sc-spec">recursive tree</span>
+          <span class="sc-spec">collapsible</span>
+          <span class="sc-spec">syntax hl</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- I: Config Drawer -->
+    <div class="scaffold-card">
+      <div class="sc-preview">
+        <div style="position:absolute;inset:0;display:flex;background:var(--surface-2);">
+          <div style="width:35%;padding:6px;display:flex;flex-direction:column;gap:2px;">
+            <div style="height:3px;width:50%;background:var(--surface-3);border-radius:1px;"></div>
+            <div style="height:3px;width:35%;background:var(--surface-3);border-radius:1px;opacity:.6;"></div>
+            <div style="height:3px;width:45%;background:var(--surface-3);border-radius:1px;opacity:.3;"></div>
+          </div>
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.2);"></div>
+          <div style="position:absolute;top:0;right:0;bottom:0;width:62%;background:var(--surface);display:flex;flex-direction:column;box-shadow:-3px 0 12px rgba(0,0,0,.3);">
+            <div style="height:14px;display:flex;align-items:center;gap:3px;padding:0 6px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;">
+              <div style="height:6px;padding:0 4px;border-radius:100px;background:var(--accent-soft);"></div>
+              <div style="width:25px;height:2.5px;background:var(--text-3);border-radius:1px;"></div>
+              <div style="width:8px;height:8px;border-radius:2px;background:var(--surface-2);margin-left:auto;"></div>
+            </div>
+            <!-- 内容区：虚线框表示布局灵活 -->
+            <div style="flex:1;margin:5px;border:1px dashed rgba(255,255,255,0.08);border-radius:4px;display:flex;flex-direction:column;padding:5px;gap:3px;">
+              <div style="font:4.5px var(--mono);color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;">布局自由组合</div>
+              <div style="border-radius:3px;background:var(--surface-2);padding:3px 4px;">
+                <div style="display:flex;align-items:center;gap:2px;height:8px;">
+                  <div style="height:2px;width:20px;background:var(--text-1);border-radius:1px;"></div>
+                  <div style="height:5px;padding:0 3px;border-radius:100px;background:var(--surface-3);"></div>
+                  <div style="font:4px var(--mono);color:var(--accent);margin-left:auto;">编辑</div>
+                </div>
+              </div>
+              <div style="border-radius:3px;background:var(--surface-2);border:1px solid rgba(0,119,255,0.25);padding:3px 4px;">
+                <div style="display:flex;align-items:center;gap:2px;height:8px;border-bottom:1px solid var(--border);margin-bottom:2px;">
+                  <div style="height:2px;width:16px;background:var(--text-1);border-radius:1px;"></div>
+                  <div style="font:4px var(--mono);color:var(--accent);margin-left:auto;">收起</div>
+                </div>
+                <div style="display:flex;gap:3px;align-items:center;height:6px;">
+                  <div style="width:16px;height:1.5px;background:var(--text-3);border-radius:1px;"></div>
+                  <div style="flex:1;height:6px;background:var(--bg);border:1px solid var(--border);border-radius:1.5px;"></div>
+                </div>
+                <div style="display:flex;gap:3px;margin-top:2px;">
+                  <div style="height:6px;width:24px;border-radius:100px;background:var(--accent);opacity:.5;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Pattern I</div>
+        <div class="sc-name">配置抽屉</div>
+        <div class="sc-desc">右侧 fixed 面板（min(58-72vw)）+ 遮罩 + Header 外壳。内部布局灵活：单栏详情、两栏 master-detail、展开卡片等按场景选择。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">fixed right</span>
+          <span class="sc-spec">backdrop z:90</span>
+          <span class="sc-spec">header + body</span>
+          <span class="sc-spec">layout flexible</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- G: Loading / Empty (full width) -->
+    <div class="scaffold-card full-width">
+      <div class="sc-preview" style="display:flex;gap:1px;">
+        <div style="flex:1;position:relative;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px;">
+          <div class="wf-skeleton-block"></div>
+          <div class="wf-skeleton-block w-mid"></div>
+          <div class="wf-skeleton-block w-short"></div>
+          <div class="wf-skeleton-block"></div>
+          <div class="wf-skeleton-block w-mid"></div>
+          <div style="font:8px var(--mono);color:var(--text-3);margin-top:4px;">SKELETON</div>
+        </div>
+        <div style="flex:1;position:relative;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px;">
+          <div class="wf-empty-icon"></div>
+          <div class="wf-empty-text"></div>
+          <div class="wf-empty-sub"></div>
+          <div class="wf-empty-btn"></div>
+          <div style="font:8px var(--mono);color:var(--text-3);margin-top:4px;">EMPTY STATE</div>
+        </div>
+        <div style="flex:1;position:relative;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px;">
+          <div style="width:16px;height:16px;border:2px solid var(--surface-3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;opacity:.6;"></div>
+          <div style="width:40%;height:3px;background:var(--text-3);border-radius:2px;"></div>
+          <div class="wf-progress-track"><div class="wf-progress-fill"></div></div>
+          <div style="font:8px var(--mono);color:var(--text-3);margin-top:4px;">PROGRESS</div>
+        </div>
+      </div>
+      <div class="sc-info">
+        <div class="sc-tag">Template G</div>
+        <div class="sc-name">加载态 / 空状态 / 进度条</div>
+        <div class="sc-desc">骨架屏（shimmer 动画）、空状态（图标 + 文案 + CTA，含 AI 紫色变体）、全屏 spinner、进度条 + 步骤指示器。组合件，嵌入任意页面。</div>
+        <div class="sc-specs">
+          <span class="sc-spec">skeleton shimmer</span>
+          <span class="sc-spec">empty + AI variant</span>
+          <span class="sc-spec">spinner</span>
+          <span class="sc-spec">progress bar</span>
+          <span class="sc-spec">step indicator</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 交互模式 ═══════════ -->
+<section class="sec">
+  <h2>交互模式：哪些奏效，哪些被推翻</h2>
+  <p class="sec-sub">三次架构重构的代价换来的判断。</p>
+  <div class="vs-grid">
+    <div class="vs-card vs-do">
+      <div class="vs-label">Worked</div>
+      <ul>
+        <li><strong>泳道 + 浮层卡分层</strong>：泳道铺全景、点击弹聚焦卡做深编辑</li>
+        <li><strong>hover 才显的操作</strong>：删除叉、虚线关联默认隐藏</li>
+        <li><strong>SVG 连线四态</strong>：默认灰→active→dim→dashed hover</li>
+        <li><strong>配置引导链路</strong>：步号变橙 + 顶部横幅 chip 跳转</li>
+        <li><strong>表头筛选替代左侧列表</strong>：100+ 条数据时更高效</li>
+        <li><strong>整机总览并入导航树</strong>：父子数据放同一棵树</li>
+      </ul>
+    </div>
+    <div class="vs-card vs-dont">
+      <div class="vs-label">Failed</div>
+      <ul>
+        <li><strong>纯节点图</strong>：传感器增多后连线交叉、布局跳动</li>
+        <li><strong>聚焦发光框</strong>：暗色主题下 glow 刺眼且混淆选中态</li>
+        <li><strong>每步彩色状态标签</strong>：页面被色块填满，分散注意力</li>
+        <li><strong>独立浮层做概览</strong>：增加跳转成本，与导航树分裂</li>
+        <li><strong>左侧列表做多维筛选</strong>：数据量大时效率低</li>
+        <li><strong>常驻显示所有操作按钮</strong>：视觉噪声高</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 信息密度 ═══════════ -->
+<section class="sec">
+  <h2>信息密度控制</h2>
+  <p class="sec-sub">7 次 declutter 提交总结出的决策框架。</p>
+  <div class="rules">
+    <div class="rule t-flow">
+      <div class="rule-num">Q1</div>
+      <div class="rule-body">
+        <h3>这条信息在 80% 的操作路径中必须吗？</h3>
+        <p>不必须→收进 hover tooltip 或展开面板。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">Q2</div>
+      <div class="rule-body">
+        <h3>这个操作按钮在浏览态需要吗？</h3>
+        <p>不需要→默认隐藏，hover 时显示。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">Q3</div>
+      <div class="rule-body">
+        <h3>这个功能入口在别处已经有了吗？</h3>
+        <p>有→删掉重复的。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">Q4</div>
+      <div class="rule-body">
+        <h3>这一级标题和上一级有区分度吗？</h3>
+        <p>没有→合并层级。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 组件 ═══════════ -->
+<section class="sec">
+  <h2>已验证的组件模式</h2>
+  <p class="sec-sub">从项目中沉淀出的可复用组件规格。</p>
+  <div class="comp-grid">
+    <div class="comp-card">
+      <div class="cc-name">.panel-header</div>
+      <div class="cc-spec"><strong>44px</strong> 高 &middot; <code>500 11px</code> 大写 &middot; <code>--foreground-secondary</code> 色</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.tag / .check-chip</div>
+      <div class="cc-spec"><strong>20px</strong> 高 &middot; <code>radius: 999px</code> &middot; <code>color-mix(20%)</code> 背景 &middot; 三态</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.config-card 浮层</div>
+      <div class="cc-spec"><code>min(660px,100%)</code> &middot; <code>--background-elevated</code> &middot; <code>blur(1.5px)</code> 遮罩</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.capsule-btn</div>
+      <div class="cc-spec"><code>#0077FF</code> 底 &middot; <code>radius 100px</code> &middot; <code>14px/600</code> 白字</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.chip</div>
+      <div class="cc-spec"><code>rgba(.06)</code> 底 &middot; <code>12.5px/600</code> &middot; hover <code>.12</code> &middot; 无描边</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.split-handle</div>
+      <div class="cc-spec">透明间隙 + <strong>4&times;44px</strong> 胶囊 &middot; hover 45% 白 56px</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.modal-bg + .modal</div>
+      <div class="cc-spec"><code>rgba(0,0,0,.55)</code> 遮罩 &middot; <code>480px</code> 卡 &middot; <code>hidden</code> 切换</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.bottom-drawer</div>
+      <div class="cc-spec"><code>44px</code> 收起 → <code>340px</code> 展开 &middot; <code>.25s</code> cubic-bezier</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.side-drawer</div>
+      <div class="cc-spec"><code>width: 0</code> → <code>min(360px,80%)</code> &middot; <code>.22s</code> ease &middot; 阴影覆盖</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.toast</div>
+      <div class="cc-spec">固定右下 &middot; <code>slideup .3s</code> &middot; <code>4s</code> 自动关闭 &middot; <code>z:600</code></div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.ctx-menu</div>
+      <div class="cc-spec">光标定位 &middot; <code>12px</code> radius &middot; danger 红色项 &middot; 快捷键标签</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">.skeleton</div>
+      <div class="cc-spec"><code>shimmer 1.5s</code> &middot; <code>w-full/3-4/1-2/1-3</code> 宽度 + 圆形变体</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">ExplorerView</div>
+      <div class="cc-spec"><strong>280px</strong> 左面板 &middot; <code>surface-2</code> 底 &middot; TreeItem 递归 &middot; <code>14px/depth</code> 缩进</div>
+    </div>
+    <div class="comp-card">
+      <div class="cc-name">ConfigDrawer</div>
+      <div class="cc-spec">固定右侧 <code>min(70vw,900px)</code> &middot; <code>z:100</code> + 遮罩 &middot; 左列表 + 右表单</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ iframe ═══════════ -->
+<section class="sec">
+  <h2>iframe / 独立页面踩坑记录</h2>
+  <p class="sec-sub">IDE demo 的页面运行在 iframe 中，这带来了一组独特的约束。</p>
+  <div class="rules">
+    <div class="rule t-warn">
+      <div class="rule-num">!</div>
+      <div class="rule-body">
+        <h3>iframe 不继承宿主 CSS</h3>
+        <p>每个 public/ 页面必须自带完整 <code>:root</code> token 和滚动条规则。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">!</div>
+      <div class="rule-body">
+        <h3>嵌入面板的 z-index 和 safe-distance</h3>
+        <p><code>position: absolute/fixed</code> 元素会被 topbar（48px）遮挡。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">!</div>
+      <div class="rule-body">
+        <h3>postMessage 联动格式固定</h3>
+        <p><code>{ type:'ai-run-agent', cmd:'agent &lt;关键词&gt;' }</code>，关键词须命中 AgentTerminal 词表。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">!</div>
+      <div class="rule-body">
+        <h3>全屏页 vs 嵌入页背景不同</h3>
+        <p>全屏用蓝紫渐变 + <code>#181B20</code>；嵌入 IDE pane 用实底 <code>#101010</code>。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 流程 ═══════════ -->
+<section class="sec">
+  <h2>给下一次的流程建议</h2>
+  <p class="sec-sub">如果重来一次，这些流程能减少至少一半的 polish 提交。</p>
+  <div class="rules">
+    <div class="rule t-flow">
+      <div class="rule-num">1</div>
+      <div class="rule-body">
+        <h3>先 mock 再实现</h3>
+        <p>配置型 UI 先用低保真原型确认方向。报警配置 4 次重构是最大返工源。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">2</div>
+      <div class="rule-body">
+        <h3>新组件过信息密度清单</h3>
+        <p>上线前用 Q1-Q4 四个问题过滤一遍。从「最小信息量」开始。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">3</div>
+      <div class="rule-body">
+        <h3>Token 优先于数值</h3>
+        <p>硬编码数值都会被后续改掉。改用 CSS 变量引用 design token。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">4</div>
+      <div class="rule-body">
+        <h3>用脚手架 skill 起步</h3>
+        <p>新建页面时用 <code>public-page-scaffold</code> skill（A-G 七种模板），从源头消除 R1/R2 违规。</p>
+      </div>
+    </div>
+    <div class="rule t-flow">
+      <div class="rule-num">5</div>
+      <div class="rule-body">
+        <h3>自动检查跟着约束走</h3>
+        <p>每条新增视觉约束，能用正则检查就立即加进 <code>check-ui-style.mjs</code>。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════ 自动检查规则 R1-R8 ═══════════ -->
+<section class="sec">
+  <h2>自动检查规则速查（R1-R8）</h2>
+  <p class="sec-sub"><code>scripts/check-ui-style.mjs</code>，PostToolUse hook 每次 Write/Edit 后自动运行。</p>
+  <div class="rules">
+    <div class="rule t-core">
+      <div class="rule-num">R1</div>
+      <div class="rule-body">
+        <h3>全局深色滚动条</h3>
+        <p>必须包含 <code>::-webkit-scrollbar</code> + <code>scrollbar-width: thin</code>。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">R2</div>
+      <div class="rule-body">
+        <h3>禁用蓝紫配色</h3>
+        <p>AI/agent 强调色只允许 <code>#a78bfa</code>（紫）/ <code>#0077FF</code>（蓝），禁止 <code>#4F46E5</code> <code>#5b8af5</code> <code>#6159ef</code> 等私造 indigo/violet。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">R3</div>
+      <div class="rule-body">
+        <h3>面型图标</h3>
+        <p>AI/agent 入口必须是 fill 型 ✦ 四角星，禁止描边星形 <code>stroke="currentColor"</code>。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">R4</div>
+      <div class="rule-body">
+        <h3>白描边上限</h3>
+        <p><code>border: 1px solid rgba(255,255,255</code> 每页最多 2 处，超出请用填充色分层。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">R5</div>
+      <div class="rule-body">
+        <h3>嵌入页禁渐变</h3>
+        <p>嵌入 IDE pane 的页面禁止蓝紫渐变背景，必须实底 <code>#101010</code>。渐变仅限 welcome 系全屏页面。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">R6</div>
+      <div class="rule-body">
+        <h3>:root token 完整声明</h3>
+        <p>每个独立 HTML 页面必须声明 <code>--background</code>、<code>--surface-1</code>、<code>--primary</code> 三个 token。</p>
+      </div>
+    </div>
+    <div class="rule t-warn">
+      <div class="rule-num">R7</div>
+      <div class="rule-body">
+        <h3>胶囊造型强制</h3>
+        <p>按钮/chip/输入框 <code>border-radius</code> 只允许 <code>100px</code> 或 <code>999px</code>，禁止 <code>8px</code>/<code>12px</code>。卡片 <code>16px</code> 不受约束。</p>
+      </div>
+    </div>
+    <div class="rule t-err">
+      <div class="rule-num">R8</div>
+      <div class="rule-body">
+        <h3>禁用私造绿色</h3>
+        <p>成功色只允许 <code>#04d793</code>，禁止 <code>#3dd68c</code> <code>#10b981</code> <code>#34d399</code> 等。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  基于 BMC-01 项目 2026.07 开发周期的 54 次提交分析 &middot; 设计手册 v5 &middot; 含 IDE 布局 + 资源管理器 + 配置抽屉 + 9 类脚手架 + R1-R8 自动检查
+</div>
+
+</div>
