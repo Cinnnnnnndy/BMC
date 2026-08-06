@@ -349,7 +349,7 @@ html.dark {
    仓库名则由所选文件夹自动带出。
    做法：只用中性灰阶做标注，不加彩色底、不加徽章块；说明压成一行。
      a. 表格上方一行说明
-     b. 表头后缀「· 必填 / · 选填 / · 自动」（纯文字）
+     b. 表头后缀「· 必填 / · 选填」（纯文字）
      c. 选填列的「请输入…」改写成「选填」
      d. 新增行的仓库名「----」改说成「待自动填写」
      e. 还有行没选路径时，底部补一句常驻说明（替掉只有 hover 才看得到的
@@ -366,7 +366,7 @@ html.dark {
   color: var(--foreground-muted);
 }
 
-/* b. 表头标注：必填最亮，选填/自动压到禁用灰 */
+/* b. 表头标注：必填最亮，选填压到禁用灰 */
 .folder-table th.col-folder-path::after,
 .folder-table th.col-repo-name::after,
 .folder-table th.col-repo-url::after,
@@ -380,9 +380,7 @@ html.dark {
   content: '· 必填';
   color: var(--foreground);
 }
-.folder-table th.col-repo-name::after {
-  content: '· 自动';
-}
+.folder-table th.col-repo-name::after,
 .folder-table th.col-repo-url::after,
 .folder-table th.col-branch::after,
 .folder-table th.col-description::after {
