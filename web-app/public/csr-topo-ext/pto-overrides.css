@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    PTO override layer for csr-topo-ext (bundle untouched)
    规格来源：docs/csr-topo-pto-optimize-demo-prompt.md（§C/§D/§E/§F）
+           ⑨ 为设置弹窗的填写引导（必填项 = 文件夹路径），见该节注释
    Token 值逐字取自 pto-design-system-main/tokens/{foundation,semantic,components}.css
    约束：仅在 assets/index.css 之后加载，靠同特异性 + 后置顺序取胜；
         !important 只用于对抗源码 .action-btn-disabled 的 !important。
@@ -338,4 +339,159 @@ html.dark {
 .toolbar-icon.active[data-v-c1bca8f3] {
   color: var(--primary);
   background: var(--state-selected);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ⑨ 设置弹窗「到底要填什么」引导
+   ───────────────────────────────────────────────────────────────────
+   问题：仓库表五列长得一样重，仓库地址/分支/描述的 placeholder 还写着
+   「请输入…」，用户以为全都得填；实际源码里唯一的保存校验是
+   `存在仓库未选择文件夹路径，请补全后再保存` —— 只有「文件夹路径」必填，
+   仓库名由所选文件夹自动带出，其余三列纯选填。
+   手段：仍是覆盖层，不改 bundle、不注入 DOM（§交付形态硬约束）：
+     a. 表格上方一段说明（.scrollable-content::before）
+     b. 表头徽章 必填 / 选填 / 自动（th::after）
+     c. 「文件夹路径」空态用主色底 + 文件夹图标，做成弹窗里唯一的行动点
+     d. 三个选填列的原生 placeholder 透明化，:has() + 伪元素改写成「选填 · …」
+     e. 仍有行没选路径时，底部动作区左侧常驻提示（对齐「确定」的禁用原因）
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* a. 填写说明（两行，pre-line 断行；无 emoji，风格同 ⑤ 空状态） */
+.scrollable-content[data-v-896f735b]::before {
+  content: '怎么填：只有「文件夹路径」需要你选 —— 指向本机上该仓库的代码目录，选完即可点「确定」保存。\A仓库地址 / 分支信息 / 描述信息都可以留空；填了仓库地址才能用「一键导入代码仓」自动克隆并回填路径，仓库名按所选文件夹自动命名。';
+  display: block;
+  margin: 4px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface-1));
+  box-shadow: inset 2px 0 0 var(--primary);
+  color: var(--foreground-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* b. 表头徽章：必填（主色）/ 选填 · 自动（弱化） */
+.folder-table th.col-repo-name::after,
+.folder-table th.col-repo-url::after,
+.folder-table th.col-branch::after,
+.folder-table th.col-description::after,
+.folder-table th.col-folder-path::after {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  vertical-align: 1px;
+  color: var(--foreground-muted);
+  background: var(--state-hover);
+}
+.folder-table th.col-folder-path::after {
+  content: '必填';
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.folder-table th.col-repo-name::after {
+  content: '自动';
+}
+.folder-table th.col-repo-url::after,
+.folder-table th.col-branch::after,
+.folder-table th.col-description::after {
+  content: '选填';
+}
+
+/* c. 「文件夹路径」= 唯一行动点：空态主色填充 + 文件夹图标（图标不吃点击） */
+.folder-table td.col-folder-path[data-v-896f735b] {
+  position: relative;
+}
+.modal-content[data-v-896f735b] .folder-path-input {
+  padding-right: 30px;
+}
+.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown {
+  background: color-mix(in srgb, var(--primary) 26%, var(--surface-3));
+}
+.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown:hover {
+  background: color-mix(in srgb, var(--primary) 38%, var(--surface-3));
+}
+.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown::placeholder {
+  color: color-mix(in srgb, var(--primary) 30%, #fff);
+}
+.folder-table td.col-folder-path[data-v-896f735b]::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  opacity: 0.45;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 3.6c0-.9.7-1.6 1.6-1.6h2.8c.5 0 1 .2 1.3.6l.8 1h5c.9 0 1.5.7 1.5 1.6v6.6c0 .9-.7 1.6-1.6 1.6H3.1c-.9 0-1.6-.7-1.6-1.6V3.6z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 3.6c0-.9.7-1.6 1.6-1.6h2.8c.5 0 1 .2 1.3.6l.8 1h5c.9 0 1.5.7 1.5 1.6v6.6c0 .9-.7 1.6-1.6 1.6H3.1c-.9 0-1.6-.7-1.6-1.6V3.6z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.folder-table td.col-folder-path[data-v-896f735b]:has(.folder-path-input:placeholder-shown)::after {
+  opacity: 1;
+  background: color-mix(in srgb, var(--primary) 30%, #fff);
+}
+
+/* d. 三个选填列：原生「请输入…」透明化，伪元素改写为「选填 · …」 */
+.folder-table td.col-repo-url[data-v-896f735b],
+.folder-table td.col-branch[data-v-896f735b],
+.folder-table td.col-description[data-v-896f735b] {
+  position: relative;
+}
+.modal-content[data-v-896f735b] .repo-url-input::placeholder,
+.modal-content[data-v-896f735b] .gitBranch-input::placeholder,
+.modal-content[data-v-896f735b] .description-input::placeholder {
+  color: transparent;
+}
+.folder-table td.col-repo-url[data-v-896f735b]:has(.repo-url-input:placeholder-shown)::before,
+.folder-table td.col-branch[data-v-896f735b]:has(.gitBranch-input:placeholder-shown)::before,
+.folder-table td.col-description[data-v-896f735b]:has(.description-input:placeholder-shown)::before {
+  position: absolute;
+  /* 21px = td padding-left 12 + input border 1 + input padding-left 8 */
+  left: 21px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--foreground-disabled);
+}
+.folder-table td.col-repo-url[data-v-896f735b]:has(.repo-url-input:placeholder-shown)::before {
+  content: '选填 · 用于一键导入';
+}
+.folder-table td.col-branch[data-v-896f735b]:has(.gitBranch-input:placeholder-shown)::before {
+  content: '选填 · 分支';
+}
+.folder-table td.col-description[data-v-896f735b]:has(.description-input:placeholder-shown)::before {
+  content: '选填 · 备注';
+}
+
+/* 仓库名列：新增行的「----」改说成「待自动填写」（选完文件夹由宿主回填） */
+.folder-table td.col-repo-name[data-v-896f735b] .repo-name-empty {
+  font-size: 0;
+}
+.folder-table td.col-repo-name[data-v-896f735b] .repo-name-empty::after {
+  content: '待自动填写';
+  font-size: 12px;
+  font-style: normal;
+  color: var(--foreground-disabled);
+}
+
+/* e. 未选路径时底部常驻提示，替掉只有 hover 才看得到的「确定」禁用原因 */
+.editor-container[data-v-896f735b]:has(.folder-path-input:placeholder-shown) .action-buttons[data-v-896f735b]::before {
+  content: '还有仓库没选文件夹路径，选好后即可保存';
+  margin-right: auto;
+  align-self: center;
+  padding: 0 12px;
+  height: var(--button-height-sm);
+  line-height: var(--button-height-sm);
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
 }
