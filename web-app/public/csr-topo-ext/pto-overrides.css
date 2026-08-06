@@ -342,81 +342,62 @@ html.dark {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ⑨ 设置弹窗「到底要填什么」引导
+   ⑨ 设置弹窗：说清楚要填的只有「文件夹路径」
    ───────────────────────────────────────────────────────────────────
-   问题：仓库表五列长得一样重，仓库地址/分支/描述的 placeholder 还写着
-   「请输入…」，用户以为全都得填；实际源码里唯一的保存校验是
-   `存在仓库未选择文件夹路径，请补全后再保存` —— 只有「文件夹路径」必填，
-   仓库名由所选文件夹自动带出，其余三列纯选填。
-   手段：仍是覆盖层，不改 bundle、不注入 DOM（§交付形态硬约束）：
-     a. 表格上方一段说明（.scrollable-content::before）
-     b. 表头徽章 必填 / 选填 / 自动（th::after）
-     c. 「文件夹路径」空态用主色底 + 文件夹图标，做成弹窗里唯一的行动点
-     d. 三个选填列的原生 placeholder 透明化，:has() + 伪元素改写成「选填 · …」
-     e. 仍有行没选路径时，底部动作区左侧常驻提示（对齐「确定」的禁用原因）
+   问题：仓库表六列长得一样重，选填列的 placeholder 还写着「请输入…」，
+   用户以为都得填；源码里唯一的保存校验是「存在仓库未选择文件夹路径」，
+   仓库名则由所选文件夹自动带出。
+   做法：只用中性灰阶做标注，不加彩色底、不加徽章块；说明压成一行。
+     a. 表格上方一行说明
+     b. 表头后缀「· 必填 / · 选填 / · 自动」（纯文字）
+     c. 选填列的「请输入…」改写成「选填」
+     d. 新增行的仓库名「----」改说成「待自动填写」
+     e. 还有行没选路径时，底部补一句常驻说明（替掉只有 hover 才看得到的
+        「确定」禁用原因）
    ═══════════════════════════════════════════════════════════════════ */
 
-/* a. 填写说明（两行，pre-line 断行；无 emoji，风格同 ⑤ 空状态） */
+/* a. 一行说明 */
 .scrollable-content[data-v-896f735b]::before {
-  content: '怎么填：给每个仓库选一个「文件夹路径」—— 指向本机上该仓库的代码目录，选完即可点「确定」保存，仓库名按所选文件夹自动命名。\A仓库地址 / 分支信息 / 描述信息都是选填，第一次配置可以先不管；要登记它们、或想用「一键导入代码仓」自动克隆时，点「更多选项」展开。';
+  content: '只有「文件夹路径」要填 —— 指向本机上该仓库的代码目录，其余都可以留空。';
   display: block;
-  margin: 4px 0 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface-1));
-  box-shadow: inset 2px 0 0 var(--primary);
-  color: var(--foreground-secondary);
+  margin: 2px 0 10px;
   font-size: 12px;
-  line-height: 1.7;
-  white-space: pre-line;
+  line-height: 1.6;
+  color: var(--foreground-muted);
 }
 
-/* b. 表头徽章：必填（主色）/ 选填 · 自动（弱化） */
+/* b. 表头标注：必填最亮，选填/自动压到禁用灰 */
+.folder-table th.col-folder-path::after,
 .folder-table th.col-repo-name::after,
 .folder-table th.col-repo-url::after,
 .folder-table th.col-branch::after,
-.folder-table th.col-description::after,
-.folder-table th.col-folder-path::after {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 100px;
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 16px;
-  vertical-align: 1px;
-  color: var(--foreground-muted);
-  background: var(--state-hover);
+.folder-table th.col-description::after {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--foreground-disabled);
 }
 .folder-table th.col-folder-path::after {
-  content: '必填';
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  content: '· 必填';
+  color: var(--foreground);
 }
 .folder-table th.col-repo-name::after {
-  content: '自动';
+  content: '· 自动';
 }
 .folder-table th.col-repo-url::after,
 .folder-table th.col-branch::after,
 .folder-table th.col-description::after {
-  content: '选填';
+  content: '· 选填';
 }
 
-/* c. 「文件夹路径」= 唯一行动点：空态主色填充 + 文件夹图标（图标不吃点击） */
+/* c. 文件夹路径：靠位置（第一列）和文件夹图标提示可点，不用彩色底 */
 .folder-table td.col-folder-path[data-v-896f735b] {
   position: relative;
 }
 .modal-content[data-v-896f735b] .folder-path-input {
   padding-right: 30px;
 }
-.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown {
-  background: color-mix(in srgb, var(--primary) 26%, var(--surface-3));
-}
-.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown:hover {
-  background: color-mix(in srgb, var(--primary) 38%, var(--surface-3));
-}
-.modal-content[data-v-896f735b] .folder-path-input:placeholder-shown::placeholder {
-  color: color-mix(in srgb, var(--primary) 30%, #fff);
+.modal-content[data-v-896f735b] .folder-path-input::placeholder {
+  color: var(--foreground-secondary);
 }
 .folder-table td.col-folder-path[data-v-896f735b]::after {
   content: '';
@@ -427,17 +408,13 @@ html.dark {
   width: 14px;
   height: 14px;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.5;
   background: currentColor;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 3.6c0-.9.7-1.6 1.6-1.6h2.8c.5 0 1 .2 1.3.6l.8 1h5c.9 0 1.5.7 1.5 1.6v6.6c0 .9-.7 1.6-1.6 1.6H3.1c-.9 0-1.6-.7-1.6-1.6V3.6z'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 3.6c0-.9.7-1.6 1.6-1.6h2.8c.5 0 1 .2 1.3.6l.8 1h5c.9 0 1.5.7 1.5 1.6v6.6c0 .9-.7 1.6-1.6 1.6H3.1c-.9 0-1.6-.7-1.6-1.6V3.6z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
-.folder-table td.col-folder-path[data-v-896f735b]:has(.folder-path-input:placeholder-shown)::after {
-  opacity: 1;
-  background: color-mix(in srgb, var(--primary) 30%, #fff);
-}
 
-/* d. 三个选填列：原生「请输入…」透明化，伪元素改写为「选填 · …」 */
+/* d. 三个选填列：原生「请输入…」透明化，伪元素改写成「选填」 */
 .folder-table td.col-repo-url[data-v-896f735b],
 .folder-table td.col-branch[data-v-896f735b],
 .folder-table td.col-description[data-v-896f735b] {
@@ -451,6 +428,7 @@ html.dark {
 .folder-table td.col-repo-url[data-v-896f735b]:has(.repo-url-input:placeholder-shown)::before,
 .folder-table td.col-branch[data-v-896f735b]:has(.gitBranch-input:placeholder-shown)::before,
 .folder-table td.col-description[data-v-896f735b]:has(.description-input:placeholder-shown)::before {
+  content: '选填';
   position: absolute;
   /* 21px = td padding-left 12 + input border 1 + input padding-left 8 */
   left: 21px;
@@ -460,15 +438,6 @@ html.dark {
   white-space: nowrap;
   font-size: 13px;
   color: var(--foreground-disabled);
-}
-.folder-table td.col-repo-url[data-v-896f735b]:has(.repo-url-input:placeholder-shown)::before {
-  content: '选填 · 用于一键导入';
-}
-.folder-table td.col-branch[data-v-896f735b]:has(.gitBranch-input:placeholder-shown)::before {
-  content: '选填 · 分支';
-}
-.folder-table td.col-description[data-v-896f735b]:has(.description-input:placeholder-shown)::before {
-  content: '选填 · 备注';
 }
 
 /* 仓库名列：新增行的「----」改说成「待自动填写」（选完文件夹由宿主回填） */
@@ -482,33 +451,23 @@ html.dark {
   color: var(--foreground-disabled);
 }
 
-/* e. 未选路径时底部常驻提示，替掉只有 hover 才看得到的「确定」禁用原因 */
+/* e. 未选路径时底部常驻说明（中性灰，不做告警色） */
 .editor-container[data-v-896f735b]:has(.folder-path-input:placeholder-shown) .action-buttons[data-v-896f735b]::before {
   content: '还有仓库没选文件夹路径，选好后即可保存';
   margin-right: auto;
   align-self: center;
-  padding: 0 12px;
-  height: var(--button-height-sm);
-  line-height: var(--button-height-sm);
-  border-radius: 100px;
   font-size: 12px;
-  color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--foreground-muted);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ⑩ 仓库表：必填列前置 + 选填列收进「更多选项」
+   ⑩ 仓库表：必填列前置
    ───────────────────────────────────────────────────────────────────
-   反馈：文件夹路径要排到最前面加强，其余三列第一次配置不该占版面。
-   列序改为  文件夹路径 → 仓库名 →〔仓库地址 / 分支信息 / 描述信息〕→ 操作。
+   文件夹路径排到第一列加强，三个选填列照常摆出来，靠 ⑨ 的标注区分主次。
+   列序：文件夹路径 → 仓库名 → 仓库地址 → 分支信息 → 描述信息 → 操作。
    HTML 里的 <th>/<td> 顺序改不了（在 bundle 里），所以把表格改成 grid 行
    （table/thead/tbody → block，tr → grid，单元格 → flex），再用 order 重排。
-   收放由 <html data-csr-optional-cols> 控制，属性由 settings-enhance.js 的
-   「更多选项」开关切换；off（默认）时三个选填列连同依赖仓库地址的
-   「一键导入代码仓」一起隐藏。脚本没跑到 = 属性缺省 = 六列全展开（原布局）。
    ═══════════════════════════════════════════════════════════════════ */
-
-/* 表格容器降级为块级，行接管列布局 */
 .folder-table[data-v-896f735b],
 .folder-table[data-v-896f735b] thead,
 .folder-table[data-v-896f735b] tbody {
@@ -522,14 +481,6 @@ html.dark {
     minmax(150px, 1.5fr) minmax(96px, 0.9fr) minmax(110px, 1.1fr)
     68px;
 }
-/* 收起态只剩三列，补一根弹性空列把「操作」顶回右边缘，
-   免得必填列被拉成横贯全宽的长条 */
-:root[data-csr-optional-cols='off'] .folder-table[data-v-896f735b] tr {
-  grid-template-columns: minmax(260px, 2.6fr) minmax(130px, 1fr) 1fr 68px;
-}
-:root[data-csr-optional-cols='off'] .folder-table[data-v-896f735b] .col-action {
-  grid-column: 4;
-}
 /* 表头底色改画在整行上：grid 列之间不再出现断带 */
 .folder-table[data-v-896f735b] thead tr {
   background: var(--surface-2);
@@ -538,8 +489,9 @@ html.dark {
   background: transparent;
 }
 
-/* 单元格：脱掉 table-cell 的宽度约束（源码给了 min-width / max-width:200px，
-   同特异性靠后置顺序覆盖），交给 grid-template-columns 统一定宽 */
+/* 单元格：脱掉 table-cell 的宽度约束（源码给了 width:12%/20%/30%、
+   min-width、max-width:200px，同特异性靠后置顺序覆盖），
+   宽度统一交给 grid-template-columns */
 .folder-table th.col-folder-path[data-v-896f735b],
 .folder-table th.col-repo-name[data-v-896f735b],
 .folder-table th.col-repo-url[data-v-896f735b],
@@ -554,7 +506,6 @@ html.dark {
 .folder-table td.col-action[data-v-896f735b] {
   display: flex;
   align-items: center;
-  /* 源码给 th 定了 width:12%/20%/30%，grid 里会阻止单元格铺满列 */
   width: auto;
   min-width: 0;
   max-width: none;
@@ -571,7 +522,6 @@ html.dark {
   border-bottom: 1px solid var(--table-border);
 }
 
-/* 列序：必填的文件夹路径排第一，自动带出的仓库名跟在后面 */
 .folder-table[data-v-896f735b] .col-folder-path {
   order: 1;
 }
@@ -591,48 +541,61 @@ html.dark {
   order: 6;
 }
 
-/* 收起态：三个选填列 + 只对仓库地址生效的「一键导入代码仓」一并隐藏
-   （.config-add-btn:nth-of-type(2) = 一键导入；开关按钮追加在其后，不影响计数） */
-:root[data-csr-optional-cols='off'] .folder-table .col-repo-url,
-:root[data-csr-optional-cols='off'] .folder-table .col-branch,
-:root[data-csr-optional-cols='off'] .folder-table .col-description,
-:root[data-csr-optional-cols='off'] .repo-section-actions .config-add-btn:nth-of-type(2) {
+/* ═══════════════════════════════════════════════════════════════════
+   ⑪ 「配置管理」默认折叠
+   ───────────────────────────────────────────────────────────────────
+   这一块是整机 CSR 配置完成之后保存用的，第一次进来不用管，所以默认收起，
+   标题旁标「选填」，点标题行的开关展开。开关由 settings-enhance.js 注入
+   （bundle 本体不动），它切 <html data-csr-configs>；脚本没跑到时属性缺省
+   = 展开，退化成原样，不会把这块锁死在隐藏状态。
+   ═══════════════════════════════════════════════════════════════════ */
+.scrollable-content[data-v-896f735b] > .config-section:last-of-type .config-section-title[data-v-896f735b]::after {
+  content: ' · 选填';
+  font-weight: 400;
+  color: var(--foreground-disabled);
+}
+:root[data-csr-configs='off'] .config-list-container[data-v-896f735b]:not(.repo-list-container),
+:root[data-csr-configs='off'] .config-section-header[data-v-896f735b] > .config-add-btn {
   display: none;
 }
-
-/* 「更多选项」开关：PTO secondary，展开态提亮 + 箭头翻转 */
-.csr-optional-toggle {
+.csr-section-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  padding: 0 6px;
   height: var(--button-height-sm);
-  padding: 0 12px;
   border: none;
-  border-radius: var(--button-radius);
-  background: var(--surface-2);
-  color: var(--foreground-secondary);
+  background: transparent;
+  color: var(--foreground-muted);
   font-family: inherit;
   font-size: 12px;
-  font-weight: 500;
   cursor: pointer;
 }
-.csr-optional-toggle:hover {
-  background: var(--surface-3);
-  color: var(--foreground);
+.csr-section-toggle:hover {
+  color: var(--foreground-secondary);
 }
-.csr-optional-toggle::after {
+.csr-section-toggle::after {
   content: '';
   width: 9px;
   height: 9px;
   background: currentColor;
-  transition: transform 0.15s ease;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.2 2.4 5.6 3.8 4.2 8 8.4l4.2-4.2 1.4 1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.2 2.4 5.6 3.8 4.2 8 8.4l4.2-4.2 1.4 1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
-:root[data-csr-optional-cols='on'] .csr-optional-toggle {
-  background: var(--surface-3);
-  color: var(--foreground);
-}
-:root[data-csr-optional-cols='on'] .csr-optional-toggle::after {
+:root:not([data-csr-configs='off']) .csr-section-toggle::after {
   transform: rotate(180deg);
+}
+
+/* 生效中的配置行：源码是 #409eff 蓝底蓝字，在这版中性配色里显得最跳。
+   改成白色叠加 + 加粗，靠左侧细条表示「当前生效」，不再用彩色 */
+.config-active-row[data-v-896f735b] {
+  background: var(--state-hover);
+}
+.config-active-row td[data-v-896f735b]:first-child {
+  box-shadow: inset 2px 0 var(--foreground-muted);
+}
+.config-active-row .config-name-text[data-v-896f735b],
+.config-table .config-active-row .config-name-text[data-v-896f735b] {
+  color: var(--foreground);
+  font-weight: 600;
 }

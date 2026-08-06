@@ -1,27 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════════
-   csr-topo-ext 设置弹窗增强层 —— 仓库表「更多选项」开关
+   csr-topo-ext 设置弹窗增强层 —— 「配置管理」折叠开关
    ───────────────────────────────────────────────────────────────────
-   背景：仓库表六列里只有「文件夹路径」是必填（bundle 里唯一的保存校验就是
-   「存在仓库未选择文件夹路径」），仓库名由所选文件夹自动带出，剩下的
-   仓库地址 / 分支信息 / 描述信息第一次配置根本不用管。第一眼摆六列，
-   用户不知道该填哪个。
+   「配置管理」是整机 CSR 配置完成之后保存用的，第一次打开设置根本不用管，
+   摆在那里只会跟真正要填的「仓库管理 → 文件夹路径」抢注意力。所以默认收起，
+   点标题旁的开关再展开。
 
-   本文件只做一件事：往弹窗的「仓库管理」标题行塞一个开关按钮，点它切换
-   <html data-csr-optional-cols="on|off">。真正的显隐和布局全在
-   pto-overrides.css ⑩ 节，这里不写任何样式。
+   本文件只做两件事：给「配置管理」标题行插一个开关按钮、切
+   <html data-csr-configs="on|off">。显隐规则全在 pto-overrides.css ⑪ 节。
 
    约束：bundle（assets/index.js / index.css）依旧一个字节没动，本脚本由
-   index.html 单独引入。脚本没跑到时 data 属性缺省 = 六列全展开，退化成
-   原布局，不会把列锁死在隐藏状态。
+   index.html 单独引入。脚本没跑到时 data 属性缺省 = 展开，退化成原样，
+   不会把这块锁死在隐藏状态。
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  var KEY = 'csr-topo:optional-cols';
-  var OPTIONAL_INPUTS = '.folder-table .repo-url-input, .folder-table .gitBranch-input, .folder-table .description-input';
+  var KEY = 'csr-topo:configs-section';
 
-  // 用户点过开关就记住选择；没点过时按「表里本来有没有选填数据」自动决定
-  // （比如「配置导入」带进来的配置已经登记了仓库地址，就不该藏起来）。
+  // 用户点过就记住；没点过按默认收起
   var pref = null;
   try {
     pref = localStorage.getItem(KEY);
@@ -29,53 +25,56 @@
     /* 无痕模式等禁用 localStorage：退化成不记忆 */
   }
 
-  function hasOptionalData() {
-    var inputs = document.querySelectorAll(OPTIONAL_INPUTS);
-    for (var i = 0; i < inputs.length; i++) {
-      if (inputs[i].value && inputs[i].value.trim() !== '') return true;
-    }
-    return false;
-  }
-
   function apply(on) {
-    document.documentElement.dataset.csrOptionalCols = on ? 'on' : 'off';
+    document.documentElement.dataset.csrConfigs = on ? 'on' : 'off';
   }
 
-  function isOn() {
-    return document.documentElement.dataset.csrOptionalCols === 'on';
+  /** 「配置管理」那一节的标题行（按标题文字找，不依赖它是第几个 section） */
+  function findConfigHeader() {
+    var titles = document.querySelectorAll('.modal-content .config-section-title');
+    for (var i = 0; i < titles.length; i++) {
+      if (titles[i].textContent.trim().indexOf('配置管理') === 0) return titles[i].parentElement;
+    }
+    return null;
   }
 
-  function ensureToggle(host) {
-    if (host.querySelector('.csr-optional-toggle')) return;
-    // 弹窗刚挂上时表里往往还没有数据（宿主要等 getCreateProjectFormContent 才回），
-    // 而回填走的是 input.value 属性、不产生 DOM 变更记录，MutationObserver 收不到。
-    // 所以新开一次弹窗就补几次延迟复查，让「有选填数据就自动展开」能生效。
-    [150, 400, 900, 1800].forEach(function (ms) {
-      setTimeout(tick, ms);
-    });
-    var btn = document.createElement('button');
+  function sync(btn) {
+    var on = document.documentElement.dataset.csrConfigs === 'on';
+    btn.textContent = on ? '收起' : '展开';
+  }
+
+  function ensureToggle(header) {
+    var btn = header.querySelector('.csr-section-toggle');
+    if (btn) {
+      sync(btn);
+      return;
+    }
+    btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'csr-optional-toggle';
-    btn.textContent = '更多选项';
-    btn.title = '展开 / 收起仓库地址、分支信息、描述信息（都是选填）';
+    btn.className = 'csr-section-toggle';
+    btn.title = '展开 / 收起配置管理（整机 CSR 配置好之后再来保存，第一次可以跳过）';
     btn.addEventListener('click', function () {
-      pref = isOn() ? 'off' : 'on';
+      pref = document.documentElement.dataset.csrConfigs === 'on' ? 'off' : 'on';
       apply(pref === 'on');
+      sync(btn);
       try {
         localStorage.setItem(KEY, pref);
       } catch (e) {
         /* 同上 */
       }
     });
-    // 追加在末尾：Vue 按下标 patch 它自己那两个按钮，多出来的兄弟节点不受影响
-    host.appendChild(btn);
+    // 插在「新增配置」之前 = 紧跟标题和计数，符合折叠区的惯例位置
+    var addBtn = header.querySelector('.config-add-btn');
+    if (addBtn) header.insertBefore(btn, addBtn);
+    else header.appendChild(btn);
+    sync(btn);
   }
 
   function tick() {
-    var host = document.querySelector('.modal-content .repo-section-actions');
-    if (!host) return; // 弹窗没开，不做任何事
-    ensureToggle(host);
-    apply(pref ? pref === 'on' : hasOptionalData());
+    var header = findConfigHeader();
+    if (!header) return; // 弹窗没开，不做任何事
+    apply(pref === 'on');
+    ensureToggle(header);
   }
 
   function start() {
