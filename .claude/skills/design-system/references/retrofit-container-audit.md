@@ -1,8 +1,8 @@
 # Retrofit Container Audit
 
-Use this audit during Workflow B before and after migrating an existing demo to PTO style.
+Use this audit during Workflow B before and after migrating an existing demo to openUBMC Studio style.
 
-The goal is not only to replace hard-coded values with tokens. The goal is to remove old visual language when PTO already has a different container model.
+The goal is not only to replace hard-coded values with tokens. The goal is to remove old visual language when openUBMC Studio already has a different container model.
 
 ## What to inspect
 
@@ -32,13 +32,13 @@ Flag these as legacy decoration by default:
 - colored accent strips that do not encode data
 - stacked card borders inside an already framed pane
 
-Do not token-swap these into `var(--border-*)` or `var(--primary)`. Delete or remap them to the PTO component listed below.
+Do not token-swap these into `var(--border-*)` or `var(--primary)`. Delete or remap them to the openUBMC Studio component listed below.
 
-## PTO remap targets
+## openUBMC Studio remap targets
 
 Use these defaults:
 
-| Legacy container | PTO target | Decoration rule |
+| Legacy container | openUBMC Studio target | Decoration rule |
 |---|---|---|
 | Page / workbench pane | `.workbench-pane` or `.panel-shell.panel-shell-quiet` | no full border, no left accent |
 | Dense inspector rail | `.inspector-section` | section dividers only |
@@ -75,7 +75,7 @@ Do not migrate it to:
 }
 ```
 
-Instead, remove the old container frame and consume the closest PTO panel/card/inspector class. A leftover old rail is a failed migration unless it is a documented data-viz encoding.
+Instead, remove the old container frame and consume the closest openUBMC Studio panel/card/inspector class. A leftover old rail is a failed migration unless it is a documented data-viz encoding.
 
 ## Required residue check
 
@@ -95,7 +95,7 @@ linear-gradient(to right
 For each match:
 
 1. identify the selector and element it affects
-2. mark it `removed`, `PTO-owned`, `data-viz-exempt`, or `needs-user-decision`
+2. mark it `removed`, `openUBMC-Studio-owned`, `data-viz-exempt`, or `needs-user-decision`
 3. if it is `data-viz-exempt`, state the exact data meaning
 
 Generic cards, panels, and inspector blocks should have zero unapproved `border-left`, pseudo-element rail, or inset-left-shadow residue.

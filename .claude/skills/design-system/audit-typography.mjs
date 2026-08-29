@@ -29,7 +29,7 @@ const typeRoleSizes = {
   'type-mono': 12,
 };
 const bodySelectorRe = /description|(?:^|[-_])prose|(?:^|[-_])help|empty-(?:sub|hint)|inspector[^,{]*>\s*p/i;
-const rootScaleSelectorRe = /(^|,\s*)(?:html|body|:root|#(?:app|root)|\.(?:app|page|root|pto-ide-frame__pane-body|pto-ide-frame__workarea))(?:\b|[.#:[\]])/i;
+const rootScaleSelectorRe = /(^|,\s*)(?:html|body|:root|#(?:app|root)|\.(?:app|page|root|openubmc-studio-ide-frame__pane-body|openubmc-studio-ide-frame__workarea))(?:\b|[.#:[\]])/i;
 
 const foundationCss = fs.readFileSync(foundationFile, 'utf8');
 const fontSizeTokens = Object.fromEntries(

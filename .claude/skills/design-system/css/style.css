@@ -52,7 +52,7 @@
   --group-count-color: var(--accent);
   --group-tab-border: var(--border-default);
 
-  /* Alias tokens (consumed by pypto and other modules) */
+  /* Alias tokens (consumed by openUBMC Studio and other modules) */
   --severity-critical: var(--danger);
   --severity-warning: var(--warning);
   --severity-info: var(--primary);

@@ -101,6 +101,8 @@
   .rule.t-flow .rule-num { background:var(--green-soft); color:var(--green); }
   .rule.t-warn .rule-num { background:var(--orange-soft); color:var(--orange); }
   .rule.t-err .rule-num { background:var(--red-soft); color:var(--red); }
+  .rule-body a { color:var(--accent); text-decoration:underline; text-underline-offset:2px; }
+  .rule-body a:hover { text-decoration-thickness:2px; }
 
   .vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .vs-card {
@@ -670,6 +672,37 @@
   <h1>暗色 IDE Demo 设计手册</h1>
   <p class="lead">从 54 次提交、25 次 polish、3 次架构重构中提炼出的设计决策、组件规格与页面脚手架。写给下一次做类似项目的设计师。</p>
 </header>
+
+<!-- ═══════════ 使用指南 ═══════════ -->
+<section class="sec">
+  <h2>使用指南</h2>
+  <p class="sec-sub">这份手册 + 两个 Claude Code skill 一起构成完整的设计系统闭环。按下面的顺序看，先建立全局认知，再查 token 细节，最后动手写页面。</p>
+  <div class="rules">
+    <div class="rule t-vis">
+      <div class="rule-num">01</div>
+      <div class="rule-body">
+        <h3>先看设计系统总览 &amp; token 参考</h3>
+        <p>本手册（当前页）讲设计语言：三条元规则、视觉原则、配色系统、IDE 框架布局、9 种页面脚手架画廊——先通读一遍建立全局认知。需要对照具体 token 数值时，查 <a href="./openUBMC-Studio-Design-System-Guide.html">openUBMC Studio 设计系统指南</a>：Ark 原始色板、语义 token、排版 Scale、间距/圆角/阴影/动效、组件 token、IDE 框架 token、高亮色阶都在里面，3.2MB 自包含单文件，浏览器直接打开。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">02</div>
+      <div class="rule-body">
+        <h3>写 UI 代码时：design-system skill</h3>
+        <p>触发词命中「设计系统、配色、token、组件规格、脚手架」等关键词时，Claude Code 会话自动加载 <code>.claude/skills/design-system/</code>。它是本手册的可查询版本——同样的 token 表、组件规格、9 种脚手架规范，外加 R1-R8 自动检查规则汇编、常见失败模式、Pattern-first 工作流（需求拆解 / 改造迁移 / 统一页面流程）。写组件、调配色、做视觉改造前，先让它加载，不要凭记忆写死数值。</p>
+      </div>
+    </div>
+    <div class="rule t-vis">
+      <div class="rule-num">03</div>
+      <div class="rule-body">
+        <h3>新建页面时：public-page-scaffold skill</h3>
+        <p>在 <code>web-app/public/</code> 下新建任何 <code>.html</code> 文件时触发 <code>.claude/skills/public-page-scaffold/</code>。先按用途选 A-G 七种模板之一（全屏欢迎页、AI 助手面板、数据管理页、弹窗、配置向导、抽屉、加载/空状态），模板自带滚动条样式、<code>:root</code> token 声明、胶囊圆角等强制块，从源头消除 R1/R2 违规——不要从空白文件起步。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
 
 <!-- ═══════════ 元规则 ═══════════ -->
 <section class="sec">
@@ -1242,9 +1275,9 @@
       <tr><th>属性</th><th>值</th><th>说明</th></tr>
       <tr><td>定位</td><td><code>position: fixed; top:0; right:0; bottom:0</code></td><td>从右侧边缘覆盖</td></tr>
       <tr><td>宽度</td><td><code>min(58-72vw, 780-920px)</code></td><td>按内容复杂度选择区间，见变体表</td></tr>
-      <tr><td>背景</td><td><code>var(--surface-1)</code></td><td>消费 PTO token</td></tr>
+      <tr><td>背景</td><td><code>var(--surface-1)</code></td><td>消费 openUBMC Studio token</td></tr>
       <tr><td>边框</td><td><code>borderLeft: 1px solid var(--border-default)</code></td><td>左侧分割线</td></tr>
-      <tr><td>阴影</td><td><code>var(--shadow-lg)</code></td><td>PTO shadow token</td></tr>
+      <tr><td>阴影</td><td><code>var(--shadow-lg)</code></td><td>openUBMC Studio shadow token</td></tr>
       <tr><td>层级</td><td><code>z-index: 100</code></td><td>遮罩 90 + 面板 100</td></tr>
       <tr><td>遮罩</td><td><code>rgba(0,0,0,0.35)</code></td><td>点击遮罩关闭抽屉</td></tr>
       <tr><td>Header</td><td><code>padding: 12px 16px</code></td><td>Pill 徽章 + 标题（14px/500）+ 副标题 + 关闭按钮</td></tr>

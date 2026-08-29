@@ -1,4 +1,4 @@
-# PTO Quick Reference
+# openUBMC Studio Quick Reference
 
 One-page cheat sheet of the most common tokens and classes. **For the full system, read `DESIGN.md`.** This file is what to glance at while writing markup.
 
@@ -23,8 +23,8 @@ All variables are defined in `tokens/foundation.css` and `tokens/semantic.css`. 
 | Subtle border | `--border-subtle` | white 6% |
 | Default border | `--border-default` | white 10% |
 | Strong border | `--border-strong` | white 16% |
-| Primary action | `--primary` | `#4369EF` |
-| Primary hover | `--primary-hover` | `#5A92E6` |
+| Primary action | `--primary` | `#0077FF` |
+| Primary hover | `--primary-hover` | `#0063D1` |
 | Success | `--success` | `#04D793` |
 | Warning | `--warning` | `#FFAA3B` |
 | Danger | `--danger` | `#FF4B7B` |
@@ -115,12 +115,12 @@ Do not use `.btn-solid` or white selected buttons for tabs. Reserve white fill f
 - `.panel-shell-body`
 - `.card-demo`, `.card-demo-header`, `.card-demo-title`, `.card-demo-description`, `.card-demo-content`, `.card-demo-footer` — content card primitives
 
-When retrofitting an existing demo, remove legacy card frames that do not exist in these shared classes. Do not keep old full borders, left highlight rails, inset-left shadows, or pseudo-element side bars by changing their colors to PTO tokens.
+When retrofitting an existing demo, remove legacy card frames that do not exist in these shared classes. Do not keep old full borders, left highlight rails, inset-left shadows, or pseudo-element side bars by changing their colors to openUBMC Studio tokens.
 
 ### Pattern boundaries
 
-- `workbench-shell` — resize kernel only. Use `PtoWorkbenchShell.initResizablePanes`, `createSplitGutter`, or `initNestedResizablePanes`; ratio sizes divide the space left after fixed gutters. Do not use it for page chrome, pane fill, pane titles, or canvas controls.
-- `ide-frame` — PTO IDE framework shell. Use `.pto-ide-frame*` classes, `data-host="standalone"` or `data-host="vscode-webview"`, and `PtoIdeFrame.init`; product pages fill the slots. The host window defaults to 4:3 and standalone explorer starts at 300px via `data-pixel-sizes`. Standalone host mode owns the PTO IDE skin: 100%-intensity multi-point gradient/aura background, 80% translucent pane fill, 72% pane-header fill, `blur(18px) saturate(1.18)` pane backdrop filtering, pane shadow, transparent borderless top chrome, and window controls. Preview tabs live inside the preview/editor pane, not in a separate top chrome band. Playback uses `floating-playback-control` through `data-ide-floating-playback`; do not recreate a footer playback bar. Do not put business sample data, placeholder tab names, placeholder code rows, or default textual slot content in the pattern and do not override `.pto-workbench-shell__*` internals. Do not locally replace the shared IDE gradient or pane blur; update `patterns/ide-frame` variables first.
+- `workbench-shell` — resize kernel only. Use `OpenUBMCStudioWorkbenchShell.initResizablePanes`, `createSplitGutter`, or `initNestedResizablePanes`; ratio sizes divide the space left after fixed gutters. Do not use it for page chrome, pane fill, pane titles, or canvas controls.
+- `ide-frame` — openUBMC Studio IDE framework shell. Use `.openubmc-studio-ide-frame*` classes, `data-host="standalone"` or `data-host="vscode-webview"`, and `OpenUBMCStudioIdeFrame.init`; product pages fill the slots. The host window defaults to 4:3 and standalone explorer starts at 300px via `data-pixel-sizes`. Standalone host mode owns the openUBMC Studio IDE skin: 100%-intensity multi-point gradient/aura background, 80% translucent pane fill, 72% pane-header fill, `blur(18px) saturate(1.18)` pane backdrop filtering, pane shadow, transparent borderless top chrome, and window controls. Preview tabs live inside the preview/editor pane, not in a separate top chrome band. Playback uses `floating-playback-control` through `data-ide-floating-playback`; do not recreate a footer playback bar. Do not put business sample data, placeholder tab names, placeholder code rows, or default textual slot content in the pattern and do not override `.openubmc-studio-workbench-shell__*` internals. Do not locally replace the shared IDE gradient or pane blur; update `patterns/ide-frame` variables first.
 - `vscode.css` — maps VS Code `--vscode-*` variables and hides standalone chrome in webviews.
 
 ### Navigation
@@ -144,7 +144,7 @@ Use inspector sections for dense right rails. Do not wrap every metric row in a 
 
 - Control-flow viewer: `.cf-panel`, `.cf-node`, `.cf-toggle-btn`, `.cf-reopen-btn`, etc.
 - Color panel: `.color-panel`
-- Floating playback controls: use `patterns/floating-playback-control/pattern.css` and `pattern.js`; consume `.pto-floating-playback*` classes or `window.PtoFloatingPlaybackControl.createControl()`, then call `init()` and `initScrubberHover()`. Do not recreate the floating shell, range thumb, collapse sync, or scrubber hover locally.
+- Floating playback controls: use `patterns/floating-playback-control/pattern.css` and `pattern.js`; consume `.openubmc-studio-floating-playback*` classes or `window.OpenUBMCStudioFloatingPlaybackControl.createControl()`, then call `init()` and `initScrubberHover()`. Do not recreate the floating shell, range thumb, collapse sync, or scrubber hover locally.
 - Glass surfaces: add `data-liquid-glass` only to floating auxiliary overlays, not page sections, cards, dense tables, or primary content panels. `scripts/liquid-glass.js` owns support flags only; CSS must keep native `backdrop-filter` blur visible before adding static highlight styling. The approved large-area IDE blur/gradient treatment is `ide-frame`; do not recreate it with page-local glass cards or cursor glow.
 
 For full class index, grep `css/style.css` or open `design-system-preview.html`.
@@ -183,7 +183,7 @@ These are allowed to use hard-coded colors **outside** the semantic palette, bec
 
 - Color maps (heatmaps, density)
 - Graph node semantic accents
-- Swimlane event colors: use `PtoSwimlaneTaskPattern.createTaskColormap()` for task categories, engine lanes, stitches, and subgraphs
+- Swimlane event colors: use `OpenUBMCStudioSwimlaneTaskPattern.createTaskColormap()` for task categories, engine lanes, stitches, and subgraphs
 - Stitch / dependency colors
 
 Document the choice. Reusable swimlane color rules belong in the shared pattern colormap; one-off data encodings stay module-local and must not become global UI tokens. Task identity fallback colors use the categorical palette in `patterns/swimlane-task/pattern.js`, not raw `hash % 360` hue mapping.

@@ -1,6 +1,6 @@
 ---
 name: public-page-scaffold
-description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充完整 boilerplate：暗色滚动条、PTO design token、背景、postMessage 联动模板，消除 R1/R2 违规源头。触发词：新建页面、新 HTML、create page、新增页面、加一个页面。
+description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充完整 boilerplate：暗色滚动条、openUBMC Studio design token、背景、postMessage 联动模板，消除 R1/R2 违规源头。触发词：新建页面、新 HTML、create page、新增页面、加一个页面。
 ---
 
 # public-page-scaffold — 新建 public/ 独立页面
@@ -23,7 +23,7 @@ description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充�
 
 ### C. 数据管理页面
 **适用场景**：bmc-env、release-notes 等数据密集的列表/表格页面
-**特征**：完整 PTO 语义 token、表格/列表为主、筛选/分页
+**特征**：完整 openUBMC Studio 语义 token、表格/列表为主、筛选/分页
 
 ### D. 弹窗 / 对话框
 **适用场景**：确认操作、快捷选择器（QuickPick）、完成态蒙层
@@ -56,7 +56,7 @@ description: 在 web-app/public/ 下新建 HTML 页面时使用。自动填充�
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
 ```
 
-### 块 2：PTO design tokens（R2 强制 — 禁止私造配色）
+### 块 2：openUBMC Studio design tokens（R2 强制 — 禁止私造配色）
 
 ```css
 :root {

@@ -1,4 +1,4 @@
-# PTO Design System Map
+# openUBMC Studio Design System Map
 
 Use this as the default classification when building a new module.
 
@@ -15,7 +15,7 @@ Use this as the default classification when building a new module.
 - `Swimlane Event Pattern`
 - `IDE Frame Pattern`
 
-The source of truth for target appearance is `/Users/yin/pto/design-system-preview.html`.
+The source of truth for target appearance is `<repo>/design-system-preview.html`.
 
 ## Matching guidance
 
@@ -48,7 +48,7 @@ Use for inspector panels, action-list panels, popup detail cards, and compact in
 
 Do not treat every large surface as a card. Large canvases, viz shells, and IDE/workbench page frames belong outside this class.
 
-During retrofit, do not keep a legacy card's private frame just because its colors were converted to tokens. Full borders, left accent rails, inset-left shadows, pseudo-element side bars, and side gradients should be removed unless the target PTO class explicitly owns that decoration. Dense right-side details should usually become `.inspector-section` plus one optional `.inspector-soft-card`, not a stack of bordered cards.
+During retrofit, do not keep a legacy card's private frame just because its colors were converted to tokens. Full borders, left accent rails, inset-left shadows, pseudo-element side bars, and side gradients should be removed unless the target openUBMC Studio class explicitly owns that decoration. Dense right-side details should usually become `.inspector-section` plus one optional `.inspector-soft-card`, not a stack of bordered cards.
 
 ### Data Viz Exempt
 
@@ -65,7 +65,7 @@ Even exempt patterns should be previewed and documented when they materially aff
 
 ### IDE Frame Pattern
 
-Use `patterns/ide-frame` for PTO IDE pages, workbench pages, multi-pane analysis tools, code/preview/inspector layouts, and pages that need floating playback. The pattern owns the default PTO IDE skin: 100%-intensity multi-point gradient/aura background, 80% translucent blurred panes, pane-header fill, pane shadow, transparent top chrome, activity rail, status strip, and playback mount.
+Use `patterns/ide-frame` for openUBMC Studio IDE pages, workbench pages, multi-pane analysis tools, code/preview/inspector layouts, and pages that need floating playback. The pattern owns the default openUBMC Studio IDE skin: 100%-intensity multi-point gradient/aura background, 80% translucent blurred panes, pane-header fill, pane shadow, transparent top chrome, activity rail, status strip, and playback mount.
 
 Do not map an IDE/workbench page to generic `.panel-shell` or `.card-demo` containers. Product pages fill `ide-frame` slots with business content; they should not locally redefine the gradient background, pane opacity, backdrop blur, split gutter visuals, or floating playback chrome.
 
@@ -74,6 +74,6 @@ Do not map an IDE/workbench page to generic `.panel-shell` or `.card-demo` conta
 - Creating a new `.xxx-btn` visual system when shared buttons already fit
 - Hard-coding neutral grays, borders, shadows, or radii inside a new module
 - Token-swapping old card borders or left highlight rails instead of removing them
-- Rebuilding a PTO IDE page from generic panels instead of consuming `patterns/ide-frame`
+- Rebuilding an openUBMC Studio IDE page from generic panels instead of consuming `patterns/ide-frame`
 - Introducing a new type scale disconnected from existing tokens
 - Shipping unapproved new component visuals directly in the module

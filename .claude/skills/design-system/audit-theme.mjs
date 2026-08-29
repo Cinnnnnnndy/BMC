@@ -97,7 +97,7 @@ function printPatternThemeBridge() {
   console.log('\nPattern preview theme bridge');
   for (const file of listPatternFiles('html')) {
     const html = fs.readFileSync(file, 'utf8');
-    const status = html.includes('pto-preview-theme') ? 'ok' : 'missing';
+    const status = html.includes('openubmc-studio-preview-theme') ? 'ok' : 'missing';
     if (status === 'missing') failed = true;
     console.log(`- ${path.relative(root, file)} ${status}`);
   }

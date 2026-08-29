@@ -9,16 +9,16 @@ design system, 设计系统, 设计手册, design playbook, 视觉规范, 配色
 ## 设计手册
 完整的交互式设计手册发布在 `.claude/skills/design-system/design-playbook.html`，包含可视化线框图、配色色板、组件规格表和 9 种页面脚手架画廊。
 
-## PTO Design System 原始参考
-PTO 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/design-system/PTO_Design_System_Guide.html`，包含原始 token 定义、组件 pattern、布局规范。在浏览器中打开即可查阅。
+## openUBMC Studio 设计系统指南
+openUBMC Studio 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/design-system/openUBMC-Studio-Design-System-Guide.html`，包含 token 定义、组件 pattern、布局规范。在浏览器中打开即可查阅。
 
 ## 参考文件与资源
 
-从 PTO Design System 移植的权威参考，按用途分类：
+openUBMC Studio 设计系统权威参考，按用途分类：
 
 **速查与规范**
 - `references/quick-reference.md`：token 和 class 速查表
-- `references/pto-design-system-map.md`：元素分类规则（UI 元素 → 设计系统部件映射）
+- `references/openubmc-studio-design-system-map.md`：元素分类规则（UI 元素 → 设计系统部件映射）
 - `references/DESIGN.md`：设计系统完整规范（theme、surface、palette、typography、spacing、component、governance）
 
 **改造与审批**
@@ -178,7 +178,7 @@ PTO 设计系统完整指南（Claude Design 导出）存档在 `.claude/skills/
 |------|------|------|
 | 定位 | `position: fixed; top:0; right:0; bottom:0` | 从右侧覆盖 |
 | 宽度 | `min(58-72vw, 780-920px)` | 按场景选择区间 |
-| 背景 | `var(--surface-1)` | PTO token |
+| 背景 | `var(--surface-1)` | openUBMC Studio token |
 | 边框 | `borderLeft: 1px solid var(--border-default)` | 左分割线 |
 | 层级 | `z-index: 100`（遮罩 90） | |
 | 遮罩 | `rgba(0,0,0,0.35)` | 点击关闭 |
@@ -465,9 +465,9 @@ R1-R8 全部通过才能提交。PostToolUse hook 会在每次 Write/Edit 后自
 
 ---
 
-## 附录：PTO Design System 完整 Token 参考
+## 附录：openUBMC Studio 设计系统完整 Token 参考
 
-以下 token 摘录自 `PTO_Design_System_Guide.html`（原始 Claude Design 导出）。项目中所有自定义值**必须引用这些 token**，不得私造。
+以下 token 摘录自 `openUBMC-Studio-Design-System-Guide.html`（Claude Design 导出）。项目中所有自定义值**必须引用这些 token**，不得私造。
 
 ### A. 原始色板（Ark Primitives）
 
@@ -649,7 +649,7 @@ R1-R8 全部通过才能提交。PostToolUse hook 会在每次 Write/Edit 后自
 
 ### G. 高亮色阶（Highlight Ramps）
 
-PTO 定义了 6 组完整色阶（0-1000），用于代码高亮、数据可视化等场景：
+openUBMC Studio 设计系统定义了 6 组完整色阶（0-1000），用于代码高亮、数据可视化等场景：
 
 | 色阶名 | Source 色 | 用途 |
 |--------|-----------|------|
@@ -660,4 +660,4 @@ PTO 定义了 6 组完整色阶（0-1000），用于代码高亮、数据可视�
 | `ub-green` | `#87C80F` | 绿色系高亮 |
 | `mte-amber` | `#EAB308` | 琥珀色高亮 |
 
-每组包含 `--highlight-{name}-{0..1000}` 共 11 级（0 最亮 → 1000 最暗），完整值见 `PTO_Design_System_Guide.html`。
+每组包含 `--highlight-{name}-{0..1000}` 共 11 级（0 最亮 → 1000 最暗），完整值见 `openUBMC-Studio-Design-System-Guide.html`。

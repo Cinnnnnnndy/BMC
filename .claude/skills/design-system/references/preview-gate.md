@@ -1,6 +1,6 @@
 # Preview Gate
 
-Use this workflow whenever the existing PTO system cannot satisfy a new module need.
+Use this workflow whenever the existing openUBMC Studio design system cannot satisfy a new module need.
 
 ## Required preview contents
 
@@ -20,8 +20,8 @@ Every preview must show:
 
 Preferred order:
 
-1. `/Users/yin/pto/<module>/component-preview.html`
-2. `/Users/yin/pto/design-system-preview.html` when the pattern should become shared system UI
+1. `<repo>/<module>/component-preview.html`
+2. `<repo>/design-system-preview.html` when the pattern should become shared system UI
 
 ## Approval rule
 
