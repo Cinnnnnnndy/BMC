@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>【加载态 / 空状态】</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+/* ═══ openUBMC Studio design tokens ═══ */
+:root {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.40);
+  --border-subtle: rgba(255,255,255,.06);
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
+  --success: #04d793;
+  --accent-purple: #a78bfa;
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+/* ══════ 容器 ══════ */
+.showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 32px 24px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.showcase-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--foreground-muted);
+  margin-bottom: 12px;
+}
+
+/* ══════ A. 全屏加载蒙层 ══════ */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--background);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  transition: opacity .4s ease;
+}
+.loading-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(255,255,255,.08);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 13px;
+  color: var(--foreground-secondary);
+}
+
+/* ══════ B. 骨架屏（Skeleton）══════ */
+.skeleton-card {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 20px;
+}
+.sk-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-3) 25%, rgba(255,255,255,.06) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease infinite;
+}
+.sk-line + .sk-line { margin-top: 10px; }
+.sk-line.w-full  { width: 100%; }
+.sk-line.w-3-4   { width: 75%; }
+.sk-line.w-1-2   { width: 50%; }
+.sk-line.w-1-3   { width: 33%; }
+.sk-line.h-lg    { height: 20px; }
+.sk-circle {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--surface-3) 25%, rgba(255,255,255,.06) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease infinite;
+  flex-shrink: 0;
+}
+.sk-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.sk-row .sk-lines { flex: 1; }
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 骨架表格 */
+.sk-table {
+  width: 100%;
+  margin-top: 16px;
+}
+.sk-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sk-table-row .sk-line { height: 10px; }
+
+/* ══════ C. 空状态 ══════ */
+.empty-state {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.empty-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--foreground-muted);
+  margin-bottom: 4px;
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--foreground);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--foreground-muted);
+  line-height: 1.55;
+  max-width: 320px;
+}
+.empty-cta {
+  margin-top: 8px;
+  height: 34px; padding: 0 20px;
+  border-radius: 100px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px; font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s;
+}
+.empty-cta:hover { background: #3457d5; }
+
+/* AI 空状态变体 */
+.empty-state.ai .empty-icon {
+  background: rgba(167,139,250,.10);
+  color: var(--accent-purple);
+}
+
+/* ══════ D. 进度条 ══════ */
+.progress-card {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 20px;
+}
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.progress-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.progress-value {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--foreground-secondary);
+}
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--primary);
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+.progress-fill.green { background: var(--success); }
+.progress-fill.purple { background: var(--accent-purple); }
+
+.progress-steps {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--foreground-muted);
+}
+.progress-step.done { color: var(--success); }
+.progress-step.active { color: var(--foreground); }
+.ps-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--foreground-muted);
+  flex-shrink: 0;
+}
+.progress-step.done .ps-dot { background: var(--success); }
+.progress-step.active .ps-dot { background: var(--primary); }
+</style>
+</head>
+<body>
+<div class="showcase">
+
+  <!-- A. 骨架屏 -->
+  <div>
+    <div class="showcase-title">Skeleton Loading</div>
+    <div class="skeleton-card">
+      <div class="sk-row">
+        <div class="sk-circle"></div>
+        <div class="sk-lines">
+          <div class="sk-line h-lg w-1-2"></div>
+          <div class="sk-line w-3-4"></div>
+        </div>
+      </div>
+      <div class="sk-table">
+        <div class="sk-table-row">
+          <div class="sk-line w-full"></div>
+          <div class="sk-line w-3-4"></div>
+          <div class="sk-line w-1-2"></div>
+          <div class="sk-line w-full"></div>
+        </div>
+        <div class="sk-table-row">
+          <div class="sk-line w-3-4"></div>
+          <div class="sk-line w-full"></div>
+          <div class="sk-line w-1-3"></div>
+          <div class="sk-line w-full"></div>
+        </div>
+        <div class="sk-table-row">
+          <div class="sk-line w-full"></div>
+          <div class="sk-line w-1-2"></div>
+          <div class="sk-line w-3-4"></div>
+          <div class="sk-line w-1-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. 空状态 -->
+  <div>
+    <div class="showcase-title">Empty State</div>
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/></svg>
+      </div>
+      <div class="empty-title">暂无数据</div>
+      <div class="empty-desc">当前还没有任何配置记录，点击下方按钮开始创建。</div>
+      <button class="empty-cta">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 2a.5.5 0 0 1 .5.5V7H13a.5.5 0 0 1 0 1H8.5v4.5a.5.5 0 0 1-1 0V8H3a.5.5 0 0 1 0-1h4.5V2.5A.5.5 0 0 1 8 2z"/></svg>
+        新建配置
+      </button>
+    </div>
+  </div>
+
+  <!-- AI 空状态变体 -->
+  <div>
+    <div class="showcase-title">AI Empty State</div>
+    <div class="empty-state ai">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+      </div>
+      <div class="empty-title">AI 助手就绪</div>
+      <div class="empty-desc">描述你的需求，AI 将自动分析环境并给出建议操作方案。</div>
+      <button class="empty-cta" style="background:rgba(167,139,250,.14);color:#a78bfa;" onmouseover="this.style.background='rgba(167,139,250,.22)'" onmouseout="this.style.background='rgba(167,139,250,.14)'">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+        开始对话
+      </button>
+    </div>
+  </div>
+
+  <!-- C. 进度条 -->
+  <div>
+    <div class="showcase-title">Progress</div>
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="progress-label">固件升级中</span>
+        <span class="progress-value">67%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:67%"></div>
+      </div>
+      <div class="progress-steps">
+        <div class="progress-step done">
+          <div class="ps-dot"></div>
+          下载完成
+        </div>
+        <div class="progress-step active">
+          <div class="ps-dot"></div>
+          写入固件
+        </div>
+        <div class="progress-step">
+          <div class="ps-dot"></div>
+          校验重启
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 全屏加载蒙层（需要时取消注释）
+<div id="loading" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">正在加载数据…</div>
+</div>
+-->
+
+<script>
+/* ── postMessage 联动 ──
+   window.parent.postMessage({ type: 'ai-open-scenario', viewId: 'xxx' }, '*');
+   window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent <关键词>' }, '*');
+   window.parent.postMessage({ type: 'ai-close-panel' }, '*');
+*/
+</script>
+</body>
+</html>
