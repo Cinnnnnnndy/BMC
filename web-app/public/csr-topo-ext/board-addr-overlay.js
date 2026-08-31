@@ -17,6 +17,8 @@
        连接器 Connector_*、JTAG 链路上的 Cpld_1）显示「—」，不编造。
      · 位置固定在器件正下方、与器件等宽居中——不做「挤不下就换到旁边」
        这类挪位，否则同一块板上标签一会儿在下、一会儿在右，读起来更乱。
+       只在纵向留 1~5px 的余地：默认离器件 5px，若这一行下方挤（mux 通道
+       号、下一条总线标签），就往器件方向收几像素，避免压住它们。
        压到连线上靠文字描边保证可读，不加底片方块。
 
    约束：bundle（assets/index.js / index.css）未改动，本脚本由 index.html
@@ -74,20 +76,53 @@
     return out;
   }
 
-  /** 器件下方 6px：让开芯片底部那条 6px 的绿色焊盘（.pca-indicator） */
-  var GAP = 6;
+  var GAP_MAX = 5;   // 与器件底边的默认间距（让开底部那条 6px 的绿色焊盘）
+  var GAP_MIN = 1;
+  var LABEL_H = 11;  // 与 CSS 的 line-height 一致
+  var CHAR_W = 5.7;  // 9.5px 等宽字体的单字宽，用来估文字实际占位
 
-  function makeLabel(img, name) {
+  function hits(a, b) {
+    return a.x < b.x + b.w - 0.5 && a.x + a.w > b.x + 0.5 &&
+           a.y < b.y + b.h - 0.5 && a.y + a.h > b.y + 0.5;
+  }
+
+  /** 只在纵向微调：从默认间距往器件方向收，找第一个不压住别的元素的位置 */
+  function gapFor(chip, text, obstacles) {
+    var tw = text.length * CHAR_W + 2;
+    for (var g = GAP_MAX; g >= GAP_MIN; g--) {
+      var box = {
+        x: chip.x + (chip.w - tw) / 2,
+        y: chip.y + chip.h + g,
+        w: tw,
+        h: LABEL_H,
+      };
+      var clash = false;
+      for (var i = 0; i < obstacles.length; i++) {
+        if (hits(box, obstacles[i])) { clash = true; break; }
+      }
+      if (!clash) return g;
+    }
+    // 实在没位置（例如 JTAG 那种上下两条总线挨得很近）就贴着器件放，
+    // 离下面那条总线标签最远，重叠只落在行高的空白上，看不出来
+    return GAP_MIN;
+  }
+
+  function makeLabel(img, name, obstacles) {
     var a = addrOf(name);
+    var text = a || '—';
     var el = document.createElement('div');
     el.className = LABEL_CLASS + (a ? '' : ' is-none');
-    el.textContent = a || '—';
+    el.textContent = text;
     el.title = a
       ? name + ' · I2C 地址 ' + a + '（8bit 写地址）'
       : name + ' · 该器件在 .sr 里没有 Address（板间连接器 / 非 I2C 链路）';
-    el.style.left = img.style.left;
-    el.style.width = img.style.width;
-    el.style.top = ((parseFloat(img.style.top) || 0) + (parseFloat(img.style.height) || 60) + GAP) + 'px';
+    var x = parseFloat(img.style.left) || 0;
+    var y = parseFloat(img.style.top) || 0;
+    var w = parseFloat(img.style.width) || 70;
+    var h = parseFloat(img.style.height) || 60;
+    el.style.left = x + 'px';
+    el.style.width = w + 'px';
+    el.style.top = (y + h + gapFor({ x: x, y: y, w: w, h: h }, text, obstacles)) + 'px';
     return el;
   }
 
@@ -98,6 +133,23 @@
     var old = layer.querySelectorAll('.' + LABEL_CLASS);
     for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
     if (!sr) return;
+
+    // 障碍物：画布上除连线以外的元素，用于纵向微调时避让
+    var base = layer.getBoundingClientRect();
+    var scale = layer.offsetWidth ? base.width / layer.offsetWidth : 1;
+    if (!scale || !isFinite(scale)) scale = 1;
+    var obstacles = [];
+    var all = layer.querySelectorAll('*');
+    for (var n = 0; n < all.length; n++) {
+      var o = all[n];
+      if (o.closest('.wire-layer') || o.classList.contains(LABEL_CLASS)) continue;
+      var r = o.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      obstacles.push({
+        x: (r.left - base.left) / scale, y: (r.top - base.top) / scale,
+        w: r.width / scale, h: r.height / scale,
+      });
+    }
 
     var seen = {};
     var queue = [];
@@ -120,7 +172,12 @@
         queue = [];
         continue;
       }
-      pending.push(makeLabel(el, name));
+      var label = makeLabel(el, name, obstacles);
+      pending.push(label);
+      obstacles.push({                       // 标签之间也别叠在一起
+        x: parseFloat(label.style.left), y: parseFloat(label.style.top),
+        w: parseFloat(label.style.width), h: LABEL_H,
+      });
     }
 
     for (var m = 0; m < pending.length; m++) layer.appendChild(pending[m]);

@@ -611,14 +611,15 @@ html.dark {
 .content-layer .csr-addr-label {
   position: absolute;
   text-align: center;
-  font: 500 10px/12px ui-monospace, SFMono-Regular, Menlo, 'Courier New', monospace;
+  font: 500 9.5px/11px ui-monospace, SFMono-Regular, Menlo, 'Courier New', monospace;
   letter-spacing: 0.2px;
   color: rgba(255, 255, 255, 0.55);
   /* 压在连线上也要读得清：用文字描边而不是底片方块，省得像贴上去的标签 */
   text-shadow:
+    0 0 2px rgba(10, 10, 12, 0.98),
+    0 0 2px rgba(10, 10, 12, 0.98),
     0 0 3px rgba(10, 10, 12, 0.95),
-    0 0 3px rgba(10, 10, 12, 0.95),
-    0 0 6px rgba(10, 10, 12, 0.8);
+    0 0 6px rgba(10, 10, 12, 0.85);
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
