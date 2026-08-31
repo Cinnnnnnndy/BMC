@@ -15,8 +15,9 @@
        宁可少标也不标错。
      · 芯片、连接器一律标：.sr 里有 Address 的显示地址，没有的（板间
        连接器 Connector_*、JTAG 链路上的 Cpld_1）显示「—」，不编造。
-     · 位置：默认标在器件正下方；那里被别的元素占了就依次试右、左、上，
-       都不行才退回下方。标签自带深色底片，压在连线上也读得清。
+     · 位置固定在器件正下方、与器件等宽居中——不做「挤不下就换到旁边」
+       这类挪位，否则同一块板上标签一会儿在下、一会儿在右，读起来更乱。
+       压到连线上靠文字描边保证可读，不加底片方块。
 
    约束：bundle（assets/index.js / index.css）未改动，本脚本由 index.html
    单独引入，样式在 pto-overrides.css ⑫ 节。脚本没跑到时画布就是原样。
@@ -73,57 +74,20 @@
     return out;
   }
 
-  /** 画布坐标系：把任意元素的屏幕矩形换算回 .content-layer 的未缩放坐标 */
-  function rectIn(el, base, scale) {
-    var r = el.getBoundingClientRect();
-    return {
-      x: (r.left - base.left) / scale,
-      y: (r.top - base.top) / scale,
-      w: r.width / scale,
-      h: r.height / scale,
-    };
-  }
+  /** 器件下方 6px：让开芯片底部那条 6px 的绿色焊盘（.pca-indicator） */
+  var GAP = 6;
 
-  function hits(a, b) {
-    return a.x < b.x + b.w - 1 && a.x + a.w > b.x + 1 &&
-           a.y < b.y + b.h - 1 && a.y + a.h > b.y + 1;
-  }
-
-  var CHAR_W = 6.2;   // 10px 等宽字体的单字宽（含 3px 内边距 ×2 另算）
-  var LABEL_H = 14;
-
-  /** 依次试「下 → 右 → 左 → 上」，挑第一个不压到别的元素的位置 */
-  function place(chip, text, obstacles) {
-    var tw = text.length * CHAR_W + 6;
-    var slots = [
-      { x: chip.x + (chip.w - tw) / 2, y: chip.y + chip.h + 4 },
-      { x: chip.x + chip.w + 4,        y: chip.y + (chip.h - LABEL_H) / 2 },
-      { x: chip.x - tw - 4,            y: chip.y + (chip.h - LABEL_H) / 2 },
-      { x: chip.x + (chip.w - tw) / 2, y: chip.y - LABEL_H - 4 },
-    ];
-    for (var i = 0; i < slots.length; i++) {
-      var box = { x: slots[i].x, y: slots[i].y, w: tw, h: LABEL_H };
-      var clash = false;
-      for (var j = 0; j < obstacles.length; j++) {
-        if (hits(box, obstacles[j])) { clash = true; break; }
-      }
-      if (!clash) return box;
-    }
-    return { x: slots[0].x, y: slots[0].y, w: tw, h: LABEL_H };
-  }
-
-  function makeLabel(name, chipRect, obstacles) {
+  function makeLabel(img, name) {
     var a = addrOf(name);
-    var text = a || '—';
     var el = document.createElement('div');
     el.className = LABEL_CLASS + (a ? '' : ' is-none');
-    el.textContent = text;
+    el.textContent = a || '—';
     el.title = a
       ? name + ' · I2C 地址 ' + a + '（8bit 写地址）'
       : name + ' · 该器件在 .sr 里没有 Address（板间连接器 / 非 I2C 链路）';
-    var box = place(chipRect, text, obstacles);
-    el.style.left = box.x + 'px';
-    el.style.top = box.y + 'px';
+    el.style.left = img.style.left;
+    el.style.width = img.style.width;
+    el.style.top = ((parseFloat(img.style.top) || 0) + (parseFloat(img.style.height) || 60) + GAP) + 'px';
     return el;
   }
 
@@ -134,22 +98,6 @@
     var old = layer.querySelectorAll('.' + LABEL_CLASS);
     for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
     if (!sr) return;
-
-    // 画布可能被缩放（zoom），统一换算到未缩放坐标再算避让
-    var base = layer.getBoundingClientRect();
-    var scale = layer.offsetWidth ? base.width / layer.offsetWidth : 1;
-    if (!scale || !isFinite(scale)) scale = 1;
-
-    // 障碍物：画布上除连线 SVG 之外的所有可见元素（芯片、总线标签、
-    // 焊盘、mux 通道号…），标签要绕开它们
-    var obstacles = [];
-    var all = layer.querySelectorAll('*');
-    for (var n = 0; n < all.length; n++) {
-      var o = all[n];
-      if (o.closest('.wire-layer') || o.classList.contains(LABEL_CLASS)) continue;
-      var r = rectIn(o, base, scale);
-      if (r.w > 0 && r.h > 0) obstacles.push(r);
-    }
 
     var seen = {};
     var queue = [];
@@ -172,13 +120,7 @@
         queue = [];
         continue;
       }
-      var label = makeLabel(name, rectIn(el, base, scale), obstacles);
-      pending.push(label);
-      // 已放好的标签也算障碍物，避免两个标签叠在一起
-      obstacles.push({
-        x: parseFloat(label.style.left), y: parseFloat(label.style.top),
-        w: label.textContent.length * CHAR_W + 6, h: LABEL_H,
-      });
+      pending.push(makeLabel(el, name));
     }
 
     for (var m = 0; m < pending.length; m++) layer.appendChild(pending[m]);
