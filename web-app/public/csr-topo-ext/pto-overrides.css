@@ -601,3 +601,25 @@ html.dark {
   color: var(--foreground);
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ⑫ 板级拓扑：器件下方的 I2C 地址
+   ───────────────────────────────────────────────────────────────────
+   节点由 board-addr-overlay.js 按 .sr 数据插进 .content-layer，坐标与
+   芯片图片同一套（跟随画布缩放平移）。中性灰阶，不抢器件本身的视觉。
+   ═══════════════════════════════════════════════════════════════════ */
+.content-layer .csr-addr-label {
+  position: absolute;
+  text-align: center;
+  font: 500 10px/1.2 ui-monospace, SFMono-Regular, Menlo, 'Courier New', monospace;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  /* 芯片图片 z-index:15、焊盘 14，标签要压在它们之上才不会被切掉半行字 */
+  z-index: 20;
+}
+.content-layer .csr-addr-label.is-none {
+  color: rgba(255, 255, 255, 0.26);
+}
