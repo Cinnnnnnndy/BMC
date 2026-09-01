@@ -56,7 +56,10 @@ html,body {
 .hdr { flex-shrink: 0; padding: 14px 18px 0; display: flex; flex-direction: column; gap: 10px; }
 .hdr-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .hdr-model { font-size: 20px; font-weight: 700; color: #fff; }
-.hdr-title { font-size: 12.5px; font-weight: 600; color: var(--foreground-muted); }
+.hdr-title {
+  font-size: 12px; font-weight: 600; color: var(--foreground-secondary);
+  background: var(--surface-2); border-radius: 100px; padding: 4px 12px;
+}
 .hdr-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .hdr-dump {
   font-family: var(--font-mono); font-size: 11.5px; color: var(--foreground-muted);
@@ -78,14 +81,6 @@ html,body {
   border-color: color-mix(in srgb, #ffaa3b 35%, transparent);
 }
 .chip--warn .dot { background: var(--warning); }
-.hdr-actions { margin-left: auto; display: flex; gap: 8px; }
-.btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 16px; border-radius: 100px; border: none; cursor: pointer;
-  font-size: 12.5px; font-weight: 600; font-family: var(--font-sans);
-  background: var(--surface-2); color: var(--foreground); transition: background .15s;
-}
-.btn:hover { background: var(--surface-3); }
 
 /* ── 标签页 ── */
 .tabs {
@@ -194,9 +189,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       <span class="chip chip--warn"><span class="dot"></span>健康状态：轻微告警</span>
       <span class="chip chip--warn"><span class="dot"></span>告警：3</span>
       <span class="chip">采集时间：2026-08-28 14:23:17</span>
-      <div class="hdr-actions">
-        <button class="btn" onclick="alert('演示环境：请在 openUBMC Studio 中打开真实 dump 压缩包')">打开压缩包</button>
-      </div>
     </div>
     <div class="hdr-meta">
       <span class="hdr-dump">dump_info_20260828_142317.tar.gz · AppDump</span>
@@ -206,7 +198,7 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
   <div class="tabs" id="tabs">
     <button class="tab on" data-p="overview">概览</button>
     <button class="tab" data-p="alarm">告警与传感器<span class="n">3</span></button>
-    <button class="tab" data-p="runtime">性能/功耗/调速</button>
+    <button class="tab" data-p="runtime">功耗/调速</button>
     <button class="tab" data-p="fru">板卡与线缆</button>
     <button class="tab" data-p="logs">日志</button>
   </div>
@@ -245,6 +237,24 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
             <div><h4>FAN4 转速偏高</h4><p>持续 92% 占空比运行，与进风温度 35°C 相关，属调速策略正常响应。</p></div>
           </div>
         </div>
+      </div>
+      <div class="subhead">性能</div>
+      <div class="grid grid--stats">
+        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
+        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
+        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>Top 进程（按 CPU）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
+            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
+            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
+            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
+          </tbody>
+        </table></div>
       </div>
     </section>
 
@@ -319,27 +329,8 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <!-- 性能/功耗/调速（性能 + 功率与温度 + 调速 合并：三者都是运行时遥测/热管理，进风温度→PID→风扇是一条因果链） -->
+    <!-- 功耗/调速（功率与温度 + 调速 合并：进风温度→PID→风扇是一条因果链） -->
     <section class="pane" id="p-runtime">
-      <div class="subhead">软件运行</div>
-      <div class="grid grid--stats">
-        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
-        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
-        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
-      </div>
-      <div class="card section-gap">
-        <h3>Top 进程（按 CPU）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
-          <tbody>
-            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
-            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
-            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
-            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-
       <div class="subhead">功率与温度</div>
       <div class="grid grid--stats">
         <div class="card"><h3>当前功率</h3><div class="stat-v">386<small>W</small></div><div class="stat-sub">峰值 512W · 08-27 15:20</div></div>
