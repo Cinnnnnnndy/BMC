@@ -166,6 +166,25 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 .ai-note svg { color: var(--accent-purple); flex-shrink: 0; }
 
 .section-gap { margin-top: 12px; }
+
+/* 合并 tab 内的小节标题（区分不同数据域，但不升级成顶层 tab） */
+.subhead {
+  font-size: 11px; font-weight: 700; color: var(--foreground-muted);
+  letter-spacing: .06em; text-transform: uppercase; margin: 20px 0 8px;
+}
+.subhead:first-child { margin-top: 0; }
+
+/* 「日志」tab 内部子标签切换（操作日志 / app.log），不占用顶层 tab 位 */
+.subtabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.subtab {
+  padding: 5px 13px; border-radius: 100px; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: var(--font-sans);
+  background: var(--surface-2); color: var(--foreground-secondary); transition: background .15s, color .15s;
+}
+.subtab:hover { background: var(--surface-3); color: var(--foreground); }
+.subtab.on { background: var(--state-selected); color: var(--primary); }
+.subpane { display: none; }
+.subpane.on { display: block; }
 </style>
 </head>
 <body>
@@ -190,15 +209,11 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-p="overview">概览</button>
-    <button class="tab" data-p="fru">板卡与版本</button>
     <button class="tab" data-p="alarm">告警与传感器<span class="n">3</span></button>
-    <button class="tab" data-p="oplog">操作日志</button>
-    <button class="tab" data-p="perf">性能</button>
-    <button class="tab" data-p="power">功率与温度</button>
-    <button class="tab" data-p="cooling">调速</button>
-    <button class="tab" data-p="cable">线缆检测</button>
-    <button class="tab" data-p="syslog">系统日志</button>
     <button class="tab" data-p="diag">智能诊断</button>
+    <button class="tab" data-p="logs">日志</button>
+    <button class="tab" data-p="runtime">运行监控</button>
+    <button class="tab" data-p="fru">板卡与线缆</button>
   </div>
 
   <div class="body">
@@ -238,38 +253,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <!-- 板卡与版本 -->
-    <section class="pane" id="p-fru">
-      <div class="card">
-        <h3>FRU / 板卡清单</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>FRU ID</th><th>板卡</th><th>型号</th><th>序列号</th><th>固件版本</th><th>状态</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">0</td><td>主板 MainBoard</td><td class="mono">BC83SPCB</td><td class="mono">02313XSB…0233</td><td class="mono">6.18</td><td><span class="tag tag-ok">在位</span></td></tr>
-            <tr><td class="mono">1</td><td>BMC 板</td><td class="mono">BC83BMCA</td><td class="mono">02313XSC…0091</td><td class="mono">24.03.0812</td><td><span class="tag tag-ok">在位</span></td></tr>
-            <tr><td class="mono">3</td><td>Riser1 扩展板</td><td class="mono">BC83RSRA</td><td class="mono">02313XSD…0410</td><td class="mono">1.09</td><td><span class="tag tag-ok">在位</span></td></tr>
-            <tr><td class="mono">5</td><td>硬盘背板 12×3.5</td><td class="mono">BC83HDBA</td><td class="mono">02313XSE…0027</td><td class="mono">2.35</td><td><span class="tag tag-ok">在位</span></td></tr>
-            <tr><td class="mono">7</td><td>PSU1 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0812</td><td class="mono">DC:108</td><td><span class="tag tag-ok">在位</span></td></tr>
-            <tr><td class="mono">8</td><td>PSU2 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0817</td><td class="mono">DC:108</td><td><span class="tag tag-warn">告警</span></td></tr>
-            <tr><td class="mono">12</td><td>Riser2 扩展板</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td><span class="tag tag-mute">不在位</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-      <div class="card section-gap">
-        <h3>软件包版本（apprevision）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>组件</th><th>版本</th><th>构建时间</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">bmc_core</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:41</td></tr>
-            <tr><td class="mono">web_backend</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:44</td></tr>
-            <tr><td class="mono">sensor_service</td><td class="mono">24.03.00.11</td><td class="mono">2026-08-05 17:02</td></tr>
-            <tr><td class="mono">fan_service</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:43</td></tr>
-            <tr><td class="mono">redfish</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:45</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
     <!-- 告警与传感器 -->
     <section class="pane" id="p-alarm">
       <div class="card">
@@ -294,131 +277,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
             <tr><td class="mono">PSU2_VIN</td><td class="mono">88.7 V</td><td class="mono">90 / 264 V</td><td><div class="bar"><i class="bad" style="width:12%"></i></div></td><td><span class="tag tag-bad">越限</span></td></tr>
             <tr><td class="mono">FAN4_Speed</td><td class="mono">16680 RPM</td><td class="mono">1720 / — RPM</td><td><div class="bar"><i style="width:92%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
             <tr><td class="mono">DIMM_Temp_Max</td><td class="mono">51 °C</td><td class="mono">— / 85 °C</td><td><div class="bar"><i class="ok" style="width:60%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 操作日志 -->
-    <section class="pane" id="p-oplog">
-      <div class="card">
-        <h3>操作日志（operate_log）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="tag tag-ok">成功</span></td></tr>
-            <tr><td class="mono">08-28 09:03:12</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>修改调速策略为智能调速</td><td><span class="tag tag-ok">成功</span></td></tr>
-            <tr><td class="mono">08-27 18:41:29</td><td class="mono">ops_robot</td><td class="mono">Redfish · 10.44.9.2</td><td>查询 /Systems/1/Thermal</td><td><span class="tag tag-ok">成功</span></td></tr>
-            <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="tag tag-warn">未执行</span></td></tr>
-            <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="tag tag-bad">失败：校验和不匹配</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 性能 -->
-    <section class="pane" id="p-perf">
-      <div class="grid grid--stats">
-        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
-        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
-        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
-      </div>
-      <div class="card section-gap">
-        <h3>Top 进程（按 CPU）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
-          <tbody>
-            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
-            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
-            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
-            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 功率与温度 -->
-    <section class="pane" id="p-power">
-      <div class="grid grid--stats">
-        <div class="card"><h3>当前功率</h3><div class="stat-v">386<small>W</small></div><div class="stat-sub">峰值 512W · 08-27 15:20</div></div>
-        <div class="card"><h3>PSU1 输入</h3><div class="stat-v">221.4<small>V</small></div><div class="stat-sub">输出 194W · 效率 94%</div></div>
-        <div class="card"><h3>PSU2 输入</h3><div class="stat-v warn">88.7<small>V</small></div><div class="stat-sub">低于下限 90V · 3 次越限</div></div>
-        <div class="card"><h3>进风温度</h3><div class="stat-v warn">35<small>°C</small></div><div class="stat-sub">24h 均值 31.2°C</div></div>
-      </div>
-      <div class="card section-gap">
-        <h3>24h 功率趋势（每 2h 采样）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>时段</th><th>均值 W</th><th style="width:200px"></th></tr></thead>
-          <tbody id="powerRows"></tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 调速 -->
-    <section class="pane" id="p-cooling">
-      <div class="card">
-        <h3>风扇状态</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>风扇</th><th>转速 RPM</th><th>占空比</th><th style="width:120px"></th><th>状态</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">FAN1</td><td class="mono">12480</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
-            <tr><td class="mono">FAN2</td><td class="mono">12520</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
-            <tr><td class="mono">FAN3</td><td class="mono">12390</td><td class="mono">67%</td><td><div class="bar"><i style="width:67%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
-            <tr><td class="mono">FAN4</td><td class="mono">16680</td><td class="mono">92%</td><td><div class="bar"><i class="warn" style="width:92%"></i></div></td><td><span class="tag tag-warn">偏高</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-      <div class="card section-gap">
-        <h3>调速策略（PID 温区）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>温区</th><th>参考传感器</th><th>目标温度</th><th>当前</th><th>输出占空比</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">Zone-CPU</td><td class="mono">CPU0/1_Temp</td><td class="mono">75 °C</td><td class="mono">62 °C</td><td class="mono">68%</td></tr>
-            <tr><td class="mono">Zone-Inlet</td><td class="mono">Inlet_Temp</td><td class="mono">33 °C</td><td class="mono">35 °C</td><td class="mono">92%（主导 FAN4）</td></tr>
-            <tr><td class="mono">Zone-DIMM</td><td class="mono">DIMM_Temp_Max</td><td class="mono">80 °C</td><td class="mono">51 °C</td><td class="mono">61%</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 线缆检测 -->
-    <section class="pane" id="p-cable">
-      <div class="card">
-        <h3>线缆连接检测报告</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>连接</th><th>起点</th><th>终点</th><th>协议</th><th>结果</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">SAS-0</td><td class="mono">RAID 卡 Port0</td><td class="mono">硬盘背板 J1</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
-            <tr><td class="mono">SAS-1</td><td class="mono">RAID 卡 Port1</td><td class="mono">硬盘背板 J2</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
-            <tr><td class="mono">I2C-BP</td><td class="mono">主板 J66</td><td class="mono">硬盘背板 J5</td><td class="mono">I2C</td><td><span class="tag tag-ok">连接正确</span></td></tr>
-            <tr><td class="mono">FAN-SIG</td><td class="mono">主板 J23</td><td class="mono">风扇板 J1</td><td class="mono">PWM/TACH</td><td><span class="tag tag-ok">连接正确</span></td></tr>
-            <tr><td class="mono">NCSI</td><td class="mono">OCP 网卡</td><td class="mono">BMC RMII</td><td class="mono">NC-SI</td><td><span class="tag tag-info">未启用</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </section>
-
-    <!-- 系统日志 -->
-    <section class="pane" id="p-syslog">
-      <div class="card" style="padding:0 0 4px">
-        <h3 style="padding:14px 16px 0">app_log（节选 · 关键行高亮）</h3>
-        <div class="logview" style="border-radius:0 0 16px 16px"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11
-<span class="t">08-28 06:12:44</span> <span class="w">[WARN ]</span> event_service: minor alarm raised, target=PSU2, unrecovered_count=1
-<span class="t">08-28 06:14:02</span> <span class="i">[INFO ]</span> psu_service: PSU2 VIN recovered to 208.3V, deassert pending (hold 120s)
-<span class="t">08-28 09:03:12</span> <span class="i">[INFO ]</span> fan_service: policy switched to SMART by Administrator (WEB)
-<span class="t">08-28 09:03:13</span> <span class="i">[INFO ]</span> fan_service: zone Zone-Inlet pid recalc, duty 74% -&gt; 92%
-<span class="t">08-28 14:22:51</span> <span class="i">[INFO ]</span> dump_service: one-key log collect start, modules=17
-<span class="t">08-28 14:23:17</span> <span class="i">[INFO ]</span> dump_service: collect done, size=48.2MB, path=/tmp/dump_info.tar.gz</div>
-      </div>
-      <div class="card section-gap">
-        <h3>日志源</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>文件</th><th>大小</th><th>行数</th><th>时间范围</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">AppDump/app_log/messages.gz</td><td class="mono">6.4 MB</td><td class="mono">81,204</td><td class="mono">07-12 → 08-28</td></tr>
-            <tr><td class="mono">AppDump/op_log/operate_log</td><td class="mono">312 KB</td><td class="mono">2,118</td><td class="mono">05-02 → 08-28</td></tr>
-            <tr><td class="mono">AppDump/sel/sel_event.csv</td><td class="mono">96 KB</td><td class="mono">128</td><td class="mono">05-02 → 08-28</td></tr>
-            <tr><td class="mono">AppDump/maint_log/journalctl.gz</td><td class="mono">18.7 MB</td><td class="mono">201,553</td><td class="mono">08-21 → 08-28</td></tr>
           </tbody>
         </table></div>
       </div>
@@ -462,17 +320,182 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
     </section>
 
+    <!-- 日志（操作日志 + 系统日志 合并，内部子标签切换） -->
+    <section class="pane" id="p-logs">
+      <div class="subtabs" id="logSubtabs">
+        <button class="subtab on" data-s="oplog">操作日志</button>
+        <button class="subtab" data-s="applog">app.log</button>
+      </div>
+
+      <div class="subpane on" id="s-oplog">
+        <div class="card">
+          <h3>操作日志（operate_log）</h3>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="tag tag-ok">成功</span></td></tr>
+              <tr><td class="mono">08-28 09:03:12</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>修改调速策略为智能调速</td><td><span class="tag tag-ok">成功</span></td></tr>
+              <tr><td class="mono">08-27 18:41:29</td><td class="mono">ops_robot</td><td class="mono">Redfish · 10.44.9.2</td><td>查询 /Systems/1/Thermal</td><td><span class="tag tag-ok">成功</span></td></tr>
+              <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="tag tag-warn">未执行</span></td></tr>
+              <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="tag tag-bad">失败：校验和不匹配</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="subpane" id="s-applog">
+        <div class="card" style="padding:0 0 4px">
+          <h3 style="padding:14px 16px 0">app_log（节选 · 关键行高亮）</h3>
+          <div class="logview" style="border-radius:0 0 16px 16px"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11
+<span class="t">08-28 06:12:44</span> <span class="w">[WARN ]</span> event_service: minor alarm raised, target=PSU2, unrecovered_count=1
+<span class="t">08-28 06:14:02</span> <span class="i">[INFO ]</span> psu_service: PSU2 VIN recovered to 208.3V, deassert pending (hold 120s)
+<span class="t">08-28 09:03:12</span> <span class="i">[INFO ]</span> fan_service: policy switched to SMART by Administrator (WEB)
+<span class="t">08-28 09:03:13</span> <span class="i">[INFO ]</span> fan_service: zone Zone-Inlet pid recalc, duty 74% -&gt; 92%
+<span class="t">08-28 14:22:51</span> <span class="i">[INFO ]</span> dump_service: one-key log collect start, modules=17
+<span class="t">08-28 14:23:17</span> <span class="i">[INFO ]</span> dump_service: collect done, size=48.2MB, path=/tmp/dump_info.tar.gz</div>
+        </div>
+        <div class="card section-gap">
+          <h3>日志源</h3>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>文件</th><th>大小</th><th>行数</th><th>时间范围</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">AppDump/app_log/messages.gz</td><td class="mono">6.4 MB</td><td class="mono">81,204</td><td class="mono">07-12 → 08-28</td></tr>
+              <tr><td class="mono">AppDump/op_log/operate_log</td><td class="mono">312 KB</td><td class="mono">2,118</td><td class="mono">05-02 → 08-28</td></tr>
+              <tr><td class="mono">AppDump/sel/sel_event.csv</td><td class="mono">96 KB</td><td class="mono">128</td><td class="mono">05-02 → 08-28</td></tr>
+              <tr><td class="mono">AppDump/maint_log/journalctl.gz</td><td class="mono">18.7 MB</td><td class="mono">201,553</td><td class="mono">08-21 → 08-28</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 运行监控（性能 + 功率与温度 + 调速 合并：三者都是运行时遥测/热管理，进风温度→PID→风扇是一条因果链） -->
+    <section class="pane" id="p-runtime">
+      <div class="subhead">软件运行</div>
+      <div class="grid grid--stats">
+        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
+        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
+        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>Top 进程（按 CPU）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
+            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
+            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
+            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="subhead">功率与温度</div>
+      <div class="grid grid--stats">
+        <div class="card"><h3>当前功率</h3><div class="stat-v">386<small>W</small></div><div class="stat-sub">峰值 512W · 08-27 15:20</div></div>
+        <div class="card"><h3>PSU1 输入</h3><div class="stat-v">221.4<small>V</small></div><div class="stat-sub">输出 194W · 效率 94%</div></div>
+        <div class="card"><h3>PSU2 输入</h3><div class="stat-v warn">88.7<small>V</small></div><div class="stat-sub">低于下限 90V · 3 次越限</div></div>
+        <div class="card"><h3>进风温度</h3><div class="stat-v warn">35<small>°C</small></div><div class="stat-sub">24h 均值 31.2°C</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>24h 功率趋势（每 2h 采样）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时段</th><th>均值 W</th><th style="width:200px"></th></tr></thead>
+          <tbody id="powerRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="subhead">调速</div>
+      <div class="card">
+        <h3>风扇状态</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>风扇</th><th>转速 RPM</th><th>占空比</th><th style="width:120px"></th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">FAN1</td><td class="mono">12480</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN2</td><td class="mono">12520</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN3</td><td class="mono">12390</td><td class="mono">67%</td><td><div class="bar"><i style="width:67%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN4</td><td class="mono">16680</td><td class="mono">92%</td><td><div class="bar"><i class="warn" style="width:92%"></i></div></td><td><span class="tag tag-warn">偏高</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>调速策略（PID 温区）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>温区</th><th>参考传感器</th><th>目标温度</th><th>当前</th><th>输出占空比</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">Zone-CPU</td><td class="mono">CPU0/1_Temp</td><td class="mono">75 °C</td><td class="mono">62 °C</td><td class="mono">68%</td></tr>
+            <tr><td class="mono">Zone-Inlet</td><td class="mono">Inlet_Temp</td><td class="mono">33 °C</td><td class="mono">35 °C</td><td class="mono">92%（主导 FAN4）</td></tr>
+            <tr><td class="mono">Zone-DIMM</td><td class="mono">DIMM_Temp_Max</td><td class="mono">80 °C</td><td class="mono">51 °C</td><td class="mono">61%</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 板卡与线缆（板卡与版本 + 线缆检测 合并：都是硬件装配信息，排障优先级最低放最后） -->
+    <section class="pane" id="p-fru">
+      <div class="card">
+        <h3>FRU / 板卡清单</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>FRU ID</th><th>板卡</th><th>型号</th><th>序列号</th><th>固件版本</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">0</td><td>主板 MainBoard</td><td class="mono">BC83SPCB</td><td class="mono">02313XSB…0233</td><td class="mono">6.18</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">1</td><td>BMC 板</td><td class="mono">BC83BMCA</td><td class="mono">02313XSC…0091</td><td class="mono">24.03.0812</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">3</td><td>Riser1 扩展板</td><td class="mono">BC83RSRA</td><td class="mono">02313XSD…0410</td><td class="mono">1.09</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">5</td><td>硬盘背板 12×3.5</td><td class="mono">BC83HDBA</td><td class="mono">02313XSE…0027</td><td class="mono">2.35</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">7</td><td>PSU1 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0812</td><td class="mono">DC:108</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">8</td><td>PSU2 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0817</td><td class="mono">DC:108</td><td><span class="tag tag-warn">告警</span></td></tr>
+            <tr><td class="mono">12</td><td>Riser2 扩展板</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td><span class="tag tag-mute">不在位</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>软件包版本（apprevision）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>组件</th><th>版本</th><th>构建时间</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">bmc_core</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:41</td></tr>
+            <tr><td class="mono">web_backend</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:44</td></tr>
+            <tr><td class="mono">sensor_service</td><td class="mono">24.03.00.11</td><td class="mono">2026-08-05 17:02</td></tr>
+            <tr><td class="mono">fan_service</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:43</td></tr>
+            <tr><td class="mono">redfish</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:45</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>线缆连接检测报告</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>连接</th><th>起点</th><th>终点</th><th>协议</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SAS-0</td><td class="mono">RAID 卡 Port0</td><td class="mono">硬盘背板 J1</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">SAS-1</td><td class="mono">RAID 卡 Port1</td><td class="mono">硬盘背板 J2</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">I2C-BP</td><td class="mono">主板 J66</td><td class="mono">硬盘背板 J5</td><td class="mono">I2C</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">FAN-SIG</td><td class="mono">主板 J23</td><td class="mono">风扇板 J1</td><td class="mono">PWM/TACH</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">NCSI</td><td class="mono">OCP 网卡</td><td class="mono">BMC RMII</td><td class="mono">NC-SI</td><td><span class="tag tag-info">未启用</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
   </div>
 </div>
 
 <script>
-// 标签页切换
+// 顶层标签页切换
 const tabs = document.getElementById('tabs');
 tabs.addEventListener('click', (e) => {
   const btn = e.target.closest('.tab');
   if (!btn) return;
   tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t === btn));
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + btn.dataset.p));
+});
+
+// 「日志」tab 内部子标签切换（操作日志 / app.log）
+const logSubtabs = document.getElementById('logSubtabs');
+logSubtabs.addEventListener('click', (e) => {
+  const btn = e.target.closest('.subtab');
+  if (!btn) return;
+  logSubtabs.querySelectorAll('.subtab').forEach(t => t.classList.toggle('on', t === btn));
+  document.querySelectorAll('#p-logs .subpane').forEach(p => p.classList.toggle('on', p.id === 's-' + btn.dataset.s));
 });
 
 // 24h 功率趋势演示数据
