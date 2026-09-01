@@ -167,6 +167,17 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
 .section-gap { margin-top: 12px; }
 
+/* 智能分析：日志分析问答卡 */
+.ai-qa { display: flex; flex-direction: column; gap: 10px; }
+.ai-q { font-size: 12.5px; color: var(--foreground); font-weight: 600; }
+.ai-a { background: var(--surface-2); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ai-a-row { display: flex; gap: 10px; font-size: 12px; line-height: 1.6; }
+.ai-a-row span:last-child { color: var(--foreground-secondary); }
+.ai-a-label {
+  flex-shrink: 0; width: 62px; font-weight: 600; color: var(--foreground-muted);
+  font-size: 11px; letter-spacing: .02em; padding-top: 1px;
+}
+
 /* 合并 tab 内的小节标题（区分不同数据域，但不升级成顶层 tab） */
 .subhead {
   font-size: 11px; font-weight: 700; color: var(--foreground-muted);
@@ -198,6 +209,7 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
     <button class="tab" data-p="runtime">功耗/调速</button>
     <button class="tab" data-p="fru">板卡与线缆</button>
     <button class="tab" data-p="logs">日志</button>
+    <button class="tab" data-p="aidiag">智能分析</button>
   </div>
 
   <div class="body">
@@ -413,6 +425,103 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
     </section>
 
+    <!-- 智能分析（基于故障模式库的日志体检 + 交互式分析，测试人员视角：先看准不准、全不全、有没有证据，再看结论） -->
+    <section class="pane" id="p-aidiag">
+
+      <div class="card">
+        <h3>验收指标（测试关注）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>指标</th><th>规格要求</th><th>本次结果</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td>已覆盖案例匹配准确率</td><td class="mono">≥ 90%</td><td class="mono">94.2%</td><td><span class="tag tag-ok">达标</span></td></tr>
+            <tr><td>整体匹配准确率</td><td class="mono">≥ 60%</td><td class="mono">71.4%</td><td><span class="tag tag-ok">达标</span></td></tr>
+            <tr><td>日志体检覆盖率（调试日志）</td><td class="mono">100%</td><td class="mono">6 / 6</td><td><span class="tag tag-ok">达标</span></td></tr>
+            <tr><td>回复完整性（原因/定位/方案/关键日志四要素）</td><td class="mono">缺一不可</td><td class="mono">4 / 4</td><td><span class="tag tag-ok">达标</span></td></tr>
+            <tr><td>体检耗时（10MB 内）</td><td class="mono">≤ 10 分钟</td><td class="mono">3 分 12 秒</td><td><span class="tag tag-ok">达标</span></td></tr>
+            <tr><td>知识库响应时间</td><td class="mono">≤ 30 秒</td><td class="mono">4.6 秒</td><td><span class="tag tag-ok">达标</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="subhead">日志体检</div>
+      <div class="card">
+        <h3>体检输入</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="chip" style="cursor:pointer" onclick="alert('演示环境：请在 openUBMC Studio 中上传真实日志压缩包')">上传日志压缩包</button>
+          <button class="chip" style="cursor:pointer" onclick="alert('演示环境：最多可导入 10 个日志文件')">导入日志文件（最多 10 个）</button>
+          <span style="font-size:11.5px; color:var(--foreground-muted)">仅支持 BMC 一键日志收集压缩格式 · 首次使用需联网同步故障模式库</span>
+        </div>
+      </div>
+
+      <div class="grid grid--stats section-gap">
+        <div class="card"><h3>日志来源</h3><div class="stat-v" style="font-size:14px">dump_info_20260828_142317.tar.gz</div><div class="stat-sub">解压 17 个文件 · 调试日志 6 个</div></div>
+        <div class="card"><h3>日志时间范围</h3><div class="stat-v" style="font-size:15px">07-12 → 08-28</div><div class="stat-sub">总行数 283,003（ERROR 214 · WARN 1,206）</div></div>
+        <div class="card"><h3>体检覆盖率</h3><div class="stat-v ok">6<small>/ 6</small></div><div class="stat-sub">调试日志全覆盖，其余类型本版本忽略</div></div>
+        <div class="card"><h3>分析耗时</h3><div class="stat-v ok">3<small>分12秒</small></div><div class="stat-sub">未超时（承诺 ≤10 分钟）</div></div>
+      </div>
+
+      <div class="card section-gap">
+        <h3>异常事件列表（按严重程度排序）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>严重程度</th><th>模块</th><th>匹配案例</th><th>关键日志摘要</th><th>置信度</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag tag-bad">严重</span></td><td class="mono">psu_service</td><td class="mono">FM-PSU-0031</td><td>PSU2 VIN 越下限 3 次 / 08-26~08-28</td><td class="mono">96%</td></tr>
+            <tr><td><span class="tag tag-warn">次要</span></td><td class="mono">fan_service</td><td class="mono">FM-FAN-0118</td><td>FAN4 占空比 92% 持续 1 次 / 08-28 09:03</td><td class="mono">88%</td></tr>
+            <tr><td><span class="tag tag-warn">次要</span></td><td class="mono">fw_upgrade</td><td class="mono">FM-FW-0207</td><td>固件包校验和不匹配 1 次 / 08-26 11:02</td><td class="mono">91%</td></tr>
+            <tr><td><span class="tag tag-info">提示</span></td><td class="mono">event_service</td><td class="mono">FM-EVT-0042</td><td>进风温度预警 1 次 / 08-26 14:05</td><td class="mono">83%</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="grid grid--2 section-gap">
+        <div class="card">
+          <h3>问题诊断（综合结论）</h3>
+          <p style="font-size:12.5px; color:var(--foreground-secondary); line-height:1.7;">PSU2 输入电压反复越下限，结合 3 次事件均在 2 分钟内自动恢复、PSU 本体输出正常、操作日志无相关变更，判定为<b>外部供电波动</b>而非电源模块硬件故障，与故障模式库案例 FM-PSU-0031 特征匹配度 96%。</p>
+        </div>
+        <div class="card">
+          <h3>解决方案建议</h3>
+          <p style="font-size:12.5px; color:var(--foreground-secondary); line-height:1.7;">1. 排查 PSU2 所在 PDU / 市电支路是否存在瞬时跌落<br>2. 固件包重新下载后重试升级（校验和不匹配为传输损坏，非固件本身问题）<br>3. 进风温度预警属调速正常响应，建议关注机柜进风环境</p>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <h3>未识别异常标记</h3>
+        <div class="diag-item">
+          <span class="tag tag-mute diag-badge">待人工</span>
+          <div><h4>app.log 08-27 21:40 附近 3 条 sensor_service WARN</h4><p>存在异常但未匹配到故障模式库现有案例，建议人工分析；已记录待录入知识库候选。</p></div>
+        </div>
+      </div>
+
+      <div class="card section-gap" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:12px; color:var(--foreground-muted);">报告已生成 · 下载内容与本页可视化一致</div>
+        <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="alert('演示环境：请在 openUBMC Studio 中导出真实 PDF 报告')">导出 PDF 报告</button>
+      </div>
+
+      <div class="subhead">日志分析（支持重复提问与追问）</div>
+      <div class="card">
+        <h3>输入</h3>
+        <textarea id="aiInput" placeholder="粘贴日志片段或描述问题现象……也支持粘贴/导入截图后提取文字再分析" style="width:100%; min-height:64px; resize:vertical; background:var(--surface-2); border:none; border-radius:16px; padding:10px 12px; font-family:var(--font-mono); font-size:12px; color:var(--foreground); outline:none;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="chip" style="cursor:pointer" onclick="alert('演示环境：支持导入截图并提取文字')">截图导入</button>
+          <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="aiAsk()">提交分析</button>
+        </div>
+      </div>
+
+      <div class="card section-gap" id="aiThread">
+        <h3>分析结果</h3>
+        <div class="ai-qa">
+          <div class="ai-q">用户：CPLD 升级一直失败，报校验和不匹配，是不是固件包坏了？</div>
+          <div class="ai-a">
+            <div class="ai-a-row"><span class="ai-a-label">问题原因</span><span>固件包在传输/下载过程中发生损坏，导致本地校验和与预期值不一致，并非固件包本身设计缺陷。</span></div>
+            <div class="ai-a-row"><span class="ai-a-label">定位过程</span><span>匹配故障模式库 FM-FW-0207（校验和不匹配类）→ 关联 operation.log 同时间窗口 → 未发现 app.log 侧固件解析异常 → 排除固件本身损坏。</span></div>
+            <div class="ai-a-row"><span class="ai-a-label">解决方案</span><span>重新下载固件包并核对官方发布的 SHA256，确认一致后再次上传升级。</span></div>
+            <div class="ai-a-row"><span class="ai-a-label">关键日志</span><span class="mono">2026-08-26 11:02:55,fw_upgrade,Administrator,firmware,upload cpld_v1.09.hpm FAILED checksum mismatch</span></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
   </div>
 </div>
 
@@ -434,6 +543,27 @@ const power = [
 document.getElementById('powerRows').innerHTML = power.map(([t, w]) =>
   `<tr><td class="mono">${t}</td><td class="mono">${w}</td><td><div class="bar"><i style="width:${Math.round(w / 512 * 100)}%"></i></div></td></tr>`
 ).join('');
+
+// 智能分析 → 追问：演示环境用固定 Mock 回复，展示"重复提问 + 保留上下文"的交互形态
+function aiAsk() {
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if (!text) { alert('请先输入日志片段或问题描述'); return; }
+  const thread = document.getElementById('aiThread');
+  const block = document.createElement('div');
+  block.className = 'ai-qa section-gap';
+  block.innerHTML = `
+    <div class="ai-q">用户：${text.replace(/</g, '&lt;')}</div>
+    <div class="ai-a">
+      <div class="ai-a-row"><span class="ai-a-label">问题原因</span><span>演示环境：已收到追问，结合上一轮上下文分析中……（真实环境由知识库检索给出结论）</span></div>
+      <div class="ai-a-row"><span class="ai-a-label">定位过程</span><span>沿用本次会话上下文，继续匹配故障模式库候选案例。</span></div>
+      <div class="ai-a-row"><span class="ai-a-label">解决方案</span><span>待知识库返回具体建议。</span></div>
+      <div class="ai-a-row"><span class="ai-a-label">关键日志</span><span class="mono">（等待返回）</span></div>
+    </div>`;
+  thread.appendChild(block);
+  input.value = '';
+  block.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
 </script>
 </body>
 </html>
