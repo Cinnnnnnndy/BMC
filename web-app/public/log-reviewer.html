@@ -428,7 +428,14 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
     <!-- 智能分析（基于故障模式库的日志体检 + 交互式分析，测试人员视角：先看准不准、全不全、有没有证据，再看结论） -->
     <section class="pane" id="p-aidiag">
 
-      <div class="subhead" style="margin-top:0">验收指标（测试关注）</div>
+      <div class="card">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="alert('演示环境：请在 openUBMC Studio 中导入真实日志压缩包/文件')">导入日志</button>
+          <span style="font-size:11.5px; color:var(--foreground-muted)">支持日志压缩包（仅 BMC 一键日志收集格式）或最多 10 个日志文件 · 首次使用需联网同步故障模式库</span>
+        </div>
+      </div>
+
+      <div class="subhead">验收指标（测试关注）</div>
       <div class="grid grid--stats">
         <div class="card">
           <h3>已覆盖案例匹配准确率</h3>
@@ -469,16 +476,7 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
 
       <div class="subhead">日志体检</div>
-      <div class="card">
-        <h3>体检输入</h3>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="chip" style="cursor:pointer" onclick="alert('演示环境：请在 openUBMC Studio 中上传真实日志压缩包')">上传日志压缩包</button>
-          <button class="chip" style="cursor:pointer" onclick="alert('演示环境：最多可导入 10 个日志文件')">导入日志文件（最多 10 个）</button>
-          <span style="font-size:11.5px; color:var(--foreground-muted)">仅支持 BMC 一键日志收集压缩格式 · 首次使用需联网同步故障模式库</span>
-        </div>
-      </div>
-
-      <div class="grid grid--stats section-gap">
+      <div class="grid grid--stats">
         <div class="card"><h3>日志来源</h3><div class="stat-v" style="font-size:14px">dump_info_20260828_142317.tar.gz</div><div class="stat-sub">解压 17 个文件 · 调试日志 6 个</div></div>
         <div class="card"><h3>日志时间范围</h3><div class="stat-v" style="font-size:15px">07-12 → 08-28</div><div class="stat-sub">总行数 283,003（ERROR 214 · WARN 1,206）</div></div>
         <div class="card"><h3>体检覆盖率</h3><div class="stat-v ok">6<small>/ 6</small></div><div class="stat-sub">调试日志全覆盖，其余类型本版本忽略</div></div>
