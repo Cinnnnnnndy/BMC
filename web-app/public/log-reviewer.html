@@ -178,6 +178,62 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
   font-size: 11px; letter-spacing: .02em; padding-top: 1px;
 }
 
+/* 智能分析：导入日志下拉菜单 */
+.dropdown { position: relative; display: inline-block; }
+.dropdown .chip svg { margin-left: 2px; }
+.dropdown-menu {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 50;
+  min-width: 200px; background: var(--surface-2); border-radius: 16px; padding: 6px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.45);
+}
+.dropdown-menu.open { display: block; }
+.dropdown-menu button {
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  padding: 8px 10px; border-radius: 100px; border: none; background: transparent; cursor: pointer;
+  font-size: 12.5px; font-weight: 500; font-family: var(--font-sans); color: var(--foreground-secondary);
+}
+.dropdown-menu button:hover { background: var(--surface-3); color: var(--foreground); }
+.qmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%; margin-left: 5px;
+  background: var(--surface-3); color: var(--foreground-muted); font-size: 10px; font-weight: 700;
+}
+
+/* 智能分析：三个导入弹窗 */
+.modal-mask {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 90;
+}
+.modal-mask.open { display: block; }
+.modal {
+  display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 91; width: 440px; max-width: calc(100vw - 40px);
+  background: var(--surface-1); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+.modal.open { display: block; }
+.modal-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; font-size: 13px; font-weight: 650; color: #fff;
+}
+.modal-x {
+  border: none; background: var(--surface-2); color: var(--foreground-muted);
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px;
+}
+.modal-x:hover { background: var(--surface-3); color: var(--foreground); }
+.modal-body { padding: 0 16px 16px; }
+.modal-ft {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; background: var(--surface-2);
+}
+.modal-hint { font-size: 11px; color: var(--foreground-muted); }
+.drop-zone {
+  background: var(--surface-2); border-radius: 16px; padding: 26px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  color: var(--foreground-muted);
+}
+.drop-zone-title { font-size: 12.5px; font-weight: 600; color: var(--foreground-secondary); }
+.drop-zone-sub { font-size: 11px; color: var(--foreground-muted); }
+
 /* 合并 tab 内的小节标题（区分不同数据域，但不升级成顶层 tab） */
 .subhead {
   font-size: 11px; font-weight: 700; color: var(--foreground-muted);
@@ -430,8 +486,19 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
       <div class="card">
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="alert('演示环境：请在 openUBMC Studio 中导入真实日志压缩包/文件')">导入日志</button>
-          <span style="font-size:11.5px; color:var(--foreground-muted)">支持日志压缩包（仅 BMC 一键日志收集格式）或最多 10 个日志文件 · 首次使用需联网同步故障模式库</span>
+          <div class="dropdown" id="importDropdown">
+            <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="toggleImportMenu(event)">
+              导入日志
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu" id="importMenu">
+              <button onclick="openModal('modalArchive')">导入压缩包</button>
+              <button onclick="openModal('modalFiles')">导入日志文件<span class="qmark" title="最多支持导入 10 个文件">?</span></button>
+              <button onclick="openModal('modalShot')">导入截图和文字</button>
+            </div>
+          </div>
+          <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="alert('演示环境：请在 openUBMC Studio 中导出真实 PDF 报告')">导出 PDF 报告</button>
+          <span style="font-size:11.5px; color:var(--foreground-muted)">本页即体检报告 · 下载内容与可视化一致 · 首次使用需联网同步故障模式库</span>
         </div>
       </div>
 
@@ -515,11 +582,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
         </div>
       </div>
 
-      <div class="card section-gap" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <div style="font-size:12px; color:var(--foreground-muted);">报告已生成 · 下载内容与本页可视化一致</div>
-        <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="alert('演示环境：请在 openUBMC Studio 中导出真实 PDF 报告')">导出 PDF 报告</button>
-      </div>
-
       <div class="subhead">日志分析（支持重复提问与追问）</div>
       <div class="card">
         <h3>输入</h3>
@@ -545,6 +607,65 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
     </section>
 
+  </div>
+</div>
+
+<!-- ═══ 导入日志：三个弹窗 ═══ -->
+<div class="modal-mask" id="modalMask" onclick="closeModal()"></div>
+
+<div class="modal" id="modalArchive">
+  <div class="modal-hd">
+    <span>导入压缩包</span>
+    <button class="modal-x" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="drop-zone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h11l5 5v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M9 15l3-3 3 3M12 12v6"/></svg>
+      <div class="drop-zone-title">拖拽压缩包到此处，或点击选择文件</div>
+      <div class="drop-zone-sub">仅支持 BMC 一键日志收集压缩格式（.tar.gz / .tgz / .tar / .zip）</div>
+      <button class="chip" style="cursor:pointer; color:var(--primary); margin-top:4px;" onclick="alert('演示环境：请在 openUBMC Studio 中选择真实文件')">选择文件</button>
+    </div>
+  </div>
+  <div class="modal-ft">
+    <span class="modal-hint">自动解压并筛选调试日志文件进行体检</span>
+    <button class="chip" onclick="closeModal()">取消</button>
+  </div>
+</div>
+
+<div class="modal" id="modalFiles">
+  <div class="modal-hd">
+    <span>导入日志文件<span class="qmark" title="最多支持导入 10 个文件">?</span></span>
+    <button class="modal-x" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="drop-zone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M13 2v6h6"/></svg>
+      <div class="drop-zone-title">拖拽多个日志文件到此处，或点击选择</div>
+      <div class="drop-zone-sub">最多 10 个文件 · 仅调试日志文件会被扫描分析</div>
+      <button class="chip" style="cursor:pointer; color:var(--primary); margin-top:4px;" onclick="alert('演示环境：请在 openUBMC Studio 中选择真实文件')">选择文件</button>
+    </div>
+  </div>
+  <div class="modal-ft">
+    <span class="modal-hint">已选 0 / 10 个文件</span>
+    <button class="chip" onclick="closeModal()">取消</button>
+  </div>
+</div>
+
+<div class="modal" id="modalShot">
+  <div class="modal-hd">
+    <span>导入截图和文字</span>
+    <button class="modal-x" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <textarea id="modalShotInput" placeholder="粘贴日志片段或问题描述……也可直接粘贴截图（Ctrl/Cmd+V）自动提取文字" style="width:100%; min-height:100px; resize:vertical; background:var(--surface-2); border:none; border-radius:16px; padding:10px 12px; font-family:var(--font-mono); font-size:12px; color:var(--foreground); outline:none;"></textarea>
+    <div class="drop-zone" style="margin-top:10px; padding:16px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <div class="drop-zone-sub">或点击导入截图文件</div>
+    </div>
+  </div>
+  <div class="modal-ft">
+    <span class="modal-hint">提交后进入「日志分析」，结果支持追问</span>
+    <button class="chip" style="cursor:pointer; color:var(--primary);" onclick="submitShotModal()">提交分析</button>
   </div>
 </div>
 
@@ -586,6 +707,35 @@ function aiAsk() {
   thread.appendChild(block);
   input.value = '';
   block.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+// 导入日志：下拉菜单 + 三个弹窗
+function toggleImportMenu(e) {
+  e.stopPropagation();
+  document.getElementById('importMenu').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('importMenu')?.classList.remove('open');
+});
+
+function openModal(id) {
+  document.getElementById('importMenu').classList.remove('open');
+  document.getElementById('modalMask').classList.add('open');
+  document.getElementById(id).classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalMask').classList.remove('open');
+  document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+}
+function submitShotModal() {
+  const text = document.getElementById('modalShotInput').value.trim();
+  if (!text) { alert('请先粘贴日志片段、问题描述或截图'); return; }
+  closeModal();
+  document.querySelector('.tab[data-p="aidiag"]').click();
+  const input = document.getElementById('aiInput');
+  input.value = text;
+  document.getElementById('modalShotInput').value = '';
+  aiAsk();
 }
 </script>
 </body>
