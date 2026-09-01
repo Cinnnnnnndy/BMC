@@ -86,8 +86,6 @@ html,body {
   background: var(--surface-2); color: var(--foreground); transition: background .15s;
 }
 .btn:hover { background: var(--surface-3); }
-.btn--ai { background: color-mix(in srgb, #a78bfa 16%, transparent); color: var(--accent-purple); }
-.btn--ai:hover { background: color-mix(in srgb, #a78bfa 26%, transparent); }
 
 /* ── 标签页 ── */
 .tabs {
@@ -174,12 +172,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 .diag-item p { font-size: 12px; color: var(--foreground-secondary); line-height: 1.6; }
 .diag-item p .mono { color: var(--foreground-muted); }
 
-.ai-note {
-  margin-top: 10px; font-size: 11.5px; color: var(--foreground-muted);
-  display: flex; align-items: center; gap: 6px;
-}
-.ai-note svg { color: var(--accent-purple); flex-shrink: 0; }
-
 .section-gap { margin-top: 12px; }
 
 /* 合并 tab 内的小节标题（区分不同数据域，但不升级成顶层 tab） */
@@ -189,20 +181,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 }
 .subhead:first-child { margin-top: 0; }
 
-/* 「日志」tab 内部子标签切换（操作日志 / app.log），不占用顶层 tab 位 */
-.subtabs { display: flex; gap: 4px; margin-bottom: 12px; }
-.subtab {
-  padding: 5px 12px; border-radius: 100px; border: 1px solid transparent; cursor: pointer;
-  font-size: 12px; font-weight: 600; font-family: var(--font-sans);
-  background: var(--surface-2); color: var(--foreground-secondary); transition: background .15s, color .15s, border-color .15s;
-}
-.subtab:hover { background: var(--surface-3); color: var(--foreground); }
-.subtab.on {
-  background: color-mix(in srgb, #0077FF 10%, transparent); color: var(--primary);
-  border-color: color-mix(in srgb, #0077FF 35%, transparent);
-}
-.subpane { display: none; }
-.subpane.on { display: block; }
 </style>
 </head>
 <body>
@@ -218,10 +196,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       <span class="chip">采集时间：2026-08-28 14:23:17</span>
       <div class="hdr-actions">
         <button class="btn" onclick="alert('演示环境：请在 openUBMC Studio 中打开真实 dump 压缩包')">打开压缩包</button>
-        <button class="btn btn--ai" onclick="runAiDiag()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
-          AI 智能诊断
-        </button>
       </div>
     </div>
     <div class="hdr-meta">
@@ -232,10 +206,9 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
   <div class="tabs" id="tabs">
     <button class="tab on" data-p="overview">概览</button>
     <button class="tab" data-p="alarm">告警与传感器<span class="n">3</span></button>
-    <button class="tab" data-p="diag">智能诊断</button>
-    <button class="tab" data-p="logs">日志</button>
     <button class="tab" data-p="runtime">性能/功耗/调速</button>
     <button class="tab" data-p="fru">板卡与线缆</button>
+    <button class="tab" data-p="logs">日志</button>
   </div>
 
   <div class="body">
@@ -304,90 +277,45 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <!-- 智能诊断 -->
-    <section class="pane" id="p-diag">
-      <div class="card">
-        <h3>自动检测结论（detection-report + faultdiag）</h3>
-        <div class="diag-item">
-          <span class="tag tag-warn diag-badge">次要</span>
-          <div>
-            <h4>PSU2 输入电压反复越下限</h4>
-            <p>SEL 中 <span class="mono">0x02000A11</span> 3 次触发、均在 2 分钟内恢复，PSU 本体输出正常。结合操作日志无相关变更，判断为<b>外部供电波动</b>而非电源模块故障。建议：检查 PSU2 所在 PDU/市电支路。</p>
-          </div>
-        </div>
-        <div class="diag-item">
-          <span class="tag tag-info diag-badge">提示</span>
-          <div>
-            <h4>进风温度贴阈值运行，FAN4 长期高占空比</h4>
-            <p>Inlet_Temp 24h 均值 31.2°C、峰值 35°C 触碰预警线，调速正确响应（Zone-Inlet 输出 92%）。属机房环境问题，建议改善机柜进风或上调冷通道制冷。</p>
-          </div>
-        </div>
-        <div class="diag-item">
-          <span class="tag tag-bad diag-badge">失败</span>
-          <div>
-            <h4>CPLD 固件升级失败一次（校验和不匹配）</h4>
-            <p>08-26 <span class="mono">fw_upgrade</span> 上传 <span class="mono">cpld_v1.09.hpm</span> 校验失败，未进入升级流程，当前 CPLD 仍为 1.08，无功能影响。建议重新下载固件包后重试。</p>
-          </div>
-        </div>
-      </div>
-      <div class="card section-gap">
-        <h3>Agent 深度分析</h3>
-        <p style="font-size:12.5px;color:var(--foreground-secondary);line-height:1.7">
-          点击右上角「AI 智能诊断」，由 agent 结合告警、操作日志、性能与调速数据做跨文件根因分析，输出 Top 问题清单与修复建议。
-        </p>
-        <div class="ai-note">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
-          ⤷ 完整执行过程见底部 agent 终端
-        </div>
-      </div>
-    </section>
-
-    <!-- 日志（操作日志 + 系统日志 合并，内部子标签切换） -->
+    <!-- 日志（操作日志 + 系统日志 合并，上下堆叠展示，不用子标签切换） -->
     <section class="pane" id="p-logs">
-      <div class="subtabs" id="logSubtabs">
-        <button class="subtab on" data-s="oplog">操作日志</button>
-        <button class="subtab" data-s="applog">app.log</button>
+      <div class="subhead">操作日志</div>
+      <div class="card">
+        <h3>操作日志（operate_log）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-28 09:03:12</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>修改调速策略为智能调速</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-27 18:41:29</td><td class="mono">ops_robot</td><td class="mono">Redfish · 10.44.9.2</td><td>查询 /Systems/1/Thermal</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="tag tag-warn">未执行</span></td></tr>
+            <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="tag tag-bad">失败：校验和不匹配</span></td></tr>
+          </tbody>
+        </table></div>
       </div>
 
-      <div class="subpane on" id="s-oplog">
-        <div class="card">
-          <h3>操作日志（operate_log）</h3>
-          <div class="tbl-wrap"><table>
-            <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="tag tag-ok">成功</span></td></tr>
-              <tr><td class="mono">08-28 09:03:12</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>修改调速策略为智能调速</td><td><span class="tag tag-ok">成功</span></td></tr>
-              <tr><td class="mono">08-27 18:41:29</td><td class="mono">ops_robot</td><td class="mono">Redfish · 10.44.9.2</td><td>查询 /Systems/1/Thermal</td><td><span class="tag tag-ok">成功</span></td></tr>
-              <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="tag tag-warn">未执行</span></td></tr>
-              <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="tag tag-bad">失败：校验和不匹配</span></td></tr>
-            </tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <div class="subpane" id="s-applog">
-        <div class="card" style="padding:0 0 4px">
-          <h3 style="padding:14px 16px 0">app_log（节选 · 关键行高亮）</h3>
-          <div class="logview" style="border-radius:0 0 16px 16px"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11
+      <div class="subhead">app.log</div>
+      <div class="card" style="padding:0 0 4px">
+        <h3 style="padding:14px 16px 0">app_log（节选 · 关键行高亮）</h3>
+        <div class="logview" style="border-radius:0 0 16px 16px"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11
 <span class="t">08-28 06:12:44</span> <span class="w">[WARN ]</span> event_service: minor alarm raised, target=PSU2, unrecovered_count=1
 <span class="t">08-28 06:14:02</span> <span class="i">[INFO ]</span> psu_service: PSU2 VIN recovered to 208.3V, deassert pending (hold 120s)
 <span class="t">08-28 09:03:12</span> <span class="i">[INFO ]</span> fan_service: policy switched to SMART by Administrator (WEB)
 <span class="t">08-28 09:03:13</span> <span class="i">[INFO ]</span> fan_service: zone Zone-Inlet pid recalc, duty 74% -&gt; 92%
 <span class="t">08-28 14:22:51</span> <span class="i">[INFO ]</span> dump_service: one-key log collect start, modules=17
 <span class="t">08-28 14:23:17</span> <span class="i">[INFO ]</span> dump_service: collect done, size=48.2MB, path=/tmp/dump_info.tar.gz</div>
-        </div>
-        <div class="card section-gap">
-          <h3>日志源</h3>
-          <div class="tbl-wrap"><table>
-            <thead><tr><th>文件</th><th>大小</th><th>行数</th><th>时间范围</th></tr></thead>
-            <tbody>
-              <tr><td class="mono">AppDump/app_log/messages.gz</td><td class="mono">6.4 MB</td><td class="mono">81,204</td><td class="mono">07-12 → 08-28</td></tr>
-              <tr><td class="mono">AppDump/op_log/operate_log</td><td class="mono">312 KB</td><td class="mono">2,118</td><td class="mono">05-02 → 08-28</td></tr>
-              <tr><td class="mono">AppDump/sel/sel_event.csv</td><td class="mono">96 KB</td><td class="mono">128</td><td class="mono">05-02 → 08-28</td></tr>
-              <tr><td class="mono">AppDump/maint_log/journalctl.gz</td><td class="mono">18.7 MB</td><td class="mono">201,553</td><td class="mono">08-21 → 08-28</td></tr>
-            </tbody>
-          </table></div>
-        </div>
+      </div>
+      <div class="card section-gap">
+        <h3>日志源</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>文件</th><th>大小</th><th>行数</th><th>时间范围</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">AppDump/app_log/messages.gz</td><td class="mono">6.4 MB</td><td class="mono">81,204</td><td class="mono">07-12 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/op_log/operate_log</td><td class="mono">312 KB</td><td class="mono">2,118</td><td class="mono">05-02 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/sel/sel_event.csv</td><td class="mono">96 KB</td><td class="mono">128</td><td class="mono">05-02 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/maint_log/journalctl.gz</td><td class="mono">18.7 MB</td><td class="mono">201,553</td><td class="mono">08-21 → 08-28</td></tr>
+          </tbody>
+        </table></div>
       </div>
     </section>
 
@@ -455,6 +383,7 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 
     <!-- 板卡与线缆（板卡与版本 + 线缆检测 合并：都是硬件装配信息，排障优先级最低放最后） -->
     <section class="pane" id="p-fru">
+      <div class="subhead">板卡与版本</div>
       <div class="card">
         <h3>FRU / 板卡清单</h3>
         <div class="tbl-wrap"><table>
@@ -483,7 +412,8 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
           </tbody>
         </table></div>
       </div>
-      <div class="card section-gap">
+      <div class="subhead">线缆检测</div>
+      <div class="card">
         <h3>线缆连接检测报告</h3>
         <div class="tbl-wrap"><table>
           <thead><tr><th>连接</th><th>起点</th><th>终点</th><th>协议</th><th>结果</th></tr></thead>
@@ -511,15 +441,6 @@ tabs.addEventListener('click', (e) => {
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + btn.dataset.p));
 });
 
-// 「日志」tab 内部子标签切换（操作日志 / app.log）
-const logSubtabs = document.getElementById('logSubtabs');
-logSubtabs.addEventListener('click', (e) => {
-  const btn = e.target.closest('.subtab');
-  if (!btn) return;
-  logSubtabs.querySelectorAll('.subtab').forEach(t => t.classList.toggle('on', t === btn));
-  document.querySelectorAll('#p-logs .subpane').forEach(p => p.classList.toggle('on', p.id === 's-' + btn.dataset.s));
-});
-
 // 24h 功率趋势演示数据
 const power = [
   ['00:00', 342], ['02:00', 338], ['04:00', 336], ['06:00', 351],
@@ -528,11 +449,6 @@ const power = [
 document.getElementById('powerRows').innerHTML = power.map(([t, w]) =>
   `<tr><td class="mono">${t}</td><td class="mono">${w}</td><td><div class="bar"><i style="width:${Math.round(w / 512 * 100)}%"></i></div></td></tr>`
 ).join('');
-
-// AI 智能诊断 → 派发 agent 任务到宿主终端（命中 AGENT_TASKS「一键日志分析」词条）
-function runAiDiag() {
-  window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent 一键日志分析' }, '*');
-}
 </script>
 </body>
 </html>
