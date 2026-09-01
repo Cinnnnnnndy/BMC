@@ -58,7 +58,7 @@ type ViewId =
   | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
   | 'topology' | 'boardTopology' | 'association' | 'event' | 'eventDefManager' | 'sensor' | 'simulator'
   | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo' | 'signingConfig'
-  | 'smcOffset' | 'exprCalc' | 'coolingConfig' | 'whiteBrand'
+  | 'smcOffset' | 'exprCalc' | 'coolingConfig' | 'whiteBrand' | 'logReviewer'
   | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup'
   | 'openubmcLogin' | 'gitcodeKeys';
 
@@ -116,6 +116,7 @@ const ICONS: Record<string, React.ReactNode> = {
   gitcodeKeys:     <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
   signingConfig:     <SI d={['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z','M9 12l2 2 4-4']} />,
   whiteBrand:        <SI d={['M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z','M7 7h.01']} />,
+  logReviewer:       <SI d={['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M7 14l2.2-3.6 2.3 5.2 2-3h3.5']} />,
 };
 
 // ── Pane layout system ─────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
   sensor: '传感器配置', event: '事件配置', eventDefManager: '事件管理', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
-  openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥',
+  openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥', logReviewer: '一键日志解析',
   whiteBrand: '白牌定制',
 };
 
@@ -1030,6 +1031,8 @@ export default function App() {
         return <iframe src="https://www.openubmc.cn/" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="openUBMC 登录" />;
       case 'gitcodeKeys':
         return <iframe src="https://gitcode.com/-/user_settings/ssh_keys" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="GitCode 密钥" />;
+      case 'logReviewer':
+        return <iframe src={withBase('log-reviewer.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="一键日志解析" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':
@@ -1167,6 +1170,7 @@ export default function App() {
     { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
+    { id: 'logReviewer',  tooltip: '一键日志解析' },
     { id: 'vueTopo',       tooltip: '硬件适配' },
     { id: 'signingConfig', tooltip: '签名与证书管理' },
     { id: 'whiteBrand',    tooltip: '白牌定制' },

@@ -89,6 +89,19 @@ const AGENT_TASKS: AgentTask[] = [
     ok: '环境准备 6/6 项通过',
   },
   {
+    // 一键日志解析：必须排在「诊断安装」之前——派发词「一键日志分析/诊断」含「诊断」
+    keys: ['一键日志', '日志分析', '日志诊断', 'dump'],
+    title: 'BMC 一键日志智能诊断',
+    tools: [['log_reviewer_open', 640], ['log_get_section', 380], ['log_diagnose', 1520]],
+    out: [
+      '解析 dump_info_20260828_142317.tar.gz … AppDump 定位成功（17/17 模块）',
+      '跨文件关联：SEL 0x02000A11 ×3 ↔ PSU2_VIN 越限 ↔ 操作日志无变更记录',
+      'Top 问题：① PSU2 供电波动（次要）② 进风温度贴阈值（提示）③ CPLD 升级校验失败（失败）',
+    ],
+    ok: '诊断完成：3 个问题已定位并给出修复建议，详情见「一键日志解析 · 智能诊断」页签',
+    view: 'logReviewer', viewLabel: '一键日志解析',
+  },
+  {
     keys: ['安装', '诊断', '部署', 'setup'],
     title: '开发环境诊断（安装引导）',
     tools: [['setup_verify_all', 143], ['setup_configure_conan_remote', 310], ['setup_run_init', 1240]],

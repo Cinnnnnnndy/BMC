@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openUBMC 一键日志解析 · 需求分析报告</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#e0e0e5;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans CJK SC',sans-serif}
+.deck-wrapper{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.deck{position:absolute;width:1280px;height:720px;transform-origin:top left;background:#f5f5f7;
+  overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.18)}
+.deck-header{position:absolute;top:0;left:0;right:0;height:40px;z-index:200;display:flex;
+  align-items:center;gap:10px;padding:0 20px;background:rgba(255,255,255,.94);border-bottom:1px solid #d2d2d7}
+.hdr-brand{font-size:12px;font-weight:700;color:#1d1d1f}
+.hdr-nav{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr-btn{width:24px;height:24px;border-radius:6px;border:1px solid #d2d2d7;background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:#4a4a52;font-size:12px}
+.hdr-btn:hover{background:#f0f0f2}
+#counter{font-size:11px;color:#86868b;font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+.slide{display:none;position:absolute;top:40px;left:0;right:0;bottom:0;
+  padding:26px 48px 28px;overflow:hidden;flex-direction:column;color:#1d1d1f}
+.slide.active{display:flex}
+.tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#86868b;margin-bottom:6px}
+h1{font-size:38px;font-weight:800}
+h2{font-size:22px;font-weight:700;margin-bottom:14px}
+h3{font-size:13px;font-weight:700}
+h4{font-size:12px;font-weight:700}
+p{font-size:12px;line-height:1.6;color:#4a4a52}
+.card{background:#fff;border:1px solid #d2d2d7;border-radius:10px;padding:12px 15px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.mt6{margin-top:6px}.mt10{margin-top:10px}
+ul.list{list-style:none;display:flex;flex-direction:column;gap:5px}
+ul.list li{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#4a4a52;line-height:1.5}
+ul.list li::before{content:'›';color:#0071e3;flex-shrink:0}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:500;border:1px solid}
+.chip-green{color:#1a7f42;border-color:rgba(26,127,66,.35);background:rgba(26,127,66,.08)}
+.chip-yellow{color:#b06000;border-color:rgba(176,96,0,.35);background:rgba(176,96,0,.08)}
+.chip-red{color:#d70015;border-color:rgba(215,0,21,.35);background:rgba(215,0,21,.08)}
+.chip-blue{color:#0071e3;border-color:rgba(0,113,227,.35);background:rgba(0,113,227,.08)}
+table{border-collapse:collapse;width:100%}
+th{background:#ebebed;color:#86868b;font-size:9.5px;font-weight:700;text-transform:uppercase;padding:5px 8px;text-align:left;border-bottom:1px solid #d2d2d7}
+td{padding:5px 8px;border-bottom:1px solid #d2d2d7;color:#4a4a52;font-size:10.5px;vertical-align:top}
+.cols{display:flex;gap:16px;flex:1;min-height:0}
+.col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.col2{flex:2;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pipe-chain{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.pipe-in,.pipe-fn,.pipe-out{border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;border:1px solid}
+.pipe-in{background:rgba(26,127,66,.08);border-color:rgba(26,127,66,.3);color:#1a7f42}
+.pipe-fn{background:rgba(94,92,230,.08);border-color:rgba(94,92,230,.3);color:#5e5ce6}
+.pipe-out{background:rgba(0,113,227,.08);border-color:rgba(0,113,227,.3);color:#0071e3}
+.pipe-op{color:#86868b;padding:0 5px}
+.flow-card{border-radius:7px;padding:7px 10px;position:relative;border:1px solid;margin-bottom:5px}
+.fc-pain{background:rgba(215,0,21,.04);border-color:rgba(215,0,21,.18)}
+.fc-insight{background:rgba(0,113,227,.04);border-color:rgba(0,113,227,.18)}
+.fc-strategy{background:rgba(26,127,66,.04);border-color:rgba(26,127,66,.18)}
+.fc-id{position:absolute;top:5px;right:8px;font-size:8.5px;font-weight:700;opacity:.28;font-family:monospace}
+.col-title{font-size:10px;font-weight:700;color:#86868b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+/* BUTP slide */
+.butp-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:100%}
+.butp-card{border-radius:8px;padding:14px 16px;border:1px solid #d2d2d7;position:relative;overflow:hidden;background:#fff}
+.butp-card::before{content:'';position:absolute;inset:0;opacity:.05;border-radius:8px}
+.butp-card.card-b::before{background:#0071e3}.butp-card.card-u::before{background:#5e5ce6}
+.butp-card.card-t::before{background:#1a7f42}.butp-card.card-p::before{background:#d70015}
+.bc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bc-letter{font-size:26px;font-weight:800;line-height:1}
+.card-b .bc-letter{color:#0071e3}.card-u .bc-letter{color:#5e5ce6}
+.card-t .bc-letter{color:#1a7f42}.card-p .bc-letter{color:#d70015}
+.bc-name{font-size:12px;font-weight:700;color:#1d1d1f;line-height:1.2}
+.bc-sub{font-size:9.5px;color:#86868b;margin-top:2px}
+.bc-items{list-style:none;display:flex;flex-direction:column;gap:4px}
+.bc-items li{font-size:10.5px;color:#4a4a52;padding-left:12px;position:relative;line-height:1.45}
+.bc-items li::before{content:'›';position:absolute;left:0;opacity:.6}
+.bc-items li .src{font-size:8.5px;color:#86868b;margin-left:3px;opacity:.85}
+.bc-link{margin-top:7px;font-size:9.5px;color:#86868b;border-top:1px solid #ebebed;padding-top:5px}
+.bc-link span{color:#0071e3;font-weight:600}
+.butp-offline{font-size:9px;color:#b06000;background:rgba(176,96,0,.08);border:1px solid rgba(176,96,0,.2);border-radius:4px;padding:2px 7px;margin-bottom:8px;display:inline-block}
+.scroll{overflow-y:auto}
+.num{font-family:monospace}
+.evidence-box{background:#1d1d1f;color:#e6e6e8;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:10px;line-height:1.7;overflow:hidden}
+.evidence-box .cm{color:#86868b}
+.cover-nums{display:flex;gap:22px;margin-top:20px}
+.cn{display:flex;flex-direction:column;gap:2px}
+.cn b{font-size:26px;color:#0071e3}
+.cn span{font-size:10px;color:#86868b}
+</style>
+</head>
+<body>
+<div class="deck-wrapper">
+  <div class="deck" id="deck">
+    <div class="deck-header">
+      <div class="hdr-brand">openUBMC 一键日志解析</div>
+      <div class="hdr-nav">
+        <button class="hdr-btn" onclick="go(-1)">‹</button>
+        <span id="counter">1 / 13</span>
+        <button class="hdr-btn" onclick="go(1)">›</button>
+      </div>
+    </div>
+
+    <!-- 1. cover -->
+    <section class="slide active" id="cover" style="justify-content:center">
+      <div class="tag">阶段一 · 需求分析报告</div>
+      <h1>openUBMC 一键日志解析</h1>
+      <p style="font-size:15px;margin-top:10px;max-width:820px">把散落在文本/CSV/MDB 快照/.gz 里的 BMC 现场数据，在 IDE 内一步还原成可视化页面，并接入 MCP + RAG 的双层智能诊断——本报告基于对 <span class="num">bmcstudio-log-reviewer v0.0.23</span> vsix 源码的逐文件阅读产出。</p>
+      <div class="cover-nums">
+        <div class="cn"><b>17</b><span>业务数据域</span></div>
+        <div class="cn"><b>42</b><span>只读路由</span></div>
+        <div class="cn"><b>7</b><span>MCP 工具</span></div>
+        <div class="cn"><b>2</b><span>诊断链路（规则+Agent）</span></div>
+      </div>
+    </section>
+
+    <!-- 2. butp -->
+    <section class="slide" id="butp">
+      <div class="tag">BUTP · 四维需求挖掘</div>
+      <h2>商业 / 用户 / 趋势 / 痛点</h2>
+      <div class="butp-offline">⚠ T 维含【推断·待确认（离线）】，外部同类竞品依据待补</div>
+      <div class="butp-grid">
+        <div class="butp-card card-b">
+          <div class="bc-header"><div class="bc-letter">B</div><div><div class="bc-name">商业价值 Business</div><div class="bc-sub">为谁创造价值 · 不做的代价</div></div></div>
+          <ul class="bc-items">
+            <li>降低 FAE/驻场运维排查一份 dump 的效率成本，属效率类价值<span class="src">【推断】</span></li>
+            <li>不做：退回逐个打开文本/CSV/MDB 手工比对，跨文件关联全靠经验<span class="src">【输入】</span></li>
+            <li>投资方：openUBMC 开源社区/Studio 团队，MulanPSL-2.0 免费开源<span class="src">【输入】</span></li>
+            <li>约束：诊断深度依赖是否接入 MCP Agent + 故障案例知识库<span class="src">【推断】</span></li>
+          </ul>
+          <div class="bc-link">落点 → <span>H 商业价值（P0/P1/P2）</span> · E 机会点排序权重</div>
+        </div>
+        <div class="butp-card card-u">
+          <div class="bc-header"><div class="bc-letter">U</div><div><div class="bc-name">用户需求 User</div><div class="bc-sub">核心/次要用户 · 频率 · 环境</div></div></div>
+          <ul class="bc-items">
+            <li>主用户：BMC 固件工程师/现场技术支持，能读 hex 事件码与日志格式<span class="src">【推断】</span></li>
+            <li>频率：中低频、事件触发（报障/巡检/升级前后）<span class="src">【推断·待确认】</span></li>
+            <li>次要用户：MCP 客户端（外部 AI Agent）——严格意义上是另一个使用者<span class="src">【输入】</span></li>
+            <li>决策链：使用者=一线工程师，投资方=开源社区，目标一致<span class="src">【推断】</span></li>
+          </ul>
+          <div class="bc-link">落点 → <span>C 用户画像</span> · B 场景分析</div>
+        </div>
+        <div class="butp-card card-t">
+          <div class="bc-header"><div class="bc-letter">T</div><div><div class="bc-name">趋势洞察 Trend</div><div class="bc-sub">行业走向 · 竞品动向 · 时间窗口</div></div></div>
+          <ul class="bc-items">
+            <li>产品自身正从"纯规则诊断"演进为"Agent+RAG 诊断"——规则版告警/性能扫描已被源码显式禁用<span class="src">【输入】</span></li>
+            <li>强制 evidence 原文引用 + 知识库范围锁定，是"防 AI 幻觉"设计模式的具体落地<span class="src">【推断·待确认】</span></li>
+            <li>时机：赶上"IDE 内置 Agent 能力"成为工具标配的窗口期<span class="src">【推断·待确认】</span></li>
+          </ul>
+          <div class="bc-link">落点 → <span>F 竞品分析 + 专利潜力</span></div>
+        </div>
+        <div class="butp-card card-p">
+          <div class="bc-header"><div class="bc-letter">P</div><div><div class="bc-name">痛点挖掘 Pain-point</div><div class="bc-sub">现有方案的操作成本 · 最频×最痛</div></div></div>
+          <ul class="bc-items">
+            <li>现场 dump 是"一堆文本、CSV、MDB dump 和 .gz"，手工逐个打开比对<span class="src">【输入】</span></li>
+            <li>规则版诊断覆盖窄且不透明：0 条异常与"未启用"当前不可区分<span class="src">【输入】</span></li>
+            <li>跨文件根因关联（SEL↔app.log↔操作失败）此前完全靠人工经验<span class="src">【输入】</span></li>
+          </ul>
+          <div class="bc-link">落点 → <span>E 机会点因果起点</span> · G 注意事项</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. concept -->
+    <section class="slide" id="concept">
+      <div class="tag">CONCEPT · 概念解析</div>
+      <h2>MDB 属性快照 —— 不是 Access 数据库</h2>
+      <div class="cols">
+        <div class="col2">
+          <div class="card">
+            <h3>① 它是什么</h3>
+            <p class="mt6">openUBMC 组件运行时属性的纯文本"快照"导出，按「模块名 / 对象路径 / 属性名」三段式组织。与微软 Access 的 <span class="num">.mdb</span> 数据库文件<b>同名不同物</b>。</p>
+          </div>
+          <div class="card mt6">
+            <h3>③ 怎么工作（真实读取代码）</h3>
+            <div class="evidence-box mt6"><span class="cm">// mdbGetFirst(base, module, objectPath, prop)</span>
+mdbGetFirst(base, 'event', 'Events', 'Health')
+mdbGetFirst(base, 'product_mgmt',
+  '/bmc/kepler/Systems/1/Product', 'ProductName')</div>
+            <p class="mt6">逐行扫描匹配对象路径块，取该属性<b>第一次出现</b>的值；空行重置当前对象上下文。取值类型强制转换：加引号字符串→去引号，true/false→boolean，纯数字→Number。</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <h3>② 为什么这样设计</h3>
+            <p class="mt6">组件状态同步本就靠属性树，采集时直接把这棵树 dump 成文本，比为每个业务域单独设计导出格式更省事，也保证"看到的就是运行时真实状态"。</p>
+          </div>
+          <div class="card mt6">
+            <h3>④ 对设计意味着什么</h3>
+            <ul class="list mt6">
+              <li>UI 不应假设属性一定有值——多数字段有 <span class="num">|| 默认值</span> 兜底</li>
+              <li>兜底值与"MDB 里真实读到"当前不可区分</li>
+              <li>提高可信度需要产品/后端补一个命中标志位</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. scenario -->
+    <section class="slide" id="scenario">
+      <div class="tag">SCENARIO · 使用场景</div>
+      <h2>四个典型使用场景</h2>
+      <div class="cols">
+        <div class="col">
+          <div class="card"><h4>① 客户现场故障远程排查</h4><p class="mt6">客户报障 → 现场采一键日志包 → 传给 BMC 工程师 → Studio 内打开，先看概览确认健康态，切到操作日志确认最近失败，触发 AI 诊断，导出 PDF 附到工单回复客户。</p></div>
+          <div class="card mt6"><h4>② 版本升级前后对比巡检</h4><p class="mt6">升级前后各采一次 dump，分别打开对比性能/调速/功率，人工判断有无回归——<b>当前无内置对比模式</b>，完全靠肉眼对比两个窗口。</p></div>
+        </div>
+        <div class="col">
+          <div class="card"><h4>③ 新功能验证自测</h4><p class="mt6">固件工程师本地跑通流程后主动导出一键日志，打开本扩展快速确认各业务域数据符合预期，替代逐个查看原始 MDB/CSV。</p></div>
+          <div class="card mt6"><h4>④ AI Agent 自动化巡检（产品独有）</h4><p class="mt6">MCP 客户端无需人工打开 UI，直接调用 get_section/diagnose 拿数据，走 RAG 校准链路产出 Issue，工程师只看 Agent 汇总结论。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. users -->
+    <section class="slide" id="users">
+      <div class="tag">USERS · 目标用户</div>
+      <h2>用户画像</h2>
+      <div class="cols">
+        <div class="col2">
+          <table>
+            <thead><tr><th>维度</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>角色</td><td>BMC/嵌入式固件工程师、现场技术支持（FAE）、驻场运维</td></tr>
+              <tr><td>使用频率</td><td>中低频、事件触发（报障/巡检/升级前后），非高频常驻工具</td></tr>
+              <tr><td>使用环境</td><td>更接近"工位用 IDE 分析别人传回的 dump"，而非现场实时操作【推断·待确认】</td></tr>
+              <tr><td>核心诉求</td><td>尽快定位这份 dump 里出了什么问题、原因是什么、怎么修</td></tr>
+              <tr><td>典型触发点</td><td>收到 dump 压缩包 / Explorer 右键日志包或 dump 目录</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col">
+          <div class="card"><h4>次要用户：MCP 客户端</h4><p class="mt6">外部 AI Agent 本身也是一类"使用者"——它读取 section 数据、产出受 schema 约束的结构化 Issue，行为受协议纪律约束而非人工操作界面。</p></div>
+          <div class="card mt6"><h4>间接受众：PDF 报告接收方</h4><p class="mt6">导出的 PDF 隐含"给不打开 IDE 的人看结论"这一受众，如上级或客户方联系人。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. pain -->
+    <section class="slide" id="pain">
+      <div class="tag">PAIN · 痛点分析</div>
+      <h2>三条核心痛点</h2>
+      <div class="cols">
+        <div class="col">
+          <div class="card"><h4>P1 · 散落多格式文件手工比对</h4><p class="mt6">README 原文点名的核心痛点："原本散落在一堆文本、CSV、MDB dump 和 .gz 里的…信息"。<br><b>痛点核心：</b>信息密度分散在多种格式，人工比对耗时且易漏。</p></div>
+        </div>
+        <div class="col">
+          <div class="card"><h4>P2 · 规则诊断覆盖窄且不透明</h4><p class="mt6">源码逐字证据：<span class="num">assertedN=0</span> / <span class="num">perfN=0</span> 恒定，告警与性能扫描代码路径被注释标注"accuracy insufficient"而关闭。<br><b>痛点核心：</b>"0 条异常"与"扫描未启用"当前完全不可区分，构成信任风险。</p></div>
+        </div>
+        <div class="col">
+          <div class="card"><h4>P3 · 跨文件根因关联依赖经验</h4><p class="mt6">规则版 <span class="num">_inferFailureCause</span> 的存在本身就是证据——三级降级查找算法正是为了自动化这个人工比对过程。<br><b>痛点核心：</b>没有工具前，时间上相邻但文件不同的关联证据全靠工程师记忆串联。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. opp -->
+    <section class="slide" id="opp">
+      <div class="tag">OPPORTUNITY · 设计机会点</div>
+      <h2>机会点分级 + Before → After</h2>
+      <div class="cols">
+        <div class="col2 scroll">
+          <table>
+            <thead><tr><th>#</th><th>机会点</th><th>层级</th><th>权重</th></tr></thead>
+            <tbody>
+              <tr><td class="num">E1</td><td>诊断覆盖范围显式声明</td><td><span class="chip chip-green">🟢</span></td><td>高</td></tr>
+              <tr><td class="num">E2</td><td>Agent 诊断证据追溯面板</td><td><span class="chip chip-green">🟢</span></td><td>高</td></tr>
+              <tr><td class="num">E7</td><td>机型识别透明化</td><td><span class="chip chip-green">🟢</span></td><td>中</td></tr>
+              <tr><td class="num">E3</td><td>urgency×confidence 双轴呈现</td><td><span class="chip chip-green">🟢</span></td><td>中</td></tr>
+              <tr><td class="num">E6</td><td>TopN 差异提示</td><td><span class="chip chip-green">🟢</span></td><td>低</td></tr>
+              <tr><td class="num">E4</td><td>跨次 dump 对比模式</td><td><span class="chip chip-yellow">🟡</span></td><td>中</td></tr>
+              <tr><td class="num">E5</td><td>规则版扫描重新校准启用</td><td><span class="chip chip-red">🔴</span></td><td>高</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col scroll">
+          <div class="card"><h4>B1→C1 Before/After</h4><p class="mt6"><b>现状：</b>诊断卡只有 title+文字建议<br><b>目标：</b>可展开证据侧栏，原文摘录+知识库来源</p></div>
+          <div class="card mt6"><h4>B4→C4 Before/After</h4><p class="mt6"><b>现状：</b>0 条异常无覆盖范围说明<br><b>目标：</b>常驻灰色声明条，明确当前覆盖边界</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. comp -->
+    <section class="slide" id="comp">
+      <div class="tag">COMPETITIVE · 竞品分析 + 专利潜力</div>
+      <h2>差距对比 · 专利评估</h2>
+      <div class="cols">
+        <div class="col2">
+          <table>
+            <thead><tr><th>竞品/行业方案</th><th>具备能力</th><th>与本功能差距</th></tr></thead>
+            <tbody>
+              <tr><td>通用日志平台起本地 Web 服务</td><td>可视化能力通常更强</td><td>需额外起服务/切浏览器，打断 IDE 工作流；本产品零服务、IDE 内直渲染【输入=README】</td></tr>
+              <tr><td>通用 AI 日志分析工具</td><td>交互更聊天化，门槛低</td><td>本产品用 schema 强制证据+知识库范围锁定更可信，但更依赖协议纪律【推断·待确认】</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col">
+          <div class="card patent"><h4>专利潜力：中</h4><p class="mt6">组合点：IDE 内嵌可视化 × 本地规则/Agent 分层诊断 × Schema 强制原文证据+知识库范围锁定的提交协议。单项思路不稀缺，组合较新颖，行业先例待外部核实。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. value -->
+    <section class="slide" id="value">
+      <div class="tag">VALUE · 商业价值与优先级</div>
+      <h2>价值—成本—优先级</h2>
+      <table>
+        <thead><tr><th>机会点</th><th>价值类型</th><th>价值依据</th><th>成本</th><th>不做的代价</th><th>优先级</th></tr></thead>
+        <tbody>
+          <tr><td>E1 覆盖范围声明</td><td>信任/合规</td><td>误判风险远超实现成本〔推断〕</td><td><span class="chip chip-green">🟢</span></td><td>误导现场判断，客户侧故障扩大</td><td><b>P0</b></td></tr>
+          <tr><td>E2 证据追溯面板</td><td>效率/信任</td><td>让协议层强制证据设计发挥价值〔推断〕</td><td><span class="chip chip-green">🟢</span></td><td>Agent 诊断沦为黑盒建议</td><td><b>P0</b></td></tr>
+          <tr><td>E7 机型透明化</td><td>信任</td><td>非 BC83 用户可能误信〔推断〕</td><td><span class="chip chip-green">🟢</span></td><td>问题积累到用户流失才发现</td><td>P1</td></tr>
+          <tr><td>E3 双轴呈现</td><td>效率</td><td>快速分拣紧急/确定性〔推断〕</td><td><span class="chip chip-green">🟢</span></td><td>需自行判断优先级</td><td>P1</td></tr>
+          <tr><td>E4 对比模式</td><td>效率</td><td>巡检场景当前肉眼比对〔推断〕</td><td><span class="chip chip-yellow">🟡</span></td><td>有可行替代方案</td><td>P2</td></tr>
+          <tr><td>E5 规则扫描重启</td><td>效率/可靠性</td><td>无 Agent 环境诊断能力弱〔推断〕</td><td><span class="chip chip-red">🔴</span></td><td>超出设计范围，需算法投入</td><td>P2</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 10. design-system -->
+    <section class="slide" id="design-system">
+      <div class="tag">DESIGN SYSTEM · 设计系统基线（优化模式锚点）</div>
+      <h2>BMC-01 内置 PTO 派生 Token</h2>
+      <div class="cols">
+        <div class="col">
+          <h3>色彩系统</h3>
+          <table class="mt6">
+            <thead><tr><th>用途</th><th>hex</th></tr></thead>
+            <tbody>
+              <tr><td>页面背景</td><td><code>#101010</code></td></tr>
+              <tr><td>卡片背景</td><td><code>#161616</code></td></tr>
+              <tr><td>主强调色</td><td><code>#0077FF</code></td></tr>
+              <tr><td>成功</td><td><code>#04d793</code></td></tr>
+              <tr><td>警示</td><td><code>#ffaa3b</code></td></tr>
+              <tr><td>危险</td><td><code>#ff4b7b</code></td></tr>
+              <tr><td>AI/Agent 紫</td><td><code>#a78bfa</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col">
+          <h3>组件规格</h3>
+          <div class="card mt6"><h4>圆角</h4><p>按钮/chip/输入框 100px 胶囊；卡片 16px</p></div>
+          <div class="card mt6"><h4>描边</h4><p>禁用 1px 白色描边，用 surface 层级填充分层</p></div>
+          <div class="card mt6"><h4>AI 图标</h4><p>统一紫色 ✦ 四角星面型图标</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. critique -->
+    <section class="slide" id="critique">
+      <div class="tag">DESIGN CRITIQUE · 第一轮设计审查</div>
+      <h2>「智能诊断」tab · 审查结论</h2>
+      <div class="cols">
+        <div class="col2">
+          <h3>Usability</h3>
+          <table>
+            <thead><tr><th>Finding</th><th>Severity</th><th>Recommendation</th></tr></thead>
+            <tbody>
+              <tr><td>诊断卡无 evidence/ragAssessment 承接，只有 title+文字</td><td><span class="chip chip-red">🔴 严重</span></td><td>见 demo-prompt §C B1</td></tr>
+              <tr><td>severity/urgency/confidence 合并成单一三色 tag</td><td><span class="chip chip-red">🔴 严重</span></td><td>见 §C B3</td></tr>
+              <tr><td>诊断状态非流式，一次性静态展示</td><td><span class="chip chip-yellow">🟡 中等</span></td><td>见 §C B6</td></tr>
+              <tr><td>无 PDF 导出入口</td><td><span class="chip chip-yellow">🟡 中等</span></td><td>见 §C B7</td></tr>
+            </tbody>
+          </table>
+          <h3 class="mt10">首用 30 秒走查（五镜）</h3>
+          <table>
+            <thead><tr><th>镜</th><th>结论</th></tr></thead>
+            <tbody>
+              <tr><td>镜1 首屏空态</td><td>通过（但原展示为静态占位，非可操作示例）</td></tr>
+              <tr><td>镜3 空间叙事</td><td>🔴 单栏纵向堆叠，无证据侧栏承接真实数据结构</td></tr>
+              <tr><td>镜4 数据流可视化</td><td>🔴 三级降级查找/RAG校准链路完全不可见</td></tr>
+              <tr><td>镜5 结果状态编码</td><td>🟡 无覆盖范围摘要，三色标签未体现真实字段</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col">
+          <h3>Visual Hierarchy</h3>
+          <ul class="list">
+            <li><strong>第一眼落点：</strong>三张占位卡片，视觉上是"完成态"</li>
+            <li><strong>最大问题：</strong>看不出结论可信度来源，与规则版无区分</li>
+            <li><strong>改进方向：</strong>证据/RAG 展开区提升可信度层级</li>
+          </ul>
+          <h3 class="mt10">Consistency</h3>
+          <ul class="list">
+            <li>诊断 tag 三色与规则版 tag 复用同一语义色，未区分数据来源</li>
+          </ul>
+          <h3 class="mt10">Accessibility</h3>
+          <ul class="list">
+            <li>展开态证据文字 11px，符合 CLAUDE.md ≥12px 建议线附近，需工程阶段复核</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. synthesis -->
+    <section class="slide" id="synthesis">
+      <div class="tag">SYNTHESIS · 设计机会汇总</div>
+      <h2>从痛点到设计策略</h2>
+      <div class="cols" style="position:relative">
+        <div class="col"><div class="col-title">用户痛点</div>
+          <div class="flow-card fc-pain" id="p1"><span class="fc-id">P1</span><h4>散落多格式文件手工比对</h4><p>README 原文点名的核心痛点</p></div>
+          <div class="flow-card fc-pain" id="p2"><span class="fc-id">P2</span><h4>规则诊断覆盖窄且不透明</h4><p>0条异常与未启用不可区分</p></div>
+          <div class="flow-card fc-pain" id="p3"><span class="fc-id">P3</span><h4>跨文件根因关联依赖经验</h4><p>时间相邻证据全靠人工串联</p></div>
+        </div>
+        <div class="col"><div class="col-title">洞察汇聚</div>
+          <div class="flow-card fc-insight" id="i1"><span class="fc-id">I1</span><h4>翻译比查找更高频</h4><p>费时的是理解字段/日志含义与关联，不只是找文件</p></div>
+          <div class="flow-card fc-insight" id="i2"><span class="fc-id">I2</span><h4>"看起来智能"比"真的智能"更易被过度信任</h4><p>自动化功能上线后用户默认全面，覆盖缺口不声明即欺骗性设计</p></div>
+          <div class="flow-card fc-insight" id="i3"><span class="fc-id">I3</span><h4>可信自动化需要可验证证据链</h4><p>而不是更聪明的模型——协议层已认同这条洞察</p></div>
+        </div>
+        <div class="col"><div class="col-title">设计策略</div>
+          <div class="flow-card fc-strategy" id="s1"><span class="fc-id">S1</span><h4>统一可视化 + 跨文件时间窗关联</h4><p><span class="chip chip-green">🟢</span></p></div>
+          <div class="flow-card fc-strategy" id="s2"><span class="fc-id">S2</span><h4>E1 覆盖范围声明条 + E7 机型透明化</h4><p><span class="chip chip-green">🟢</span></p></div>
+          <div class="flow-card fc-strategy" id="s3"><span class="fc-id">S3</span><h4>E2 证据追溯面板</h4><p><span class="chip chip-green">🟢</span></p></div>
+        </div>
+        <svg id="opp-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
+      </div>
+    </section>
+
+    <!-- 13. terms -->
+    <section class="slide" id="terms">
+      <div class="tag">TERMS · 术语表</div>
+      <h2>关键术语</h2>
+      <table>
+        <thead><tr><th>术语</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td>AppDump / LogDump</td><td>一键日志 dump 内两大目录：结构化数据根 / 原始滚动日志根</td></tr>
+          <tr><td>MDB 属性快照</td><td>openUBMC 组件属性树的纯文本导出，非 Access 数据库</td></tr>
+          <tr><td>DetectionItem</td><td>规则版本地诊断结果，当前仅覆盖操作失败类问题</td></tr>
+          <tr><td>FaultDiag</td><td>原始诊断证据文件透传（tar.gz/db/json/text），非推理结论</td></tr>
+          <tr><td>Issue</td><td>Agent 产出的结构化问题，含 severity/urgency/confidence/evidence/ragAssessment</td></tr>
+          <tr><td>ragAssessment</td><td>Issue 内限定检索 fault_cases 知识库的依据说明</td></tr>
+          <tr><td>analysisTopN</td><td>用户设置的诊断结果展示上限（1–50，默认10），Agent 不可覆盖</td></tr>
+          <tr><td>机型 Profile</td><td>按机型定制的解析策略，当前仅 BC83 + 通用兜底</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+</div>
+
+<script>
+function resizeDeck(){
+  const deck = document.getElementById('deck');
+  const ww = window.innerWidth, wh = window.innerHeight;
+  const scale = Math.min(ww / 1280, wh / 720);
+  deck.style.transform = `scale(${scale})`;
+  deck.style.left = ((ww - 1280 * scale) / 2) + 'px';
+  deck.style.top  = ((wh -  720 * scale) / 2) + 'px';
+}
+window.addEventListener('resize', resizeDeck);
+resizeDeck();
+
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+function goTo(n){
+  slides[current].classList.remove('active');
+  current = Math.max(0, Math.min(slides.length - 1, n));
+  slides[current].classList.add('active');
+  document.getElementById('counter').textContent = `${current+1} / ${slides.length}`;
+  if(slides[current].id === 'synthesis') setTimeout(drawConnections, 80);
+}
+const go = d => goTo(current + d);
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') go(1);
+  if(e.key==='ArrowLeft' ||e.key==='ArrowUp')   go(-1);
+});
+document.getElementById('deck').addEventListener('click', e=>{
+  if(e.target.closest('.deck-header')) return;
+  const x=e.clientX, w=window.innerWidth;
+  if(x < w*.25) go(-1); else if(x > w*.75) go(1);
+});
+
+function drawConnections(){
+  const deck=document.getElementById('deck'), svg=document.getElementById('opp-svg');
+  if(!svg) return;
+  const m = deck.style.transform.match(/scale\(([^)]+)\)/);
+  const scale = m ? parseFloat(m[1]) : 1;
+  const svgBox = svg.getBoundingClientRect();
+  const pt = el => { const r=el.getBoundingClientRect();
+    return { x:(r.left - svgBox.left)/scale, y:(r.top - svgBox.top)/scale, w:r.width/scale, h:r.height/scale }; };
+  svg.innerHTML = '';
+  const pairs = [['p1','i1'],['p2','i2'],['p3','i3'],['i1','s1'],['i2','s2'],['i3','s3']];
+  const ns = 'http://www.w3.org/2000/svg';
+  pairs.forEach(([a,b])=>{
+    const ea=document.getElementById(a), eb=document.getElementById(b);
+    if(!ea||!eb) return;
+    const pa=pt(ea), pb=pt(eb);
+    const x1=pa.x+pa.w, y1=pa.y+pa.h/2, x2=pb.x, y2=pb.y+pb.h/2;
+    const mx=(x1+x2)/2;
+    const path=document.createElementNS(ns,'path');
+    path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    path.setAttribute('stroke', '#c7c7cc');
+    path.setAttribute('stroke-width', '1.2');
+    path.setAttribute('stroke-dasharray', '3,3');
+    path.setAttribute('fill', 'none');
+    svg.appendChild(path);
+  });
+}
+</script>
+</body>
+</html>
