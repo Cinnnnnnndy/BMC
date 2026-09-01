@@ -53,16 +53,19 @@ html,body {
 .app { display: flex; flex-direction: column; height: 100vh; }
 
 /* ── 页头：dump 概况 ── */
-.hdr { flex-shrink: 0; padding: 14px 18px 0; display: flex; flex-direction: column; gap: 3px; }
-.hdr-dump {
-  font-family: var(--font-mono); font-size: 12.5px; color: var(--foreground-secondary);
-}
+.hdr { flex-shrink: 0; padding: 14px 18px 0; display: flex; flex-direction: column; gap: 8px; }
 .hdr-appname {
-  font-size: 11.5px; font-weight: 500; color: var(--foreground-muted);
-  margin-bottom: 5px;
+  align-self: flex-start;
+  font-size: 12px; font-weight: 600; color: var(--foreground-secondary);
+  background: var(--surface-2); border-radius: 100px; padding: 4px 12px;
 }
-.hdr-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.hdr-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .hdr-model { font-size: 20px; font-weight: 700; color: #fff; }
+.hdr-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hdr-dump {
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--foreground-muted);
+  background: var(--surface-2); border-radius: 100px; padding: 4px 12px;
+}
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 3px 11px; border-radius: 100px; border: 1px solid transparent;
@@ -178,7 +181,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
 <div class="app">
 
   <div class="hdr">
-    <div class="hdr-dump">dump_info_20260828_142317.tar.gz · AppDump</div>
     <div class="hdr-appname">一键日志解析</div>
     <div class="hdr-top">
       <span class="hdr-model">TaiShan 200（BC83）</span>
@@ -186,6 +188,9 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       <span class="chip chip--warn"><span class="dot"></span>健康状态：轻微告警</span>
       <span class="chip chip--warn"><span class="dot"></span>告警：3</span>
       <span class="chip">采集时间：2026-08-28 14:23:17</span>
+    </div>
+    <div class="hdr-meta">
+      <span class="hdr-dump">dump_info_20260828_142317.tar.gz · AppDump</span>
     </div>
   </div>
 
