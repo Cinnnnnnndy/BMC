@@ -15,6 +15,10 @@ export const OPERATORS: OperatorOption[] = [
   { id: 5, label: '状态命中', symbol: '=', desc: '读数 = 触发值（离散量一般为 1）即告警。适用 CATERR、在位、链路状态等。', recommendFor: ['discrete'] },
   { id: 3, label: '严格大于', symbol: '>', desc: '读数 > 门限值即告警（不含等于），少数场景使用。', recommendFor: [] },
   { id: 2, label: '严格小于', symbol: '<', desc: '读数 < 门限值即告警（不含等于），少数场景使用。', recommendFor: [] },
+  // 6/7/8：真实 .sr 里离散/热插拔事件在用（取值语义据 vpd 样例归纳），补齐后下拉不再空白、编辑不丢值
+  { id: 6, label: '状态跳变', symbol: '⇌', desc: '读数状态发生跳变（边沿）即告警。用于 GetFail 监控、按钮长按等由 0/1 边沿驱动的事件。', recommendFor: [] },
+  { id: 7, label: '在位 / 插入', symbol: '＋', desc: '器件由缺失变为在位（插入）时告警。用于电源 / 风扇 / 硬盘等热插拔部件的安装事件。', recommendFor: [] },
+  { id: 8, label: '离位 / 移除', symbol: '－', desc: '器件由在位变为缺失（移除）时告警。用于电源 / 风扇 / 硬盘等热插拔部件的移除事件。', recommendFor: [] },
 ];
 export function operatorById(id: number): OperatorOption | undefined { return OPERATORS.find((o) => o.id === id); }
 
@@ -180,6 +184,34 @@ export const QUANTITIES: Record<string, QuantityDef> = {
       eventKeyIds: ['Port.PortOpticalModuleOverTemp', 'PcieCard.PCIeCardOMOverTemp'],
     },
     explain: '光模块温度，扫描周期较长（10s，连续 12 次失败判异常）。',
+  },
+  current: {
+    key: 'current', label: '电流', kind: 'threshold', unitLabel: 'A', readingField: 'Current',
+    sensor: { SensorType: 3, ReadingType: 1, BaseUnit: 5, Unit: 128, M: 1, RBExp: 0, Analog: 1 },
+    recommend: {
+      operatorId: 4, hysteresis: 0, periodKey: 'voltage',
+      thresholds: { UpperNoncritical: 0, UpperCritical: 0 },
+      events: [
+        { suffix: 'OverMinor', label: '过流·预警', levelField: 'UpperNoncritical', operatorId: 4, severity: 'Minor', eventKeyId: 'PSU.PSUOutputOverCurrentMinor' },
+        { suffix: 'OverMajor', label: '过流·严重', levelField: 'UpperCritical', operatorId: 4, severity: 'Major', eventKeyId: 'PSU.PSUOutputOverCurrent' },
+      ],
+      eventKeyIds: ['PSU.PSUOutputOverCurrent'],
+    },
+    explain: '器件电流（A）。多用于电源输出过流监控，越大越危险。',
+  },
+  power: {
+    key: 'power', label: '功率', kind: 'threshold', unitLabel: 'W', readingField: 'Power',
+    sensor: { SensorType: 11, ReadingType: 1, BaseUnit: 6, Unit: 128, M: 1, RBExp: 0, Analog: 1 },
+    recommend: {
+      operatorId: 4, hysteresis: 0, periodKey: 'voltage',
+      thresholds: { UpperNoncritical: 0, UpperCritical: 0 },
+      events: [
+        { suffix: 'OverMinor', label: '过功率·预警', levelField: 'UpperNoncritical', operatorId: 4, severity: 'Minor', eventKeyId: 'PSU.PSUOutputOverPowerMinor' },
+        { suffix: 'OverMajor', label: '过功率·严重', levelField: 'UpperCritical', operatorId: 4, severity: 'Major', eventKeyId: 'PSU.PSUOutputOverPower' },
+      ],
+      eventKeyIds: ['PSU.PSUOutputOverPower'],
+    },
+    explain: '器件功率（W）。多用于电源输入/输出功率监控，越大越危险。',
   },
   // 通用离散状态：承载从 .sr 导入的、无专用量对应的离散传感器（SysFwProgress/AcpiState/PowerButton…）
   sr_state: {

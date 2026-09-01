@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import TopologyView      from './TopologyView.vue';
 import CodeView          from './CodeView.vue';
 import SmcOffsetView     from './views/SmcOffsetView.vue';
@@ -9,6 +9,14 @@ import AlarmConfigView   from './views/AlarmConfigView.vue';
 import { useLinkage, type ToolId } from './composables/useLinkage';
 
 const { state: link, setAnchor, closeDock, closeCodeDoc } = useLinkage();
+
+// 作为 webview/iframe 嵌入 CSR 编辑器时，宿主顶部有工具条（校验 / CSR 出包）。
+// 给浮层面板留出顶部安全距，避免与宿主右上按钮遮挡；独立打开(顶层)则不留，保持像素级。
+onMounted(() => {
+  let embedded = false;
+  try { embedded = window.self !== window.top; } catch { embedded = true; }
+  if (embedded) document.documentElement.style.setProperty('--embed-top-inset', '52px');
+});
 
 // 右侧「代码」分屏（IDE 风格只读代码视图）
 const codeWidth = ref(42); // % of viewport

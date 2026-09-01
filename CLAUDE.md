@@ -36,8 +36,8 @@
 1. **PTO token 值**（新页面直接复制这组 `:root`，不要自拟数值）：
    - 表面：`--background #101010` `--surface-1 #161616` `--surface-2 #1c1c1c` `--surface-3 #262626`；欢迎页卡片底 `#111113`
    - 文字：`rgba(255,255,255,.90 / .60 / .40)`
-   - 主色 `#4369ef`（hover `#3457d5`）、成功 `#04d793`、紫 `#a78bfa`；欢迎页主 CTA 用 `#0077FF`（hover `rgba(50,145,254,1)`）胶囊
-   - **禁用**（checker R2 强制）：`#4F46E5 #5b8af5 #6159ef #7c3aed #8b5cf6 #6366f1` 等私造 indigo/violet
+   - 品牌主色 `#0077FF`（hover `#0063D1`）、成功 `#04d793`、紫 `#a78bfa`
+   - **禁用**（checker R2 强制）：`#4369ef #3457d5 #4F46E5 #5b8af5 #6159ef #7c3aed #8b5cf6 #6366f1` 等私造 indigo/violet/旧蓝
 2. **减少描边**：卡片/按钮/chip/输入框一律用填充色分层（`--surface-*` 或 `rgba(255,255,255,.06)`），禁止 1px 白色描边框线（每页面上限 2 处，checker R4）；列表行分隔用 `border-bottom: 1px solid rgba(255,255,255,.06)` 细线。
 3. **面型图标**：图标优先 `fill="currentColor"`（面型），少用描边（stroke）图标。AI/agent 相关入口统一用 ✦ 四角星面型图标（`M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z`）+ 紫色 `#a78bfa`（同 ai-assist 面板头），禁止描边星形/机器人/对话泡等自创图标。
 4. **胶囊造型**：按钮/chip/输入框 `border-radius: 100px`（同欢迎页「新建工程」）；卡片 `border-radius: 16px`。
@@ -47,3 +47,37 @@
 6. **公告条位置**：message-bar 等公告类元素放在内容区上方（GET STARTED 之后、功能区之前），不要沉底。
 7. **空状态**：列表/状态区无真实数据时用演示数据兜底展示（参照 ai-assist 示例场景），不允许留空白占位文案。
 8. **终端联动**：向导/工作台派发任务必须走 postMessage `{ type:'ai-run-agent', cmd:'agent <任务描述>' }`——cmd 必须是 `agent <关键词>` 格式且关键词能命中 AgentTerminal AGENT_TASKS 词表（词表按数组顺序 find 首个命中，新词条注意排序）；页内模拟终端块只做摘要，并加「⤷ 完整执行过程见底部 agent 终端」注记。
+9. **嵌入页禁渐变**（checker R5 强制）：嵌入 IDE pane 的页面（如 ai-install、ai-assist）禁止使用蓝紫渐变背景，必须用实底 `#101010`。渐变只用于全屏欢迎系页面。
+10. **:root token 完整声明**（checker R6 强制）：每个独立 HTML 页面必须在 `:root` 中至少声明 `--background`、`--surface-1`、`--primary` 三个 token。
+11. **胶囊造型强制**（checker R7 强制）：按钮/chip/输入框 `border-radius` 只允许 `100px` 或 `999px`（胶囊），禁止 `8px`/`12px` 等非胶囊圆角值。卡片圆角 `16px` 不受此规则约束。
+12. **禁用私造绿色**（checker R8 强制）：成功色只允许 `#04d793`，禁止 `#3dd68c`、`#10b981`、`#34d399` 等私造绿色。
+
+## 提交身份（对整个仓库、所有子项目一律生效）
+
+本仓库的每一条 commit 都必须以仓库主人的身份提交，而不是 Claude：
+
+```
+user.name  = Cindy_wxd
+user.email = 209322477+Cinnnnnnndy@users.noreply.github.com
+```
+
+`.claude/hooks/set-git-identity.sh` 会在每次会话开始时自动把这两项写进
+`.git/config`（仓库级配置优先于云端沙箱的全局 `~/.gitconfig`，后者写的是
+`Claude <noreply@anthropic.com>`）。本机已配好本人身份时该 hook 不会改动它。
+
+**如果那个 hook 因为任何原因没跑到**（hook 被禁用、在别的工具里操作、CI 里提交），
+在 commit 之前先手动执行一次：
+
+```bash
+git config --local user.name  "Cindy_wxd"
+git config --local user.email "209322477+Cinnnnnnndy@users.noreply.github.com"
+git config --local commit.gpgsign false
+```
+
+提交前用 `git config user.email` 确认一遍；提交后用
+`git log -1 --pretty='%an <%ae>'` 复核，出现 `noreply@anthropic.com` 说明配置没生效，
+改完要重新提交（`git commit --amend --reset-author`）。
+
+不要在 commit message 里写 `Co-Authored-By: Claude ...` 或 `Claude-Session: ...`
+尾注，也不要在 PR 描述里加 Claude Code 的署名——`.claude/settings.json` 里的
+`attribution` 已经关掉了它们。

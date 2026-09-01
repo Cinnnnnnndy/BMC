@@ -6,6 +6,9 @@ import { withBase } from './base';
 import { CsrTopoFrame } from './csrTopoBridge';
 import { HARDWARE_PROJECTS } from './data/projects';
 import type { CSRDocument } from './types';
+import { CsrExportPanel } from './components/CsrExportPanel';
+import type { SignProfile } from './signing-types';
+import { DEMO_PROFILES } from './signing-types';
 
 // ── Lazy-loaded views ──────────────────────────────────────────────────────
 const lazy = <T extends React.ComponentType<never>>(
@@ -15,6 +18,7 @@ const lazy = <T extends React.ComponentType<never>>(
 
 const TopologyView               = lazy(() => import('./components/TopologyView'),               'TopologyView');
 const EventConfig                = lazy(() => import('./components/EventConfig'),                'EventConfig');
+const EventDefManager            = lazy(() => import('./components/EventDefManager'),            'EventDefManager');
 const SensorConfig               = lazy(() => import('./components/SensorConfig'),               'SensorConfig');
 const Simulator                  = lazy(() => import('./components/Simulator'),                  'Simulator');
 const TianChiBoardTopologyView   = lazy(() => import('./components/TianChiBoardTopologyView'),   'TianChiBoardTopologyView');
@@ -24,6 +28,8 @@ const HardwareTopologyCanvas     = lazy(() => import('./components/HardwareTopol
 const BmcEnvView                 = lazy(() => import('./components/BmcEnvView'),                 'BmcEnvView');
 const AiAssistView               = lazy(() => import('./components/AiAssistView'),               'AiAssistView');
 const ExplorerView               = lazy(() => import('./components/ExplorerView'),               'ExplorerView');
+const SigningConfigPanel         = lazy(() => import('./components/SigningConfigPanel'),         'SigningConfigPanel');
+const WhiteBrandPanel            = lazy(() => import('./components/WhiteBrandPanel'),            'WhiteBrandPanel');
 
 /** VSCode webview API bridge */
 let _vscodeApi: { postMessage(msg: unknown): void } | null = null;
@@ -50,13 +56,13 @@ function parseModelInfo(model: string): { name: string; badge: string | null } {
 // ── View routing ──────────────────────────────────────────────────────────
 type ViewId =
   | 'home' | 'installGuide' | 'aiInstall' | 'explorer' | 'bmcEnv' | 'aiAssist' | 'aiHistory'
-  | 'topology' | 'boardTopology' | 'association' | 'event' | 'sensor' | 'simulator'
-  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo'
-  | 'smcOffset' | 'exprCalc' | 'coolingConfig'
+  | 'topology' | 'boardTopology' | 'association' | 'event' | 'eventDefManager' | 'sensor' | 'simulator'
+  | 'vueTopo' | 'hwTopology' | 'serverView' | 'threeD' | 'csrTopo' | 'signingConfig'
+  | 'smcOffset' | 'exprCalc' | 'coolingConfig' | 'whiteBrand' | 'logReviewer'
   | 'jsonNorth' | 'srLang' | 'srPrev' | 'pipeExpr' | 'smcExt' | 'mibSup'
   | 'openubmcLogin' | 'gitcodeKeys';
 
-const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'sensor', 'simulator']);
+const CSR_REQUIRED = new Set<ViewId>(['topology', 'boardTopology', 'association', 'event', 'eventDefManager', 'sensor', 'simulator']);
 
 // ── Rail icon SVG helper ───────────────────────────────────────────────────
 function SI({ d }: { d: string | string[] }) {
@@ -89,6 +95,7 @@ const ICONS: Record<string, React.ReactNode> = {
   boardTopology:<SI d="M4 5h16M4 12h16M4 19h16M9 5v14M15 5v14" />,
   association:  <SI d={['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71','M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71']} />,
   event:        <SI d="M13 2L3 14h9l-1 8 10-12h-9l1-8" />,
+  eventDefManager: <SI d={['M9 2h6a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z','M9 6h6','M9 10h6','M9 14h4','M7 2h2v4H7z']} />,
   sensor:       <SI d="M22 12h-4l-3 9L9 3l-3 9H2" />,
   simulator:    <SI d="M5 3l14 9-14 9V3z" />,
   hwTopology:   <SI d={['M9 3H5a2 2 0 0 0-2 2v4m6-6h6m-6 0v18m6-18h4a2 2 0 0 1 2 2v4M3 9h6M21 9h-6','M3 21h6m-6 0v-4m18 4h-6m6 0v-4M9 21v-4m0 0h6m0 0v4']} />,
@@ -106,7 +113,10 @@ const ICONS: Record<string, React.ReactNode> = {
   smcExt:       <SI d={['M6 6h12v12H6z','M9 6V3','M15 6V3','M9 18v3','M15 18v3','M6 9H3','M6 15H3','M18 9h3','M18 15h3']} />,
   mibSup:       <SI d={['M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2','M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0H9V5z','M9 12h6','M9 16h6']} />,
   openubmcLogin:<SI d={['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z','M2 12h20','M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z']} />,
-  gitcodeKeys:  <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
+  gitcodeKeys:     <SI d={['M15 7a4 4 0 1 0-3.9 5H14l1.5 1.5L17 12l1.5 1.5L21 11l-2-2h-4.1A4 4 0 0 0 15 7z','M11 11l-7 7v3h3l7-7']} />,
+  signingConfig:     <SI d={['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z','M9 12l2 2 4-4']} />,
+  whiteBrand:        <SI d={['M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z','M7 7h.01']} />,
+  logReviewer:       <SI d={['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M7 14l2.2-3.6 2.3 5.2 2-3h3.5']} />,
 };
 
 // ── Pane layout system ─────────────────────────────────────────────────────
@@ -198,11 +208,12 @@ const VIEW_LABELS: Partial<Record<ViewId, string>> = {
   srLang: 'SR 语言服务器', srPrev: 'SR 文件预览', pipeExpr: '管道表达式',
   smcExt: 'SMC 偏移量', exprCalc: '批量表达式', coolingConfig: '能效调速配置',
   mibSup: 'MIB 支持', bmcEnv: 'BMC 环境管理', hwTopology: '硬件拓扑',
-  threeD: '3D 仿真', vueTopo: '硬件适配', csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
+  threeD: '3D 仿真', vueTopo: '硬件适配', signingConfig: '签名与证书管理',csrTopo: 'CSR 拓扑编辑器', serverView: '服务器视图',
   topology: '拓扑视图', association: '软硬件关联', simulator: '仿真调试',
-  sensor: '传感器配置', event: '事件配置', boardTopology: '板卡拓扑',
+  sensor: '传感器配置', event: '事件配置', eventDefManager: '事件管理', boardTopology: '板卡拓扑',
   aiAssist: 'AI 助手', aiHistory: 'AI 历史', smcOffset: 'SMC 偏移量',
-  openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥',
+  openubmcLogin: 'openUBMC 登录', gitcodeKeys: 'GitCode 密钥', logReviewer: '一键日志解析',
+  whiteBrand: '白牌定制',
 };
 
 // ── Pane components ────────────────────────────────────────────────────────
@@ -486,6 +497,8 @@ export default function App() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuPos, setMoreMenuPos] = useState<{ top: number; left: number } | null>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const [csrExportOpen, setCsrExportOpen] = useState(false);
+  const [signingProfiles, setSigningProfiles] = useState<SignProfile[]>(DEMO_PROFILES);
 
   // ── Pane layout state ──────────────────────────────────────────────────
   const initPaneId = useRef(uid());
@@ -1001,6 +1014,8 @@ export default function App() {
         return csr ? <SoftwareHardwareAssociationView csr={csr} /> : null;
       case 'event':
         return csr ? <EventConfig csr={csr} eventDef={eventDef} onChange={handleCsrChange} /> : null;
+      case 'eventDefManager':
+        return <EventDefManager csr={csr} eventDef={eventDef} onChange={handleCsrChange} />;
       case 'sensor':
         return csr ? <SensorConfig csr={csr} onChange={handleCsrChange} /> : null;
       case 'simulator':
@@ -1016,6 +1031,8 @@ export default function App() {
         return <iframe src="https://www.openubmc.cn/" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="openUBMC 登录" />;
       case 'gitcodeKeys':
         return <iframe src="https://gitcode.com/-/user_settings/ssh_keys" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="GitCode 密钥" />;
+      case 'logReviewer':
+        return <iframe src={withBase('log-reviewer.html')} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="一键日志解析" />;
       case 'bmcEnv':
         return <BmcEnvView />;
       case 'aiAssist':
@@ -1023,7 +1040,44 @@ export default function App() {
       case 'aiHistory':
         return <iframe src={withBase('ai-assist.html') + '?view=history'} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="AI 历史" />;
       case 'vueTopo':
-        return <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />;
+        return (
+          <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+            {/* Canvas wrapper with top-right overlay buttons */}
+            <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
+              <iframe src={vueSrc} style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title="硬件适配" />
+              <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6, zIndex: 10 }}>
+                <button
+                  className="ide-tab-action-btn"
+                  title="agent 校验当前 CSR（csr_validate）"
+                  onClick={() => runQuickAction('agent 校验当前 CSR')}
+                >校验</button>
+                <button
+                  className={`ide-tab-action-btn${csrExportOpen ? ' ide-tab-action-btn--primary' : ''}`}
+                  title="CSR 出包配置面板"
+                  onClick={() => setCsrExportOpen(v => !v)}
+                >{csrExportOpen ? '关闭出包' : 'CSR 出包'}</button>
+              </div>
+            </div>
+            {csrExportOpen && (
+              <CsrExportPanel
+                onClose={() => setCsrExportOpen(false)}
+                boardName={currentProject?.model ?? '当前板卡'}
+                onExport={cfg => { console.log('[CSR出包]', cfg); }}
+                onBinBuild={cfg => { console.log('[bin构建]', cfg); }}
+                onAddProfile={() => openViewInSplit('signingConfig')}
+              />
+            )}
+          </div>
+        );
+      case 'signingConfig':
+        return (
+          <SigningConfigPanel
+            profiles={signingProfiles}
+            onProfilesChange={setSigningProfiles}
+          />
+        );
+      case 'whiteBrand':
+        return <WhiteBrandPanel />;
       case 'csrTopo':
         // 默认加载示例工程并接入 public/sr-samples/ 板卡样例库：打开即进入
         // “已选择工程文件”的拓扑状态，下游板卡按 Bom/Type 从样例库解析。
@@ -1064,13 +1118,17 @@ export default function App() {
     topology: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     vueTopo:  { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     event:    { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
+    eventDefManager: { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
     sensor:   { label: '校验', cmd: 'agent 校验当前 CSR', title: 'agent 校验当前 CSR（csr_validate）' },
   };
-  const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'sensor', 'association', 'boardTopology', 'simulator']);
+  const CSR_SAVE_VIEWS = new Set<ViewId>(['topology', 'event', 'eventDefManager', 'sensor', 'association', 'boardTopology', 'simulator']);
 
   function renderTabActions(viewId: ViewId): React.ReactNode {
     const agentAct = CONTEXT_AGENT[viewId];
     const canSave = csr !== null && CSR_SAVE_VIEWS.has(viewId);
+    const isTopo = viewId === 'vueTopo';
+    // vueTopo buttons are rendered as canvas overlay — skip tab bar
+    if (isTopo) return null;
     if (!agentAct && !canSave) return null;
     return (
       <>
@@ -1080,6 +1138,13 @@ export default function App() {
             title={agentAct.title}
             onClick={e => { e.stopPropagation(); runQuickAction(agentAct.cmd); }}
           >{agentAct.label}</button>
+        )}
+        {isTopo && (
+          <button
+            className={`ide-tab-action-btn${csrExportOpen ? ' ide-tab-action-btn--primary' : ''}`}
+            title="CSR 出包配置面板"
+            onClick={e => { e.stopPropagation(); setCsrExportOpen(v => !v); }}
+          >{csrExportOpen ? '关闭出包' : 'CSR 出包'}</button>
         )}
         {canSave && (
           <button
@@ -1105,8 +1170,12 @@ export default function App() {
     { id: 'smcExt',       tooltip: 'SMC 偏移量计算器' },
     { id: 'coolingConfig',tooltip: '能效调速配置' },
     { id: 'bmcEnv',       tooltip: 'BMC 环境管理' },
-    { id: 'vueTopo',      tooltip: '硬件适配' },
-    { id: 'csrTopo',      tooltip: 'CSR 拓扑编辑器' },
+    { id: 'logReviewer',  tooltip: '一键日志解析' },
+    { id: 'vueTopo',       tooltip: '硬件适配' },
+    { id: 'signingConfig', tooltip: '签名与证书管理' },
+    { id: 'whiteBrand',    tooltip: '白牌定制' },
+    { id: 'csrTopo',       tooltip: 'CSR 拓扑编辑器' },
+    { id: 'eventDefManager', tooltip: '事件管理', csrRequired: true },
     { id: 'simulator',    tooltip: '仿真调试', csrRequired: true },
   ];
 
@@ -1117,7 +1186,6 @@ export default function App() {
     { id: 'topology',    csrRequired: true },
     { id: 'association', csrRequired: true },
     { id: 'sensor',      csrRequired: true },
-    { id: 'event',       csrRequired: true },
     { id: 'serverView' },
     ...(currentProjectId === 'huawei-tianchi' ? [{ id: 'boardTopology' as ViewId, csrRequired: true }] : []),
   ];
