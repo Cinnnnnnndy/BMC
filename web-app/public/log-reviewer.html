@@ -235,6 +235,24 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
           </table></div>
         </div>
       </div>
+      <div class="subhead">性能</div>
+      <div class="grid grid--stats">
+        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
+        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
+        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>Top 进程（按 CPU）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
+            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
+            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
+            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
+          </tbody>
+        </table></div>
+      </div>
       <div class="subhead">告警与传感器</div>
       <div class="card">
         <h3>未恢复告警</h3>
@@ -258,24 +276,6 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
             <tr><td class="mono">PSU2_VIN</td><td class="mono">88.7 V</td><td class="mono">90 / 264 V</td><td><div class="bar"><i class="bad" style="width:12%"></i></div></td><td><span class="tag tag-bad">越限</span></td></tr>
             <tr><td class="mono">FAN4_Speed</td><td class="mono">16680 RPM</td><td class="mono">1720 / — RPM</td><td><div class="bar"><i style="width:92%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
             <tr><td class="mono">DIMM_Temp_Max</td><td class="mono">51 °C</td><td class="mono">— / 85 °C</td><td><div class="bar"><i class="ok" style="width:60%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
-          </tbody>
-        </table></div>
-      </div>
-      <div class="subhead">性能</div>
-      <div class="grid grid--stats">
-        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
-        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
-        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
-      </div>
-      <div class="card section-gap">
-        <h3>Top 进程（按 CPU）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
-          <tbody>
-            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
-            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
-            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
-            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
           </tbody>
         </table></div>
       </div>
