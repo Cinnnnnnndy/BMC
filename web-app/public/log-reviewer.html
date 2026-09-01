@@ -210,22 +210,12 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
       <div class="grid grid--stats">
         <div class="card"><h3>整机健康</h3><div class="stat-v warn">Minor</div><div class="stat-sub">1 条未恢复告警</div></div>
         <div class="card"><h3>告警事件</h3><div class="stat-v">128<small>条</small></div><div class="stat-sub">严重 0 · 次要 3 · 已恢复 125</div></div>
+        <div class="card"><h3>dump 采集</h3><div class="stat-v ok">完整</div><div class="stat-sub">17/17 模块导出成功</div></div>
         <div class="card"><h3>在位传感器</h3><div class="stat-v">86<small>/ 92</small></div><div class="stat-sub">6 个不在位（可选配件）</div></div>
         <div class="card"><h3>BMC 版本</h3><div class="stat-v" style="font-size:17px">openUBMC 24.03</div><div class="stat-sub">Build 2026-08-12 · U-Boot 2023.10</div></div>
         <div class="card"><h3>运行时长</h3><div class="stat-v">47<small>天</small></div><div class="stat-sub">上次复位：AC 上电</div></div>
-        <div class="card"><h3>dump 采集</h3><div class="stat-v ok">完整</div><div class="stat-sub">17/17 模块导出成功</div></div>
       </div>
       <div class="grid grid--2 section-gap">
-        <div class="card">
-          <h3>产品信息</h3>
-          <div class="tbl-wrap"><table>
-            <tr><td style="color:var(--foreground-muted)">产品名称</td><td>TaiShan 200 服务器</td></tr>
-            <tr><td style="color:var(--foreground-muted)">机型代码</td><td class="mono">BC83SPCB</td></tr>
-            <tr><td style="color:var(--foreground-muted)">序列号</td><td class="mono">2102313XSB10P5100233</td></tr>
-            <tr><td style="color:var(--foreground-muted)">BMC IP</td><td class="mono">192.168.10.83</td></tr>
-            <tr><td style="color:var(--foreground-muted)">采集时间</td><td class="mono">2026-08-28 14:23:17 +08:00</td></tr>
-          </table></div>
-        </div>
         <div class="card">
           <h3>关键结论（自动检测）</h3>
           <div class="diag-item">
@@ -236,6 +226,16 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
             <span class="tag tag-info diag-badge">提示</span>
             <div><h4>FAN4 转速偏高</h4><p>持续 92% 占空比运行，与进风温度 35°C 相关，属调速策略正常响应。</p></div>
           </div>
+        </div>
+        <div class="card">
+          <h3>产品信息</h3>
+          <div class="tbl-wrap"><table>
+            <tr><td style="color:var(--foreground-muted)">产品名称</td><td>TaiShan 200 服务器</td></tr>
+            <tr><td style="color:var(--foreground-muted)">机型代码</td><td class="mono">BC83SPCB</td></tr>
+            <tr><td style="color:var(--foreground-muted)">序列号</td><td class="mono">2102313XSB10P5100233</td></tr>
+            <tr><td style="color:var(--foreground-muted)">BMC IP</td><td class="mono">192.168.10.83</td></tr>
+            <tr><td style="color:var(--foreground-muted)">采集时间</td><td class="mono">2026-08-28 14:23:17 +08:00</td></tr>
+          </table></div>
         </div>
       </div>
       <div class="subhead">性能</div>
