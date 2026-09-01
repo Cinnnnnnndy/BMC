@@ -428,19 +428,44 @@ td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
     <!-- 智能分析（基于故障模式库的日志体检 + 交互式分析，测试人员视角：先看准不准、全不全、有没有证据，再看结论） -->
     <section class="pane" id="p-aidiag">
 
-      <div class="card">
-        <h3>验收指标（测试关注）</h3>
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>指标</th><th>规格要求</th><th>本次结果</th><th>结论</th></tr></thead>
-          <tbody>
-            <tr><td>已覆盖案例匹配准确率</td><td class="mono">≥ 90%</td><td class="mono">94.2%</td><td><span class="tag tag-ok">达标</span></td></tr>
-            <tr><td>整体匹配准确率</td><td class="mono">≥ 60%</td><td class="mono">71.4%</td><td><span class="tag tag-ok">达标</span></td></tr>
-            <tr><td>日志体检覆盖率（调试日志）</td><td class="mono">100%</td><td class="mono">6 / 6</td><td><span class="tag tag-ok">达标</span></td></tr>
-            <tr><td>回复完整性（原因/定位/方案/关键日志四要素）</td><td class="mono">缺一不可</td><td class="mono">4 / 4</td><td><span class="tag tag-ok">达标</span></td></tr>
-            <tr><td>体检耗时（10MB 内）</td><td class="mono">≤ 10 分钟</td><td class="mono">3 分 12 秒</td><td><span class="tag tag-ok">达标</span></td></tr>
-            <tr><td>知识库响应时间</td><td class="mono">≤ 30 秒</td><td class="mono">4.6 秒</td><td><span class="tag tag-ok">达标</span></td></tr>
-          </tbody>
-        </table></div>
+      <div class="subhead" style="margin-top:0">验收指标（测试关注）</div>
+      <div class="grid grid--stats">
+        <div class="card">
+          <h3>已覆盖案例匹配准确率</h3>
+          <div class="stat-v ok">94.2<small>%</small></div>
+          <div class="stat-sub">规格要求 ≥ 90%</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
+        <div class="card">
+          <h3>整体匹配准确率</h3>
+          <div class="stat-v ok">71.4<small>%</small></div>
+          <div class="stat-sub">规格要求 ≥ 60%</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
+        <div class="card">
+          <h3>日志体检覆盖率</h3>
+          <div class="stat-v ok">6<small>/ 6</small></div>
+          <div class="stat-sub">规格要求 100%（调试日志）</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
+        <div class="card">
+          <h3>回复完整性</h3>
+          <div class="stat-v ok">4<small>/ 4</small></div>
+          <div class="stat-sub">原因/定位/方案/关键日志，缺一不可</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
+        <div class="card">
+          <h3>体检耗时</h3>
+          <div class="stat-v ok">3<small>分12秒</small></div>
+          <div class="stat-sub">规格要求 ≤ 10 分钟（10MB 内）</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
+        <div class="card">
+          <h3>知识库响应时间</h3>
+          <div class="stat-v ok">4.6<small>秒</small></div>
+          <div class="stat-sub">规格要求 ≤ 30 秒</div>
+          <span class="tag tag-ok" style="margin-top:8px">达标</span>
+        </div>
       </div>
 
       <div class="subhead">日志体检</div>
