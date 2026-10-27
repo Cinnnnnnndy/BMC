@@ -117,6 +117,8 @@
     <li><a href="#s4"><span class="no">04</span>形式转换是怎么做的</a></li>
     <li><a href="#s5"><span class="no">05</span>知识产权保护</a></li>
     <li><a href="#s6"><span class="no">06</span>可迁移启示</a></li>
+    <li><a href="#s7"><span class="no">07</span>同类产品怎么做（开源路线）</a></li>
+    <li><a href="#s8"><span class="no">08</span>BMC 项目 I2C 图能否用 KiCad</a></li>
   </ol>
 </nav>
 
@@ -662,6 +664,160 @@
     <div class="card"><h4>7. 计费按「能力杠杆」分层</h4><p>努力等级 / 沙盒 / 协作者数 / 下载数，让价值可感知、可升级。</p></div>
     <div class="card"><h4>8. 开源「接入层」、闭源「内核」</h4><p>开放 MCP 拿渠道，守住工程内核与器件库这块真正的资产。</p></div>
   </div>
+</section>
+
+<!-- 07 同类产品怎么做 -->
+<section id="s7">
+  <h2 class="sec"><span class="idx">07</span>同类产品怎么做（基于开源信息的技术路线）</h2>
+  <p class="lede">heypcb 的开源暴露，等于给了我们一份免费的产品架构教科书：<strong>MCP 仓库 MIT 开源（工具 schema 完整暴露流程）</strong>，而 <strong>KiCad 生态全开源</strong>。做同类产品不用从零发明，而是「用开源拼装 + 在验证闭环与垂直场景上做深」。</p>
+
+  <div class="note"><b>核心判断</b>heypcb 真正的护城河不是 AI agent，而是三样闭源资产：<strong>真实器件库、已验证电路模块库、打板验证通过率</strong>。这三样恰恰也是最难用开源直接替代的部分。</div>
+
+  <figure>
+    <svg viewBox="0 0 960 470" style="width:100%;height:auto;font-family:inherit" xmlns="http://www.w3.org/2000/svg">
+      <text x="30" y="32" font-size="15" font-weight="700" fill="#1c2329">同类产品五层架构：每层标注「开源可复用」与「护城河」</text>
+
+      <!-- 产品层 -->
+      <rect x="30" y="52" width="900" height="64" rx="12" fill="#ffffff" stroke="#c9ded9"/>
+      <text x="52" y="82" font-size="14" font-weight="700" fill="#1c2329">产品与生态层</text>
+      <text x="52" y="102" font-size="12" fill="#5b6670">Web 编辑器 · 多人协作 · 版本时间线 · 内容生态（Circuit World 模式）</text>
+      <text x="760" y="82" font-size="12" fill="#0f766e" font-weight="600">自研为主，借鉴 heypcb 产品机制</text>
+
+      <!-- Agent 层 -->
+      <rect x="30" y="124" width="900" height="64" rx="12" fill="#ffffff" stroke="#c9ded9"/>
+      <text x="52" y="154" font-size="14" font-weight="700" fill="#1c2329">Agent 编排层</text>
+      <text x="52" y="174" font-size="12" fill="#5b6670">LLM 工具调用：search_parts · add_block · connect · set_board_outline · check_board · export</text>
+      <text x="760" y="154" font-size="12" fill="#0f766e" font-weight="600">开源：参考 heypcb MCP 工具集（MIT）</text>
+      <text x="760" y="174" font-size="11.5" fill="#5b6670">Python 沙盒做确定性计算</text>
+
+      <!-- 布线引擎层 -->
+      <rect x="30" y="196" width="900" height="64" rx="12" fill="#ffffff" stroke="#c9ded9"/>
+      <text x="52" y="226" font-size="14" font-weight="700" fill="#1c2329">布局布线引擎层</text>
+      <text x="52" y="246" font-size="12" fill="#5b6670">放置 / 布线 / 铺铜 / 过孔缝合（place · route · pour · stitch）</text>
+      <text x="760" y="226" font-size="12" fill="#0f766e" font-weight="600">开源：KiCad router + Freerouting</text>
+
+      <!-- 器件模块层（护城河） -->
+      <rect x="30" y="268" width="900" height="64" rx="12" fill="#fdf1e0" stroke="#b45309" stroke-width="1.8"/>
+      <text x="52" y="298" font-size="14" font-weight="700" fill="#b45309">器件与电路模块层 ★ 护城河</text>
+      <text x="52" y="318" font-size="12" fill="#5b6670">器件库（符号+封装+真实参数 pin maps/极限值）· 已验证电路模块（USB-C/LDO/I2C 总线…）</text>
+      <text x="760" y="298" font-size="12" fill="#b45309" font-weight="600">开源：KiCad 官方库 + 厂商库</text>
+      <text x="760" y="318" font-size="11.5" fill="#5b6670">但「真实参数 + 验证通过率」难开源</text>
+
+      <!-- 数据模型层 -->
+      <rect x="30" y="340" width="900" height="64" rx="12" fill="#ffffff" stroke="#c9ded9"/>
+      <text x="52" y="370" font-size="14" font-weight="700" fill="#1c2329">设计模型层</text>
+      <text x="52" y="390" font-size="12" fill="#5b6670">KiCad 工程（.kicad_sch / .kicad_pcb，S-expression 纯文本）作为单一设计模型</text>
+      <text x="760" y="370" font-size="12" fill="#0f766e" font-weight="600">开源：KiCad 格式 + kicad-cli</text>
+
+      <text x="480" y="436" font-size="12.5" fill="#5b6670" text-anchor="middle">护城河排序：器件/电路模块库 &gt; 验证闭环（check_board 带 fixWith）&gt; 打板验证数据 —— 前两者决定生成质量，第三者决定可信度</text>
+      <text x="480" y="458" font-size="12.5" fill="#b45309" text-anchor="middle">差异化入场：垂直场景（如 BMC 板卡）+ 本地优先/数据主权 + 开源内核（heypcb 是闭源黑盒）</text>
+    </svg>
+    <figcaption><b>图解：同类产品开源路线图</b>——五层架构中，模型层 / 布线层 / Agent 工具集都可直接复用开源（KiCad、Freerouting、heypcb MCP 工具 schema）；真正要投入的是器件/电路模块库与验证闭环。</figcaption>
+  </figure>
+
+  <h3>可直接复用的开源清单</h3>
+  <table>
+    <tr><th>组件</th><th>开源项目</th><th>许可证/注意</th></tr>
+    <tr><td>设计模型 + 校验 + 导出</td><td class="mono">KiCad / kicad-cli</td><td>GPL 生态；<code>check_local</code>/<code>export_local</code> 的本地能力即来自它</td></tr>
+    <tr><td>符号 / 封装库</td><td class="mono">KiCad 官方库 + Espressif/Seeed/RPi 等厂商库</td><td>CC-BY-SA 4.0 with KiCad exception（<strong>用 ≠ 被传染</strong>）</td></tr>
+    <tr><td>自动布线</td><td class="mono">Freerouting</td><td>开源自动布线器，可接 KiCad 网表</td></tr>
+    <tr><td>Agent 工具集设计</td><td class="mono">HeyPCB/heypcb-mcp</td><td>MIT —— 完整工具 schema 即「产品需求文档」</td></tr>
+    <tr><td>MCP 运行时</td><td class="mono">FastMCP / MCP SDK</td><td>MIT / 官方</td></tr>
+  </table>
+
+  <div class="note warn"><b>风险与建议</b>① 最难的是「器件库积累 + 打板验证通过率」，不是 UI/agent——建议先聚焦一个垂直领域（如 BMC/服务器板卡）把器件和模块做深；② 复刻 heypcb 的「验证闭环」（每个 DRC/ERC finding 绑定一个修复工具调用 <code>fixWith</code>）是性价比最高的产品机制；③ 差异化打「本地优先/数据主权」——heypcb 全远程黑盒，而 KiCad + kicad-cli 天然可离线。</div>
+</section>
+
+<!-- 08 BMC I2C -->
+<section id="s8">
+  <h2 class="sec"><span class="idx">08</span>BMC 项目 I2C 图能否用 KiCad</h2>
+  <p class="lede">结论先行：<strong>要看你说的「I2C 的图」是哪种图</strong>——逻辑/管理拓扑图，KiCad 不合适（有更好的工具）；真实的 I2C 电路原理图/PCB，KiCad 完全合适，而且是 AI 生成最适合的电路类型。</p>
+
+  <table>
+    <tr><th>维度</th><th>场景 A：I2C 管理拓扑图</th><th>场景 B：I2C 电路原理图 / PCB</th></tr>
+    <tr><td>「图」是什么</td><td>BMC 的 I2C master 总线挂哪些 slave（传感器/EEPROM/FRU/CPLD）、地址分配、mux 切换</td><td>真实电路：BMC 芯片引脚、上拉电阻、slave 器件封装、可打板</td></tr>
+    <tr><td>本质</td><td>架构 / 管理链路图（数据模型）</td><td>电路设计（工程模型）</td></tr>
+    <tr><td>KiCad 合适吗</td><td><span class="tag no">不合适</span> 原理图编辑器有 ERC/引脚语义，画抽象拓扑很别扭</td><td><span class="tag ok">完全合适</span> 官方库有 24C02/传感器/BMC 符号封装</td></tr>
+    <tr><td>更合适的工具</td><td>项目已有的 <strong>CSR 拓扑编辑器</strong>（Anchor→Bus→Chip/Connector）· draw.io · mermaid</td><td>KiCad（+ kicad-cli 出 Gerber/DRC）</td></tr>
+    <tr><td>AI 生成前景</td><td>数据驱动渲染（CSR JSON → 拓扑），非 AI 画图</td><td>I2C 高度标准化，是最适合做成「已验证电路模块」由 AI 生成的电路</td></tr>
+  </table>
+
+  <figure>
+    <svg viewBox="0 0 960 430" style="width:100%;height:auto;font-family:inherit" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar6" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0f766e"/></marker>
+      </defs>
+
+      <!-- 左：管理拓扑 -->
+      <rect x="30" y="20" width="390" height="330" rx="14" fill="#ffffff" stroke="#0f766e" stroke-width="1.6"/>
+      <text x="60" y="52" font-size="14" font-weight="700" fill="#0b3b36">I2C 管理拓扑（CSR 数据）</text>
+      <text x="60" y="72" font-size="11.5" fill="#5b6670">逻辑连接：谁挂在哪条总线上、地址多少</text>
+      <rect x="150" y="92" width="150" height="34" rx="8" fill="#0f766e"/>
+      <text x="225" y="113" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">BMC I2C Master</text>
+      <g stroke="#04d793" stroke-width="1.8" fill="none">
+        <path d="M195 126 L90 168"/>
+        <path d="M225 126 L225 168"/>
+        <path d="M255 126 L360 168"/>
+      </g>
+      <g font-size="11" fill="#5b6670">
+        <text x="74" y="148" text-anchor="end">BUS0</text>
+        <text x="242" y="148">BUS1</text>
+        <text x="368" y="148">BUS2</text>
+      </g>
+      <rect x="48" y="172" width="86" height="30" rx="7" fill="#e6f4f1" stroke="#c9ded9"/>
+      <text x="91" y="191" font-size="11.5" font-weight="600" fill="#0b3b36" text-anchor="middle">温度传感器</text>
+      <text x="91" y="204" font-size="10.5" fill="#5b6670" text-anchor="middle">0x48</text>
+      <rect x="182" y="172" width="86" height="30" rx="7" fill="#e6f4f1" stroke="#c9ded9"/>
+      <text x="225" y="191" font-size="11.5" font-weight="600" fill="#0b3b36" text-anchor="middle">EEPROM</text>
+      <text x="225" y="204" font-size="10.5" fill="#5b6670" text-anchor="middle">0x50</text>
+      <rect x="316" y="172" width="86" height="30" rx="7" fill="#e6f4f1" stroke="#c9ded9"/>
+      <text x="359" y="191" font-size="11.5" font-weight="600" fill="#0b3b36" text-anchor="middle">FRU</text>
+      <text x="359" y="204" font-size="10.5" fill="#5b6670" text-anchor="middle">0xA0</text>
+      <text x="60" y="300" font-size="12" fill="#0f766e" font-weight="600">结论：不用 KiCad</text>
+      <text x="60" y="320" font-size="11.5" fill="#5b6670">用现有 CSR 拓扑工具 / mermaid / draw.io</text>
+      <text x="60" y="338" font-size="11.5" fill="#5b6670">数据驱动渲染（CSR JSON → 拓扑）</text>
+
+      <!-- 中间箭头 -->
+      <line x1="436" y1="185" x2="516" y2="185" stroke="#0f766e" stroke-width="2.5" marker-end="url(#ar6)"/>
+      <text x="476" y="166" font-size="12" font-weight="700" fill="#0f766e" text-anchor="middle">数据驱动</text>
+      <text x="476" y="208" font-size="11" fill="#5b6670" text-anchor="middle">CSR/拓扑</text>
+      <text x="476" y="222" font-size="11" fill="#5b6670" text-anchor="middle">→ 生成电路</text>
+
+      <!-- 右：KiCad 原理图 -->
+      <rect x="530" y="20" width="400" height="330" rx="14" fill="#ffffff" stroke="#b45309" stroke-width="1.6"/>
+      <text x="560" y="52" font-size="14" font-weight="700" fill="#b45309">I2C 电路原理图（KiCad）</text>
+      <text x="560" y="72" font-size="11.5" fill="#5b6670">真实电路：引脚 · 上拉 · slave 阵列 · 可打板</text>
+      <rect x="560" y="96" width="110" height="40" rx="8" fill="#b45309"/>
+      <text x="615" y="121" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">BMC 芯片</text>
+      <g stroke="#1c2329" stroke-width="1.5" fill="none">
+        <path d="M615 136 L615 150 L720 150"/>
+        <path d="M670 136 L670 150 L750 150 L750 176"/>
+        <path d="M615 150 L800 150 L800 176"/>
+      </g>
+      <g font-size="10.5" fill="#5b6670">
+        <text x="718" y="146" text-anchor="end">SCL</text>
+        <text x="748" y="146" text-anchor="end">SDA</text>
+      </g>
+      <rect x="742" y="176" width="40" height="14" rx="3" fill="none" stroke="#b45309" stroke-width="1.2"/>
+      <rect x="792" y="176" width="40" height="14" rx="3" fill="none" stroke="#b45309" stroke-width="1.2"/>
+      <text x="810" y="205" font-size="10.5" fill="#5b6670">上拉 R 4.7k</text>
+      <g stroke="#1c2329" stroke-width="1.5" fill="none">
+        <path d="M615 178 L720 178 L760 200 L760 214"/>
+        <path d="M800 200 L800 214"/>
+        <path d="M615 178 L830 200 L830 214"/>
+      </g>
+      <rect x="712" y="214" width="60" height="26" rx="6" fill="#e6f4f1" stroke="#c9ded9"/>
+      <text x="742" y="231" font-size="11" font-weight="600" fill="#0b3b36" text-anchor="middle">传感器</text>
+      <rect x="776" y="214" width="60" height="26" rx="6" fill="#e6f4f1" stroke="#c9ded9"/>
+      <text x="806" y="231" font-size="11" font-weight="600" fill="#0b3b36" text-anchor="middle">EEPROM</text>
+      <text x="560" y="296" font-size="12" fill="#b45309" font-weight="600">结论：完全可用 KiCad</text>
+      <text x="560" y="316" font-size="11.5" fill="#5b6670">官方库符号/封装 + kicad-cli 校验导出</text>
+      <text x="560" y="334" font-size="11.5" fill="#5b6670">I2C 是标准模块，最适合 AI 生成</text>
+    </svg>
+    <figcaption><b>图解：两种「I2C 的图」与正确工具</b>——左侧管理拓扑是数据模型（用 CSR 拓扑工具，数据驱动）；右侧真实电路是工程模型（用 KiCad）；两者的衔接 = 用拓扑数据驱动生成 I2C 原理图模块。</figcaption>
+  </figure>
+
+  <div class="note"><b>给 BMC 项目的落地建议</b>① 画 I2C 总线连接 → 用已有的 <strong>CSR 拓扑编辑器</strong>（Anchor→Bus→Chip/Connector 天然就是 I2C 总线模型），数据驱动而非画图；② 设计真实 I2C 电路/板卡 → 用 <strong>KiCad</strong>，把「I2C 总线 + 上拉 + slave 阵列」封装成 <strong>已验证电路模块</strong>（借鉴 heypcb 的 <code>add_block</code>），由 AI 从拓扑数据直接生成原理图；③ 这两步打通，就是 heypcb「描述 → 真实文件」在 BMC 垂直场景的落地版本。</div>
 </section>
 
 <div class="foot">

@@ -179,6 +179,51 @@
 7. **计费按"能力杠杆"分层**：努力等级 / 沙盒 / 协作者数 / 下载数，让价值可感知、可升级。
 8. **责任边界写清楚**：AI 生成物"不保证可制造"，用户自审——既是法律防线，也是行业成熟度信号。
 
+## 6. 如果要做一个同类产品（基于已有开源信息）
+
+heypcb 的开源暴露 = 免费的产品架构教科书：**MCP 仓库 MIT 开源（工具 schema 完整暴露流程）**，**KiCad 生态全开源**。做同类产品不用从零发明，而是「用开源拼装 + 在验证闭环与垂直场景上做深」。
+
+### 6.1 五层架构与开源可复用项
+
+| 层 | 做什么 | 开源可复用 |
+|---|---|---|
+| 产品与生态层 | Web 编辑器 / 多人协作 / 版本时间线 / 内容生态 | 自研为主，借鉴 heypcb 机制 |
+| Agent 编排层 | LLM 工具调用：search_parts · add_block · connect · check_board · export | 参考 heypcb MCP 工具集（MIT）；Python 沙盒做确定性计算 |
+| 布局布线引擎层 | 放置 / 布线 / 铺铜 / 缝合过孔 | KiCad router + **Freerouting**（开源自动布线） |
+| 器件与电路模块层 ★护城河 | 器件库（符号+封装+真实参数）+ 已验证电路模块（USB-C/LDO/I2C…） | KiCad 官方库 + 厂商库；但「真实参数 + 验证通过率」难开源 |
+| 设计模型层 | KiCad 工程（.kicad_sch/.kicad_pcb，S-expression 纯文本）作单一模型 | KiCad 格式 + kicad-cli |
+
+### 6.2 可直接复用的开源清单
+
+- **KiCad / kicad-cli**（GPL 生态）：设计模型 + 校验 + 导出（heypcb 的 check_local/export_local 能力即来自它）
+- **符号/封装库**：KiCad 官方库 + Espressif/Seeed/RPi 等厂商库（CC-BY-SA 4.0 with KiCad exception，**用 ≠ 被传染**）
+- **Freerouting**：开源自动布线器，可接 KiCad 网表
+- **HeyPCB/heypcb-mcp**（MIT）：完整工具 schema 即「产品需求文档」
+- **FastMCP / MCP SDK**：MCP 运行时
+
+### 6.3 护城河排序与差异化
+
+- 护城河：器件/电路模块库 > 验证闭环（check_board 带 fixWith）> 打板验证数据
+- 差异化入场：**垂直场景优先**（如 BMC/服务器板卡）+ **本地优先/数据主权**（heypcb 全远程黑盒，而 KiCad + kicad-cli 天然可离线）+ 开源内核
+
+## 7. BMC 项目 I2C 图能否用 KiCad
+
+结论：**取决于「I2C 的图」是哪种图**——逻辑/管理拓扑图，KiCad 不合适；真实 I2C 电路原理图/PCB，KiCad 完全合适，且是 AI 生成最适合的电路类型。
+
+| 维度 | 场景 A：I2C 管理拓扑图 | 场景 B：I2C 电路原理图 / PCB |
+|---|---|---|
+| 是什么 | BMC I2C master 挂哪些 slave（传感器/EEPROM/FRU/CPLD）、地址、mux | 真实电路：BMC 引脚、上拉、slave 封装、可打板 |
+| 本质 | 架构/管理链路图（数据模型） | 电路设计（工程模型） |
+| KiCad 合适吗 | ✗ 不合适（ERC/引脚语义，画抽象拓扑别扭） | ✓ 完全合适（官方库有 24C02/传感器/BMC 符号封装） |
+| 更合适的工具 | 现有 **CSR 拓扑编辑器** / draw.io / mermaid | KiCad + kicad-cli（出 Gerber/DRC） |
+| AI 生成前景 | 数据驱动渲染（CSR JSON → 拓扑） | I2C 高度标准化，最适合做成「已验证电路模块」由 AI 生成 |
+
+### 给 BMC 项目的落地建议
+
+1. 画 I2C 总线连接 → 用已有的 **CSR 拓扑编辑器**（Anchor→Bus→Chip/Connector 天然就是 I2C 总线模型），数据驱动而非画图；
+2. 设计真实 I2C 电路/板卡 → 用 **KiCad**，把「I2C 总线 + 上拉 + slave 阵列」封装成 **已验证电路模块**（借鉴 heypcb 的 add_block），由 AI 从拓扑数据直接生成原理图；
+3. 两步打通 = heypcb「描述 → 真实文件」在 BMC 垂直场景的落地版本。
+
 ---
 
 *分析完成时间：2026-10-27。所有引用均来自 heypcb.ai 公开页面原文。*
