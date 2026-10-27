@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    port: process.env.PORT ? Number(process.env.PORT) : 5175,
+    strictPort: false,
+  },
   // Local dev uses './' so localhost:517x works without a /BMC/ prefix.
   // GitHub Pages build overrides this with --base /BMC/ in the CI workflow.
   base: './',

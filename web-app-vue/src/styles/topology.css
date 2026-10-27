@@ -164,7 +164,7 @@
 /* 浮动圆角面板壳（消费 --panel-shell-* token；从贴边描边改为 8px 内缩浮层，呼应参考布局） */
 .topo-property-panel {
   position: absolute;
-  right: 8px; top: 8px; bottom: 8px;
+  right: 8px; top: calc(8px + var(--embed-top-inset, 0px)); bottom: 8px;
   width: 300px;
   transition: width var(--duration-base, 200ms) var(--easing-default, ease);
   background: var(--panel-shell-bg);
@@ -224,15 +224,18 @@
 .di-arrow { flex: none; color: var(--text-dim); }
 .di-empty { font-size: 11px; color: var(--foreground-muted); padding: 6px 2px; }
 
-/* 告警/传感器是板卡级配置 → 宽面板容纳三列流（器件 → 传感器/分类 → 事件） */
-.topo-property-panel.wide { width: min(660px, calc(100vw - 340px)); }
+/* 告警/传感器 = 横向泳道大图（器件 → 传感器 → 事件）→ 宽面板铺开；上限收窄，小屏留更多画布 */
+.topo-property-panel.wide { width: min(900px, calc(100vw - 40px)); }
+/* 单器件告警：只有事件按类，无泳道 → 收窄面板，避免整屏铺开显空 */
+.topo-property-panel.wide-dev { width: min(620px, calc(100vw - 40px)); }
 
-/* 配置面板 tab 条 */
+/* 配置面板 tab 条：按字数定宽（不随面板缩放） */
 .pp-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
-.pp-tab { all: unset; box-sizing: border-box; cursor: pointer; flex: 1; text-align: center; padding: 6px 10px; border-radius: var(--radius-md); font-size: 12px; color: var(--text-dim); background: var(--surface-1); transition: background .12s, color .12s; }
-.pp-tab:hover { color: var(--text-main); }
-.pp-tab.active { background: var(--surface-3); color: var(--text-main); font-weight: 600; }
+.pp-tab { all: unset; box-sizing: border-box; cursor: pointer; flex: none; text-align: center; padding: 6px 18px; border-radius: var(--radius-md); font-size: 12px; color: var(--text-dim); background: rgba(255,255,255,0.04); transition: background .12s, color .12s; }
+.pp-tab:hover { color: var(--text-main); background: rgba(255,255,255,0.08); }
+.pp-tab.active { background: rgba(255,255,255,0.14); color: var(--text-main); font-weight: 600; }
 .pp-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+.pp-tab-n { margin-left: 3px; font-size: 10.5px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--primary); }
 
 /* 告警 tab 容器：内嵌 AlarmConfigView，自身滚动 */
 .pp-alarm { flex: 1; min-height: 0; overflow-y: auto; }

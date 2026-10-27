@@ -12,9 +12,9 @@ import BmcNode        from './nodes/BmcNode.vue';
 import BoardGroupNode  from './nodes/BoardGroupNode.vue';
 import ManhattanEdge   from './nodes/ManhattanEdge.vue';
 import AlarmConfigView from './views/AlarmConfigView.vue';
-import ChassisOverview from './components/ChassisOverview.vue';
 import { boardAlarm } from './alarm/alarmStore';
 import { loadBoardOnce, boardChipDevices } from './alarm/srSeed';
+import { boardRollup, chassisEvents, thresholdInconsistencies, boardSoftDetail, type BoardRollup } from './alarm/chassisAggregate';
 import { getTopology } from './data/boardTopologies';
 import { chipTypeLabel } from './data/srParser';
 
@@ -107,6 +107,8 @@ const CAT_ORDER = ['BCU', 'CLU', 'EXU', 'IEU', 'SEU', 'NICCard', 'Unknown'];
 const expandedCats   = ref<Record<string, boolean>>(Object.fromEntries(CAT_ORDER.map((c) => [c, true])));
 const expandedGroups = ref<Record<string, boolean>>({});
 const hwSearchQuery  = ref<string>('');
+/** 硬件管理器左树可折叠为窄条（对齐 CSR 拓扑编辑器左树的交互）。 */
+const paletteCollapsed = ref(false);
 
 interface CatNode { type: string; label: string; groups: BoardGroup[]; boardCount: number }
 const categoryTree = computed<CatNode[]>(() => {
@@ -275,6 +277,11 @@ function computeDevicesFor(g: BoardGroup): PanelDevice[] {
   return devs.sort((a, b) => (b.sensorCount + b.eventCount) - (a.sensorCount + a.eventCount));
 }
 const boardDevices = computed<PanelDevice[]>(() => activeGroup.value ? computeDevicesFor(activeGroup.value) : []);
+// 告警 tab 上的数量：器件级取该器件，板卡级汇总全板（传感器数 / 告警事件数）
+const alarmTabCount = computed<{ s: number; e: number }>(() => {
+  if (activeDevice.value) return { s: activeDevice.value.sensorCount, e: activeDevice.value.eventCount };
+  return boardDevices.value.reduce((a, d) => ({ s: a.s + d.sensorCount, e: a.e + d.eventCount }), { s: 0, e: 0 });
+});
 
 // 点击拓扑里的器件（芯片）→ 选中该板 + 打开该器件配置面板（区分板卡/器件入口）
 const CHIP_TYPE_ALIAS: Record<string, string> = { smc: 'Smc', lm75: 'Lm75', eeprom: 'Eeprom', cpld: 'Cpld', pca9545: 'Pca9545', mux: 'Pca9545' };
@@ -292,17 +299,48 @@ function pickChip(g: BoardGroup, chip: { label: string; chipType: string }): voi
 }
 provide('onChipPick', pickChip);
 // 选中板卡：复位器件态；首次用真实 .sr 播种（使器件列表/告警立刻反映 .sr）
-watch(activeGroup, (g) => {
+watch(activeGroup, (g, prev) => {
   activeDevice.value = null;
-  if (g) loadBoardOnce(g.name);
+  if (g) {
+    loadBoardOnce(g.name);
+    // 配置面板打开时（关→开）默认收起左侧硬件管理器，给小屏让出画布；板→板切换不强制再收
+    if (!prev) paletteCollapsed.value = true;
+  }
 }, { immediate: true });
 
-// 整机（Chassis）告警总览：跨板聚合 + 机箱级 + 一致性
-const showChassis = ref(false);
+// 整机（Chassis）告警总览：现在常驻左侧「硬件管理器」，与「板卡分类」并列；
+// 顶部放统计信息（跨板明细 + 机箱级事件 + 一致性），数据源与原浮层一致。
 const allBoards = computed(() => nodes.value
   .filter((n) => n.type === 'boardgroup')
   .map((n) => { const g = n.data.group as BoardGroup; return { name: g.name, type: g.type }; }));
-function openChassis() { showChassis.value = true; activeNode.value = null; }
+// 挂载即为每块画布板播种（使板卡/器件面板与总览同源、统计真实）
+onMounted(() => { for (const b of allBoards.value) loadBoardOnce(b.name); });
+const ovRows = computed(() => boardRollup());
+const ovCEvents = computed(() => chassisEvents());
+const ovIncons = computed(() => thresholdInconsistencies());
+const chassisOpen = ref(true); // 整机事件区可折叠（点区头收起/展开）
+const ovTotalChips = computed(() => ovRows.value.reduce((n, r) => n + r.chips, 0));
+const ovTotalSensors = computed(() => ovRows.value.reduce((n, r) => n + r.thresholdSensors + r.discreteSensors, 0));
+const ovTotalEvents = computed(() => ovRows.value.reduce((n, r) => n + r.events, 0));
+// 板卡明细按板名索引，供左侧「板卡分类」逐板内联显示（软硬件 + 机箱级放一起）
+const rollupByName = computed(() => {
+  const m = new Map<string, BoardRollup>();
+  for (const r of ovRows.value) m.set(r.name, r);
+  return m;
+});
+function rollupOf(name: string): BoardRollup | undefined { return rollupByName.value.get(name); }
+function softOf(name: string) { return boardSoftDetail(name); }
+/** 板卡组行的悬浮提示：来源 Connector + 该板软硬件计数（器件/门限/状态/事件/机箱）。 */
+function groupTitle(g: BoardGroup): string {
+  const base = g.connectorRef
+    ? `来源 Connector：${g.connectorRef.parentGroupId} / ${g.connectorRef.connectorName}`
+    : g.label;
+  const r = rollupOf(g.name);
+  if (!r) return base;
+  const stats = `器件 ${r.chips} · 门限 ${r.thresholdSensors} · 状态 ${r.discreteSensors} · 事件 ${r.events}`
+    + (r.chassisEvents ? ` · 机箱 ${r.chassisEvents}` : '');
+  return `${base}\n${stats}`;
+}
 
 function ctxSource(): { source: string; detail?: string } {
   const g = activeGroup.value;
@@ -373,8 +411,11 @@ function catStateClass(cat: CatNode): string {
 
 <template>
   <div class="topo-root">
-    <!-- ── Left panel ────────────────────────────────────────────── -->
-    <aside class="topo-palette open">
+    <!-- ── Left panel（对齐 CSR 拓扑编辑器左树：可折叠 + 整机总览汇总条）── -->
+    <aside v-if="paletteCollapsed" class="topo-palette closed" title="展开硬件管理器" @click="paletteCollapsed = false">
+      <svg class="rail-ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.4 3.5 5.3 4.6 8.7 8l-3.4 3.4 1.1 1.1L10.9 8 6.4 3.5z"/></svg>
+    </aside>
+    <aside v-else class="topo-palette open">
       <!-- ── Panel header ── -->
       <div class="panel-hd">
         硬件管理器
@@ -384,7 +425,19 @@ function catStateClass(cat: CatNode): string {
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
             </svg>
           </button>
+          <button class="ib" title="折叠面板" @click="paletteCollapsed = true">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5 6 8l3.5 4.5"/></svg>
+          </button>
         </div>
+      </div>
+
+      <!-- ── 整机统计（顶部：跨板聚合概览，数据来自真实 .sr） ── -->
+      <div class="ov-stats">
+        <div class="ov-stat"><span class="ov-n">{{ ovRows.length }}</span><span class="ov-l">样例板卡</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalChips }}</span><span class="ov-l">物理器件</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalSensors }}</span><span class="ov-l">传感器</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovTotalEvents }}</span><span class="ov-l">事件/告警</span></div>
+        <div class="ov-stat"><span class="ov-n">{{ ovCEvents.length }}</span><span class="ov-l">机箱级</span></div>
       </div>
 
       <!-- ── Search ── -->
@@ -393,6 +446,8 @@ function catStateClass(cat: CatNode): string {
         <input class="hw-search-input" v-model="hwSearchQuery" placeholder="搜索板卡名称…" />
       </div>
 
+      <!-- ── 管理器主体：板卡分类 + 整机总览 并列，整体滚动 ── -->
+      <div class="mgr-scroll">
       <!-- ── Section header ── -->
       <div class="sec-hd">
         <svg viewBox="0 0 24 24" width="10" height="10" style="color:var(--foreground-muted);transform:rotate(90deg);flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -408,7 +463,10 @@ function catStateClass(cat: CatNode): string {
       <div class="hw-tree">
         <template v-for="cat in filteredCategoryTree" :key="cat.type">
           <button class="hw-cat-row" @click="toggleCat(cat.type)">
-            <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">▸</span>
+            <span class="hw-caret" :class="{ open: expandedCats[cat.type] }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+            <svg class="hw-cat-ic" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4.4c.4 0 .78.16 1.06.44L10.4 6H16.5A1.5 1.5 0 0 1 18 7.5v8A1.5 1.5 0 0 1 16.5 17h-13A1.5 1.5 0 0 1 2 15.5v-10z"/></svg>
             <span class="hw-cat-label">{{ cat.label }}</span>
             <span class="hw-count">{{ cat.boardCount || cat.groups.length }}</span>
           </button>
@@ -417,10 +475,12 @@ function catStateClass(cat: CatNode): string {
               <div
                 class="hw-grp-row"
                 :class="{ 'is-active': activeNode?.id === g.id }"
-                :title="g.connectorRef ? '来源 Connector：' + g.connectorRef.parentGroupId + ' / ' + g.connectorRef.connectorName : g.label"
+                :title="groupTitle(g)"
                 @click="clickGroup(g)"
               >
-                <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">▸</span>
+                <span v-if="g.boards.length" class="hw-caret" :class="{ open: expandedGroups[g.id] }">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </span>
                 <span v-else class="hw-caret hw-caret-empty" />
                 <span class="hw-state-dot" :style="{ background: STATE_COLOR[g.state] }" :title="STATE_LABEL[g.state]" />
                 <span class="hw-grp-name">{{ g.name }}</span>
@@ -431,19 +491,43 @@ function catStateClass(cat: CatNode): string {
                   @click.stop="toggleAssign(g.id)"
                 >指派</button>
               </div>
-              <!-- 板卡文件列表（.sr / _soft.sr 折叠为主文件一行） -->
-              <div v-if="expandedGroups[g.id] && g.boards.length" class="hw-files">
-                <button
-                  v-for="b in g.boards"
-                  :key="b.id"
-                  class="hw-file-row"
-                  :class="{ 'is-current': (selectedByGroup[g.id] ?? g.boards[0]?.id) === b.id }"
-                  :title="'SN ' + b.sn + '\n' + b.files.join('\n')"
-                  @click.stop="clickBoardFile(g, b)"
-                >
-                  <svg class="hw-file-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-                  <span class="hw-file-name">{{ shortFile(b) }}</span>
-                </button>
+              <!-- 展开：该板软硬件明细放一起（源文件[硬件] + 传感器/告警[软件]）；计数见行悬浮提示 -->
+              <div v-if="expandedGroups[g.id]" class="hw-detail">
+                <!-- 硬件：源文件（.sr / _soft.sr 折叠为主文件一行） -->
+                <template v-if="g.boards.length">
+                  <div class="hw-sub">硬件 · 源文件</div>
+                  <div class="hw-files">
+                    <button
+                      v-for="b in g.boards"
+                      :key="b.id"
+                      class="hw-file-row"
+                      :class="{ 'is-current': (selectedByGroup[g.id] ?? g.boards[0]?.id) === b.id }"
+                      :title="'SN ' + b.sn + '\n' + b.files.join('\n')"
+                      @click.stop="clickBoardFile(g, b)"
+                    >
+                      <svg class="hw-file-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                      <span class="hw-file-name">{{ shortFile(b) }}</span>
+                    </button>
+                  </div>
+                </template>
+                <!-- 软件：传感器 → 告警事件 -->
+                <template v-if="softOf(g.name).length">
+                  <div class="hw-sub">软件 · 传感器 / 告警</div>
+                  <div class="ov-soft">
+                    <div v-for="s in softOf(g.name)" :key="s.name" class="ov-soft-row">
+                      <div class="ov-soft-sensor">
+                        <span class="ov-soft-kind" :class="s.kind">{{ s.kind === 'threshold' ? '门限' : '状态' }}</span>
+                        <span class="ov-soft-name">{{ s.name }}</span>
+                        <span class="ov-soft-cnt">{{ s.events.length }} 告警</span>
+                      </div>
+                      <div v-if="s.events.length" class="ov-soft-events">
+                        <span v-for="e in s.events" :key="e.name" class="ov-soft-ev" :title="e.keyId + (e.level ? ' · ' + e.level : '')">
+                          <i class="ov-dot" :class="e.severity"></i>{{ e.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
               <!-- 指派 popover（未分类板卡 → 空槽位） -->
               <div v-if="assigningId === g.id" class="unc-popover">
@@ -466,15 +550,42 @@ function catStateClass(cat: CatNode): string {
         </template>
       </div>
 
+      <!-- ── 整机事件（Chassis.* · 跨板，不归属单块板；含跨板一致性核对）· 可折叠 ── -->
+      <div class="sec-hd sec-hd-toggle" @click="chassisOpen = !chassisOpen">
+        <svg viewBox="0 0 24 24" width="10" height="10" :style="{ color: 'var(--foreground-muted)', transform: chassisOpen ? 'rotate(90deg)' : 'rotate(0deg)', flexShrink: 0, transition: 'transform .15s' }" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+        整机事件
+        <span class="ov-help" title="Chassis.* 命名空间事件：跨板、天然归属机箱（非某一块板），由机箱主板承载" @click.stop>?</span>
+      </div>
+      <div v-show="chassisOpen" class="ov-body">
+        <!-- 逐条列出机箱级事件（样式对齐上面板卡分类树的行节奏） -->
+        <div class="ov-chs-list">
+          <div v-if="!ovCEvents.length" class="ov-empty">暂无机箱级事件</div>
+          <div
+            v-for="(e, i) in ovCEvents"
+            :key="i"
+            class="ov-chs-row"
+            :title="e.board + ' · ' + e.keyId"
+          >
+            <i class="ov-dot" :class="e.severity"></i>
+            <span class="ov-chs-nm">{{ e.name }}</span>
+            <span class="ov-chs-bd">{{ e.board }}</span>
+          </div>
+        </div>
+        <!-- 跨板一致性核对（自带标签的告警卡，仅有待核对项时出现） -->
+        <div v-if="ovIncons.length" class="ov-card ov-warn">
+          <div class="ov-cap">跨板一致性 · {{ ovIncons.length }} 项待核对</div>
+          <div v-for="(it, i) in ovIncons" :key="i" class="ov-incon">
+            <span class="ov-incon-name">{{ it.name }}.{{ it.field }}</span>
+            <span class="ov-incon-vals"><span v-for="v in it.values" :key="v.board" class="ov-incon-v">{{ v.board }}={{ v.value }}</span></span>
+          </div>
+        </div>
+      </div>
+      </div><!-- /mgr-scroll -->
+
     </aside>
 
     <!-- ── Canvas ────────────────────────────────────────────────── -->
     <div class="topo-canvas-wrap">
-      <!-- 整机总览入口 -->
-      <button class="chassis-entry" @click.stop="openChassis" title="整机告警总览（跨板 + 机箱级）">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2 3v2h2V7H6zm0 6h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm2 3v2h2v-2H6z"/></svg>
-        整机总览
-      </button>
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -512,7 +623,7 @@ function catStateClass(cat: CatNode): string {
     </div>
 
     <!-- ── Property panel ────────────────────────────────────────── -->
-    <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' }" @click.stop>
+    <div v-if="activeGroup" class="topo-property-panel" :class="{ wide: panelTab === 'alarm' && !activeDevice, 'wide-dev': panelTab === 'alarm' && !!activeDevice }" @click.stop>
       <div class="pp-header">
         <button v-if="activeDevice" class="pp-back" title="返回板卡" @click="activeDevice = null">‹</button>
         <span>{{ activeDevice ? activeDevice.label : '板卡配置' }}</span>
@@ -522,41 +633,14 @@ function catStateClass(cat: CatNode): string {
       <!-- 板卡/器件级配置分 tab；SMC/表达式是配置项辅助，放详情里跟随，不作 tab -->
       <div class="pp-tabs" role="tablist">
         <button class="pp-tab" :class="{ active: panelTab === 'detail' }" @click="panelTab = 'detail'">详情</button>
-        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警 / 传感器</button>
+        <button class="pp-tab" :class="{ active: panelTab === 'alarm' }" @click="panelTab = 'alarm'">告警<span class="pp-tab-n">{{ alarmTabCount.e }}</span> / 传感器<span class="pp-tab-n">{{ alarmTabCount.s }}</span></button>
       </div>
 
       <!-- ══════ 板卡模式 ══════ -->
       <template v-if="!activeDevice">
       <!-- ══ 详情 tab ══ -->
       <template v-if="panelTab === 'detail'">
-      <!-- ── 配置项辅助（跟随配置项的计算器入口）── -->
-      <div class="pp-wake">
-        <div class="pp-wake-title">配置项辅助</div>
-        <button class="wake-btn" @click="wakeSmc">
-          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v3h10V6H7zm1 5h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg></span>
-          在 SMC 偏移量计算器中解析
-        </button>
-        <button class="wake-btn" @click="wakeExpr">
-          <span class="wake-ic-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.7 15.9 4.8 12l3.9-3.9L7.3 6.7 2 12l5.3 5.3 1.4-1.4zm6.6 0 3.9-3.9-3.9-3.9 1.4-1.4L21 12l-5.3 5.3-1.4-1.4z"/></svg></span>
-          在表达式计算器中调试 sensor
-        </button>
-      </div>
-
       <div class="pp-body">
-        <!-- 本板器件（物理芯片）：点进入器件配置（按数据源芯片收窄），与板卡配置分开 -->
-        <div class="pp-card pp-devlist">
-          <div class="pp-card-cap">本板器件 · 点芯片进入其配置</div>
-          <button v-for="d in boardDevices" :key="d.key" class="dev-item" @click="activeDevice = d">
-            <span class="di-main">
-              <span class="di-type">{{ d.typeLabel }}</span>
-              <span class="di-key">{{ d.label }}</span>
-            </span>
-            <span v-if="d.sensorCount" class="di-cnt">{{ d.sensorCount }} 传感器</span>
-            <span v-if="d.eventCount" class="di-cnt ev">{{ d.eventCount }} 事件</span>
-            <span class="di-arrow">›</span>
-          </button>
-          <div v-if="!boardDevices.length" class="di-empty">该板 .sr 明细未载入，暂无器件</div>
-        </div>
         <div class="pp-card">
         <div class="pp-field">
           <div class="pp-field-label">类型</div>
@@ -658,33 +742,86 @@ function catStateClass(cat: CatNode): string {
       </template>
     </div>
 
-    <!-- ── 整机总览面板 ── -->
-    <ChassisOverview v-if="showChassis" :boards="allBoards" @close="showChassis = false" />
   </div>
 </template>
 
 <style scoped>
+/* ── 折叠态窄条（对齐 CSR 拓扑编辑器左树的折叠交互）── */
+.topo-palette.closed {
+  cursor: pointer;
+  align-items: center;
+  padding-top: 12px;
+}
+.topo-palette.closed:hover { background: var(--state-hover); }
+.rail-ic { width: 14px; height: 14px; color: var(--foreground-muted); }
+
+/* ── 整机统计（侧栏顶部 stat 条：样例板卡/物理器件/传感器/事件/机箱级） ── */
+.ov-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ov-stat {
+  display: flex; flex-direction: column; gap: 1px; align-items: center;
+  padding: 7px 3px; border-radius: var(--radius-md, 8px);
+  background: var(--surface-1);
+}
+.ov-n { font-size: 15px; font-weight: 700; color: var(--foreground); }
+.ov-l { font-size: 9px; color: var(--foreground-muted); white-space: nowrap; }
+
+/* 管理器主体：板卡分类 + 整机总览 并列，整体滚动 */
+.mgr-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 搜索框：胶囊造型（对齐 CSR 拓扑编辑器左树搜索框）── */
+.hw-search-row {
+  margin: 10px 12px 8px;
+  padding: 0 10px;
+  height: 32px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-3);
+  border-bottom: none;
+}
+
 /* ── 硬件管理器树（类别 → 板卡组 → 文件） ─────────────────────── */
 .hw-tree {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  /* 小边距让 hover/选中圆角胶囊在面板内浮起，避免圆角贴边露出直角瑕疵（对齐 CSR 左树） */
+  padding: 4px 6px;
 }
 .hw-caret {
-  width: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  font-size: 9px;
   color: var(--foreground-muted);
   transition: transform 0.12s;
-  display: inline-block;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.hw-caret svg { width: 10px; height: 10px; display: block; }
 .hw-caret.open { transform: rotate(90deg); }
 .hw-caret-empty { visibility: hidden; }
 
-/* category row – matches bmc-env .g-row */
+/* 类别图标（对齐 CSR 拓扑编辑器左树的 folder 图标）*/
+.hw-cat-ic {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--foreground-muted);
+}
+
+/* category row – matches bmc-env .g-row，hover/选中改圆角胶囊（对齐 CSR 左树） */
 .hw-cat-row {
   all: unset;
   box-sizing: border-box;
@@ -699,7 +836,7 @@ function catStateClass(cat: CatNode): string {
   color: var(--foreground-secondary);
   user-select: none;
 }
-.hw-cat-row:hover { background: var(--state-hover); }
+.hw-cat-row:hover { background: var(--state-hover); border-radius: var(--radius-md, 8px); }
 .hw-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* count badge – grey, no color */
@@ -730,9 +867,10 @@ function catStateClass(cat: CatNode): string {
   color: var(--foreground-secondary);
   transition: background var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 }
-.hw-grp-row:hover { background: var(--state-hover); }
+.hw-grp-row:hover { background: var(--state-hover); border-radius: var(--radius-md, 8px); }
 .hw-grp-row.is-active {
   background: var(--state-selected, rgba(67, 105, 239, 0.14));
+  border-radius: var(--radius-md, 8px);
   color: var(--foreground);
 }
 .hw-state-dot {
@@ -743,6 +881,22 @@ function catStateClass(cat: CatNode): string {
 }
 .hw-grp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* 展开区：一块板的软硬件明细放一起（内联在板卡分类树里） */
+.hw-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 8px 8px 28px;
+}
+.hw-sub {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+  padding: 3px 2px 0;
+}
+.hw-detail .hw-files { padding-left: 0; }
+.hw-detail .ov-soft { padding-left: 0; }
 .hw-files {
   display: flex;
   flex-direction: column;
@@ -871,18 +1025,43 @@ function catStateClass(cat: CatNode): string {
   display: inline-block;
 }
 
-/* 整机总览入口按钮 */
-.chassis-entry {
-  position: absolute; top: 12px; left: 12px; z-index: 6;
-  all: unset; box-sizing: border-box; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 32px; padding: 0 12px; border-radius: var(--radius-lg);
-  background: var(--board-tag-bg, #1b1b21); color: var(--foreground);
-  font-size: 12px; font-weight: 500; backdrop-filter: blur(4px);
-}
-.chassis-entry:hover { background: var(--surface-3); }
-.chassis-entry svg { width: 15px; height: 15px; fill: currentColor; }
-.chassis-entry:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+/* ── 整机总览常驻区（与板卡分类并列） ── */
+.ov-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 6px 12px; }
+.sec-hd-toggle { cursor: pointer; user-select: none; }
+.ov-card { padding: 10px; border-radius: var(--radius-md, 8px); background: var(--surface-1); display: flex; flex-direction: column; gap: 7px; }
+.ov-cap { font-size: 10.5px; color: var(--foreground-secondary); }
+.ov-empty { font-size: 11px; color: var(--foreground-muted); }
+.ov-warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning) 40%, transparent); }
+
+/* 单板软件内容（传感器 → 告警事件）：整机总览与板卡分类树内联共用 */
+.ov-soft { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px 6px 8px; }
+.ov-soft-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: var(--radius-sm, 6px); background: var(--surface-2); }
+.ov-soft-sensor { display: flex; align-items: center; gap: 6px; }
+.ov-soft-kind { font-size: 9px; padding: 1px 6px; border-radius: var(--radius-pill, 999px); background: var(--surface-1); color: var(--foreground-muted); flex: none; }
+.ov-soft-kind.threshold { color: var(--primary, #4369ef); }
+.ov-soft-name { font-size: 10.5px; font-weight: 600; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.ov-soft-cnt { font-size: 9px; color: var(--foreground-muted); flex: none; }
+.ov-soft-events { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 4px; }
+.ov-soft-ev { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: var(--radius-pill, 999px); background: var(--surface-1); font-size: 9.5px; color: var(--foreground-secondary); }
+
+.ov-incon { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; }
+.ov-incon-name { font-family: ui-monospace, monospace; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-incon-vals { display: flex; flex-wrap: wrap; gap: 6px; }
+.ov-incon-v { color: var(--warning); }
+
+/* 机箱级事件：逐条一行，行高/左缩进对齐上方板卡分类树（统一竖向节奏，不放卡片） */
+.ov-chs-list { display: flex; flex-direction: column; }
+.ov-help { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 999px; background: var(--surface-2); color: var(--foreground-muted); font-size: 9px; cursor: help; text-transform: none; letter-spacing: 0; }
+.ov-help:hover { background: var(--surface-3); color: var(--foreground-secondary); }
+.ov-chs-row { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 12px; border-radius: var(--radius-md, 8px); font-size: 11px; color: var(--foreground-secondary); }
+.ov-chs-row:hover { background: var(--state-hover); }
+.ov-chs-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-chs-bd { flex: none; font-size: 9.5px; color: var(--foreground-muted); }
+.ov-dot { width: 6px; height: 6px; border-radius: var(--radius-pill, 999px); background: var(--warning); flex: none; }
+.ov-dot.min { background: var(--warning); }
+.ov-dot.maj { background: color-mix(in srgb, var(--warning) 55%, var(--danger)); }
+.ov-dot.crit { background: var(--danger); }
+
 
 /* ── Defeat VueFlow's default grey edge stroke on the BMC→EXU trunk ── */
 :deep(.vue-flow__edge.edge-trunk .vue-flow__edge-path) {

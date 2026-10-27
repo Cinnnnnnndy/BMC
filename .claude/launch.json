@@ -4,15 +4,17 @@
     {
       "name": "main-web-app",
       "runtimeExecutable": "/Applications/Cursor.app/Contents/Resources/app/resources/helpers/node",
-      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5175"],
+      "runtimeArgs": ["node_modules/.bin/vite"],
       "port": 5175,
+      "autoPort": true,
       "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/web-app"
     },
     {
       "name": "main-web-app-alt",
       "runtimeExecutable": "/Applications/Cursor.app/Contents/Resources/app/resources/helpers/node",
-      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5178", "--strictPort"],
+      "runtimeArgs": ["node_modules/.bin/vite"],
       "port": 5178,
+      "autoPort": true,
       "cwd": "/Users/cindy/Desktop/BMC工程文件/BMC-02/BMC-01-main/web-app"
     },
     {

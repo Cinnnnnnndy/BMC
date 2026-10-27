@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>【弹窗 / 对话框】</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+/* ═══ PTO design tokens ═══ */
+:root {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.40);
+  --border-default: rgba(255,255,255,.10);
+  --border-subtle: rgba(255,255,255,.06);
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
+  --success: #04d793;
+  --warning: #ffaa3b;
+  --danger: #ff4b7b;
+  --accent-purple: #a78bfa;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-md: 0 8px 24px rgba(0,0,0,.35);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,.42);
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden { display: none !important; }
+
+/* ══════ A. 确认弹窗（Modal）══════ */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  box-shadow: var(--shadow-lg);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--foreground);
+}
+.modal-close {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none;
+  color: var(--foreground-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.modal-close:hover { background: rgba(255,255,255,.06); color: var(--foreground); }
+
+.modal-body {
+  font-size: 13px;
+  color: var(--foreground-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* 目标列表（可选区块）*/
+.modal-targets {
+  background: var(--surface-3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  max-height: 130px;
+  overflow-y: auto;
+  margin: 12px 0;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--foreground-secondary);
+  line-height: 1.8;
+}
+
+/* 警告条（可选区块）*/
+.modal-warn {
+  background: rgba(255,170,59,.06);
+  border-left: 2px solid var(--warning);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--foreground-secondary);
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* 按钮 */
+.btn {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 100px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.06);
+  color: var(--foreground-secondary);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.10); color: var(--foreground); }
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { background: #3457d5; }
+.btn-danger {
+  background: rgba(255,75,123,.12);
+  color: var(--danger);
+}
+.btn-danger:hover { background: rgba(255,75,123,.20); }
+
+/* ══════ B. 快捷选择器（QuickPick / Command Palette）══════ */
+.qp {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  box-shadow: var(--shadow-lg);
+  z-index: 501;
+  overflow: hidden;
+}
+.qp-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--foreground);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.qp-input::placeholder { color: var(--foreground-muted); }
+.qp-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.qp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.qp-item:hover { background: rgba(255,255,255,.06); }
+.qp-item.active { background: rgba(67,105,239,.14); }
+.qp-item-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  color: var(--foreground-muted);
+}
+.qp-item-label {
+  font-size: 13px;
+  color: var(--foreground);
+  flex: 1;
+}
+.qp-item-sub {
+  font-size: 11px;
+  color: var(--foreground-muted);
+  font-family: var(--font-mono);
+}
+
+/* ══════ C. 完成态蒙层（Done Overlay）══════ */
+.done-overlay {
+  position: fixed; inset: 0;
+  background: rgba(16,16,16,.92);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+.done-overlay.show { opacity: 1; pointer-events: all; }
+.done-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(4,215,147,.12);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--success);
+}
+.done-overlay.show .done-icon {
+  animation: pop .4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.done-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.done-sub {
+  font-size: 14px;
+  color: var(--foreground-secondary);
+  max-width: 360px;
+  text-align: center;
+  line-height: 1.6;
+}
+@keyframes pop {
+  from { transform: scale(.6); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* ── 演示触发按钮（正式页面中删除）── */
+.demo-bar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.demo-btn {
+  height: 38px; padding: 0 20px;
+  border-radius: 100px; border: none;
+  background: var(--surface-3);
+  color: var(--foreground-secondary);
+  font-size: 13px; font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.demo-btn:hover { background: rgba(67,105,239,.14); color: var(--foreground); }
+</style>
+</head>
+<body>
+
+<!-- 演示触发器（正式页面中替换为实际触发逻辑）-->
+<div class="demo-bar">
+  <button class="demo-btn" onclick="showModal()">打开确认弹窗</button>
+  <button class="demo-btn" onclick="showQuickPick()">打开快捷选择器</button>
+  <button class="demo-btn" onclick="showDone()">触发完成态</button>
+</div>
+
+<!-- ══════ A. 确认弹窗 ══════ -->
+<div id="confirmModal" class="modal-bg hidden" onclick="if(event.target===this)hideModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">操作确认</span>
+      <button class="modal-close" onclick="hideModal()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      确定要执行此操作吗？此操作将影响以下目标：
+    </div>
+    <div class="modal-targets">
+      target-node-01<br>
+      target-node-02<br>
+      target-node-03
+    </div>
+    <div class="modal-warn">
+      此操作不可撤销，请确认后再执行。
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="hideModal()">取消</button>
+      <button class="btn btn-primary" onclick="hideModal()">确认执行</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ B. 快捷选择器 ══════ -->
+<div id="quickPickBg" class="modal-bg hidden" onclick="if(event.target===this)hideQuickPick()">
+  <div class="qp">
+    <input class="qp-input" placeholder="搜索或选择…" autofocus>
+    <div class="qp-list">
+      <div class="qp-item active">
+        <svg class="qp-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+        <span class="qp-item-label">AI 智能诊断</span>
+        <span class="qp-item-sub">agent</span>
+      </div>
+      <div class="qp-item">
+        <svg class="qp-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z"/></svg>
+        <span class="qp-item-label">环境管理</span>
+        <span class="qp-item-sub">bmc-env</span>
+      </div>
+      <div class="qp-item">
+        <svg class="qp-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"/></svg>
+        <span class="qp-item-label">拓扑视图</span>
+        <span class="qp-item-sub">topo</span>
+      </div>
+      <div class="qp-item">
+        <svg class="qp-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94A7.07 7.07 0 0 0 19.2 12a7.07 7.07 0 0 0-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a6.94 6.94 0 0 0-1.63-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.63.94L5.16 5.27a.49.49 0 0 0-.59.22L2.65 8.81a.48.48 0 0 0 .12.61l2.03 1.58A7.07 7.07 0 0 0 4.74 12c0 .32.02.64.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+        <span class="qp-item-label">系统设置</span>
+        <span class="qp-item-sub">settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ C. 完成态蒙层 ══════ -->
+<div id="doneOverlay" class="done-overlay" onclick="hideDone()">
+  <div class="done-icon">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  </div>
+  <div class="done-title">操作完成</div>
+  <div class="done-sub">所有任务已成功执行，点击任意位置关闭。</div>
+</div>
+
+<script>
+function showModal()    { document.getElementById('confirmModal').classList.remove('hidden'); }
+function hideModal()    { document.getElementById('confirmModal').classList.add('hidden'); }
+function showQuickPick(){ document.getElementById('quickPickBg').classList.remove('hidden'); }
+function hideQuickPick(){ document.getElementById('quickPickBg').classList.add('hidden'); }
+function showDone()     { document.getElementById('doneOverlay').classList.add('show'); }
+function hideDone()     { document.getElementById('doneOverlay').classList.remove('show'); }
+
+/* ── postMessage 联动 ──
+   window.parent.postMessage({ type: 'ai-open-scenario', viewId: 'xxx' }, '*');
+   window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent <关键词>' }, '*');
+   window.parent.postMessage({ type: 'ai-close-panel' }, '*');
+*/
+</script>
+</body>
+</html>

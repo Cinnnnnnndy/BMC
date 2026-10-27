@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>【页面标题】</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+/* ═══ 欢迎系页面视觉规范（见 CLAUDE.md）：
+   - 背景复用欢迎页蓝紫渐变
+   - 卡片 #111113 填充分层，禁止 1px 描边框线
+   - 面型（fill）图标；AI/agent 统一 ✦ 四角星 #a78bfa
+   - 主 CTA #0077FF 胶囊（radius 100px） ═══ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(161, 174, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 50% 120%, rgba(53, 80, 244, 0.3) 0%, transparent 70%),
+    #181B20;
+  color: rgba(255,255,255,0.90);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* ── 居中容器 ── */
+.wrap {
+  width: 100%;
+  max-width: 660px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ── 页头 ── */
+.heading { text-align: center; }
+.heading h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #FFFFFF;
+}
+.heading p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.6;
+}
+
+/* ── 卡片网格 ── */
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ── 卡片基础（#111113 填充分层，radius 16px，禁止 1px 描边）── */
+.card {
+  background: #111113;
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.18s, transform 0.15s;
+}
+.card:hover {
+  background: #17171a;
+  transform: translateY(-1px);
+}
+
+/* 主卡片：微渐变底 */
+.card.primary {
+  background: linear-gradient(135deg, rgba(167,139,250,0.10) 0%, rgba(53,80,244,0.12) 100%), #111113;
+}
+.card.primary:hover {
+  background: linear-gradient(135deg, rgba(167,139,250,0.16) 0%, rgba(53,80,244,0.18) 100%), #111113;
+}
+
+/* ── 卡片图标（圆形 40px）── */
+.card-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.card.primary .card-icon { background: rgba(167,139,250,0.14); color: #a78bfa; }
+.card.secondary .card-icon { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.60); }
+.card-icon svg { display: block; }
+
+/* ── 卡片标题 ── */
+.card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600;
+  color: #FFFFFF; letter-spacing: 0.3px;
+}
+
+/* ── 推荐徽章 ── */
+.card-badge {
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 600; letter-spacing: .05em;
+  padding: 2px 8px; border-radius: 100px;
+  background: rgba(0, 119, 255, 1); color: #FFFFFE;
+  user-select: none;
+}
+
+/* ── 卡片描述 ── */
+.card-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* ── CTA 按钮（胶囊）── */
+.card-cta {
+  margin-top: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  height: 30px; padding: 0 16px;
+  border-radius: 100px;
+  font-size: 12px; font-weight: 600;
+  transition: background 0.15s;
+}
+.card.primary .card-cta { background: rgba(0, 119, 255, 1); color: #FFFFFE; }
+.card.primary:hover .card-cta { background: rgba(50, 145, 254, 1); }
+.card.secondary .card-cta { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); }
+.card.secondary:hover .card-cta { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.95); }
+.card-cta svg { display: block; transition: transform 0.15s; }
+.card:hover .card-cta svg { transform: translateX(3px); }
+
+/* ── 底部提示 ── */
+.hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="heading">
+    <h1>页面标题</h1>
+    <p>页面描述文案，一两句话说明用途</p>
+  </div>
+
+  <div class="cards">
+    <!-- 主卡片（AI/推荐入口）-->
+    <a class="card primary" href="#">
+      <div class="card-icon">
+        <!-- ✦ 四角星面型图标（AI/agent 统一图标）-->
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/>
+        </svg>
+      </div>
+      <div class="card-title">主要入口<span class="card-badge">推荐</span></div>
+      <div class="card-desc">主入口的描述文案，说明这个选项做什么。</div>
+      <span class="card-cta">
+        开始
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <!-- 次要卡片 -->
+    <a class="card secondary" href="#">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M4 4h4v4H4V4zm6 1h10v2H10V5zM4 10h4v4H4v-4zm6 1h10v2H10v-2zM4 16h4v4H4v-4zm6 1h10v2H10v-2z"/>
+        </svg>
+      </div>
+      <div class="card-title">次要入口</div>
+      <div class="card-desc">次要入口的描述文案。</div>
+      <span class="card-cta">
+        开始
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+  </div>
+
+  <p class="hint">底部补充说明文案</p>
+</div>
+
+<script>
+/* ── postMessage 联动 ──
+   向宿主 IDE 打开场景视图：
+   window.parent.postMessage({ type: 'ai-open-scenario', viewId: 'xxx' }, '*');
+
+   向宿主 IDE 派发 agent 任务：
+   window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent <关键词>' }, '*');
+   关键词须命中 AgentTerminal AGENT_TASKS 词表。
+*/
+</script>
+</body>
+</html>

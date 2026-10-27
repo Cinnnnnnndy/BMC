@@ -1,0 +1,75 @@
+{
+  "connector_type_to_unit_type": {
+    "ExpandBoard": "EXU",
+    "CPUBoard": "BCU",
+    "Psu": "PSU",
+    "FanBoard": "CLU",
+    "FanBackplane": "CLU",
+    "DiskBackplane": "SEU",
+    "PCIeRiserCard": "IEU",
+    "PCIe": "PCIeCard",
+    "NVMe": "PCIeCard",
+    "ACU": "ACU",
+    "SecurityModule": "SecurityModule"
+  },
+  "unit_type_to_node_type": {
+    "BCU": "baseboard",
+    "EXU": "ext-board",
+    "PSU": "psu",
+    "CLU": "rear-fan",
+    "SEU": "hdd-bp",
+    "IEU": "io",
+    "PCIeCard": "io",
+    "NICCard": "io",
+    "Root": "root",
+    "ACU": "baseboard",
+    "SecurityModule": "io",
+    "unknown": "unknown"
+  },
+  "unit_type_names": {
+    "BCU": "CPU板",
+    "EXU": "扩展板",
+    "PSU": "电源",
+    "CLU": "风扇板",
+    "SEU": "硬盘背板",
+    "IEU": "转接卡",
+    "PCIeCard": "PCIe卡",
+    "NICCard": "网卡",
+    "Root": "根板卡",
+    "ACU": "ACU板",
+    "SecurityModule": "安全模块",
+    "unknown": "未定义"
+  },
+  "unit_type_aliases": {
+    "BCU": ["CpuBoard_1"],
+    "EXU": ["ExpBoard_1"],
+    "PSU": ["OnePower_0", "OnePower_1"],
+    "CLU": ["FanBoard_1"],
+    "SEU": ["HddBackplane_1", "M2TransferCard_1"],
+    "IEU": ["RiserCard_1"],
+    "PCIeCard": ["GPU_MXC500", "PCIeCard_1"],
+    "NICCard": ["BoardNICCard_1"],
+    "Root": ["RootBoard"]
+  },
+  "node_dimensions": {
+    "bmc": { "width": 380, "height": 280 },
+    "baseboard": { "width": 336, "height": 441 },
+    "ext-board": { "width": 233, "height": 453 },
+    "io": { "width": 194, "height": 134 },
+    "psu": { "width": 230, "height": 83 },
+    "rear-fan": { "width": 503, "height": 121 },
+    "hdd-bp": { "width": 636, "height": 268 },
+    "root": { "width": 380, "height": 280 },
+    "unknown": { "width": 193, "height": 143 }
+  },
+  "node_svg_files": {
+    "baseboard": "BaseBoard.svg",
+    "ext-board": "Ext.board.svg",
+    "psu": "PSU.svg",
+    "rear-fan": "Rear Fan.svg",
+    "hdd-bp": "HDD BP.svg",
+    "io": "RiserCard.svg",
+    "root": "RootBoard.svg",
+    "unknown": "unknown.svg"
+  }
+}

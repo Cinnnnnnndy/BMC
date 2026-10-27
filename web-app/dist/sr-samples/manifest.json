@@ -1,0 +1,110 @@
+{
+  "boards": [
+    {
+      "filename": "14100363_00000001050302023924.sr",
+      "unitType": "CLU",
+      "hasUnit": true,
+      "soft": null
+    },
+    {
+      "filename": "14100363_00000001050302035475.sr",
+      "unitType": "CLU",
+      "hasUnit": true,
+      "soft": null
+    },
+    {
+      "filename": "14100513_00000001010302044492.sr",
+      "unitType": "EXU",
+      "hasUnit": false,
+      "soft": null
+    },
+    {
+      "filename": "14100513_00000001010302055880_0.sr",
+      "unitType": "EXU",
+      "hasUnit": false,
+      "soft": null
+    },
+    {
+      "filename": "14100513_00000001010302056919.sr",
+      "unitType": "EXU",
+      "hasUnit": false,
+      "soft": null
+    },
+    {
+      "filename": "14100513_00000001020302024339.sr",
+      "unitType": "BCU",
+      "hasUnit": true,
+      "soft": "14100513_00000001020302024339_soft.sr"
+    },
+    {
+      "filename": "14100513_00000001040302023940.sr",
+      "unitType": "IEU",
+      "hasUnit": true,
+      "soft": "14100513_00000001040302023940_soft.sr"
+    },
+    {
+      "filename": "14100513_920s.sr",
+      "unitType": "EXU",
+      "hasUnit": true,
+      "soft": "14100513_920s_soft.sr"
+    },
+    {
+      "filename": "14100513_EXU_000B020101000.sr",
+      "unitType": "EXU",
+      "hasUnit": false,
+      "soft": null
+    },
+    {
+      "filename": "14100665_51_BC83HBBJ.sr",
+      "unitType": "SEU",
+      "hasUnit": true,
+      "soft": "14100665_51_BC83HBBJ_soft.sr"
+    },
+    {
+      "filename": "14191046_PSU_0.sr",
+      "unitType": "PSU",
+      "hasUnit": true,
+      "soft": "14191046_PSU_0_soft.sr"
+    },
+    {
+      "filename": "BCUExtend_BC83AMDAT_0.sr",
+      "unitType": "unknown",
+      "hasUnit": false,
+      "soft": "BCUExtend_BC83AMDAT_0_soft.sr"
+    },
+    {
+      "filename": "HCCSEvent_BC83AMDB_0.sr",
+      "unitType": "unknown",
+      "hasUnit": false,
+      "soft": null
+    },
+    {
+      "filename": "memory_2p8ch16_1.sr",
+      "unitType": "unknown",
+      "hasUnit": false,
+      "soft": null
+    }
+  ],
+  "aliases": [
+    {
+      "filename": "14100363.sr",
+      "unitType": "CLU",
+      "from": "14100363_00000001050302023924.sr"
+    },
+    {
+      "filename": "14100665.sr",
+      "unitType": "SEU",
+      "from": "14100665_51_BC83HBBJ.sr"
+    },
+    {
+      "filename": "14100513.sr",
+      "unitType": "BCU",
+      "from": "14100513_00000001020302024339.sr"
+    },
+    {
+      "filename": "14191046_PSU_00000001010302023922.sr",
+      "unitType": "PSU",
+      "from": "14191046_PSU_0.sr"
+    }
+  ]
+}

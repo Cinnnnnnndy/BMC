@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMC 一键日志解析工具</title>
+<style>
+/* 配色取自 vsix 内 out/webview/assets/index-*.css 实际抽取的调色板，
+   而非臆造：#f0f2f5 页面底色 / #0062dc 主蓝 / #1f2d3d 主文字 / #67c23a 成功 /
+   #e6a23c 警告 / #f56c6c 危险 / #8e44ad 紫（Element-Plus 风格管理后台配色） */
+:root {
+  --bg: #f0f2f5;
+  --panel: #ffffff;
+  --text: #1f2d3d;
+  --text2: #606266;
+  --text3: #909399;
+  --border: #dcdfe6;
+  --border2: #e4e7ed;
+  --primary: #0062dc;
+  --success: #67c23a;
+  --warning: #e6a23c;
+  --danger: #f56c6c;
+  --purple: #8e44ad;
+  --info-bg: #e8f4fd;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text);
+  font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 13px; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* 顶栏：还原截图里的 logo + 一级 tab + 右侧状态指示 */
+.topbar {
+  height: 48px; flex-shrink: 0; background: #fff; border-bottom: 1px solid var(--border2);
+  display: flex; align-items: center; padding: 0 16px; gap: 4px;
+}
+.logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; margin-right: 20px; white-space: nowrap; }
+.logo .diamond { width: 16px; height: 16px; background: var(--primary); transform: rotate(45deg); border-radius: 2px; flex-shrink: 0; }
+.toptabs { display: flex; align-items: center; gap: 2px; overflow-x: auto; flex: 1; height: 100%; }
+.toptab {
+  height: 100%; display: flex; align-items: center; padding: 0 14px; font-size: 13px; color: var(--text2);
+  cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: color .15s;
+}
+.toptab:hover { color: var(--primary); }
+.toptab.on { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
+.top-right { display: flex; align-items: center; gap: 14px; margin-left: 12px; flex-shrink: 0; }
+.search-icon { color: var(--text3); cursor: pointer; }
+.status-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot.on { background: var(--success); } .dot.warn { background: var(--warning); } .dot.off { background: var(--text3); }
+
+/* 面包屑 */
+.crumb { height: 40px; flex-shrink: 0; background: #fff; border-bottom: 1px solid var(--border2);
+  display: flex; align-items: center; padding: 0 20px; font-size: 13px; font-weight: 600; color: var(--text); }
+
+.body { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 16px 20px 32px; }
+.pane { display: none; } .pane.on { display: block; }
+
+.grid { display: grid; gap: 14px; }
+.grid--4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.grid--2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 800px) { .grid--2 { grid-template-columns: 1fr; } }
+.gap { margin-top: 14px; }
+
+.panel { background: var(--panel); border: 1px solid var(--border2); border-radius: 4px; padding: 16px; }
+.panel h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px;
+  padding-left: 8px; border-left: 3px solid var(--primary); }
+.stat-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+.stat-val { font-size: 24px; font-weight: 700; color: var(--text); }
+.stat-val.warn { color: var(--warning); } .stat-val.ok { color: var(--success); } .stat-val.bad { color: var(--danger); }
+.stat-sub { font-size: 11.5px; color: var(--text3); margin-top: 4px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text2); background: #fafbfc;
+  padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 9px 12px; font-size: 12.5px; color: var(--text2); border-bottom: 1px solid var(--border2); }
+tr:hover td { background: #f7f8fa; }
+.mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11.5px; }
+.tbl-wrap { overflow-x: auto; }
+
+.badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px;
+  font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-ok   { background: #f0f9eb; color: var(--success); border: 1px solid #c2e7b0; }
+.badge-warn { background: var(--info-bg); color: #2f7dd1; border: 1px solid #b3d8ff; }
+.badge-alert{ background: #fff3cd; color: #92620a; border: 1px solid #f0ad4e; }
+.badge-bad  { background: #fef0f0; color: var(--danger); border: 1px solid #fbc4c4; }
+.badge-mute { background: #f4f4f5; color: var(--text3); border: 1px solid var(--border); }
+
+.bar { height: 6px; border-radius: 3px; background: #ebeef5; overflow: hidden; min-width: 90px; }
+.bar > i { display: block; height: 100%; background: var(--primary); }
+.bar > i.warn { background: var(--warning); } .bar > i.bad { background: var(--danger); } .bar > i.ok { background: var(--success); }
+
+.logbox { background: #1f2d3d; color: #d3d8de; border-radius: 4px; padding: 12px 14px;
+  font-family: Consolas, monospace; font-size: 11.5px; line-height: 1.8; overflow-x: auto; white-space: pre; }
+.logbox .t { color: #7c8695; } .logbox .e { color: #ff8a8a; } .logbox .w { color: #ffcf7c; } .logbox .i { color: #8fd19e; }
+
+.ai-hint { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--purple);
+  background: #f6eefc; border: 1px solid #e6d3f2; border-radius: 4px; padding: 8px 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="logo"><span class="diamond"></span>BMC一键日志解析工具</div>
+    <div class="toptabs" id="toptabs">
+      <div class="toptab on" data-p="home">首页</div>
+      <div class="toptab" data-p="fru">FRU信息</div>
+      <div class="toptab" data-p="alarm">告警信息</div>
+      <div class="toptab" data-p="sensor">传感器信息</div>
+      <div class="toptab" data-p="oplog">操作日志</div>
+      <div class="toptab" data-p="board">板卡及版本信息</div>
+      <div class="toptab" data-p="cooling">调速信息</div>
+      <div class="toptab" data-p="perf">性能信息</div>
+      <div class="toptab" data-p="stats">统计信息</div>
+    </div>
+    <div class="top-right">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span class="status-item"><span class="dot on"></span>电源状态：开机</span>
+      <span class="status-item"><span class="dot warn"></span>告警：3</span>
+    </div>
+  </div>
+
+  <div class="crumb" id="crumb">首页</div>
+
+  <div class="body">
+
+    <!-- 首页 -->
+    <section class="pane on" id="p-home">
+      <div class="grid grid--4">
+        <div class="panel"><div class="stat-label">整机健康（Health）</div><div class="stat-val warn">Minor</div><div class="stat-sub">Critical 0 · Major 0 · Minor 3</div></div>
+        <div class="panel"><div class="stat-label">产品名称</div><div class="stat-val" style="font-size:16px">TaiShan 200</div><div class="stat-sub">机型 BC83SPCB</div></div>
+        <div class="panel"><div class="stat-label">BMC 版本</div><div class="stat-val" style="font-size:16px">24.03.00.12</div><div class="stat-sub">BIOS 5.18</div></div>
+        <div class="panel"><div class="stat-label">采集时间</div><div class="stat-val" style="font-size:15px">2026-08-28 14:23:17</div><div class="stat-sub">CurrentTime 取 dump 内最新事件时间</div></div>
+      </div>
+      <div class="grid grid--2 gap">
+        <div class="panel">
+          <h3>产品信息（GenericInfo · 来自 MDB 属性快照）</h3>
+          <div class="tbl-wrap"><table>
+            <tr><td style="color:var(--text3)">ProductName</td><td>TaiShan 200</td></tr>
+            <tr><td style="color:var(--text3)">Manufacturer</td><td>—</td></tr>
+            <tr><td style="color:var(--text3)">SerialNumber</td><td class="mono">2102313XSB10P5100233</td></tr>
+            <tr><td style="color:var(--text3)">MAC</td><td class="mono">—</td></tr>
+            <tr><td style="color:var(--text3)">HostName</td><td class="mono">bmc-taishan-83</td></tr>
+            <tr><td style="color:var(--text3)">UUID</td><td class="mono">—</td></tr>
+          </table></div>
+        </div>
+        <div class="panel">
+          <h3>规则版检测结论（detection-report · 仅操作失败类）</h3>
+          <table>
+            <tr><td><span class="badge badge-bad">操作</span></td><td>08-26 fw_upgrade 上传 cpld_v1.09.hpm 失败：校验和不匹配</td></tr>
+          </table>
+          <div class="ai-hint">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+            告警断言扫描 / 性能异常扫描当前代码路径已禁用（assertedN=0，perfN=0 恒定）
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FRU信息 -->
+    <section class="pane" id="p-fru">
+      <div class="panel">
+        <h3>FRU 清单</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>FRU ID</th><th>名称</th><th>型号</th><th>序列号</th><th>固件版本</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">0</td><td>主板 MainBoard</td><td class="mono">BC83SPCB</td><td class="mono">02313XSB…0233</td><td class="mono">6.18</td><td><span class="badge badge-ok">在位</span></td></tr>
+            <tr><td class="mono">1</td><td>BMC 板</td><td class="mono">BC83BMCA</td><td class="mono">02313XSC…0091</td><td class="mono">24.03.0812</td><td><span class="badge badge-ok">在位</span></td></tr>
+            <tr><td class="mono">7</td><td>PSU1 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0812</td><td class="mono">DC:108</td><td><span class="badge badge-ok">在位</span></td></tr>
+            <tr><td class="mono">8</td><td>PSU2 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0817</td><td class="mono">DC:108</td><td><span class="badge badge-alert">告警</span></td></tr>
+            <tr><td class="mono">12</td><td>Riser2 扩展板</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td><span class="badge badge-mute">不在位</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="panel gap">
+        <h3>软件包版本（apprevision）</h3>
+        <table>
+          <thead><tr><th>组件</th><th>版本</th><th>构建时间</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">bmc_core</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:41</td></tr>
+            <tr><td class="mono">web_backend</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:44</td></tr>
+            <tr><td class="mono">sensor_service</td><td class="mono">24.03.00.11</td><td class="mono">2026-08-05 17:02</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 告警信息 -->
+    <section class="pane" id="p-alarm">
+      <div class="panel">
+        <h3>未恢复告警（events）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时间</th><th>级别</th><th>对象</th><th>事件描述</th><th>事件码</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">08-28 06:12:44</td><td><span class="badge badge-alert">次要</span></td><td class="mono">PSU2</td><td>输入电压低于下限（88.7V &lt; 90V）</td><td class="mono">0x02000A11</td></tr>
+            <tr><td class="mono">08-27 22:40:03</td><td><span class="badge badge-alert">次要</span></td><td class="mono">PSU2</td><td>输入电压低于下限（89.2V &lt; 90V）</td><td class="mono">0x02000A11</td></tr>
+            <tr><td class="mono">08-26 14:05:19</td><td><span class="badge badge-alert">次要</span></td><td class="mono">Inlet_Temp</td><td>进风温度越上限预警（35°C ≥ 35°C）</td><td class="mono">0x01000302</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 传感器信息 -->
+    <section class="pane" id="p-sensor">
+      <div class="panel">
+        <h3>传感器读数（sensorinfo）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>传感器</th><th>读数</th><th>阈值（下/上）</th><th style="width:120px">水位</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">CPU0_Temp</td><td class="mono">62 °C</td><td class="mono">— / 95 °C</td><td><div class="bar"><i style="width:65%"></i></div></td><td><span class="badge badge-ok">正常</span></td></tr>
+            <tr><td class="mono">Inlet_Temp</td><td class="mono">35 °C</td><td class="mono">— / 35 °C</td><td><div class="bar"><i class="warn" style="width:100%"></i></div></td><td><span class="badge badge-alert">预警</span></td></tr>
+            <tr><td class="mono">PSU2_VIN</td><td class="mono">88.7 V</td><td class="mono">90 / 264 V</td><td><div class="bar"><i class="bad" style="width:12%"></i></div></td><td><span class="badge badge-bad">越限</span></td></tr>
+            <tr><td class="mono">FAN4_Speed</td><td class="mono">16680 RPM</td><td class="mono">1720 / — RPM</td><td><div class="bar"><i style="width:92%"></i></div></td><td><span class="badge badge-ok">正常</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 操作日志 -->
+    <section class="pane" id="p-oplog">
+      <div class="panel">
+        <h3>操作日志（operationlog）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="badge badge-ok">成功</span></td></tr>
+            <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="badge badge-alert">未执行</span></td></tr>
+            <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="badge badge-bad">失败：校验和不匹配</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 板卡及版本信息 -->
+    <section class="pane" id="p-board">
+      <div class="panel">
+        <h3>板卡固件版本（firmware_mgmt_info.txt · 定宽列解析）</h3>
+        <table>
+          <thead><tr><th>Id</th><th>Name</th><th>Version</th><th>ReleaseDate</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ActiveBMC</td><td>BMC Firmware</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12</td></tr>
+            <tr><td class="mono">Bios</td><td>BIOS Firmware</td><td class="mono">5.18</td><td class="mono">2026-07-30</td></tr>
+            <tr><td class="mono">Cpld</td><td>CPLD Firmware</td><td class="mono">1.08</td><td class="mono">2026-05-11</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 调速信息 -->
+    <section class="pane" id="p-cooling">
+      <div class="panel">
+        <h3>风扇状态（cooling）</h3>
+        <table>
+          <thead><tr><th>风扇</th><th>转速 RPM</th><th>占空比</th><th style="width:120px"></th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">FAN1</td><td class="mono">12480</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="badge badge-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN4</td><td class="mono">16680</td><td class="mono">92%</td><td><div class="bar"><i class="warn" style="width:92%"></i></div></td><td><span class="badge badge-alert">偏高</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel gap">
+        <h3>PID 温区（pidconfig）</h3>
+        <table>
+          <thead><tr><th>温区</th><th>参考传感器</th><th>目标温度</th><th>当前</th><th>输出占空比</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">Zone-Inlet</td><td class="mono">Inlet_Temp</td><td class="mono">33 °C</td><td class="mono">35 °C</td><td class="mono">92%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 性能信息 -->
+    <section class="pane" id="p-perf">
+      <div class="grid grid--4">
+        <div class="panel"><div class="stat-label">BMC CPU 占用</div><div class="stat-val">23%</div><div class="stat-sub">峰值 61%</div></div>
+        <div class="panel"><div class="stat-label">BMC 内存</div><div class="stat-val">412 <span style="font-size:13px;color:var(--text3)">/ 1024 MB</span></div></div>
+      </div>
+      <div class="panel gap">
+        <h3>Top 进程（topinfo）</h3>
+        <table>
+          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td></tr>
+            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 统计信息 -->
+    <section class="pane" id="p-stats">
+      <div class="panel">
+        <h3>Dump 采集统计</h3>
+        <table>
+          <thead><tr><th>模块</th><th>状态</th><th>文件数</th></tr></thead>
+          <tbody>
+            <tr><td>AppDump</td><td><span class="badge badge-ok">完整</span></td><td class="mono">17</td></tr>
+            <tr><td>LogDump</td><td><span class="badge badge-ok">完整</span></td><td class="mono">6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel gap">
+        <h3>app.log 节选</h3>
+        <div class="logbox"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V
+<span class="t">08-28 09:03:12</span> <span class="i">[INFO ]</span> fan_service: policy switched to SMART
+<span class="t">08-28 14:23:17</span> <span class="i">[INFO ]</span> dump_service: collect done, size=48.2MB</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+document.getElementById('toptabs').addEventListener('click', (e) => {
+  const t = e.target.closest('.toptab');
+  if (!t) return;
+  document.querySelectorAll('.toptab').forEach(x => x.classList.toggle('on', x === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + t.dataset.p));
+  document.getElementById('crumb').textContent = t.textContent;
+});
+</script>
+</body>
+</html>

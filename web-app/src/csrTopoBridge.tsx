@@ -191,24 +191,57 @@ function loadPool(): Promise<Pool> {
   return poolPromise;
 }
 
-/** 顶栏配置下拉：单配置演示。webview 的 configListRequest 可能早于桥接注册
- *  发出而被漏掉，因此 sendInit 里也主动推送一次（幂等）。 */
-function postConfigList(post: (msg: unknown) => void): void {
-  post({
-    command: 'configListResponse',
-    configs: [{ id: 'config-0', name: '配置1', topologyConfig: { Root: { children: [] } }, createdAt: '2026-01-01T00:00:00.000Z' }],
-    activeConfigId: 'config-0',
-    repos: {},
-    activeTopologyConfig: { Root: { children: [] } },
-  });
+interface DemoRepo {
+  filePath?: string;
+  gitPath?: string;
+  gitBranch?: string;
+  description?: string;
+}
+interface DemoTopologyConfig {
+  repos: Record<string, DemoRepo>;
+  topology_configs: { name: string; topology_config: unknown }[];
+  active_config: string;
 }
 
-/** 硬件管理器「设置」弹框展示的演示配置（仓库表 = sr-samples 样例库） */
-const DEMO_TOPOLOGY_CONFIG = {
+/** 硬件管理器「设置」弹框展示的演示配置（仓库表 = sr-samples 样例库）。
+ *  演示环境不落盘，改动存在模块级变量里：重开弹框仍看得到刚才选的文件夹。 */
+let demoTopologyConfig: DemoTopologyConfig = {
   repos: { 'sr-samples': { filePath: 'web-app/public/sr-samples' } },
   topology_configs: [{ name: '配置1', topology_config: { Root: { children: [] } } }],
   active_config: '配置1',
 };
+
+/** 顶栏配置下拉：数据取自当前演示配置。webview 的 configListRequest 可能早于
+ *  桥接注册发出而被漏掉，因此 sendInit 里也主动推送一次（幂等）。
+ *  弹框保存后用 configListUpdated 再推一次，让下拉跟上改名/新增。 */
+function postConfigList(post: (msg: unknown) => void, command = 'configListResponse'): void {
+  const configs = demoTopologyConfig.topology_configs.map((c, i) => ({
+    id: `config-${i}`,
+    name: c.name,
+    topologyConfig: c.topology_config,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  }));
+  const active = configs.find((c) => c.name === demoTopologyConfig.active_config) ?? configs[0];
+  post({
+    command,
+    configs,
+    activeConfigId: active?.id ?? '',
+    repos: demoTopologyConfig.repos,
+    activeTopologyConfig: active?.topologyConfig ?? { Root: { children: [] } },
+  });
+}
+
+/** 演示环境「选择文件夹」的示例目录（仓库里真实存在的板卡样例库） */
+const DEMO_FOLDER_SUGGESTION = 'web-app/public/sr-samples';
+
+/** 仓库名按所选文件夹的末级目录命名（与客户端一致），重名时补 -2、-3… */
+function repoNameFromPath(folderPath: string, taken: Set<string>): string {
+  const base = folderPath.split(/[\\/]/).filter(Boolean).pop() || 'repo';
+  if (!taken.has(base)) return base;
+  let i = 2;
+  while (taken.has(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
 
 /** 演示环境不可用操作的统一提示（webview 内 ElMessage 错误土司，无副作用） */
 function postDemoUnsupported(post: (msg: unknown) => void, what: string): void {
@@ -277,19 +310,21 @@ function attachBridge(iframe: HTMLIFrameElement, options: BridgeOptions = {}): (
       // ── 硬件管理器左树工具栏（4 个按钮） ──────────────────────────
       case 'openTopologySettings':
         // ⚙ 设置：打开 webview 内置的设置弹框（仓库表展示 sr-samples 样例库）
-        post({ command: 'openSettingsDialog', mode: 'settings', topologyConfig: DEMO_TOPOLOGY_CONFIG });
+        post({ command: 'openSettingsDialog', mode: 'settings', topologyConfig: demoTopologyConfig });
         break;
       case 'getCreateProjectFormContent':
         // 设置/创建弹框打开时请求表单内容
-        post({ command: 'createProjectFormContent', topologyConfig: DEMO_TOPOLOGY_CONFIG });
+        post({ command: 'createProjectFormContent', topologyConfig: demoTopologyConfig });
         break;
-      case 'saveTopologyConfig':
-        // 演示：不落盘，回显配置保持前端状态一致（弹框「确定」后关闭）
-        post({
-          command: 'updateTopologyConfig',
-          configData: (data as { configData?: unknown }).configData ?? DEMO_TOPOLOGY_CONFIG,
-        });
+      case 'saveTopologyConfig': {
+        // 演示：不落盘，但把改动并进模块级配置（设置模式只回传变化的字段），
+        // 回显给 webview 保持前端状态一致，并刷新顶栏配置下拉
+        const patch = (data as { configData?: Partial<DemoTopologyConfig> }).configData;
+        if (patch && typeof patch === 'object') demoTopologyConfig = { ...demoTopologyConfig, ...patch };
+        post({ command: 'updateTopologyConfig', configData: demoTopologyConfig });
+        postConfigList(post, 'configListUpdated');
         break;
+      }
       case 'openCoolingConfig':
         // 🌡 调速配置：跳转 IDE 的能效调速配置视图
         options.onOpenCooling?.();
@@ -304,7 +339,20 @@ function attachBridge(iframe: HTMLIFrameElement, options: BridgeOptions = {}): (
         // ⇄ 切换机型：演示仅内置一个示例机型
         postDemoUnsupported(post, '机型切换（仅内置示例机型）');
         break;
-      case 'selectSettingsFolderForEdit':
+      case 'selectSettingsFolderForEdit': {
+        // 设置弹框里唯一的必填项。客户端在这里打开系统目录选择器；演示环境没有
+        // 磁盘访问，用 prompt 顶替并预填样例库路径，回填后编辑器行为与客户端一致
+        // （仓库名自动命名、「确定」解禁）。取消 = 不改动。
+        const taken = new Set(((data as { existingRepoNames?: string[] }).existingRepoNames ?? []).filter(Boolean));
+        const input = window.prompt(
+          '演示环境：客户端会在这里打开系统文件夹选择器，选中的目录即该仓库在本机的代码目录。\n请输入文件夹路径（可直接使用下面的示例）：',
+          DEMO_FOLDER_SUGGESTION,
+        );
+        const newPath = (input ?? '').trim().replace(/[\\/]+$/, '');
+        if (!newPath) break;
+        post({ command: 'updateFolderPathInRow', newPath, newRepoName: repoNameFromPath(newPath, taken) });
+        break;
+      }
       case 'selectFolder':
         postDemoUnsupported(post, '文件夹选择');
         break;

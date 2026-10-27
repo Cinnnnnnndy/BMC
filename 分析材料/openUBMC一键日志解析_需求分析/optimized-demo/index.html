@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一键日志解析 · 优化版</title>
+<style>
+/* ═══ 全局深色滚动条约束（design constraint — 禁止默认白底滚动条）═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+
+:root, [data-theme="dark"] {
+  --background: #101010;
+  --surface-1: #161616;
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --foreground: rgba(255,255,255,.90);
+  --foreground-secondary: rgba(255,255,255,.60);
+  --foreground-muted: rgba(255,255,255,.40);
+  --border-subtle: rgba(255,255,255,.06);
+  --border-default: rgba(255,255,255,.10);
+  --primary: #0077FF;
+  --primary-hover: #0063D1;
+  --success: #04d793;
+  --warning: #ffaa3b;
+  --danger: #ff4b7b;
+  --accent-purple: #a78bfa;
+  --state-hover: rgba(255,255,255,.06);
+  --state-selected: rgba(0,119,255,.14);
+  --font-sans: 'Inter','Source Han Sans SC','PingFang SC',sans-serif;
+  --font-mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+button {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  outline: none; font: inherit; color: inherit; line-height: normal;
+}
+html,body {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── 页头：dump 概况 ── */
+.hdr {
+  flex-shrink: 0;
+  padding: 14px 18px 0;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.hdr-title { font-size: 16px; font-weight: 650; color: #fff; display: flex; align-items: center; gap: 8px; }
+.hdr-title svg { display: block; }
+.hdr-dump {
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--foreground-muted);
+  background: var(--surface-2); border-radius: 100px; padding: 4px 12px;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 100px; border: none;
+  font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--foreground-secondary);
+}
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+.chip--ok .dot { background: var(--success); }
+.chip--warn { color: var(--warning); background: color-mix(in srgb, #ffaa3b 12%, transparent); }
+.chip--warn .dot { background: var(--warning); }
+/* B5：机型识别 chip — 紫色=专用 Profile 命中，灰色=通用兜底 */
+.chip--model { color: var(--accent-purple); background: color-mix(in srgb, #a78bfa 14%, transparent); }
+.chip--model-generic { color: var(--foreground-muted); background: var(--surface-2); }
+.hdr-actions { margin-left: auto; display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 100px; border: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; font-family: var(--font-sans);
+  background: var(--surface-2); color: var(--foreground); transition: background .15s;
+}
+.btn:hover { background: var(--surface-3); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface-2); }
+.btn--ai { background: color-mix(in srgb, #a78bfa 16%, transparent); color: var(--accent-purple); }
+.btn--ai:hover { background: color-mix(in srgb, #a78bfa 26%, transparent); }
+.btn--primary { background: var(--primary); color: #fff; }
+.btn--primary:hover { background: var(--primary-hover); }
+
+/* ── 标签页 ── */
+.tabs {
+  flex-shrink: 0; display: flex; gap: 4px; padding: 12px 18px 10px;
+  overflow-x: auto; border-bottom: 1px solid var(--border-subtle);
+}
+.tab {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 100px; border: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; font-family: var(--font-sans);
+  background: transparent; color: var(--foreground-secondary); transition: background .15s, color .15s;
+}
+.tab:hover { background: var(--state-hover); color: var(--foreground); }
+.tab.on { background: var(--state-selected); color: var(--primary); }
+.tab .n {
+  margin-left: 5px; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 100px;
+  background: color-mix(in srgb, #ff4b7b 16%, transparent); color: var(--danger);
+}
+.tab .n--ai {
+  margin-left: 5px; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 100px;
+  background: color-mix(in srgb, #a78bfa 20%, transparent); color: var(--accent-purple);
+}
+
+/* ── 内容区 ── */
+.body { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 16px 18px 24px; }
+.pane { display: none; }
+.pane.on { display: block; }
+.grid { display: grid; gap: 12px; }
+.grid--stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.grid--2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) { .grid--2 { grid-template-columns: 1fr; } }
+
+.card { background: var(--surface-1); border-radius: 16px; padding: 16px; }
+.card h3 {
+  font-size: 12px; font-weight: 600; color: var(--foreground-muted);
+  letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px;
+}
+.stat-v { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.stat-v small { font-size: 12px; font-weight: 500; color: var(--foreground-muted); margin-left: 4px; }
+.stat-sub { margin-top: 4px; font-size: 11.5px; color: var(--foreground-muted); }
+.stat-v.ok { color: var(--success); } .stat-v.warn { color: var(--warning); } .stat-v.bad { color: var(--danger); }
+
+/* 表格 */
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th {
+  text-align: left; font-size: 11px; font-weight: 500; color: var(--foreground-muted);
+  text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px; white-space: nowrap;
+}
+td { padding: 8px 10px; font-size: 12.5px; color: var(--foreground-secondary); border-top: 1px solid var(--border-subtle); }
+tr:hover td { background: var(--state-hover); }
+td.mono, .mono { font-family: var(--font-mono); font-size: 11.5px; }
+.tbl-wrap { overflow-x: auto; }
+
+.tag {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 9px;
+  border-radius: 100px; font-size: 11px; font-weight: 600; letter-spacing: .02em; white-space: nowrap;
+}
+.tag-ok   { background: color-mix(in srgb, #04d793 13%, transparent); color: var(--success); }
+.tag-warn { background: color-mix(in srgb, #ffaa3b 15%, transparent); color: var(--warning); }
+.tag-bad  { background: color-mix(in srgb, #ff4b7b 14%, transparent); color: var(--danger); }
+.tag-info { background: color-mix(in srgb, #0077FF 15%, transparent); color: var(--primary); }
+.tag-mute { background: var(--surface-3); color: var(--foreground-muted); }
+
+/* 条形 bar */
+.bar { height: 6px; border-radius: 100px; background: var(--surface-3); overflow: hidden; min-width: 90px; }
+.bar > i { display: block; height: 100%; border-radius: 100px; background: var(--primary); }
+.bar > i.ok { background: var(--success); } .bar > i.warn { background: var(--warning); } .bar > i.bad { background: var(--danger); }
+
+/* 日志查看器 */
+.logview {
+  background: var(--surface-1); border-radius: 16px; padding: 14px 16px;
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.8;
+  overflow-x: auto; white-space: pre; color: var(--foreground-secondary);
+}
+.logview .t { color: var(--foreground-muted); }
+.logview .e { color: var(--danger); }
+.logview .w { color: var(--warning); }
+.logview .i { color: var(--success); }
+
+/* 诊断（保留在概览页展示的规则版摘要卡） */
+.diag-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-subtle); }
+.diag-item:last-child { border-bottom: none; }
+.diag-badge { flex-shrink: 0; margin-top: 1px; }
+.diag-item h4 { font-size: 13px; font-weight: 600; color: var(--foreground); margin-bottom: 3px; }
+.diag-item p { font-size: 12px; color: var(--foreground-secondary); line-height: 1.6; }
+.diag-item p .mono { color: var(--foreground-muted); }
+
+.ai-note {
+  margin-top: 10px; font-size: 11.5px; color: var(--foreground-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.ai-note svg { color: var(--accent-purple); flex-shrink: 0; }
+
+.section-gap { margin-top: 12px; }
+
+/* ═══ B4：诊断覆盖范围声明条（常驻，中性灰，非可关闭 toast）═══ */
+.cov-banner {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: var(--surface-2); border-radius: 12px; padding: 10px 14px;
+  font-size: 11.5px; color: var(--foreground-secondary); line-height: 1.6;
+  margin-bottom: 12px;
+}
+.cov-banner svg { flex-shrink: 0; margin-top: 1px; color: var(--foreground-muted); }
+.cov-banner b { color: var(--foreground); font-weight: 600; }
+
+/* ═══ 智能诊断 tab：空状态引导 + 骨架预览（B6 首用引导）═══ */
+.diag-guide { text-align: center; padding: 28px 20px; }
+.diag-guide-icon { color: var(--accent-purple); margin: 0 auto 10px; display: block; }
+.diag-guide h4 { font-size: 14px; font-weight: 650; color: #fff; margin-bottom: 4px; }
+.diag-guide p { font-size: 12px; color: var(--foreground-muted); margin-bottom: 18px; }
+.diag-skeleton { display: flex; flex-direction: column; gap: 8px; max-width: 480px; margin: 0 auto; text-align: left; }
+.sk-card { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; opacity: .55; }
+.sk-line { height: 8px; border-radius: 4px; background: var(--surface-3); margin-bottom: 6px; }
+.sk-line.w60 { width: 60%; } .sk-line.w40 { width: 40%; } .sk-line.w90 { width: 90%; }
+
+/* ═══ 分析中：三步进度（B2/B6）═══ */
+.diag-steps { display: flex; align-items: center; gap: 0; padding: 6px 4px; }
+.diag-step { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--foreground-muted); }
+.diag-step-dot {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3);
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+  color: var(--foreground-muted); flex-shrink: 0; transition: background .2s, color .2s;
+}
+.diag-step.active .diag-step-dot { background: var(--accent-purple); color: #101010; }
+.diag-step.active { color: var(--foreground); }
+.diag-step.done .diag-step-dot { background: var(--success); color: #101010; }
+.diag-step.done { color: var(--foreground-secondary); }
+.diag-step-line { width: 40px; height: 1px; background: var(--border-default); margin: 0 10px; }
+
+/* ═══ 诊断结果卡（B1/B3 核心改造）═══ */
+.diag-summary { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.diag-summary b { color: #fff; }
+.diag-card {
+  border-bottom: 1px solid var(--border-subtle); padding: 13px 0; cursor: pointer;
+  animation: diagIn .35s ease both;
+}
+@keyframes diagIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.diag-card:last-child { border-bottom: none; }
+.diag-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.diag-card-title { font-size: 13px; font-weight: 600; color: var(--foreground); flex: 1 1 auto; min-width: 160px; }
+.diag-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.diag-meta-item { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--foreground-muted); }
+.diag-urgency-bar { width: 42px; height: 5px; border-radius: 100px; background: var(--surface-3); overflow: hidden; }
+.diag-urgency-bar > i { display: block; height: 100%; background: var(--warning); }
+.diag-chevron { color: var(--foreground-muted); transition: transform .18s; flex-shrink: 0; }
+.diag-card.open .diag-chevron { transform: rotate(90deg); }
+
+/* B2：多阶段处理链路条 */
+.diag-chain {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 7px;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--foreground-muted);
+}
+.diag-chain span.seg { background: var(--surface-2); border-radius: 6px; padding: 2px 7px; color: var(--foreground-secondary); }
+.diag-chain span.arrow { color: var(--border-default); }
+
+/* B1：展开态证据/RAG 来源 */
+.diag-detail { display: none; margin-top: 12px; padding-left: 2px; }
+.diag-card.open .diag-detail { display: block; }
+.diag-detail-block { margin-top: 10px; }
+.diag-detail-label {
+  font-size: 10.5px; font-weight: 600; color: var(--foreground-muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+}
+.diag-evidence {
+  background: var(--surface-2); border-radius: 8px; padding: 9px 11px; margin-bottom: 6px;
+}
+.diag-evidence .src { font-size: 10.5px; color: var(--foreground-muted); margin-bottom: 4px; }
+.diag-evidence pre {
+  font-family: var(--font-mono); font-size: 11px; color: var(--foreground-secondary);
+  white-space: pre-wrap; word-break: break-all; line-height: 1.6;
+}
+.diag-rag {
+  background: color-mix(in srgb, #a78bfa 8%, transparent); border-radius: 8px; padding: 9px 11px;
+}
+.diag-rag .q { font-size: 11px; color: var(--accent-purple); font-family: var(--font-mono); margin-bottom: 5px; }
+.diag-rag .a { font-size: 11.5px; color: var(--foreground-secondary); line-height: 1.6; margin-bottom: 6px; }
+.diag-rag .ref { font-size: 10.5px; color: var(--foreground-muted); padding-left: 10px; position: relative; margin-top: 3px; }
+.diag-rag .ref::before { content: '›'; position: absolute; left: 0; }
+.diag-scope-note {
+  font-size: 10px; color: var(--foreground-muted); margin-top: 6px;
+  display: flex; align-items: center; gap: 4px;
+}
+.diag-suggestion { font-size: 12px; color: var(--foreground-secondary); line-height: 1.6; margin-top: 10px; }
+.diag-suggestion b { color: var(--foreground); }
+
+.severity-critical { background: color-mix(in srgb, #ff4b7b 16%, transparent); color: var(--danger); }
+.severity-high { background: color-mix(in srgb, #ffaa3b 15%, transparent); color: var(--warning); }
+.severity-medium { background: color-mix(in srgb, #0077FF 15%, transparent); color: var(--primary); }
+.severity-low { background: var(--surface-3); color: var(--foreground-muted); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="hdr-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style="color:var(--primary)"><path d="M4 2h11l5 5v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm3 10.5l2.2-4 2.3 7 2.1-3h3.4v-1.6h-4.3l-1.4 2-2.3-7-3 5.1H4v1.5h3z"/></svg>
+      一键日志解析
+    </div>
+    <span class="hdr-dump">dump_info_20260828_142317.tar.gz · AppDump</span>
+    <span class="chip chip--ok"><span class="dot"></span>TaiShan 200</span>
+    <!-- B5：机型识别透明化——紫色=命中专用 Profile，说明数据解析路径的可信来源 -->
+    <span class="chip chip--model">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+      匹配机型：BC83 专用 Profile
+    </span>
+    <span class="chip chip--warn"><span class="dot"></span>健康状态：轻微告警</span>
+    <div class="hdr-actions">
+      <button class="btn" onclick="alert('演示环境：请在 openUBMC Studio 中打开真实 dump 压缩包')">打开压缩包</button>
+      <button class="btn btn--ai" onclick="runAiDiag()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+        AI 智能诊断
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="overview">概览</button>
+    <button class="tab" data-p="fru">板卡与版本</button>
+    <button class="tab" data-p="alarm">告警与传感器<span class="n">3</span></button>
+    <button class="tab" data-p="oplog">操作日志</button>
+    <button class="tab" data-p="perf">性能</button>
+    <button class="tab" data-p="power">功率与温度</button>
+    <button class="tab" data-p="cooling">调速</button>
+    <button class="tab" data-p="cable">线缆检测</button>
+    <button class="tab" data-p="syslog">系统日志</button>
+    <button class="tab" data-p="diag">智能诊断</button>
+  </div>
+
+  <div class="body">
+
+    <!-- 概览 -->
+    <section class="pane on" id="p-overview">
+      <!-- B4：诊断覆盖范围声明条——常驻、中性灰，避免"0条告警异常"被误读为"已扫描且干净" -->
+      <div class="cov-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div>规则诊断当前覆盖：<b>操作失败关联查找</b>；<b>告警断言扫描、性能异常扫描暂未启用</b>。下方"关键结论"仅反映已启用的检测范围，完整根因分析请使用右上角「AI 智能诊断」。</div>
+      </div>
+      <div class="grid grid--stats">
+        <div class="card"><h3>整机健康</h3><div class="stat-v warn">Minor</div><div class="stat-sub">1 条未恢复告警</div></div>
+        <div class="card"><h3>告警事件</h3><div class="stat-v">128<small>条</small></div><div class="stat-sub">严重 0 · 次要 3 · 已恢复 125</div></div>
+        <div class="card"><h3>在位传感器</h3><div class="stat-v">86<small>/ 92</small></div><div class="stat-sub">6 个不在位（可选配件）</div></div>
+        <div class="card"><h3>BMC 版本</h3><div class="stat-v" style="font-size:17px">openUBMC 24.03</div><div class="stat-sub">Build 2026-08-12 · U-Boot 2023.10</div></div>
+        <div class="card"><h3>运行时长</h3><div class="stat-v">47<small>天</small></div><div class="stat-sub">上次复位：AC 上电</div></div>
+        <div class="card"><h3>dump 采集</h3><div class="stat-v ok">完整</div><div class="stat-sub">17/17 模块导出成功</div></div>
+      </div>
+      <div class="grid grid--2 section-gap">
+        <div class="card">
+          <h3>产品信息</h3>
+          <div class="tbl-wrap"><table>
+            <tr><td style="color:var(--foreground-muted)">产品名称</td><td>TaiShan 200 服务器</td></tr>
+            <tr><td style="color:var(--foreground-muted)">机型代码</td><td class="mono">BC83SPCB</td></tr>
+            <tr><td style="color:var(--foreground-muted)">序列号</td><td class="mono">2102313XSB10P5100233</td></tr>
+            <tr><td style="color:var(--foreground-muted)">BMC IP</td><td class="mono">192.168.10.83</td></tr>
+            <tr><td style="color:var(--foreground-muted)">采集时间</td><td class="mono">2026-08-28 14:23:17 +08:00</td></tr>
+          </table></div>
+        </div>
+        <div class="card">
+          <h3>关键结论（规则版 · 仅操作失败类）</h3>
+          <div class="diag-item">
+            <span class="tag tag-bad diag-badge">操作失败</span>
+            <div><h4>固件升级校验失败（cpld_v1.09.hpm）</h4><p>08-26 上传固件包时校验和不匹配，未进入升级流程，当前 CPLD 版本未变更。</p></div>
+          </div>
+          <div class="ai-note" style="margin-top:2px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+            PSU2 电压波动、FAN4 高占空比等信号未被规则版覆盖，见「智能诊断」tab 的 AI 分析结果
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 板卡与版本 -->
+    <section class="pane" id="p-fru">
+      <div class="card">
+        <h3>FRU / 板卡清单</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>FRU ID</th><th>板卡</th><th>型号</th><th>序列号</th><th>固件版本</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">0</td><td>主板 MainBoard</td><td class="mono">BC83SPCB</td><td class="mono">02313XSB…0233</td><td class="mono">6.18</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">1</td><td>BMC 板</td><td class="mono">BC83BMCA</td><td class="mono">02313XSC…0091</td><td class="mono">24.03.0812</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">3</td><td>Riser1 扩展板</td><td class="mono">BC83RSRA</td><td class="mono">02313XSD…0410</td><td class="mono">1.09</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">5</td><td>硬盘背板 12×3.5</td><td class="mono">BC83HDBA</td><td class="mono">02313XSE…0027</td><td class="mono">2.35</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">7</td><td>PSU1 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0812</td><td class="mono">DC:108</td><td><span class="tag tag-ok">在位</span></td></tr>
+            <tr><td class="mono">8</td><td>PSU2 电源模块</td><td class="mono">PAC900S12-BE</td><td class="mono">2102311C…0817</td><td class="mono">DC:108</td><td><span class="tag tag-warn">告警</span></td></tr>
+            <tr><td class="mono">12</td><td>Riser2 扩展板</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td><span class="tag tag-mute">不在位</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>软件包版本（apprevision）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>组件</th><th>版本</th><th>构建时间</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">bmc_core</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:41</td></tr>
+            <tr><td class="mono">web_backend</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:44</td></tr>
+            <tr><td class="mono">sensor_service</td><td class="mono">24.03.00.11</td><td class="mono">2026-08-05 17:02</td></tr>
+            <tr><td class="mono">fan_service</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:43</td></tr>
+            <tr><td class="mono">redfish</td><td class="mono">24.03.00.12</td><td class="mono">2026-08-12 09:45</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 告警与传感器 -->
+    <section class="pane" id="p-alarm">
+      <div class="cov-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div>下表为 SEL 原始事件与传感器读数（数据采集本身正常）；<b>基于这些数据的自动告警根因扫描当前暂未启用</b>，如需根因分析请使用「AI 智能诊断」。</div>
+      </div>
+      <div class="card">
+        <h3>未恢复告警</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时间</th><th>级别</th><th>对象</th><th>事件描述</th><th>事件码</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">08-28 06:12:44</td><td><span class="tag tag-warn">次要</span></td><td class="mono">PSU2</td><td>输入电压低于下限（88.7V &lt; 90V）</td><td class="mono">0x02000A11</td></tr>
+            <tr><td class="mono">08-27 22:40:03</td><td><span class="tag tag-warn">次要</span></td><td class="mono">PSU2</td><td>输入电压低于下限（89.2V &lt; 90V）</td><td class="mono">0x02000A11</td></tr>
+            <tr><td class="mono">08-26 14:05:19</td><td><span class="tag tag-warn">次要</span></td><td class="mono">Inlet_Temp</td><td>进风温度越上限预警（35°C ≥ 35°C）</td><td class="mono">0x01000302</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>关键传感器读数</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>传感器</th><th>读数</th><th>阈值（下 / 上）</th><th style="width:120px">水位</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">CPU0_Temp</td><td class="mono">62 °C</td><td class="mono">— / 95 °C</td><td><div class="bar"><i style="width:65%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">CPU1_Temp</td><td class="mono">58 °C</td><td class="mono">— / 95 °C</td><td><div class="bar"><i style="width:61%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">Inlet_Temp</td><td class="mono">35 °C</td><td class="mono">— / 35 °C</td><td><div class="bar"><i class="warn" style="width:100%"></i></div></td><td><span class="tag tag-warn">预警</span></td></tr>
+            <tr><td class="mono">PSU2_VIN</td><td class="mono">88.7 V</td><td class="mono">90 / 264 V</td><td><div class="bar"><i class="bad" style="width:12%"></i></div></td><td><span class="tag tag-bad">越限</span></td></tr>
+            <tr><td class="mono">FAN4_Speed</td><td class="mono">16680 RPM</td><td class="mono">1720 / — RPM</td><td><div class="bar"><i style="width:92%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">DIMM_Temp_Max</td><td class="mono">51 °C</td><td class="mono">— / 85 °C</td><td><div class="bar"><i class="ok" style="width:60%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 操作日志 -->
+    <section class="pane" id="p-oplog">
+      <div class="card">
+        <h3>操作日志（operate_log）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时间</th><th>用户</th><th>来源</th><th>操作</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">08-28 14:22:51</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>导出一键收集日志</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-28 09:03:12</td><td class="mono">Administrator</td><td class="mono">WEB · 10.44.2.17</td><td>修改调速策略为智能调速</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-27 18:41:29</td><td class="mono">ops_robot</td><td class="mono">Redfish · 10.44.9.2</td><td>查询 /Systems/1/Thermal</td><td><span class="tag tag-ok">成功</span></td></tr>
+            <tr><td class="mono">08-27 16:20:07</td><td class="mono">Administrator</td><td class="mono">SSH · 10.44.2.17</td><td>ipmcset -d resetbmc（取消）</td><td><span class="tag tag-warn">未执行</span></td></tr>
+            <tr><td class="mono">08-26 11:02:55</td><td class="mono">fw_upgrade</td><td class="mono">WEB · 10.44.2.30</td><td>上传固件包 cpld_v1.09.hpm</td><td><span class="tag tag-bad">失败：校验和不匹配</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 性能 -->
+    <section class="pane" id="p-perf">
+      <div class="grid grid--stats">
+        <div class="card"><h3>BMC CPU 占用</h3><div class="stat-v">23<small>%</small></div><div class="stat-sub">峰值 61%（08-27 03:00 日志轮转）</div></div>
+        <div class="card"><h3>BMC 内存</h3><div class="stat-v">412<small>/ 1024 MB</small></div><div class="stat-sub">可用 58% · 无 OOM 记录</div></div>
+        <div class="card"><h3>存储分区</h3><div class="stat-v ok">正常</div><div class="stat-sub">/dev/mmcblk0p3 使用 47%</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>Top 进程（按 CPU）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>PID</th><th>进程</th><th>CPU%</th><th>MEM%</th><th style="width:120px"></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1247</td><td class="mono">sensor_service</td><td class="mono">8.2</td><td class="mono">4.1</td><td><div class="bar"><i style="width:8%"></i></div></td></tr>
+            <tr><td class="mono">1189</td><td class="mono">web_backend</td><td class="mono">5.6</td><td class="mono">9.8</td><td><div class="bar"><i style="width:6%"></i></div></td></tr>
+            <tr><td class="mono">1305</td><td class="mono">fan_service</td><td class="mono">3.1</td><td class="mono">2.2</td><td><div class="bar"><i style="width:3%"></i></div></td></tr>
+            <tr><td class="mono">1422</td><td class="mono">redfish</td><td class="mono">2.4</td><td class="mono">6.5</td><td><div class="bar"><i style="width:2%"></i></div></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 功率与温度 -->
+    <section class="pane" id="p-power">
+      <div class="grid grid--stats">
+        <div class="card"><h3>当前功率</h3><div class="stat-v">386<small>W</small></div><div class="stat-sub">峰值 512W · 08-27 15:20</div></div>
+        <div class="card"><h3>PSU1 输入</h3><div class="stat-v">221.4<small>V</small></div><div class="stat-sub">输出 194W · 效率 94%</div></div>
+        <div class="card"><h3>PSU2 输入</h3><div class="stat-v warn">88.7<small>V</small></div><div class="stat-sub">低于下限 90V · 3 次越限</div></div>
+        <div class="card"><h3>进风温度</h3><div class="stat-v warn">35<small>°C</small></div><div class="stat-sub">24h 均值 31.2°C</div></div>
+      </div>
+      <div class="card section-gap">
+        <h3>24h 功率趋势（每 2h 采样）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>时段</th><th>均值 W</th><th style="width:200px"></th></tr></thead>
+          <tbody id="powerRows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 调速 -->
+    <section class="pane" id="p-cooling">
+      <div class="card">
+        <h3>风扇状态</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>风扇</th><th>转速 RPM</th><th>占空比</th><th style="width:120px"></th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">FAN1</td><td class="mono">12480</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN2</td><td class="mono">12520</td><td class="mono">68%</td><td><div class="bar"><i style="width:68%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN3</td><td class="mono">12390</td><td class="mono">67%</td><td><div class="bar"><i style="width:67%"></i></div></td><td><span class="tag tag-ok">正常</span></td></tr>
+            <tr><td class="mono">FAN4</td><td class="mono">16680</td><td class="mono">92%</td><td><div class="bar"><i class="warn" style="width:92%"></i></div></td><td><span class="tag tag-warn">偏高</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="card section-gap">
+        <h3>调速策略（PID 温区）</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>温区</th><th>参考传感器</th><th>目标温度</th><th>当前</th><th>输出占空比</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">Zone-CPU</td><td class="mono">CPU0/1_Temp</td><td class="mono">75 °C</td><td class="mono">62 °C</td><td class="mono">68%</td></tr>
+            <tr><td class="mono">Zone-Inlet</td><td class="mono">Inlet_Temp</td><td class="mono">33 °C</td><td class="mono">35 °C</td><td class="mono">92%（主导 FAN4）</td></tr>
+            <tr><td class="mono">Zone-DIMM</td><td class="mono">DIMM_Temp_Max</td><td class="mono">80 °C</td><td class="mono">51 °C</td><td class="mono">61%</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 线缆检测 -->
+    <section class="pane" id="p-cable">
+      <div class="card">
+        <h3>线缆连接检测报告</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>连接</th><th>起点</th><th>终点</th><th>协议</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SAS-0</td><td class="mono">RAID 卡 Port0</td><td class="mono">硬盘背板 J1</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">SAS-1</td><td class="mono">RAID 卡 Port1</td><td class="mono">硬盘背板 J2</td><td class="mono">SAS 12G</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">I2C-BP</td><td class="mono">主板 J66</td><td class="mono">硬盘背板 J5</td><td class="mono">I2C</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">FAN-SIG</td><td class="mono">主板 J23</td><td class="mono">风扇板 J1</td><td class="mono">PWM/TACH</td><td><span class="tag tag-ok">连接正确</span></td></tr>
+            <tr><td class="mono">NCSI</td><td class="mono">OCP 网卡</td><td class="mono">BMC RMII</td><td class="mono">NC-SI</td><td><span class="tag tag-info">未启用</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- 系统日志 -->
+    <section class="pane" id="p-syslog">
+      <div class="card" style="padding:0 0 4px">
+        <h3 style="padding:14px 16px 0">app_log（节选 · 关键行高亮）</h3>
+        <div class="logview" style="border-radius:0 0 16px 16px"><span class="t">08-28 06:12:44</span> <span class="e">[ERROR]</span> psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11
+<span class="t">08-28 06:12:44</span> <span class="w">[WARN ]</span> event_service: minor alarm raised, target=PSU2, unrecovered_count=1
+<span class="t">08-28 06:14:02</span> <span class="i">[INFO ]</span> psu_service: PSU2 VIN recovered to 208.3V, deassert pending (hold 120s)
+<span class="t">08-28 09:03:12</span> <span class="i">[INFO ]</span> fan_service: policy switched to SMART by Administrator (WEB)
+<span class="t">08-28 09:03:13</span> <span class="i">[INFO ]</span> fan_service: zone Zone-Inlet pid recalc, duty 74% -&gt; 92%
+<span class="t">08-28 14:22:51</span> <span class="i">[INFO ]</span> dump_service: one-key log collect start, modules=17
+<span class="t">08-28 14:23:17</span> <span class="i">[INFO ]</span> dump_service: collect done, size=48.2MB, path=/tmp/dump_info.tar.gz</div>
+      </div>
+      <div class="card section-gap">
+        <h3>日志源</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>文件</th><th>大小</th><th>行数</th><th>时间范围</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">AppDump/app_log/messages.gz</td><td class="mono">6.4 MB</td><td class="mono">81,204</td><td class="mono">07-12 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/op_log/operate_log</td><td class="mono">312 KB</td><td class="mono">2,118</td><td class="mono">05-02 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/sel/sel_event.csv</td><td class="mono">96 KB</td><td class="mono">128</td><td class="mono">05-02 → 08-28</td></tr>
+            <tr><td class="mono">AppDump/maint_log/journalctl.gz</td><td class="mono">18.7 MB</td><td class="mono">201,553</td><td class="mono">08-21 → 08-28</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ═══ 智能诊断（本轮结构性重写：B1/B2/B3/B6/B7）═══ -->
+    <section class="pane" id="p-diag">
+
+      <!-- 初始/空状态：引导 + 骨架预览（不是纯灰字占位） -->
+      <div class="card diag-guide" id="diagEmpty">
+        <svg class="diag-guide-icon" width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+        <h4>还没有运行智能诊断</h4>
+        <p>点击右上角「AI 智能诊断」，Agent 将结合证据检索与故障案例知识库产出可验证的结论——大致长这样：</p>
+        <div class="diag-skeleton">
+          <div class="sk-card"><div class="sk-line w40"></div><div class="sk-line w90"></div><div class="sk-line w60"></div></div>
+          <div class="sk-card"><div class="sk-line w40"></div><div class="sk-line w90"></div></div>
+        </div>
+      </div>
+
+      <!-- 分析中：三步进度 + 结果逐条淡入 -->
+      <div class="card" id="diagProgress" hidden>
+        <div class="diag-steps">
+          <div class="diag-step" id="step1"><span class="diag-step-dot">1</span>证据收集</div>
+          <div class="diag-step-line"></div>
+          <div class="diag-step" id="step2"><span class="diag-step-dot">2</span>RAG 校准（fault_cases）</div>
+          <div class="diag-step-line"></div>
+          <div class="diag-step" id="step3"><span class="diag-step-dot">3</span>结论产出</div>
+        </div>
+      </div>
+
+      <div id="diagResults" hidden>
+        <div class="card diag-summary">
+          <div>分析完成 · 共 <b id="diagCount">0</b> 条 · TopN 按你的设置显示（10）</div>
+          <button class="btn btn--primary" id="diagExportBtn" disabled onclick="alert('演示环境：PDF 导出需在真实 Studio 环境中执行')">导出 PDF 报告</button>
+        </div>
+        <div class="card section-gap" id="diagList"></div>
+      </div>
+
+    </section>
+
+  </div>
+</div>
+
+<script>
+// 标签页切换
+const tabs = document.getElementById('tabs');
+tabs.addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t === btn));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + btn.dataset.p));
+});
+
+// 24h 功率趋势演示数据
+const power = [
+  ['00:00', 342], ['02:00', 338], ['04:00', 336], ['06:00', 351],
+  ['08:00', 389], ['10:00', 412], ['12:00', 405], ['14:00', 386],
+];
+document.getElementById('powerRows').innerHTML = power.map(([t, w]) =>
+  `<tr><td class="mono">${t}</td><td class="mono">${w}</td><td><div class="bar"><i style="width:${Math.round(w / 512 * 100)}%"></i></div></td></tr>`
+).join('');
+
+/* ═══ 智能诊断：Mock Issue 数据（字段对齐真实 MCP schema：
+   severity/urgency/confidence/evidence[]/ragAssessment，见 data-structure.md）═══ */
+const SEVERITY_LABEL = { critical: '严重', high: '高', medium: '中', low: '低' };
+const MOCK_ISSUES = [
+  {
+    severity: 'high', urgency: 78, confidence: 0.86,
+    title: 'PSU2 输入电压反复越下限，疑似外部供电波动',
+    chain: ['操作日志无相关变更', '关联 app.log (±5min)', '3 次越限均 2 分钟内恢复', 'PSU 本体输出正常'],
+    evidence: [
+      { source: 'AppDump/event/sel.txt', location: '第 42 行', excerpt: '0x02000A11 | 2026-08-28 06:12:44 | Minor | PSU2 | Input Voltage Below Threshold | 88.7V < 90V' },
+      { source: 'LogDump/app.log.1', location: '06:12:44 附近', excerpt: '[ERROR] psu_service: PSU2 VIN 88.7V below threshold 90V, assert event 0x02000A11' },
+    ],
+    rag: {
+      query: 'PSU 输入电压瞬时越下限 自动恢复 是否为供电侧问题',
+      assessment: '故障案例库中 3 条相似案例（电源模块本体自检通过、越限后自动恢复）均判定为外部供电波动而非电源模块硬件故障，支撑本次 severity=high／confidence=0.86 的判断。',
+      references: ['fault_cases/psu-transient-undervoltage-001', 'fault_cases/psu-transient-undervoltage-014'],
+    },
+    suggestion: '建议排查 PSU2 所在 PDU / 市电支路是否存在瞬时跌落，电源模块本身无需更换。',
+  },
+  {
+    severity: 'medium', urgency: 35, confidence: 0.71,
+    title: '进风温度贴近阈值，FAN4 长期高占空比运行',
+    chain: ['关联 cooling/pidconfig', 'Zone-Inlet 输出 92%', 'inlet_temp 24h 均值 31.2°C'],
+    evidence: [
+      { source: 'AppDump（cooling section）', location: 'Zone-Inlet', excerpt: 'target=33°C current=35°C duty=92% dominant_fan=FAN4' },
+    ],
+    rag: {
+      query: '进风温度贴阈值 单风扇长期高占空比 是否需要处理',
+      assessment: '知识库中同类案例多数判定为机房环境/机柜进风问题，调速策略响应正常，非硬件故障。',
+      references: ['fault_cases/inlet-temp-nearthreshold-007'],
+    },
+    suggestion: '建议改善机柜进风或上调冷通道制冷，非风扇硬件问题，无需更换风扇。',
+  },
+  {
+    severity: 'low', urgency: 20, confidence: 0.93,
+    title: 'CPLD 固件升级失败一次（校验和不匹配）',
+    chain: ['operation.log 命中 fail 关键词', '模块 fw_upgrade ±5min', '未找到关联 app.log 错误'],
+    evidence: [
+      { source: 'LogDump/operation.log', location: '08-26 11:02:55', excerpt: '2026-08-26 11:02:55,fw_upgrade,Administrator,firmware,upload cpld_v1.09.hpm FAILED checksum mismatch' },
+    ],
+    rag: {
+      query: '固件包校验和不匹配 上传失败 是否需要重新下载',
+      assessment: '典型的传输/下载过程损坏场景，知识库高置信度匹配"重新下载后重试"路径。',
+      references: ['fault_cases/firmware-checksum-mismatch-003'],
+    },
+    suggestion: '重新下载固件包后重试；当前 CPLD 仍为 1.08，未进入升级流程，无功能影响。',
+  },
+];
+
+let diagState = 'empty'; // empty | running | done
+function runAiDiag() {
+  window.parent.postMessage({ type: 'ai-run-agent', cmd: 'agent 一键日志分析' }, '*');
+  if (diagState === 'running') return;
+  diagState = 'running';
+  document.getElementById('diagEmpty').hidden = true;
+  document.getElementById('diagResults').hidden = true;
+  document.getElementById('diagList').innerHTML = '';
+  document.getElementById('diagCount').textContent = '0';
+  document.getElementById('diagExportBtn').disabled = true;
+  const prog = document.getElementById('diagProgress');
+  prog.hidden = false;
+  ['step1', 'step2', 'step3'].forEach(id => document.getElementById(id).className = 'diag-step');
+
+  // 切到「智能诊断」tab，让用户看到进度
+  document.querySelector('.tab[data-p="diag"]').click();
+
+  const mark = (id, cls) => { document.getElementById(id).className = 'diag-step ' + cls; };
+  setTimeout(() => mark('step1', 'active'), 100);
+  setTimeout(() => { mark('step1', 'done'); mark('step2', 'active'); }, 900);
+  setTimeout(() => { mark('step2', 'done'); mark('step3', 'active'); }, 1900);
+  setTimeout(() => {
+    mark('step3', 'done');
+    prog.hidden = true;
+    document.getElementById('diagResults').hidden = false;
+    renderIssuesStreaming();
+  }, 2700);
+}
+
+function renderIssuesStreaming() {
+  const list = document.getElementById('diagList');
+  MOCK_ISSUES.forEach((issue, i) => {
+    setTimeout(() => {
+      list.appendChild(buildIssueCard(issue, i));
+      document.getElementById('diagCount').textContent = String(i + 1);
+      if (i === MOCK_ISSUES.length - 1) {
+        diagState = 'done';
+        document.getElementById('diagExportBtn').disabled = false;
+      }
+    }, i * 420);
+  });
+}
+
+function buildIssueCard(issue, idx) {
+  const card = document.createElement('div');
+  card.className = 'diag-card';
+  card.innerHTML = `
+    <div class="diag-card-head" onclick="this.closest('.diag-card').classList.toggle('open')">
+      <span class="tag severity-${issue.severity}">${SEVERITY_LABEL[issue.severity]}</span>
+      <span class="diag-card-title">${issue.title}</span>
+      <span class="diag-meta">
+        <span class="diag-meta-item">紧迫度 <span class="diag-urgency-bar"><i style="width:${issue.urgency}%"></i></span> ${issue.urgency}</span>
+        <span class="diag-meta-item">置信度 ${(issue.confidence * 100).toFixed(0)}%</span>
+      </span>
+      <svg class="diag-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+    <div class="diag-chain">${issue.chain.map((s, i) => (i ? '<span class="arrow">→</span>' : '') + `<span class="seg">${s}</span>`).join('')}</div>
+    <div class="diag-detail">
+      <div class="diag-detail-block">
+        <div class="diag-detail-label">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h11l5 5v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg>
+          原始证据引用
+        </div>
+        ${issue.evidence.map(e => `<div class="diag-evidence"><div class="src">${e.source}${e.location ? ' · ' + e.location : ''}</div><pre>${e.excerpt}</pre></div>`).join('')}
+      </div>
+      <div class="diag-detail-block">
+        <div class="diag-detail-label">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/></svg>
+          知识库校准（仅检索故障案例库 fault_cases）
+        </div>
+        <div class="diag-rag">
+          <div class="q">query: "${issue.rag.query}"</div>
+          <div class="a">${issue.rag.assessment}</div>
+          ${issue.rag.references.map(r => `<div class="ref">${r}</div>`).join('')}
+        </div>
+      </div>
+      <div class="diag-suggestion"><b>建议：</b>${issue.suggestion}</div>
+    </div>
+  `;
+  return card;
+}
+</script>
+</body>
+</html>

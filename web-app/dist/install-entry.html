@@ -93,13 +93,13 @@ body {
 }
 
 .card-badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .05em;
-  padding: 3px 9px;
+  padding: 2px 8px;
   border-radius: 100px;
   background: rgba(0, 119, 255, 1);
   color: #FFFFFE;
@@ -122,6 +122,9 @@ body {
 .card-icon svg { display: block; }
 
 .card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
   color: #FFFFFF;
@@ -193,14 +196,13 @@ body {
   </div>
 
   <div class="cards">
-    <a class="card primary" href="ai-install.html">
-      <span class="card-badge">推荐</span>
+    <a class="card primary" href="#" onclick="parent.postMessage({type:'ai-open-scenario',viewId:'aiInstall'},'*');return false;">
       <div class="card-icon">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
           <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z"/>
         </svg>
       </div>
-      <div class="card-title">AI 引导安装</div>
+      <div class="card-title">AI 引导安装<span class="card-badge">推荐</span></div>
       <div class="card-desc">由 AI 全程引导，自动检测环境、安装工具，只需回答几个简单问题。</div>
       <span class="card-cta">
         开始引导
@@ -211,13 +213,13 @@ body {
     <a class="card secondary" href="setup-wizard/setup.html">
       <div class="card-icon">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-          <path d="M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22H20V2H6.5zM6 4.5c0-.28.22-.5.5-.5H18v11H6.5c-.17 0-.34.02-.5.05V4.5zM6.5 17H18v3H6.5a1.5 1.5 0 0 1 0-3zM8 6h8v1.5H8V6zm0 4h6v1.5H8V10z"/>
+          <path d="M4 4h4v4H4V4zm6 1h10v2H10V5zM4 10h4v4H4v-4zm6 1h10v2H10v-2zM4 16h4v4H4v-4zm6 1h10v2H10v-2z"/>
         </svg>
       </div>
-      <div class="card-title">手动安装文档</div>
-      <div class="card-desc">查看完整安装文档，按照步骤自行配置依赖环境和插件。</div>
+      <div class="card-title">手动安装引导</div>
+      <div class="card-desc">按分步向导手动配置依赖环境与插件，每一步自主操作、清晰可控。</div>
       <span class="card-cta">
-        查看文档
+        开始引导
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </span>
     </a>

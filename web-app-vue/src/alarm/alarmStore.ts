@@ -10,15 +10,26 @@ export interface EvItem {
   id: string; suffix: string; label: string;
   severity: 'Minor' | 'Major' | 'Critical'; operatorId: number;
   levelField?: ThrKey; condition: number; eventKeyId: string; enabled: boolean;
+  // 真实 .sr 里事件自带的关联 / 可调项（保真导入，不再由生成器臆造）
+  component?: string;        // 归属 FRU（Component_* 名）
+  evHysteresis?: number;     // 事件级迟滞
+  ledFaultCode?: string;     // 面板故障码
+  invalidReading?: number;   // 无效读数（屏蔽值）
 }
 export interface SensorCfg {
   id: string; deviceKey: string; deviceLabel: string; quantityKey: string;
   railKey?: string; railLabel?: string;
   dsMode: 'device-field' | 'scanner';
   dsChip: string; dsOffset: number; dsMask: number; dsSize: number; periodMs: number;
+  readingField?: string;     // device-field 取数：订阅的器件读数字段（空=按监控量默认 QUANTITIES[q].readingField）
   thresholds: Record<string, number>;
   hysteresis: number; events: EvItem[]; enabled: boolean;
+  entityRef?: string;        // 物理实体（Entity_* 名，来自 Sensor.EntityId）
+  debounce?: string;         // Scanner.Debounce：去抖滤波（MidAvg_*/ContBin_*/None）
+  scanEnabled?: string;      // Scanner.ScanEnabled：上电门控（依赖的 Scanner_* 名）
+  selEvents?: SelEvent[];    // 关联的 DiscreteEvent_*（IPMI SEL 生成），来自 .sr，只读展示
 }
+export interface SelEvent { name: string; summary: string; }
 
 // 独立事件：不经传感器（Condition 为字面值）——真实 .sr 里绝大多数事件属此类（电压/在位/PMBus 状态等），
 // 直连数据源芯片（Reading→Scanner.Chip）或由固件推送。与传感器松耦合，单独成条可点击配置。
@@ -29,6 +40,12 @@ export interface LooseEvent {
   dsChip: string;              // 数据源芯片（''=固件/无）
   scope: 'chassis' | 'board' | 'device';
   enabled: boolean;
+  // 真实 .sr 关联 / 可调项（保真导入）
+  component?: string;          // 归属 FRU（Component_* 名）
+  evHysteresis?: number;       // 事件级迟滞
+  ledFaultCode?: string;       // 面板故障码
+  invalidReading?: number;     // 无效读数（屏蔽值）
+  descArgs?: string[];         // 真实 DescArg1..N（信号名/参数）
 }
 
 export interface BoardAlarm { cfgs: SensorCfg[]; looseEvents: LooseEvent[]; uidN: number; evSeq: number; loaded: boolean; }

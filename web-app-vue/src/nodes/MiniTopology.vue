@@ -32,9 +32,9 @@ const busAbbr = (b: BusRow) => BUS_ABBR[b.busType] ?? b.busType;
 const PILL_W   = 118   // bus pill width (approximate, accounts for font variability)
 const PILL_H   = 22    // bus pill height
 const CHIP_W   = 60    // chip card width
-const CHIP_H   = 34    // chip card height (IC body, label inside)
+const CHIP_H   = 42    // chip card height (IC body: label + 器件地址)
 const MUX_W    = 72    // mux card width
-const MUX_H    = 46    // mux card height (IC body + channel ports)
+const MUX_H    = 56    // mux card height (IC body: label + 地址 + channel ports)
 const ITEM_GAP = 8     // gap between chips / mux on same bus
 const CHIPS_X0 = PILL_W + 8  // first chip column start x (after pill + small gap)
 const WIRE_OFS = PILL_H / 2  // wire is at vertical centre of pill
@@ -239,6 +239,13 @@ function onDocMove(e: PointerEvent) {
   };
 }
 
+// 悬停提示：把地址讲清楚（JTAG 链路器件没有 I2C 地址）
+function addrTitle(item: { label: string; addr?: string }) {
+  return item.addr
+    ? `${item.label} · I2C 地址 ${item.addr}（8bit 写地址）`
+    : `${item.label} · 不在 I2C 链路上，无器件地址`;
+}
+
 // 点击器件（未拖动才算）→ 冒泡打开该器件的配置
 function clickChip(chip: { label: string; chipType: string }) {
   if (!movedFar.value) emit('chipClick', chip);
@@ -321,8 +328,10 @@ function resetLayout() {
         }"
         @pointerdown="(e) => onItemDown(ck(bus.id, ci), e)"
         @click.stop="clickChip({ label: chip.label, chipType: chip.chipType })"
+        :title="addrTitle(chip)"
       >
         <div class="chip-lbl">{{ chip.label }}</div>
+        <div class="chip-addr" :class="{ 'addr-none': !chip.addr }">{{ chip.addr ?? '—' }}</div>
       </div>
 
       <!-- ── Mux card ───────────────────────────────────────────── -->
@@ -336,8 +345,10 @@ function resetLayout() {
           }"
           @pointerdown="(e) => onItemDown(mk(bus.id), e)"
           @click.stop="clickChip({ label: bus.mux.label, chipType: 'Pca9545' })"
+          :title="addrTitle(bus.mux)"
         >
           <div class="mux-lbl">{{ bus.mux.label }}</div>
+          <div class="chip-addr" :class="{ 'addr-none': !bus.mux.addr }">{{ bus.mux.addr ?? '—' }}</div>
           <div class="mux-handles">
             <span
               v-for="n in Math.min(bus.mux.channels, 6)"
@@ -360,8 +371,10 @@ function resetLayout() {
           }"
           @pointerdown="(e) => onItemDown(fck(bus.id, fi), e)"
           @click.stop="clickChip({ label: chip.label, chipType: chip.chipType })"
+          :title="addrTitle(chip)"
         >
           <div class="chip-lbl">{{ chip.label }}</div>
+          <div class="chip-addr" :class="{ 'addr-none': !chip.addr }">{{ chip.addr ?? '—' }}</div>
         </div>
       </template>
     </template>
@@ -448,10 +461,12 @@ function resetLayout() {
 /* ─── Chip card — IC body, label inside, pin stubs top/bottom ─── */
 .chip-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1px;
   width: 60px;
-  height: 34px;
+  height: 42px;
   padding: 0 4px;
   background: var(--chip-body-bg, #17171c);
   border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));
@@ -488,15 +503,27 @@ function resetLayout() {
   text-overflow: ellipsis;
 }
 
+/* 器件地址：I2C 8bit 写地址；非 I2C 链路（JTAG）显示「—」 */
+.chip-addr {
+  font-size: 7.5px;
+  font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--chip-addr-text, rgba(255,255,255,0.45));
+  line-height: 1.1;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.chip-addr.addr-none { color: rgba(255,255,255,0.22); }
+
 /* ─── Mux card — IC body + channel ports below ─── */
 .mux-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   width: 72px;
-  height: 46px;
+  height: 56px;
   padding: 4px 3px;
   background: var(--chip-body-bg, #17171c);
   border: 1px solid var(--chip-body-border, rgba(255,255,255,0.30));

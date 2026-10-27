@@ -99,9 +99,70 @@ function readingChipOf(objects: Record<string, Record<string, unknown>>, obj: Re
   const cr = sc ? parseRef(sc.Chip) : null;
   return cr ? cr.target : '';
 }
+
+/** 传感器 → 它订阅的 Scanner 的真实寄存器参数（Chip/Offset/Size/Mask/Period）。
+ *  Offset/Mask 可能是表达式串（非数字）→ 回落默认值（无法用数字位表示）。*/
+interface ScannerParams { chip: string; offset: number; size: number; mask: number; period?: number; debounce?: string; scanEnabled?: string }
+function scannerParamsOf(objects: Record<string, Record<string, unknown>>, sensorName: string): ScannerParams | null {
+  const s = objects[sensorName];
+  const r = s?.Reading;
+  if (typeof r !== 'string') return null;
+  const m = r.match(/<=\/(Scanner_[A-Za-z0-9_]+)\.Value/);
+  if (!m) return null;
+  const sc = objects[m[1]];
+  if (!sc) return null;
+  const num = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
+  const cr = parseRef(sc.Chip);
+  // Debounce：#/MidAvg_* / #/ContBin_*（去抖滤波）或字面 "None"；ScanEnabled：<=/Scanner_*.Value（上电门控）
+  const deb = sc.Debounce;
+  const debounce = typeof deb === 'string' ? (parseRef(deb)?.target || deb) : undefined;
+  return {
+    chip: cr ? cr.target : '',
+    offset: num(sc.Offset, 0), size: num(sc.Size, 1), mask: num(sc.Mask, 255),
+    period: typeof sc.Period === 'number' ? sc.Period : undefined,
+    debounce, scanEnabled: parseRef(sc.ScanEnabled)?.target,
+  };
+}
+
+/** 门限传感器 SensorType → 监控量（修正「全按温度」的错标：PSU 电压/电流/功率各归各类）。 */
+function thresholdQuantityOf(sensorObj: Record<string, unknown> | undefined): { qk: string; deviceKey: string; deviceLabel: string } {
+  const st = typeof sensorObj?.SensorType === 'number' ? sensorObj.SensorType : 1;
+  switch (st) {
+    case 2:  return { qk: 'voltage',     deviceKey: 'Volt_Board',  deviceLabel: '单板电压' };
+    case 3:  return { qk: 'current',     deviceKey: 'Curr_Board',  deviceLabel: '单板电流' };
+    case 4:  return { qk: 'fanspeed',    deviceKey: 'Fan_Board',   deviceLabel: '风扇转速' };
+    case 11: return { qk: 'power',       deviceKey: 'Power_Board', deviceLabel: '功率' };
+    default: return { qk: 'temperature', deviceKey: 'Temp_Board',  deviceLabel: '单板温度' };
+  }
+}
 function scopeOf(keyId: string): LooseEvent['scope'] {
   if (/^Chassis\./.test(keyId)) return 'chassis';
   return 'board';
+}
+
+// 真实 .sr 事件的关联/可调项（保真导入，避免生成器臆造 Component/Entity、丢 Hysteresis 等）
+const refName = (v: unknown): string | undefined => parseRef(v)?.target;
+const numOr = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
+const strOr = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+function descArgsOf(obj: Record<string, unknown>): string[] | undefined {
+  const out: string[] = [];
+  // 只取人类可读参数（信号名/单位/数值）；跳过 引用/表达式串(#/ <=/ |>) —— 那是派生量、非用户可配参数
+  for (let i = 1; i <= 4; i++) {
+    const v = obj[`DescArg${i}`];
+    if (typeof v === 'string' && v && !/\|>|^#\/|^<=\//.test(v)) out.push(v);
+  }
+  return out.length ? out : undefined;
+}
+// 关联到某离散传感器的 DiscreteEvent_*（IPMI SEL 生成事件），只读汇总展示。
+function selEventsFor(objects: Record<string, Record<string, unknown>>, sensorName: string): { name: string; summary: string }[] {
+  const out: { name: string; summary: string }[] = [];
+  for (const [n, o] of Object.entries(objects)) {
+    if (objectType(n) !== 'DiscreteEvent' || refName(o.SensorObject) !== sensorName) continue;
+    const lt = typeof o.ListenType === 'number' ? o.ListenType : 0;
+    const ed = [o.EventData1, o.EventData2, o.EventData3].filter((v) => typeof v === 'number' && v !== 255).join('/');
+    out.push({ name: n.replace(/^DiscreteEvent_/, ''), summary: `${lt === 1 ? '读值型' : '位型'}${ed ? ' · 数据 ' + ed : ''}` });
+  }
+  return out;
 }
 
 /** 独立事件：所有未被传感器归属、且带 EventKeyId 的 Event（Condition 多为字面值，直连数据源/固件）。 */
@@ -116,15 +177,18 @@ export function looseEventsOf(pb: ParsedBoard): LooseEvent[] {
     if (objectType(oname) !== 'Event' || consumed.has(oname)) continue;
     const keyId = typeof obj.EventKeyId === 'string' ? obj.EventKeyId : '';
     if (!keyId) continue; // 无告警字典条目的内部事件跳过
-    // DescArg2 常是人类可读信号名（如 "12V"、"EXU_V_VCC1_12V0"）；但若是引用串(#/ <=/ 等)则弃用，回落到 EventKeyId 末段
-    const desc = typeof obj.DescArg2 === 'string' ? obj.DescArg2 : '';
-    const label = (desc && !/^(#|<=|>=|=)?\//.test(desc)) ? desc : (keyId.split('.').pop() || oname.replace(/^Event_/, ''));
+    // 事件名用对象名（Event_X → X），它才是事件的真实身份；DescArg2 信号名仅作「参数」在关联行展示。
+    // 之前用 DescArg2 当名字，会出现「信号名(EXU_V_VCC1_12V0) 与字典条目(…3V3Failure) 看似对不上」的困惑。
+    const label = oname.replace(/^Event_/, '') || (keyId.split('.').pop() || oname);
     out.push({
       id: `le${++le}`, eventKeyId: keyId, label,
       condition: typeof obj.Condition === 'number' ? obj.Condition : 0,
       operatorId: typeof obj.OperatorId === 'number' ? obj.OperatorId : 5,
       severity: severityOf(keyId), dsChip: readingChipOf(pb.objects, obj),
       scope: scopeOf(keyId), enabled: obj.Enabled !== false,
+      component: refName(obj.Component), evHysteresis: numOr(obj.Hysteresis),
+      ledFaultCode: strOr(obj.LedFaultCode), invalidReading: numOr(obj.InvalidReading),
+      descArgs: descArgsOf(obj),
     });
   }
   return out;
@@ -140,7 +204,17 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
   for (const ch of chains) {
     if (!/^(ThresholdSensor|DiscreteSensor)_/.test(ch.name)) { skipped++; continue; }
     const name = ch.name.replace(/^(ThresholdSensor|DiscreteSensor)_/, '');
-    const dsChip = pb.chipMap[ch.name] || '';
+    const sp = scannerParamsOf(pb.objects, ch.name);           // 真实 Scanner 寄存器参数（若能追到）
+    const dsChip = sp?.chip || pb.chipMap[ch.name] || '';
+    const entityRef = refName(pb.objects[ch.name]?.EntityId);  // 传感器归属的物理实体（Entity_*）
+    // 事件对象自带的关联/可调项（保真：Component/Hysteresis/LedFaultCode/InvalidReading）
+    const evExtra = (eName: string) => {
+      const eo = pb.objects[eName] || {};
+      return {
+        component: refName(eo.Component), evHysteresis: numOr(eo.Hysteresis),
+        ledFaultCode: strOr(eo.LedFaultCode), invalidReading: numOr(eo.InvalidReading),
+      };
+    };
     // 门限传感器：即便 .sr 未定义 IPMI 门限值也照样导入（阈值留空由用户填），使计数与真实对象一致
     if (ch.kind === 'threshold') {
       const events: EvItem[] = ch.events.map((e) => {
@@ -150,25 +224,34 @@ export function seedCfgsForBoard(boardName: string): SrSeedResult {
           severity: severityOf(e.eventKeyId),
           operatorId: lf ? (lf.startsWith('Upper') ? 4 : 1) : 4,
           levelField: lf, condition: e.condition ?? 1, eventKeyId: e.eventKeyId, enabled: true,
+          ...evExtra(e.name),
         };
       });
+      // 按真实 SensorType 归类（温度/电压/电流/功率/风扇），不再一律当温度
+      const q = thresholdQuantityOf(pb.objects[ch.name]);
       cfgs.push({
-        id: `sr:${name}`, deviceKey: 'Temp_Board', deviceLabel: '单板温度',
-        quantityKey: 'temperature', railKey: name, railLabel: name,
-        dsMode: dsChip ? 'scanner' : 'device-field', dsChip, dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 1000,
-        thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true,
+        id: `sr:${name}`, deviceKey: q.deviceKey, deviceLabel: q.deviceLabel,
+        quantityKey: q.qk, railKey: name, railLabel: name,
+        dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
+        dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 1000,
+        thresholds: { ...ch.thresholds }, hysteresis: 2, events, enabled: true, entityRef,
+        debounce: sp?.debounce, scanEnabled: sp?.scanEnabled,
       });
     } else if (ch.kind === 'discrete') {
       const events: EvItem[] = ch.events.map((e) => ({
         id: `e${++ev}`, suffix: '', label: e.eventKeyId.split('.').pop() || '状态命中',
         severity: severityOf(e.eventKeyId), operatorId: 5,
         levelField: undefined, condition: e.condition ?? 1, eventKeyId: e.eventKeyId, enabled: true,
+        ...evExtra(e.name),
       }));
       cfgs.push({
         id: `sr:${name}`, deviceKey: 'System', deviceLabel: '系统状态',
         quantityKey: 'sr_state', railKey: name, railLabel: name,
-        dsMode: dsChip ? 'scanner' : 'device-field', dsChip, dsOffset: 0, dsMask: 255, dsSize: 1, periodMs: 8000,
-        thresholds: {}, hysteresis: 0, events, enabled: true,
+        dsMode: dsChip ? 'scanner' : 'device-field', dsChip,
+        dsOffset: sp?.offset ?? 0, dsMask: sp?.mask ?? 255, dsSize: sp?.size ?? 1, periodMs: sp?.period ?? 8000,
+        thresholds: {}, hysteresis: 0, events, enabled: true, entityRef,
+        debounce: sp?.debounce, scanEnabled: sp?.scanEnabled,
+        selEvents: selEventsFor(pb.objects, ch.name),
       });
     } else { skipped++; }
   }
